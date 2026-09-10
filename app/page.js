@@ -21,9 +21,11 @@ export default function App() {
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 효과음 및 연출
+  // 효과음, 연출, AI 답변 제안 칩 설정
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true); // AI 답변 제안 켜기/끄기
+  const [suggestedActions, setSuggestedActions] = useState([]); // AI가 제안한 선택지 3개
 
   // 대화록 내보내기 옵션
   const [exportFormat, setExportFormat] = useState("txt");
@@ -37,6 +39,7 @@ export default function App() {
     lastPromptTokens: 0,
     lastResponseTokens: 0,
   });
+  const [manualCountInput, setManualCountInput] = useState("");
 
   // 마법사 입력 상태
   const [wizardMode, setWizardMode] = useState("coc");
@@ -48,8 +51,9 @@ export default function App() {
   const [scenarioInput, setScenarioInput] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  // 서사 톤 & 관계성 성향 입력란 (깔끔한 기본 플레이스홀더 지원)
+  // 서사 톤 & 관계성 성향
   const [playPreference, setPlayPreference] = useState("");
 
   // CoC 7판 특성치
@@ -73,69 +77,103 @@ export default function App() {
   const [targetStat, setTargetStat] = useState(50);
   const [pendingCheck, setPendingCheck] = useState(null);
 
-  // 추천 시나리오 & 캐릭터 랜덤 프리셋
-  const randomPresets = {
-    coc: [
-      {
-        name: "사반",
-        job: "고서적 및 유물 감정사",
-        age: "26",
-        gender: "여성",
-        background: "런던 뒷골목 고서점에서 금서와 유물을 감정하며 살아온 인물. 겉으로는 침착하지만 금기된 오컬트 지식과 수수께끼에 강하게 매혹된다. 품에는 황동 돋보기, 가죽 수첩, 은제 만년필 나이프를 소지하고 있다.",
-        preference: "GL 지향. 상속녀 엘리제의 유약한 의존성과 경호원 유스티나의 과보호적 집착 사이의 미묘한 기류 중심.",
-        stats: { str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 },
-        scenario: "폭풍우와 짙은 안개로 고립된 해안 절벽의 빅토리아풍 고택 '블랙우드 저택'. 사반은 저택 서고에서 발견된 고대 양피지를 해독해 달라는 의뢰를 받고 도착했다. 저택에는 사반에게 깊은 호기심과 의존을 느끼는 은발의 상속녀 '엘리제'와, 그녀를 호위하며 사반을 매섭게 견제하면서도 독점욕을 드러내는 경호원 '유스티나'가 함께하고 있다. 자정 무렵, 2층 서재 문틈 사이로 유리창 깨지는 소리와 함께 기괴한 속삭임이 울려 퍼지며 검은 그림자가 액체처럼 흘러나온다."
-      },
-      {
-        name: "비비안",
-        job: "탐사 저널리스트",
-        age: "28",
-        gender: "여성",
-        background: "아컴 가제트의 잠입 취재 전문 기자. 폐쇄 병동의 비밀 수용실과 연쇄 실종 사건을 파헤치고 있다. 품에는 소형 카메라, 압박 붕대, 만년필 녹음기를 소지하고 있다.",
-        preference: "GL 지향. 수간호사 마가렛과의 서늘한 신경전, 의문의 환자 아이린의 은밀한 애착과 쌍방 구원 서사.",
-        stats: { str: 35, con: 55, siz: 45, dex: 65, app: 65, int: 80, pow: 70, edu: 45, luck: 60 },
-        scenario: "폭설로 외부와 완전히 차단된 아컴 시립 정신병원 지하 병동. 비밀을 알고 있는 냉철하고 엄격한 수간호사 '마가렛'과, 원장실의 열쇠를 쥐고 비비안에게 비정상적인 애착을 보이는 의문의 환자 '아이린'이 곁에 있다. 지하 독방 깊숙한 곳에서 인간의 언어가 아닌 둔탁한 긁는 소리가 벽을 타고 울리기 시작한다."
-      },
-      {
-        name: "카밀라",
-        job: "고고학 연구원",
-        age: "27",
-        gender: "여성",
-        background: "왕립 발굴단의 현장 총괄. 모래 아래 파묻힌 잊혀진 신전을 조사하기 위해 위험을 감수한다. 품에는 제도용 나침반, 고대 상형문자 사전, 손전등을 소지하고 있다.",
-        preference: "GL 지향. 귀족 후원자 베아트리스의 츤데레적 호감과 현지 길잡이 나디아의 맹목적인 충성심 사이의 감정선.",
-        stats: { str: 50, con: 60, siz: 55, dex: 55, app: 50, int: 75, pow: 65, edu: 50, luck: 50 },
-        scenario: "이집트 외곽의 검은 모래 언덕 밑 미지의 제단. 지진으로 무덤 입구가 무너지며 고립된 카밀라의 곁에는 귀족 출신의 까칠한 후원자 '베아트리스'와 신전의 금기를 두려워하면서도 카밀라를 과보호하는 현지인 길잡이 '나디아'가 위험한 신경전을 벌인다. 굳게 닫힌 석문 틈새로 푸른 인광이 새어 나오기 시작한다."
+  // 대규모 절차적 생성 데이터베이스 (CoC & 1D20 자유 서사 양방향 지원)
+  const generatorPool = {
+    coc: {
+      names: ["사반", "로웨나", "비비안", "엘레노어", "카밀라", "샬롯", "이졸데", "마리안", "세실리아", "베아트리스"],
+      jobs: [
+        { job: "고서적 및 유물 감정사", item: "황동 돋보기, 가죽 수첩, 은제 만년필 나이프", bg: "금서와 고대 비전서의 기괴한 필적을 감정하며 살아온 인물. 지적 호기심과 미지에 대한 집착이 강하다." },
+        { job: "사립 탐정", item: "회중시계형 나침반, 콜트 32구경 권총, 잠금해제용 철사", bg: "어둠에 묻힌 실종 사건과 기괴한 범죄 현장을 전담해 온 베테랑 탐정. 날카로운 직관과 침착함을 지녔다." },
+        { job: "정신과 의사", item: "진정제 앰플, 가죽 청진기, 임상 기록 노트", bg: "원인 불명의 집단 광기와 망상 환자들을 치료해 온 학자. 타인의 미묘한 심리 변화를 짚어낸다." },
+        { job: "고고학 발굴단원", item: "제도용 캘리퍼스, 손전등, 발굴용 작은 단도", bg: "모래와 석조 잔해 밑에 묻힌 고대 신전을 탐사해 온 현장주의자. 유적의 금기에 매료되어 있다." },
+        { job: "탐사 저널리스트", item: "소형 카메라, 만년필 녹음기, 압박 붕대", bg: "가문의 스캔들과 사교 집단의 밀실 의식을 파헤쳐 온 기자. 위험 앞에서도 물러서지 않는다." },
+      ],
+      places: [
+        "폭풍우와 해무로 고립된 해안 절벽의 빅토리아풍 고택 '블랙우드 저택'",
+        "폭설로 외부 진입로가 완전히 봉쇄된 산 정상의 '아컴 요양 병동'",
+        "지진으로 유일한 석조 출입구가 무너져 내린 고대 사막의 '이형 지하 신전'",
+        "밤마다 짙은 안개 속에서 타종 소리가 울려 퍼지는 호숫가의 '폐쇄된 수녀원'",
+      ],
+      npc1: [
+        { name: "엘리제", title: "은발의 상속녀", trait: "병약하고 서늘한 인상이지만 주인공에게 깊은 호기심과 강박적인 의존을 드러냄" },
+        { name: "아이린", title: "의문의 기록원", trait: "비밀을 감춘 나른한 눈빛으로 주인공의 일거수일투족을 관찰하며 은밀한 호감을 보임" },
+        { name: "베아트리스", title: "귀족 출신 후원자", trait: "오만하고 까칠한 말투 뒤편으로 주인공의 안위를 누구보다 조마조마하게 걱정함" },
+      ],
+      npc2: [
+        { name: "유스티나", title: "단호한 호위 경호원", trait: "권총을 차고 주인공을 외부인이라며 매섭게 견제하지만 기이한 독점욕을 숨기지 못함" },
+        { name: "마가렛", title: "냉혹한 관리인", trait: "엄격하고 무자비하게 현장을 통제하면서도 주인공의 시선과 인정에 집착함" },
+        { name: "카라", title: "과묵한 현지 길잡이", trait: "말수는 적으나 주인공을 가로막는 위험 앞에서는 목숨을 걸고 앞장서며 과보호함" },
+      ],
+      events: [
+        "서재 안쪽에서 유리창이 산산조각 나며 인간의 성대가 아닌 듯한 젖은 속삭임이 쏟아져 내립니다.",
+        "석문 틈새로 푸른 인광이 새어 나오며 바닥의 마법진이 액체처럼 검게 끓어오르기 시작합니다.",
+        "괘종시계의 바늘이 반대 방향으로 회전하며 저택 안의 모든 촛불이 일제히 푸른 불꽃으로 물듭니다.",
+      ]
+    },
+    d20: {
+      genres: [
+        {
+          genre: "다크 판타지",
+          names: ["레니에", "발렌티나", "이졸데", "모건"],
+          jobs: ["저주받은 마검사", "이단 심문관", "밀교의 점성술사", "그림자 암살자"],
+          places: ["붉은 비가 그치지 않는 저주받은 성채 '카르코사'", "마수의 뼈로 지어진 국경의 비밀 요새", "부서진 여신상이 잠든 지하 카타콤"],
+          npc1: { name: "모르가나", title: "은둔 마녀", trait: "나른한 미소로 주인공을 시험하며 금지된 지식을 흘림" },
+          npc2: { name: "클레어", title: "성기사", trait: "엄격한 신조를 가졌으나 주인공에게 등을 맡기며 억눌린 애증을 품음" },
+          event: "성소의 봉인이 파괴되며 심연의 마기가 검은 안개처럼 솟구쳐 오릅니다."
+        },
+        {
+          genre: "사이버펑크 느와르",
+          names: ["시안", "키이라", "로완", "제이드"],
+          jobs: ["블랙넷 해커", "신경 가속 사이보그 용병", "암시장 나노 엔지니어", "기업 특수요원"],
+          places: ["네온사인이 번쩍이는 슬럼가 지하 바 '글리치'", "메가코프 최상층의 스카이 가든 펜트하우스", "비 내리는 버려진 구룡성채형 거주구역"],
+          npc1: { name: "이브", title: "사이보그 집행관", trait: "체포 명령을 받았지만 주인공에게 기이한 독점욕과 집착을 드러냄" },
+          npc2: { name: "베로니카", title: "신디케이트 보스", trait: "주인공을 숨겨주는 대가로 영원한 복종과 계약을 요구함" },
+          event: "정체불명의 고위급 보안 프로토콜이 해킹 덱을 강타하며 경보 사이렌이 울립니다."
+        },
+        {
+          genre: "스페이스 오페라 SF",
+          names: ["알렉스", "세리스", "아리아", "헬리오스"],
+          jobs: ["개조 수송선 함장", "외계 유물 인양꾼", "성간 항로 파일럿", "사이오닉 감응자"],
+          places: ["버려진 군사 우주정거장의 잔해 구역", "동면 포드가 늘어선 심우주 탐사선 '노스토모'", "붉은 모래폭풍이 몰아치는 미개척 외계 행성"],
+          npc1: { name: "세레나", title: "망명 귀족", trait: "고귀한 태도 뒤에 깊은 불안을 감추고 주인공에게만 기대려 함" },
+          npc2: { name: "카라", title: "수석 엔지니어", trait: "거친 언행 속에서도 주인공의 생존과 안전만을 극단적으로 우선함" },
+          event: "인양한 고대 외계 코어가 맥박처럼 고동치며 함선의 중력 제어 장치가 요동칩니다."
+        },
+        {
+          genre: "어반 판타지 (현대 퇴마)",
+          names: ["서윤", "도아", "은채", "하경"],
+          jobs: ["현대 퇴마사", "오컬트 고서점 운영자", "영능력 특수경찰", "부적 제작자"],
+          places: ["자정이 되면 시간이 멈추는 비 내리는 폐지하철역", "결계가 찢어진 도심 한복판의 오래된 빌딩 옥상", "금기가 봉인된 인사동의 비밀 골동품점"],
+          npc1: { name: "유화", title: "신내림을 거부한 무녀", trait: "위태롭고 서늘하지만 주인공의 손길에만 안정감을 느낌" },
+          npc2: { name: "선우", title: "강력계 형사", trait: "오컬트를 불신한다면서도 주인공의 곁을 집요하게 지키며 과보호함" },
+          event: "결계석이 산산조각 나며 짙은 피비린내와 함께 붉은 부적들이 공중에 흩날립니다."
+        }
+      ]
+    }
+  };
+
+  // CoC 460pt 정규 룰 주사위 배분
+  const generateRandomCocStats = () => {
+    const base = [30, 30, 30, 30, 30, 30, 30, 30];
+    let remaining = 220;
+    while (remaining > 0) {
+      const idx = Math.floor(Math.random() * 8);
+      if (base[idx] < 85) {
+        base[idx] += 5;
+        remaining -= 5;
       }
-    ],
-    d20: [
-      {
-        name: "레니에",
-        job: "방랑 검사",
-        age: "25",
-        gender: "여성",
-        background: "왕국에서 추방된 근위대 출신의 검객. 마검에 깃든 저주의 속삭임을 억누르고 있다. 품에는 흑철 롱소드, 여행자 망토, 숫돌을 지니고 있다.",
-        preference: "GL 판타지. 은둔 마녀 모르가나의 나른한 유혹과 옛 동료 성기사 클레어의 억눌린 애증 대립.",
-        scenario: "끝없는 비가 내리는 버려진 요새 '카르코사'. 저주를 풀 단서를 찾아온 요새의 성소에서 매혹적인 미소로 레니에를 시험하는 은둔 마녀 '모르가나'와, 마녀를 처단하기 위해 추적해 온 레니에의 옛 동료이자 고지식한 성기사 '클레어'가 서로 무기를 겨눈 채 레니에의 선택을 요구한다."
-      },
-      {
-        name: "시안",
-        job: "블랙넷 브로커",
-        age: "24",
-        gender: "여성",
-        background: "메가코프의 비밀 메모리 칩을 탈취해 도주 중인 해커. 신경 가속 사이버웨어를 장착했다. 품에는 해킹 덱, EMP 수류탄, 홀로그램 위장기를 지니고 있다.",
-        preference: "사이버펑크 GL. 냉혹한 사이보그 집행관 이브의 집요한 추적과 신디케이트 보스 베로니카의 위험한 독점욕.",
-        scenario: "비에 젖은 네온사인이 번쩍이는 슬럼가 지하 바 '글리치'. 메모리 칩의 보안 코드를 해독하려는 찰나, 시안을 생포하라는 명령을 받았지만 묘한 집착을 보이는 사이보그 집행관 '이브'와, 시안을 숨겨주는 대가로 영원한 복종을 요구하는 뒷골목 신디케이트 보스 '베로니카'가 동시에 나타난다."
-      },
-      {
-        name: "알렉스",
-        job: "함선 파일럿",
-        age: "29",
-        gender: "여성",
-        background: "개조 수송선의 선장. 거칠지만 동료를 버리지 않는 신념이 있다. 품에는 플라즈마 토치, 가죽 재킷, 은하 성도 칩을 소지하고 있다.",
-        preference: "SF 스페이스 오페라 GL. 망명 귀족 세레나와의 신분차 감정선과 헌신적인 수석 엔지니어 카라와의 유대감.",
-        scenario: "버려진 군사 우주정거장의 잔해 속에서 정체불명의 외계 코어를 회수했다. 수송선 안에서 코어를 가문의 복권에 쓰려는 망명 귀족 '세레나'와, 코어의 위험성을 경고하며 알렉스의 안전만을 우선시하는 수석 엔지니어 '카라' 사이의 갈등이 임계점에 달한다."
-      }
-    ]
+    }
+    return {
+      str: base[0],
+      con: base[1],
+      siz: base[2],
+      dex: base[3],
+      app: base[4],
+      int: base[5],
+      pow: base[6],
+      edu: base[7],
+      luck: Math.floor(Math.random() * 50) + 40,
+    };
   };
 
   const themePalettes = {
@@ -348,7 +386,7 @@ export default function App() {
   else if (strPlusSiz <= 164) { derivedDb = "+1D4"; derivedBuild = 1; }
   else { derivedDb = "+1D6"; derivedBuild = 2; }
 
-  // 로컬 스토리지 안전 불러오기
+  // 로컬 스토리지 불러오기
   useEffect(() => {
     const saved = localStorage.getItem("rp_hub_sessions");
     if (saved) {
@@ -371,6 +409,9 @@ export default function App() {
 
     const savedAnim = localStorage.getItem("rp_hub_anim");
     if (savedAnim !== null) setAnimationEnabled(savedAnim === "true");
+
+    const savedSugg = localStorage.getItem("rp_hub_suggestions_enabled");
+    if (savedSugg !== null) setSuggestionsEnabled(savedSugg === "true");
 
     const todayStr = new Date().toISOString().slice(0, 10);
     const savedUsage = localStorage.getItem("rp_hub_api_usage");
@@ -412,6 +453,11 @@ export default function App() {
     localStorage.setItem("rp_hub_anim", enabled.toString());
   };
 
+  const handleSaveSuggestions = (enabled) => {
+    setSuggestionsEnabled(enabled);
+    localStorage.setItem("rp_hub_suggestions_enabled", enabled.toString());
+  };
+
   const recordApiCall = (usage) => {
     const todayStr = new Date().toISOString().slice(0, 10);
     setApiUsage((prev) => {
@@ -433,22 +479,105 @@ export default function App() {
     });
   };
 
-  // 모드별 랜덤 추천 로드
-  const loadRandomScenario = () => {
-    const modeKey = wizardMode === "coc" ? "coc" : "d20";
-    const list = randomPresets[modeKey];
-    const picked = list[Math.floor(Math.random() * list.length)];
+  // API 호출 카운트 수동 보정
+  const handleUpdateManualApiCount = () => {
+    const num = parseInt(manualCountInput, 10);
+    if (isNaN(num) || num < 0) return alert("올바른 숫자를 입력하세요.");
+    setApiUsage((prev) => {
+      const updated = { ...prev, dailyRequests: num };
+      localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
+      return updated;
+    });
+    setManualCountInput("");
+    alert(`오늘 API 호출 횟수가 ${num}회로 보정되었습니다.`);
+  };
 
-    setCharName(picked.name);
-    setCharJob(picked.job);
-    setCharAge(picked.age);
-    setCharGender(picked.gender);
-    setCharBackground(picked.background);
-    setScenarioInput(picked.scenario);
-    if (picked.preference) setPlayPreference(picked.preference);
+  // 모드별 절차적 무작위 생성기 (CoC & 1D20 자유 서사 양방향 지원)
+  const handleProceduralGenerate = () => {
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    if (modeKey === "coc" && picked.stats) {
-      setCocStats({ ...picked.stats });
+    if (wizardMode === "coc") {
+      const pool = generatorPool.coc;
+      const name = pick(pool.names);
+      const jobObj = pick(pool.jobs);
+      const place = pick(pool.places);
+      const n1 = pick(pool.npc1);
+      const n2 = pick(pool.npc2);
+      const evt = pick(pool.events);
+
+      setCharName(name);
+      setCharJob(jobObj.job);
+      setCharAge(String(Math.floor(Math.random() * 15) + 22));
+      setCharGender("여성");
+      setCharBackground(`${jobObj.bg} 품에는 [${jobObj.item}]을(를) 소지하고 있다.`);
+      setScenarioInput(`${place}. ${name}은(는) 숨겨진 진상을 조사하기 위해 도착했다. 곁에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 서로 팽팽한 신경전을 벌이며 동행 중이다. 자정이 지난 시각, ${evt}`);
+      setCocStats(generateRandomCocStats());
+    } else {
+      const pool = generatorPool.d20;
+      const gObj = pick(pool.genres);
+      const name = pick(gObj.names);
+      const job = pick(gObj.jobs);
+      const place = pick(gObj.places);
+      const n1 = gObj.npc1;
+      const n2 = gObj.npc2;
+      const evt = gObj.event;
+
+      setCharName(name);
+      setCharJob(job);
+      setCharAge(String(Math.floor(Math.random() * 12) + 21));
+      setCharGender("여성");
+      setCharBackground(`[${gObj.genre}] 위험한 임무를 수행하는 ${job}. 품에는 필수 호신 도구와 장비를 지니고 있다.`);
+      setScenarioInput(`[${gObj.genre}] ${place}. ${name}은(는) 의뢰를 완수하기 위해 진입했다. 이곳에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 서로를 견제하며 주인공과 동행하고 있다. 긴장이 감돌던 순간, ${evt}`);
+    }
+  };
+
+  // AI 즉석 신규 생성
+  const handleAiGenerate = async () => {
+    setIsAiGenerating(true);
+    const prompt = `당신은 노련한 TRPG 마스터입니다. ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "1D20 자유 서사"}에 쓸 독창적인 캐릭터와 시나리오 도입부를 하나 작성하세요.
+반드시 아래 JSON 포맷으로만 응답하세요:
+{
+  "name": "캐릭터 이름",
+  "job": "직업",
+  "age": "25",
+  "gender": "여성",
+  "background": "캐릭터의 상세 배경과 소지품 3가지",
+  "scenario": "고립된 배경, 매력적인 동행 NPC 2명과의 미묘한 관계성, 첫 장면에 닥친 위기 사건을 포함한 3~4문장의 시나리오 도입부"
+}`;
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", text: prompt }],
+          scenarioText: "",
+          playerSheet: {},
+          ruleMode: wizardMode,
+          playPreference: playPreference,
+        }),
+      });
+
+      const data = await response.json();
+      recordApiCall(data.usage);
+
+      const jsonMatch = data.text?.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        setCharName(parsed.name || "주인공");
+        setCharJob(parsed.job || "조사원");
+        setCharAge(parsed.age || "25");
+        setCharGender(parsed.gender || "여성");
+        setCharBackground(parsed.background || "");
+        setScenarioInput(parsed.scenario || "");
+        if (wizardMode === "coc") setCocStats(generateRandomCocStats());
+      } else {
+        handleProceduralGenerate();
+      }
+    } catch (e) {
+      handleProceduralGenerate();
+    } finally {
+      setIsAiGenerating(false);
     }
   };
 
@@ -538,45 +667,41 @@ export default function App() {
   };
 
   const getInitialItems = (bgText) => {
-    if (bgText && bgText.includes("돋보기")) {
-      return [
-        { name: "황동 돋보기", desc: "오컬트 문양과 미세한 필적을 확대해 살피는 도구" },
-        { name: "가죽 수첩", desc: "고대 상형문자와 단서가 빼곡히 적힌 수첩" },
-        { name: "은제 만년필 나이프", desc: "만년필 모양 속에 숨겨진 호신용 단도" },
-      ];
-    }
-    if (bgText && bgText.includes("카메라")) {
-      return [
-        { name: "소형 카메라", desc: "현장의 결정적 단서를 기록하는 필름 카메라" },
-        { name: "만년필 녹음기", desc: "소리를 은밀히 담는 소형 녹음 도구" },
-        { name: "압박 붕대", desc: "부상을 즉시 지혈할 수 있는 구급용 붕대" },
-      ];
-    }
-    if (bgText && bgText.includes("나침반")) {
-      return [
-        { name: "제도용 나침반", desc: "방향과 방위를 정밀하게 측정하는 도구" },
-        { name: "손전등", desc: "어둠 속 지하 유적을 밝히는 도구" },
-        { name: "고대 상형문자 사전", desc: "잊혀진 문자를 번역하는 고서" },
-      ];
-    }
-    if (bgText && bgText.includes("롱소드")) {
-      return [
-        { name: "흑철 롱소드", desc: "저주받은 마기가 서려 있는 날카로운 검" },
-        { name: "여행자 망토", desc: "비바람과 시선을 차단하는 두터운 외투" },
-        { name: "휴대용 숫돌", desc: "날을 예리하게 벼릴 수 있는 도구" },
-      ];
-    }
-    if (bgText && bgText.includes("해킹")) {
-      return [
-        { name: "휴대용 해킹 덱", desc: "전자 잠금장치와 네트워크를 교란하는 단말기" },
-        { name: "EMP 수류탄", desc: "기계 장치를 일시 무력화하는 소형 폭탄" },
-        { name: "홀로그램 위장기", desc: "외모를 일시적으로 속이는 광학 장비" },
-      ];
-    }
-    return [
-      { name: "휴대용 라이터", desc: "어둠 속을 밝히거나 불을 지필 수 있는 금속 라이터" },
-      { name: "가죽 지갑", desc: "신분증과 약간의 비상금이 들어 있는 지갑" },
+    const defaultList = [
+      { name: "황동 돋보기", desc: "오컬트 문양과 미세한 필적을 확대해 살피는 도구" },
+      { name: "가죽 수첩", desc: "고대 상형문자와 단서가 빼곡히 적힌 수첩" },
+      { name: "은제 만년필 나이프", desc: "만년필 모양 속에 숨겨진 호신용 단도" },
     ];
+    if (!bgText) return defaultList;
+
+    const items = [];
+    const keywords = [
+      { key: "돋보기", name: "황동 돋보기", desc: "오컬트 문양과 미세한 필적을 살피는 도구" },
+      { key: "수첩", name: "가죽 수첩", desc: "단서와 기록이 빼곡히 적힌 수첩" },
+      { key: "만년필", name: "은제 만년필 나이프", desc: "만년필 모양 속에 숨겨진 호신용 단도" },
+      { key: "권총", name: "콜트 32구경 권총", desc: "호신용 소형 리볼버 권총" },
+      { key: "철사", name: "잠금해제용 철사 세트", desc: "자물쇠를 해제할 수 있는 도구" },
+      { key: "카메라", name: "소형 필름 카메라", desc: "현장의 결정적 단서를 기록하는 카메라" },
+      { key: "녹음기", name: "만년필형 소형 녹음기", desc: "음성을 기록하는 도구" },
+      { key: "붕대", name: "응급 압박 붕대", desc: "지혈 및 부상 처치용 붕대" },
+      { key: "나침반", name: "회중시계형 정밀 나침반", desc: "방향과 방위를 측정하는 도구" },
+      { key: "손전등", name: "소형 손전등", desc: "어둠 속을 밝히는 도구" },
+      { key: "단도", name: "발굴용 단도", desc: "유적 조사와 호신에 쓰는 단도" },
+      { key: "메스", name: "은제 외과 메스", desc: "정밀하게 자르거나 해체할 수 있는 메스" },
+      { key: "롱소드", name: "흑철 롱소드", desc: "마기가 서려 있는 날카로운 장검" },
+      { key: "망토", name: "여행자 망토", desc: "비바람과 시선을 차단하는 두터운 외투" },
+      { key: "해킹", name: "휴대용 해킹 덱", desc: "전자 잠금장치와 네트워크를 교란하는 단말기" },
+      { key: "수류탄", name: "EMP 수류탄", desc: "기계를 일시 무력화하는 소형 폭탄" },
+      { key: "토치", name: "플라즈마 토치", desc: "금속을 절단하고 용접하는 휴대용 도구" },
+    ];
+
+    keywords.forEach((k) => {
+      if (bgText.includes(k.key) && !items.some((it) => it.name === k.name)) {
+        items.push({ name: k.name, desc: k.desc });
+      }
+    });
+
+    return items.length > 0 ? items : defaultList;
   };
 
   const executeExport = () => {
@@ -686,9 +811,10 @@ export default function App() {
     setActiveSessionId(newId);
     setIsLoading(true);
     setPendingCheck(null);
+    setSuggestedActions([]);
 
     const openingPrompt = `[세션 시작: 시나리오 원문과 인물 설정, 그리고 지정된 서사/관계성 지침("${playPreference || "자연스러운 심리 묘사"}")을 깊이 있게 반영하여 첫 장면의 서막을 여십시오. 
-- 메타 발언, 챗봇 인사말, 객관식 번호 선택지를 일체 배제하십시오.
+- 메타 발언, 챗봇 인사말, 본문 객관식 번호 선택지를 일체 배제하십시오.
 - 공간의 분위기와 날씨, 탐사자가 마주한 위기, 함께 있는 인물들의 표정과 미묘한 감정 기류를 생생하게 묘사하십시오.]`;
 
     try {
@@ -710,6 +836,18 @@ export default function App() {
       let rawText = data.text || "서막을 불러오지 못했습니다.";
       let updatedSheet = { ...initialSheet };
 
+      // AI 행동 제안 칩 파싱
+      const suggMatch = rawText.match(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s);
+      if (suggMatch) {
+        try {
+          setSuggestedActions(JSON.parse(suggMatch[1]));
+        } catch (e) {
+          console.error(e);
+        }
+        rawText = rawText.replace(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s, "").trim();
+      }
+
+      // 판정 요구 태그 파싱
       const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
       if (checkMatch) {
         try {
@@ -720,6 +858,7 @@ export default function App() {
         rawText = rawText.replace(/<!--CHECK:\s*({.*?})-->/s, "").trim();
       }
 
+      // 상태 태그 파싱
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
         try {
@@ -757,6 +896,7 @@ export default function App() {
       prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages } : s))
     );
     setIsLoading(true);
+    setSuggestedActions([]); // 대화 전송 시 이전 제안 칩 초기화
 
     try {
       const response = await fetch("/api/chat", {
@@ -783,6 +923,18 @@ export default function App() {
       let rawText = data.text;
       let newSheet = { ...activeSession.sheet };
 
+      // 제안 칩 파싱
+      const suggMatch = rawText.match(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s);
+      if (suggMatch) {
+        try {
+          setSuggestedActions(JSON.parse(suggMatch[1]));
+        } catch (e) {
+          console.error(e);
+        }
+        rawText = rawText.replace(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s, "").trim();
+      }
+
+      // 판정 요구 태그 파싱
       const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
       if (checkMatch) {
         try {
@@ -795,6 +947,7 @@ export default function App() {
         setPendingCheck(null);
       }
 
+      // 상태 태그 파싱
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
         try {
@@ -993,7 +1146,7 @@ export default function App() {
       <div style={{ flex: 1, minWidth: "320px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         {!activeSession ? (
           <div style={{ flex: 1, overflowY: "auto", padding: "30px 25px 60px 25px", maxWidth: "680px", margin: "0 auto", width: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "18px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1005,22 +1158,24 @@ export default function App() {
                 <h2 style={{ margin: 0, fontSize: "1.4rem" }}>새로운 세션 구성</h2>
               </div>
 
-              <button
-                type="button"
-                onClick={loadRandomScenario}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: theme.panelAlt,
-                  border: `1px solid ${theme.accent}`,
-                  color: theme.accent,
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                }}
-              >
-                🎲 랜덤 추천 설정 ({wizardMode === "coc" ? "CoC" : "자유 서사"})
-              </button>
+              {/* 듀얼 생성 버튼 */}
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button
+                  type="button"
+                  onClick={handleProceduralGenerate}
+                  style={{ padding: "7px 11px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, color: theme.accent, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}
+                >
+                  🎲 무작위 조합 생성
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAiGenerate}
+                  disabled={isAiGenerating}
+                  style={{ padding: "7px 11px", backgroundColor: theme.accent, border: "none", color: "#fff", borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}
+                >
+                  {isAiGenerating ? "집필 중..." : "✨ AI 즉석 생성"}
+                </button>
+              </div>
             </div>
 
             {/* 진행 룰 선택 */}
@@ -1033,7 +1188,7 @@ export default function App() {
                   style={{ flex: 1, padding: "12px", borderRadius: "8px", border: `2px solid ${wizardMode === "d20" ? theme.accent : theme.border}`, backgroundColor: wizardMode === "d20" ? theme.panel : "transparent", color: theme.text, cursor: "pointer" }}
                 >
                   <strong>1D20 자유 서사</strong>
-                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>자유 샌드박스 / 직관적 DC 판정</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>다크 판타지 / 사이버펑크 / SF</div>
                 </button>
 
                 <button
@@ -1042,19 +1197,19 @@ export default function App() {
                   style={{ flex: 1, padding: "12px", borderRadius: "8px", border: `2px solid ${wizardMode === "coc" ? theme.danger : theme.border}`, backgroundColor: wizardMode === "coc" ? theme.panel : "transparent", color: theme.text, cursor: "pointer" }}
                 >
                   <strong>CoC 1D100 정규 룰</strong>
-                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>크툴루 7판 / SAN & 특성치 관리</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>크툴루 7판 / SAN & 460pt 자동 분배</div>
                 </button>
               </div>
             </div>
 
-            {/* 개편: 서사 톤 & 관계성 지향 (선택) */}
+            {/* 서사 톤 & 관계성 지향 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "bold", fontSize: "0.88rem", color: theme.accent }}>🎭 서사 톤 & 관계성 지향 (선택)</span>
                 <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>원하는 분위기/관계 지향을 자유롭게 입력</span>
               </div>
 
-              {/* 상단: 관계 지향 미니 칩 (클릭 시 텍스트에 쏙 들어감) */}
+              {/* 관계 지향 미니 칩 */}
               <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
                 <span style={{ fontSize: "0.72rem", color: theme.textMuted, marginRight: "3px" }}>성향 태그:</span>
                 {["GL", "BL", "HL", "논로맨스"].map((type) => (
@@ -1062,23 +1217,14 @@ export default function App() {
                     key={type}
                     type="button"
                     onClick={() => setPlayPreference((prev) => (prev ? `${type} 지향. ${prev}` : `${type} 지향.`))}
-                    style={{
-                      padding: "3px 8px",
-                      backgroundColor: theme.panelAlt,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: "4px",
-                      color: theme.accent,
-                      fontSize: "0.72rem",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
+                    style={{ padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.72rem", cursor: "pointer", fontWeight: "bold" }}
                   >
                     +{type}
                   </button>
                 ))}
               </div>
 
-              {/* 분위기 / 서사 클리셰 프리셋 버튼 */}
+              {/* 프리셋 버튼 */}
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                 {[
                   { label: "🖤 애증 & 집착의 텐션", text: "상호 독점욕과 집착, 팽팽한 신경전과 애증이 교차하는 위태로운 서사." },
@@ -1090,15 +1236,7 @@ export default function App() {
                     key={idx}
                     type="button"
                     onClick={() => setPlayPreference(tag.text)}
-                    style={{
-                      padding: "4px 8px",
-                      backgroundColor: theme.panelAlt,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: "4px",
-                      color: theme.text,
-                      fontSize: "0.74rem",
-                      cursor: "pointer",
-                    }}
+                    style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.74rem", cursor: "pointer" }}
                   >
                     {tag.label}
                   </button>
@@ -1132,7 +1270,7 @@ export default function App() {
                 <textarea
                   value={scenarioInput}
                   onChange={(e) => setScenarioInput(e.target.value)}
-                  placeholder="파일을 선택하거나 상단의 [🎲 랜덤 추천 설정] 버튼을 누르면 내용이 채워집니다."
+                  placeholder="파일을 선택하거나 상단의 [🎲 무작위 조합 생성] 버튼을 누르면 내용이 채워집니다."
                   style={{ width: "100%", height: "85px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
@@ -1199,13 +1337,22 @@ export default function App() {
               <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: "bold", fontSize: "0.9rem", color: theme.danger }}>CoC 7판 특성치 배분</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowGuideModal(true)}
-                    style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.78rem", cursor: "pointer" }}
-                  >
-                    📖 룰 가이드
-                  </button>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setCocStats(generateRandomCocStats())}
+                      style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.75rem", cursor: "pointer" }}
+                    >
+                      🎲 특성치 주사위
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuideModal(true)}
+                      style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.75rem", cursor: "pointer" }}
+                    >
+                      📖 가이드
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ fontSize: "0.8rem", display: "flex", justifyContent: "space-between", padding: "6px 10px", backgroundColor: theme.panelAlt, borderRadius: "6px" }}>
@@ -1252,7 +1399,7 @@ export default function App() {
 
             <button
               onClick={startNewSession}
-              disabled={isLoading || isPdfLoading}
+              disabled={isLoading || isPdfLoading || isAiGenerating}
               style={{ padding: "14px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem" }}
             >
               {isLoading ? "키퍼가 서막을 여는 중..." : "이야기 시작하기"}
@@ -1363,6 +1510,36 @@ export default function App() {
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.88rem", padding: "10px" }}>키퍼가 서사를 구성하는 중...</div>}
             </div>
 
+            {/* 신설: 제미나이 스타일 AI 답변 제안 칩 (ON 설정 시 표시) */}
+            {suggestionsEnabled && suggestedActions.length > 0 && !isLoading && (
+              <div style={{ padding: "8px 15px", backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", overflowX: "auto", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: "0.76rem", color: theme.accent, display: "flex", alignItems: "center", fontWeight: "bold" }}>
+                  💡 추천 행동:
+                </span>
+                {suggestedActions.map((sugg, sIdx) => (
+                  <button
+                    key={sIdx}
+                    onClick={() => setInput(sugg)}
+                    style={{
+                      padding: "5px 11px",
+                      backgroundColor: theme.panelAlt,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: "16px",
+                      color: theme.text,
+                      fontSize: "0.78rem",
+                      cursor: "pointer",
+                      transition: "border-color 0.2s ease",
+                      flexShrink: 0,
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.borderColor = theme.accent)}
+                    onMouseOut={(e) => (e.currentTarget.style.borderColor = theme.border)}
+                  >
+                    {sugg}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* 입력창 */}
             <div style={{ padding: "12px 15px", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "10px" }}>
               <textarea
@@ -1374,7 +1551,7 @@ export default function App() {
                     sendMessage();
                   }
                 }}
-                placeholder="지문이나 대사를 입력하세요..."
+                placeholder="지문이나 대사를 입력하세요 (위 제안 칩을 클릭해 바로 채울 수도 있습니다)..."
                 style={{ flex: 1, height: "45px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", resize: "none", outline: "none", boxSizing: "border-box" }}
               />
               <button onClick={sendMessage} disabled={isLoading} style={{ padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
@@ -1406,7 +1583,7 @@ export default function App() {
             {/* API 모니터링 */}
             <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <span style={{ fontSize: "0.82rem", fontWeight: "bold", color: theme.accent }}>⚡ API 한도 / 사용량</span>
+                <span style={{ fontSize: "0.82rem", fontWeight: "bold", color: theme.accent }}>⚡ API 한도 (추정치)</span>
                 <span style={{ fontSize: "0.68rem", padding: "1px 5px", backgroundColor: theme.panelAlt, borderRadius: "4px", color: theme.textMuted }}>Free Tier</span>
               </div>
 
@@ -1429,21 +1606,17 @@ export default function App() {
 
               <div style={{ fontSize: "0.7rem", color: theme.textMuted, display: "flex", flexDirection: "column", gap: "2px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>분당 한도 (RPM):</span>
+                  <span>분당 속도 (RPM):</span>
                   <span>최대 15회 / 분</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>직전 토큰 (입/출력):</span>
                   <span>{apiUsage.lastPromptTokens} / {apiUsage.lastResponseTokens}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>오늘 누적 토큰:</span>
-                  <span>{apiUsage.totalTokens.toLocaleString()} T</span>
-                </div>
               </div>
             </div>
 
-            {/* 관계성 성향 안내 표시 (단정한 표현 적용) */}
+            {/* 관계성 성향 안내 */}
             {activeSession.preference && (
               <div style={{ fontSize: "0.75rem", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, padding: "8px", borderRadius: "6px", lineHeight: "1.35" }}>
                 <strong style={{ color: theme.accent }}>🎭 관계성 지향:</strong>
@@ -1453,11 +1626,11 @@ export default function App() {
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
-            {/* 탐사자 정보 */}
+            {/* 탐사자/캐릭터 정보 */}
             <div>
-              <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>탐사자 정보</h4>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>캐릭터 정보</h4>
               <div style={{ fontSize: "0.82rem", display: "flex", flexDirection: "column", gap: "4px" }}>
-                <div>이름: <strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "조사원"})</div>
+                <div>이름: <strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "모험가"})</div>
                 <div>HP: <strong>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong></div>
                 {activeSession.ruleMode === "coc" && (
                   <>
@@ -1534,16 +1707,53 @@ export default function App() {
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "470px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text, wordBreak: "keep-all" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
-              <h3 style={{ margin: 0, fontSize: "1.1rem" }}>⚙️ 환경 설정 & 세이브 관리</h3>
+              <h3 style={{ margin: 0, fontSize: "1.1rem" }}>⚙️ 환경 설정</h3>
               <button onClick={() => setShowSettingsModal(false)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* 신설: AI 행동 제안 칩 토글 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>AI 답변 제안 칩 (3가지 선택지)</div>
+                  <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>답변이 어려울 때 입력창 위에 제안 칩을 띄웁니다.</div>
+                </div>
+                <button
+                  onClick={() => handleSaveSuggestions(!suggestionsEnabled)}
+                  style={{ padding: "6px 14px", backgroundColor: suggestionsEnabled ? theme.success : theme.border, color: "#fff", border: "none", borderRadius: "20px", fontWeight: "bold", fontSize: "0.8rem", cursor: "pointer" }}
+                >
+                  {suggestionsEnabled ? "켜짐 (ON)" : "꺼짐 (OFF)"}
+                </button>
+              </div>
+
+              {/* 신설: API 사용량 수동 보정 */}
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                <div style={{ fontSize: "0.85rem", fontWeight: "bold", marginBottom: "4px", color: theme.accent }}>⚡ API 사용량 수동 동기화</div>
+                <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginBottom: "8px" }}>
+                  구글 콘솔의 실제 호출 횟수와 차이가 날 경우, 직접 숫자를 입력하여 게이지를 보정할 수 있습니다.
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <input
+                    type="number"
+                    value={manualCountInput}
+                    onChange={(e) => setManualCountInput(e.target.value)}
+                    placeholder={`현재 ${apiUsage.dailyRequests}회`}
+                    style={{ flex: 1, padding: "6px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.8rem" }}
+                  />
+                  <button
+                    onClick={handleUpdateManualApiCount}
+                    style={{ padding: "6px 12px", backgroundColor: theme.accent, border: "none", color: "#fff", borderRadius: "4px", fontSize: "0.78rem", fontWeight: "bold", cursor: "pointer" }}
+                  >
+                    보정 적용
+                  </button>
+                </div>
+              </div>
+
               {/* 세이브 백업 / 복원 */}
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "6px", color: theme.accent }}>💾 세이브 데이터 백업 / 복원</label>
                 <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "10px" }}>
-                  진행 중인 모든 시나리오와 캐릭터 정보를 PC에 JSON 파일로 다운로드하거나, 이전 세이브 파일을 불러와 복원합니다.
+                  진행 중인 모든 시나리오와 캐릭터 정보를 PC에 JSON 파일로 다운로드하거나 복원합니다.
                 </div>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <button
@@ -1577,15 +1787,7 @@ export default function App() {
                     <button
                       key={p.id}
                       onClick={() => handleSelectPalette(p.id)}
-                      style={{
-                        padding: "8px 10px",
-                        borderRadius: "6px",
-                        border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`,
-                        backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent",
-                        color: theme.text,
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                      }}
+                      style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`, backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}
                     >
                       {p.label}
                     </button>
