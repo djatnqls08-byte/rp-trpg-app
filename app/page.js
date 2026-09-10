@@ -16,6 +16,12 @@ export default function App() {
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false); // 세이브 백업 모달
+  const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false); // 복원 도움말 모달
+
+  // 세이브 백업 옵션 상태
+  const [backupFormat, setBackupFormat] = useState("json"); // 'json' | 'txt'
+  const [backupTarget, setBackupTarget] = useState("all"); // 'all' | 특정 session id
 
   // 테마 시스템
   const [currentPalette, setCurrentPalette] = useState("midnight");
@@ -78,8 +84,35 @@ export default function App() {
   const [pendingCheck, setPendingCheck] = useState(null);
 
   // ============================================================
-  // 대규모 클리셰 서사 & 캐릭터 절차적 생성 데이터베이스
+  // 모바일 뒤로가기 제어 로직 (브라우저 히스토리 popstate 연동)
   // ============================================================
+  const openModal = (setModalFn) => {
+    window.history.pushState({ modalOpen: true }, "");
+    setModalFn(true);
+  };
+
+  const closeModal = (setModalFn) => {
+    setModalFn(false);
+    if (window.history.state?.modalOpen) {
+      window.history.back();
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // 모바일 뒤로가기 버튼/제스처 시 열려있는 모든 모달 닫기
+      setShowSettingsModal(false);
+      setShowExportModal(false);
+      setShowBackupModal(false);
+      setShowRestoreHelpModal(false);
+      setShowGuideModal(false);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // 대규모 클리셰 서사 & 캐릭터 절차적 생성 풀
   const clichesPool = {
     coc: {
       names: [
@@ -98,12 +131,12 @@ export default function App() {
         { job: "골동품 암거래상", item: "정밀 감정용 루페, 위조 신분증, 소형 비수", bg: "밀수품과 저주받은 가보들을 은밀히 유통하며 뒷세계의 위험한 수수께끼에 발을 담근 장물아비." },
         { job: "심령술사 및 영매", item: "타로 카드 덱, 백단향 향로, 은제 진자", bg: "망자의 목소리를 듣는다는 소문으로 상류층 살롱을 드나들며 실제 이계의 존재와 교감해 온 영매." },
         { job: "귀족 가문 상속녀", item: "가문의 세공 회중시계, 독침 부채, 호신용 은장도", bg: "피비린내 나는 유산 상속과 가문의 저주에 얽힌 비밀을 밝혀내기 위해 사교계를 벗어난 귀족." },
-        { job: "종교학 및 민속학 교수", item: "고대 상징 도해집, 녹음용 왁스 실린더, 유전식 램프", bg: "미신 취급받는 토착 괴담과 사교 종파의 제의를 현장 답사하며 기록해 온 미스카토닉 대학의 학자." },
+        { job: "종교학 및 민속학 교수", item: "고대 상징 도해집, 녹음용 왁스 실린더, 유전식 램프", bg: "미신 취급받는 토착 괴담과 사교 종파의 제의를 현장 답사하며 기록해 온 학자." },
         { job: "재즈 클럽 싱어", item: "은제 시가 케이스, 소형 데린저 권총, 향수병", bg: "안개 낀 밤거리의 지하 클럽에서 노래하며 범죄 조직과 정재계 인물들의 은밀한 비밀을 엿듣는 가수." },
         { job: "괴담 및 고딕 소설가", item: "타자기 리본, 가죽 바인딩 일기장, 수면제 병", bg: "악몽에서 본 기괴한 형상들을 소설로 쓰다 현실로 침범해 온 공포의 실체를 마주한 작가." },
         { job: "박물관 큐레이터", item: "보존 처리용 핀셋, 면장갑, 전시관 마스터키", bg: "수장고 깊은 곳에 봉인된 출처 불명의 외계 석판이 풍기는 기괴한 기운을 눈치챈 학예사." },
         { job: "화물선 일등 항해사", item: "황동 육분의, 해상 해도, 신호용 조명탄", bg: "해무 자욱한 버뮤다 해역과 지도에 없는 암초를 통과하며 바다 밑 거대한 그림자를 목격한 뱃사람." },
-        { job: "화학자 및 독물학자", item: "산성 시약 플라스크, 방독면, 유리 스포이트", bg: "인체에 치명적인 미지의 침전물과 비정상적인 유기 물질을 분석하며 오컬트 현상을 과학으로 규명하려는 연구원." },
+        { job: "화학자 및 독물학자", item: "산성 시약 플라스크, 방독면, 유리 스포이트", bg: "인체에 치명적인 미지의 침전물과 비정상적인 유기 물질을 분석하는 연구원." },
         { job: "대저택 수석 가사관리인", item: "황동 열쇠 뭉치, 비밀 가계도 수첩, 재단용 가위", bg: "수십 년간 대저택 가문의 피비린내 나는 비밀과 방마다 얽힌 금기를 묵묵히 통제해 온 인물." },
         { job: "식물학자", item: "표본 채집용 압착판, 채포망, 전정가위", bg: "빛이 들지 않는 늪지대에서 인간의 살점을 거름 삼아 피어나는 이형의 균류와 독초를 추적하는 학자." },
         { job: "천문학 연구원", item: "휴대용 천체망원경, 성도 지도, 황동 각도기", bg: "별들의 주기가 일치하는 밤마다 하늘에서 깜빡이는 기괴한 신호와 우주의 공포를 계산해 낸 관측원." },
@@ -123,29 +156,24 @@ export default function App() {
         "출항 직후 원인 불명으로 통신이 두절되고 안개 속에 표류한 호화 여객선",
         "외지인의 출입을 극도로 꺼리며 매년 기괴한 제사를 지내는 외딴 섬마을",
         "자정이 지나면 지도에 없는 승강장이 나타나는 안개 낀 종착 기차역",
-        "지하 수로와 연결된 침수된 런던 뒷골목의 비밀 지하 납골당",
-        "해저 200m 아래에서 미지의 진동과 함께 침수가 시작된 심해 잠수 기지"
       ],
       npc1: [
         { name: "엘리제", title: "은발의 상속녀", trait: "병약하고 서늘한 인상이지만 주인공에게 깊은 호기심과 강박적인 의존을 드러냄" },
         { name: "아이린", title: "의문의 기록원", trait: "비밀을 감춘 나른한 눈빛으로 주인공의 일거수일투족을 관찰하며 은밀한 호감을 보임" },
         { name: "베아트리스", title: "귀족 출신 후원자", trait: "오만하고 까칠한 말투 뒤편으로 주인공의 안위를 누구보다 조마조마하게 걱정함" },
         { name: "세실", title: "비밀을 품은 섬마을 무녀", trait: "신비롭고 위태로운 분위기 속에서 오직 주인공에게만 진실을 털어놓으려 함" },
-        { name: "헬레나", title: "수석 연구원", trait: "이성적이지만 닥쳐온 공포 앞에서 주인공의 옷자락을 쥐며 숨겨온 유약함을 내비침" }
       ],
       npc2: [
         { name: "유스티나", title: "단호한 호위 경호원", trait: "권총을 차고 주인공을 외부인이라며 매섭게 견제하지만 기이한 독점욕을 숨기지 못함" },
         { name: "마가렛", title: "냉혹한 관리인", trait: "엄격하고 무자비하게 현장을 통제하면서도 주인공의 시선과 인정에 집착함" },
         { name: "카라", title: "과묵한 현지 길잡이", trait: "말수는 적으나 주인공을 가로막는 위험 앞에서는 목숨을 걸고 앞장서며 과보호함" },
         { name: "다프네", title: "경찰 소속 수사관", trait: "주인공을 의심스러운 용의자로 대하면서도 결코 자신의 시야 밖으로 벗어나지 못하게 함" },
-        { name: "나디아", title: "비밀 결사의 탈주자", trait: "날카로운 칼날을 품고 있으며 주인공에게 등을 맡기며 묘한 애증의 텐션을 형성함" }
       ],
       events: [
         "서재 안쪽에서 유리창이 산산조각 나며 인간의 성대가 아닌 듯한 젖은 속삭임이 쏟아져 내립니다.",
         "석문 틈새로 푸른 인광이 새어 나오며 바닥의 마법진이 액체처럼 검게 끓어오르기 시작합니다.",
         "괘종시계의 바늘이 반대 방향으로 회전하며 저택 안의 모든 촛불이 일제히 푸른 불꽃으로 물듭니다.",
         "복도 끝 어둠 속에서 축축한 점막이 마룻바닥을 기어오는 듯한 기괴한 소음이 다가옵니다.",
-        "벽면 너머에서 무언가 거대한 것이 손톱으로 목재를 긁어내리는 둔탁한 소리가 복도를 울립니다."
       ]
     },
     d20: [
@@ -215,7 +243,6 @@ export default function App() {
     ]
   };
 
-  // CoC 460pt 정규 룰 주사위 배분
   const generateRandomCocStats = () => {
     const base = [30, 30, 30, 30, 30, 30, 30, 30];
     let remaining = 220;
@@ -553,7 +580,7 @@ export default function App() {
     alert(`오늘 API 호출 횟수가 ${num}회로 보정되었습니다.`);
   };
 
-  // 클리셰 무작위 조합 생성기
+  // 클리셰 무작위 조합 생성
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -568,7 +595,7 @@ export default function App() {
 
       setCharName(name);
       setCharJob(jobObj.job);
-      setCharAge(String(Math.floor(Math.random() * 18) + 22)); // 22~39세
+      setCharAge(String(Math.floor(Math.random() * 18) + 22));
       setCharGender("여성");
       setCharBackground(`${jobObj.bg} 품에는 [${jobObj.item}]을(를) 소지하고 있다.`);
       setScenarioInput(`${place}. ${name}은(는) 숨겨진 진상을 조사하기 위해 도착했다. 곁에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 동행 중이다. 자정이 지난 시각, ${evt}`);
@@ -584,12 +611,12 @@ export default function App() {
     }
   };
 
-  // AI 즉석 신규 생성
+  // AI 즉석 생성
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const prompt = `당신은 흥미진진한 이야기를 엮어내는 노련한 TRPG 마스터입니다. 
-${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"} 룰에 쓸 매력적인 캐릭터와 몰입감 높은 시나리오 도입부를 작성하세요.
-절대로 장르 말머리(예: [다크 판타지])를 붙이지 마십시오.
+${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사"} 룰에 쓸 매력적인 캐릭터와 몰입감 높은 시나리오 도입부를 작성하세요.
+절대로 장르 말머리를 붙이지 마십시오.
 
 반드시 아래 JSON 포맷으로만 응답하세요:
 {
@@ -639,29 +666,108 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  const exportSaveFile = () => {
-    const dataStr = JSON.stringify(sessions, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `TRPG_세이브백업_${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // ============================================================
+  // 세이브 백업 실행 (TXT / JSON 선택 및 전체/특정 시나리오 선택)
+  // ============================================================
+  const executeSaveBackup = () => {
+    if (sessions.length === 0) {
+      alert("백업할 시나리오 세션이 없습니다.");
+      return;
+    }
+
+    const targets = backupTarget === "all"
+      ? sessions
+      : sessions.filter((s) => s.id === Number(backupTarget));
+
+    if (targets.length === 0) {
+      alert("선택된 시나리오가 없습니다.");
+      return;
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (backupFormat === "json") {
+      // JSON 백업 파일 다운로드 (복원용)
+      const dataStr = JSON.stringify(targets, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fileName = backupTarget === "all"
+        ? `TRPG_전체세이브_${dateStr}.json`
+        : `TRPG_${targets[0].title.replace(/\s+/g, "_")}_${dateStr}.json`;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      // TXT 백업 파일 다운로드 (열람 및 보관용)
+      let txtContent = `====================================================\n`;
+      txtContent += `         TRPG 세이브 데이터 텍스트 백업 파일         \n`;
+      txtContent += `  생성일자: ${new Date().toLocaleString()}\n`;
+      txtContent += `  포함된 세션 수: ${targets.length}개\n`;
+      txtContent += `====================================================\n\n`;
+
+      targets.forEach((s, idx) => {
+        txtContent += `----------------------------------------------------\n`;
+        txtContent += `[세션 ${idx + 1}] ${s.title}\n`;
+        txtContent += `규칙: ${s.ruleMode === "coc" ? "CoC 크툴루 7판" : "자유 서사"}\n`;
+        txtContent += `관계성 지향: ${s.preference || "없음"}\n`;
+        txtContent += `캐릭터: ${s.sheet?.name} (직업: ${s.sheet?.job || "모험가"}, 나이: ${s.sheet?.age || "-"}, 성별: ${s.sheet?.gender || "-"})\n`;
+        txtContent += `수치: HP ${s.sheet?.hp}/${s.sheet?.maxHp}`;
+        if (s.ruleMode === "coc") {
+          txtContent += ` | SAN ${s.sheet?.san}/99 | MP ${s.sheet?.mp}/${s.sheet?.maxMp} | LUCK ${s.sheet?.luck}`;
+        }
+        txtContent += `\n소지품: ${(s.sheet?.items || []).map((it) => it.name).join(", ") || "없음"}\n`;
+        txtContent += `시나리오 배경:\n${s.scenarioText || "기록 없음"}\n\n`;
+        txtContent += `[진행 대화 기록]\n`;
+
+        s.messages.forEach((m) => {
+          const sender = m.role === "user"
+            ? (m.text.includes("[🎲 시스템 공인 주사위 판정") ? "🎲 [시스템 판정]" : `👤 [${s.sheet?.name}]`)
+            : "📜 [마스터]";
+          txtContent += `${sender}\n${m.text}\n\n`;
+        });
+        txtContent += `\n`;
+      });
+
+      const blob = new Blob([txtContent], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fileName = backupTarget === "all"
+        ? `TRPG_전체세이브텍스트_${dateStr}.txt`
+        : `TRPG_${targets[0].title.replace(/\s+/g, "_")}_${dateStr}.txt`;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    closeModal(setShowBackupModal);
   };
 
+  // 백업 파일 복원 (JSON 파일 파싱 및 병합)
   const importSaveFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const imported = JSON.parse(event.target.result);
-        if (Array.isArray(imported)) {
-          setSessions(imported);
-          alert("세이브 데이터가 복원되었습니다!");
+        let imported = JSON.parse(event.target.result);
+        if (!Array.isArray(imported)) {
+          imported = [imported];
+        }
+
+        if (imported.length > 0 && imported[0].title) {
+          // 기존 세션과 병합 (ID 중복 시 덮어쓰고 새로운 건 추가)
+          setSessions((prev) => {
+            const map = new Map();
+            prev.forEach((s) => map.set(s.id, s));
+            imported.forEach((s) => map.set(s.id, s));
+            return Array.from(map.values());
+          });
+          alert(`${imported.length}개의 세션이 안전하게 복원되었습니다!`);
         } else {
-          alert("올바른 세이브 파일이 아닙니다.");
+          alert("올바른 규격의 세이브 JSON 파일이 아닙니다.");
         }
       } catch (err) {
         alert("파일 복원 실패: " + err.message);
@@ -750,14 +856,6 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
       { key: "테이저", name: "특수 테이저건", desc: "순간적으로 대상을 제압하는 전기 충격기" },
       { key: "샷건", name: "개조 샷건", desc: "근접전에서 막강한 화력을 자랑하는 총기" },
       { key: "메스", name: "해부용 은제 메스", desc: "정밀하게 자르거나 해체할 수 있는 메스" },
-      { key: "망원경", name: "휴대용 천체망원경", desc: "별자리와 먼 곳의 기척을 관측하는 도구" },
-      { key: "플라스크", name: "산성 시약 플라스크", desc: "물질을 용해하거나 분석하는 시약병" },
-      { key: "카드", name: "타로 카드 덱", desc: "점괘를 치고 영혼의 흐름을 읽는 카드" },
-      { key: "성수", name: "은제 성수병", desc: "정화와 축복의 효능을 지닌 성수" },
-      { key: "묵주", name: "은제 묵주", desc: "기도를 읊으며 이성을 다잡는 도구" },
-      { key: "타자기", name: "휴대용 타자기", desc: "괴담과 기록을 문서로 남기는 기계" },
-      { key: "캘리퍼스", name: "제도용 캘리퍼스", desc: "유적의 비율과 크기를 측정하는 기구" },
-      { key: "육분의", name: "황동 육분의", desc: "바다 위에서 별을 보고 위치를 찾는 항해도구" }
     ];
 
     keywords.forEach((k) => {
@@ -817,7 +915,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
     link.download = `${session.title.replace(/\s+/g, "_")}_대화록.${exportFormat}`;
     link.click();
     URL.revokeObjectURL(url);
-    setShowExportModal(false);
+    closeModal(setShowExportModal);
   };
 
   const startNewSession = async () => {
@@ -1185,7 +1283,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
         <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px" }}>
           {activeSession && (
             <button
-              onClick={() => setShowExportModal(true)}
+              onClick={() => openModal(setShowExportModal)}
               style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
             >
               📥 대화록 내보내기
@@ -1193,7 +1291,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
           )}
 
           <button
-            onClick={() => setShowSettingsModal(true)}
+            onClick={() => openModal(setShowSettingsModal)}
             style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
           >
             ⚙️ 설정
@@ -1237,7 +1335,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
               </div>
             </div>
 
-            {/* 진행 룰 선택 (큰 글씨 1D20 제거) */}
+            {/* 진행 룰 선택 (큰 글씨에서 1D20 제거 완료) */}
             <div>
               <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "0.9rem" }}>진행 룰 선택</label>
               <div style={{ display: "flex", gap: "10px" }}>
@@ -1406,7 +1504,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowGuideModal(true)}
+                      onClick={() => openModal(setShowGuideModal)}
                       style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.75rem", cursor: "pointer" }}
                     >
                       📖 가이드
@@ -1761,16 +1859,65 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
         </div>
       )}
 
-      {/* 4. 설정 & 세이브 백업 모달 */}
+      {/* 4. 설정 & 세이브 관리 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "470px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text, wordBreak: "keep-all" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>⚙️ 환경 설정</h3>
-              <button onClick={() => setShowSettingsModal(false)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+              <button onClick={() => closeModal(setShowSettingsModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* 세이브 백업 / 복원 구역 & (?) 버튼 탑재 */}
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.85rem", fontWeight: "bold", color: theme.accent, display: "flex", alignItems: "center", gap: "6px" }}>
+                    💾 세이브 데이터 관리
+                  </label>
+                  <button
+                    onClick={() => openModal(setShowRestoreHelpModal)}
+                    title="백업 및 복원 방법 안내 보기"
+                    style={{
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      backgroundColor: theme.panel,
+                      border: `1px solid ${theme.border}`,
+                      color: theme.accent,
+                      fontSize: "0.75rem",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 0,
+                    }}
+                  >
+                    ?
+                  </button>
+                </div>
+
+                <div style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "10px", lineHeight: "1.4" }}>
+                  진행 중인 시나리오를 PC/모바일에 파일로 저장하거나, 기존 백업 파일을 불러와 복원합니다.
+                </div>
+
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => openModal(setShowBackupModal)}
+                    style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}
+                  >
+                    💾 세이브 백업
+                  </button>
+                  <label
+                    style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold", textAlign: "center" }}
+                  >
+                    📤 백업 파일 복원
+                    <input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} />
+                  </label>
+                </div>
+              </div>
+
               {/* AI 행동 제안 칩 토글 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div>
@@ -1808,28 +1955,6 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
                 </div>
               </div>
 
-              {/* 세이브 백업 / 복원 */}
-              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "6px", color: theme.accent }}>💾 세이브 데이터 백업 / 복원</label>
-                <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "10px" }}>
-                  진행 중인 모든 시나리오와 캐릭터 정보를 PC에 JSON 파일로 다운로드하거나 복원합니다.
-                </div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button
-                    onClick={exportSaveFile}
-                    style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}
-                  >
-                    📥 전체 세이브 백업
-                  </button>
-                  <label
-                    style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold", textAlign: "center" }}
-                  >
-                    📤 백업 파일 복원
-                    <input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} />
-                  </label>
-                </div>
-              </div>
-
               {/* 팔레트 선택 */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -1846,15 +1971,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
                     <button
                       key={p.id}
                       onClick={() => handleSelectPalette(p.id)}
-                      style={{
-                        padding: "8px 10px",
-                        borderRadius: "6px",
-                        border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`,
-                        backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent",
-                        color: theme.text,
-                        fontSize: "0.8rem",
-                        cursor: "pointer",
-                      }}
+                      style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`, backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}
                     >
                       {p.label}
                     </button>
@@ -1903,7 +2020,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
             </div>
 
             <button
-              onClick={() => setShowSettingsModal(false)}
+              onClick={() => closeModal(setShowSettingsModal)}
               style={{ marginTop: "24px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
             >
               닫기
@@ -1912,13 +2029,184 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
         </div>
       )}
 
-      {/* 5. 대화록 내보내기 모달 */}
+      {/* 5. 신설: 세이브 백업 옵션 모달 (JSON/TXT 선택 & 전체/특정 시나리오 선택) */}
+      {showBackupModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "450px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text, wordBreak: "keep-all" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem" }}>💾 세이브 백업 옵션</h3>
+              <button onClick={() => closeModal(setShowBackupModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* 저장 파일 형식 선택 */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "6px" }}>1. 저장할 파일 형식</label>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => setBackupFormat("json")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: `2px solid ${backupFormat === "json" ? theme.accent : theme.border}`,
+                      backgroundColor: backupFormat === "json" ? theme.panelAlt : "transparent",
+                      color: theme.text,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold", fontSize: "0.85rem" }}>JSON 파일 (.json)</div>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>나중에 다시 불러와 이어하기 가능 (권장)</div>
+                  </button>
+
+                  <button
+                    onClick={() => setBackupFormat("txt")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: `2px solid ${backupFormat === "txt" ? theme.accent : theme.border}`,
+                      backgroundColor: backupFormat === "txt" ? theme.panelAlt : "transparent",
+                      color: theme.text,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <div style={{ fontWeight: "bold", fontSize: "0.85rem" }}>텍스트 파일 (.txt)</div>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>메모장/폰으로 편하게 읽는 보관용</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 백업 대상 선택 */}
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "bold", marginBottom: "6px" }}>2. 백업할 시나리오 선택</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 10px",
+                      backgroundColor: backupTarget === "all" ? theme.panelAlt : "transparent",
+                      border: `1px solid ${backupTarget === "all" ? theme.accent : theme.border}`,
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="backupTarget"
+                      checked={backupTarget === "all"}
+                      onChange={() => setBackupTarget("all")}
+                    />
+                    <strong>전체 시나리오 모두 백업 ({sessions.length}개 세션)</strong>
+                  </label>
+
+                  <div style={{ fontSize: "0.76rem", color: theme.textMuted, marginTop: "4px" }}>또는 특정 시나리오만 1개 선택:</div>
+                  
+                  <div style={{ maxHeight: "140px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {sessions.map((s) => (
+                      <label
+                        key={s.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "6px 10px",
+                          backgroundColor: backupTarget === String(s.id) ? theme.panelAlt : "transparent",
+                          border: `1px solid ${backupTarget === String(s.id) ? theme.accent : theme.border}`,
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="backupTarget"
+                          checked={backupTarget === String(s.id)}
+                          onChange={() => setBackupTarget(String(s.id))}
+                        />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", marginTop: "22px" }}>
+              <button
+                onClick={() => closeModal(setShowBackupModal)}
+                style={{ flex: 1, padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}
+              >
+                취소
+              </button>
+              <button
+                onClick={executeSaveBackup}
+                style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+              >
+                {backupFormat === "json" ? "JSON 세이브 다운로드" : "TXT 텍스트 다운로드"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. 신설: 복원 도움말 (?) 모달 */}
+      {showRestoreHelpModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "460px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text, wordBreak: "keep-all" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", color: theme.accent }}>📖 세이브 백업 & 복원 가이드</h3>
+              <button onClick={() => closeModal(setShowRestoreHelpModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ fontSize: "0.82rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <strong style={{ color: theme.accent }}>Q. JSON 파일과 TXT 파일의 차이는 무엇인가요?</strong>
+                <div style={{ marginTop: "4px" }}>
+                  • <strong>JSON (.json):</strong> 시트, HP/SAN 수치, 인벤토리, 대화 기록이 온전히 보존되는 <strong>실제 게임 세이브 파일</strong>입니다. 나중에 [백업 파일 복원]을 통해 그대로 게임에 불러올 수 있습니다.<br />
+                  • <strong>TXT (.txt):</strong> 메모장이나 스마트폰에서 소설처럼 편하게 읽을 수 있는 <strong>기록 열람용 문서</strong>입니다. (게임으로 다시 불러올 수는 없습니다.)
+                </div>
+              </div>
+
+              <div>
+                <strong style={{ color: theme.accent }}>Q. 스마트폰 ↔ PC 간에 데이터를 옮길 수 있나요?</strong>
+                <div style={{ marginTop: "4px" }}>
+                  1. 원래 쓰던 기기에서 <strong>[세이브 백업] → [JSON 파일]</strong>로 다운로드합니다.<br />
+                  2. 다운로드된 .json 파일을 카카오톡 나에게 보내기나 이메일로 새 기기에 보냅니다.<br />
+                  3. 새 기기에서 본 사이트에 접속해 <strong>[백업 파일 복원]</strong>을 누르고 해당 JSON 파일을 선택하면 모든 세션이 즉시 불러와집니다!
+                </div>
+              </div>
+
+              <div>
+                <strong style={{ color: theme.accent }}>Q. 복원하면 기존 시나리오가 날아가나요?</strong>
+                <div style={{ marginTop: "4px" }}>
+                  날아가지 않습니다! 기존 시나리오 목록에 불러온 시나리오가 안전하게 <strong>추가(병합)</strong>됩니다.
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => closeModal(setShowRestoreHelpModal)}
+              style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              확인 완료
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 7. 대화록 내보내기 모달 */}
       {showExportModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "440px", padding: "22px", color: theme.text, wordBreak: "keep-all" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
               <h3 style={{ margin: 0, fontSize: "1.1rem" }}>📥 대화록 내보내기 옵션</h3>
-              <button onClick={() => setShowExportModal(false)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+              <button onClick={() => closeModal(setShowExportModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -1961,7 +2249,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
 
             <div style={{ display: "flex", gap: "8px", marginTop: "22px" }}>
               <button
-                onClick={() => setShowExportModal(false)}
+                onClick={() => closeModal(setShowExportModal)}
                 style={{ flex: 1, padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}
               >
                 취소
@@ -1977,13 +2265,13 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
         </div>
       )}
 
-      {/* 6. CoC 룰 가이드 모달 */}
+      {/* 8. CoC 룰 가이드 모달 */}
       {showGuideModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "520px", maxHeight: "80vh", overflowY: "auto", padding: "22px", color: theme.text, wordBreak: "keep-all" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
               <h3 style={{ margin: 0, color: theme.danger }}>📖 CoC 7판 룰 & 캐릭터 가이드</h3>
-              <button onClick={() => setShowGuideModal(false)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+              <button onClick={() => closeModal(setShowGuideModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
             
             <div style={{ fontSize: "0.85rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -2008,7 +2296,7 @@ ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"
             </div>
 
             <button
-              onClick={() => setShowGuideModal(false)}
+              onClick={() => closeModal(setShowGuideModal)}
               style={{ marginTop: "18px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
             >
               닫기
