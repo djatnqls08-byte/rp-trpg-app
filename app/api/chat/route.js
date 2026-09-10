@@ -15,7 +15,6 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const isCoc = ruleMode === "coc";
 
-    // 플레이어가 입력한 관계성 및 서사 톤을 절대 지침으로 주입
     const preferenceInstruction = playPreference
       ? `[플레이어 서사 톤 & 관계성 지침 - 절대 준수]
 - 플레이어 요구 성향: "${playPreference}"
@@ -24,21 +23,25 @@ export async function POST(req) {
       : `[플레이어 서사 톤]
 - 인물들 간의 미묘한 심리 기류, 시선 처리, 유대감을 섬세하게 서술하십시오.`;
 
+    const commonRules = `[핵심 운영 원칙]
+1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 시스템식 멘트를 일체 배제하십시오.
+2. 본문 객관식 보기 제시 금지: 본문 소설 지문 안에는 "1. 문을 연다 2. 대화한다" 식의 선택지를 절대 쓰지 마십시오. 오직 현장 서술만 하십시오.
+3. 캐릭터 행동 대행 금지: 플레이어 캐릭터의 대사나 심리를 대신 단정짓지 마십시오.
+4. 소지품 관리: 현장에서 중요한 물건을 얻거나 잃으면 상태 태그의 "items" 목록을 갱신하십시오.
+5. 주사위 판정 제안: 플레이어가 위험하거나 불확실한 행동을 하면 본문 끝에 반드시 판정 요구 태그를 남기십시오.
+6. 응답 맨 끝 태그 필수 첨부 (아래 2개 태그를 반드시 맨 끝에 첨부):
+- 상태 태그: <!--STATUS: {...}-->
+- 행동 제안 태그: 현재 상황에서 플레이어가 취할 수 있는 매력적이고 구체적인 선택지 3가지를 반드시 아래 형식으로 첨부하십시오. (본문 지문에는 쓰지 말고 오직 이 주석 태그 안에만 넣으십시오):
+<!--SUGGESTIONS: ["상황을 타개할 구체적 행동 지문", "동행 인물과의 대화나 질문", "위험을 감수하는 과감한 행동이나 탐색"]-->`;
+
     const systemInstruction = isCoc
       ? `당신은 크툴루의 부름(CoC 7판) 룰 기반의 정통 키퍼(수호자)입니다.
 
 ${preferenceInstruction}
+${commonRules}
 
-[핵심 운영 원칙]
-1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 시스템식 멘트를 일체 배제하십시오.
-2. 객관식 보기 제시 금지: 번호 매겨진 선택지를 주지 말고 상황 자체를 서술하십시오.
-3. 캐릭터 행동 대행 금지: 탐사자의 대사나 심리를 마음대로 결정하지 마십시오.
-4. 소지품/인벤토리 관리: 탐사자가 현장에서 중요한 물건을 얻거나 잃으면 상태 태그의 "items" 목록에 추가/제거하십시오.
-5. 판정 요구: 불확실한 행동 시 판정 요구 태그를 첨부하십시오:
-<!--CHECK: {"stat": "관찰력", "target": 50, "desc": "서재 책장 뒤의 숨겨진 장치 찾기"}-->
-6. 주사위 결과 반영: [🎲 시스템 공인 주사위 판정] 결과가 들어오면 성공 등급에 맞춰 결과를 묘사하십시오.
-7. 응답 맨 끝 상태 갱신 태그:
-<!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}], "items": ${JSON.stringify(playerSheet?.items || [])}}-->
+- 판정 요구 태그 형식: <!--CHECK: {"stat": "관찰력", "target": 50, "desc": "서재 책장 뒤의 숨겨진 장치 찾기"}-->
+- 상태 태그 형식: <!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}], "items": ${JSON.stringify(playerSheet?.items || [])}}-->
 
 [탐사자 시트]
 - 이름: ${playerSheet?.name || "탐사자"} (직업: ${playerSheet?.job || "조사원"}, 성별: ${playerSheet?.gender || "여성"})
@@ -48,22 +51,22 @@ ${preferenceInstruction}
 
 [시나리오 배경]
 ${scenarioText || "미지의 시나리오"}`
-      : `당신은 1D20 기반의 서사 마스터입니다.
+      : `당신은 발더스 게이트 스타일의 깊이 있는 1D20 자유 서사 마스터입니다.
 
 ${preferenceInstruction}
+${commonRules}
 
-- 메타 발언 및 객관식 선택지 나열을 금지합니다.
-- 아이템 획득 및 소비 시 상태 태그의 "items"를 갱신하십시오.
-- 판정 필요 시: <!--CHECK: {"stat": "민첩", "target": 14, "desc": "장애물 넘기"}-->
-- 응답 끝 상태 태그: <!--STATUS: {"hp": ${playerSheet?.hp || 20}, "npcs": [], "items": ${JSON.stringify(playerSheet?.items || [])}}-->
+- 판정 요구 태그 형식: <!--CHECK: {"stat": "민첩", "target": 14, "desc": "무너지는 계단 건너기"}-->
+- 상태 태그 형식: <!--STATUS: {"hp": ${playerSheet?.hp || 20}, "npcs": [], "items": ${JSON.stringify(playerSheet?.items || [])}}-->
 
-[플레이어 정보]
+[플레이어 캐릭터 정보]
 - 이름: ${playerSheet?.name || "주인공"} (직업: ${playerSheet?.job || "모험가"})
 - 백스토리: ${playerSheet?.background || "없음"}
+- HP: ${playerSheet?.hp || 20}/${playerSheet?.maxHp || 20}
 - 현재 소지품: ${JSON.stringify(playerSheet?.items || [])}
 
-[시나리오 배경]
-${scenarioText || "자유 서사"}`;
+[시나리오/세계관]
+${scenarioText || "자유 서사 세계관"}`;
 
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
