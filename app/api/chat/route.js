@@ -47,7 +47,7 @@ ${scenarioText || "미지의 저택 시나리오"}`
 [시나리오/세계관]
 ${scenarioText || "자유 서사 롤플레잉"}`;
 
-    // 첫 메시지는 user여야 하는 규칙 준수
+    // 첫 메시지 유저 규칙 준수 (오프닝 멘트 제외)
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
@@ -60,13 +60,31 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
 
     const lastMessage = messages[messages.length - 1].text;
 
-    // 구글 API 권장 최신 3.x 계열 모델 적용
-    const candidateModels = [
-      "gemini-3.1-pro-preview",
-      "gemini-3.1-flash-preview",
-      "gemini-3.0-pro",
-      "gemini-3.0-flash",
+    // 1단계: 신규 무료 사용자 키에서 열려 있는 최신 표준 모델
+    let candidateModels = [
+      "gemini-3.5-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-3-flash-preview",
     ];
+
+    // 2단계: 계정 API 키로 허용된 실제 모델 목록 실시간 조회하여 병합
+    try {
+      const listRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      );
+      if (listRes.ok) {
+        const listData = await listRes.json();
+        const available = (listData.models || [])
+          .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+          .map((m) => m.name.replace("models/", ""));
+
+        if (available.length > 0) {
+          candidateModels = [...new Set([...candidateModels, ...available])];
+        }
+      }
+    } catch (e) {
+      console.warn("모델 자동 조회 실패, 기본 목록 진행:", e.message);
+    }
 
     let resultText = null;
     let lastError = null;
