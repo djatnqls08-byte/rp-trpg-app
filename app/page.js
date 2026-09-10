@@ -8,13 +8,11 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 세션 생성 마법사 상태
-  const [wizardMode, setWizardMode] = useState("d20"); // "d20" | "coc"
+  const [wizardMode, setWizardMode] = useState("d20");
   const [charName, setCharName] = useState("");
   const [scenarioInput, setScenarioInput] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
-  
-  // CoC 전용 스탯 입력값
+
   const [cocStats, setCocStats] = useState({
     hp: 10,
     san: 50,
@@ -26,7 +24,6 @@ export default function App() {
     app: 50,
   });
 
-  // 주사위 롤러 상태
   const [isRolling, setIsRolling] = useState(false);
   const [diceResult, setDiceResult] = useState(null);
   const [targetDc, setTargetDc] = useState(12);
@@ -73,27 +70,24 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  // 시나리오 파일 읽기 핸들러 (.txt, .md 지원)
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setUploadedFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setScenarioInput(event.target.result);
-    };
+    reader.onload = (event) => setScenarioInput(event.target.result);
     reader.readAsText(file, "UTF-8");
   };
 
-  // 새 세션 시작
   const startNewSession = () => {
     const isCoc = wizardMode === "coc";
-    const sessionTitle = charName 
-      ? `${charName}의 이야기` 
-      : uploadedFileName 
-        ? uploadedFileName.replace(/\.[^/.]+$/, "") 
-        : (isCoc ? "새 CoC 탐사" : "새 자유 서사");
+    const sessionTitle = charName
+      ? `${charName}의 이야기`
+      : uploadedFileName
+      ? uploadedFileName.replace(/\.[^/.]+$/, "")
+      : isCoc
+      ? "새 CoC 탐사"
+      : "새 자유 서사";
 
     const newSession = {
       id: Date.now(),
@@ -138,7 +132,6 @@ export default function App() {
     setUploadedFileName("");
   };
 
-  // 주사위 굴림
   const rollDice = () => {
     if (isRolling || !activeSession) return;
     setIsRolling(true);
@@ -179,7 +172,6 @@ export default function App() {
     }, 1000);
   };
 
-  // 대화 메시지 전송
   const sendMessage = async () => {
     if (!input.trim() || !activeSession) return;
 
@@ -205,6 +197,13 @@ export default function App() {
       });
 
       const data = await response.json();
+
+      if (!response.ok || !data.text) {
+        alert(`API 응답 오류: ${data.error || "서버 응답이 비어 있습니다."}`);
+        setIsLoading(false);
+        return;
+      }
+
       let rawText = data.text;
       let newSheet = { ...activeSession.sheet };
 
@@ -230,7 +229,7 @@ export default function App() {
         )
       );
     } catch (err) {
-      console.error(err);
+      alert(`네트워크 통신 오류: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -238,7 +237,6 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, sans-serif" }}>
-      {/* 1. 사이드바 */}
       <div style={{ width: "260px", backgroundColor: theme.sidebar, borderRight: `1px solid ${theme.border}`, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "15px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
           <button
@@ -276,14 +274,11 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. 메인 화면 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
         {!activeSession ? (
-          /* 세션 생성 마법사 */
           <div style={{ flex: 1, overflowY: "auto", padding: "40px", maxWidth: "650px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
             <h2 style={{ margin: 0 }}>새로운 롤플레잉 설정</h2>
             
-            {/* 룰 선택 */}
             <div>
               <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "0.9rem" }}>진행 룰 선택</label>
               <div style={{ display: "flex", gap: "10px" }}>
@@ -323,19 +318,17 @@ export default function App() {
               </div>
             </div>
 
-            {/* 탐사자/캐릭터 이름 */}
             <div>
               <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>내 캐릭터 이름</label>
               <input
                 type="text"
                 value={charName}
                 onChange={(e) => setCharName(e.target.value)}
-                placeholder="예: 카르미아, 정서윤"
+                placeholder="예: 사반"
                 style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, boxSizing: "border-box" }}
               />
             </div>
 
-            {/* CoC 특성치 입력창 */}
             {wizardMode === "coc" && (
               <div style={{ backgroundColor: theme.panel, padding: "15px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div style={{ fontWeight: "bold", fontSize: "0.9rem", marginBottom: "12px", color: theme.danger }}>CoC 탐사자 특성치 입력</div>
@@ -355,7 +348,6 @@ export default function App() {
               </div>
             )}
 
-            {/* 시나리오 문서 업로드 & 본문 입력 영역 */}
             <div style={{ backgroundColor: theme.panel, padding: "15px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>
                 <label style={{ display: "block", marginBottom: "6px", fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>
@@ -365,18 +357,7 @@ export default function App() {
                   type="file"
                   accept=".txt,.md"
                   onChange={handleFileUpload}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    padding: "8px",
-                    backgroundColor: theme.inputBg,
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: "6px",
-                    color: theme.text,
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
-                  }}
+                  style={{ display: "block", width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.85rem", cursor: "pointer", boxSizing: "border-box" }}
                 />
                 {uploadedFileName && (
                   <div style={{ fontSize: "0.75rem", color: theme.success, marginTop: "4px" }}>
@@ -386,14 +367,12 @@ export default function App() {
               </div>
 
               <div>
-                <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>
-                  시나리오 본문 내용 (파일을 불러오면 자동으로 입력되며, 직접 수정도 가능합니다)
-                </label>
+                <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>시나리오 내용</label>
                 <textarea
                   value={scenarioInput}
                   onChange={(e) => setScenarioInput(e.target.value)}
-                  placeholder="파일을 선택하면 내용이 채워집니다. 파일이 없다면 원하는 설정이나 배경을 직접 입력하세요."
-                  style={{ width: "100%", height: "130px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
+                  placeholder="시나리오 문서를 불러오거나 직접 설정을 적어주세요."
+                  style={{ width: "100%", height: "120px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
             </div>
@@ -406,15 +385,13 @@ export default function App() {
             </button>
           </div>
         ) : (
-          /* 활성 대화창 */
           <>
             <div style={{ padding: "10px 20px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: "bold" }}>{activeSession.title}</span>
 
-              {/* 판정 패널 */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ fontSize: "0.85rem", color: theme.textMuted }}>
-                  {activeSession.ruleMode === "coc" ? "목표 수치:" : "목표 DC:"}
+                  {activeSession.ruleMode === "coc" ? "목표치:" : "DC:"}
                 </span>
                 <input
                   type="number"
@@ -455,7 +432,6 @@ export default function App() {
               </div>
             )}
 
-            {/* 대화 기록 로그 */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
               {activeSession.messages.map((m, i) => (
                 <div
@@ -478,7 +454,6 @@ export default function App() {
               {isLoading && <div style={{ color: theme.textMuted, fontSize: "0.9rem" }}>생각하는 중...</div>}
             </div>
 
-            {/* 채팅 입력창 */}
             <div style={{ padding: "15px", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "10px" }}>
               <textarea
                 value={input}
@@ -503,7 +478,6 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 */}
       {activeSession && (
         <div style={{ width: "230px", backgroundColor: theme.sidebar, borderLeft: `1px solid ${theme.border}`, padding: "15px", display: "flex", flexDirection: "column", gap: "15px" }}>
           <div>
