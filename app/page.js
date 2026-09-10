@@ -12,6 +12,7 @@ export default function App() {
   const [wizardMode, setWizardMode] = useState("d20"); // "d20" | "coc"
   const [charName, setCharName] = useState("");
   const [scenarioInput, setScenarioInput] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
   
   // CoC 전용 스탯 입력값
   const [cocStats, setCocStats] = useState({
@@ -28,8 +29,8 @@ export default function App() {
   // 주사위 롤러 상태
   const [isRolling, setIsRolling] = useState(false);
   const [diceResult, setDiceResult] = useState(null);
-  const [targetDc, setTargetDc] = useState(12); // D20용 난이도
-  const [targetStat, setTargetStat] = useState(50); // CoC용 기능치
+  const [targetDc, setTargetDc] = useState(12);
+  const [targetStat, setTargetStat] = useState(50);
 
   const theme = isDarkMode
     ? {
@@ -72,12 +73,31 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  // 새 세션 생성
+  // 시나리오 파일 읽기 핸들러 (.txt, .md 지원)
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setScenarioInput(event.target.result);
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+
+  // 새 세션 시작
   const startNewSession = () => {
     const isCoc = wizardMode === "coc";
+    const sessionTitle = charName 
+      ? `${charName}의 이야기` 
+      : uploadedFileName 
+        ? uploadedFileName.replace(/\.[^/.]+$/, "") 
+        : (isCoc ? "새 CoC 탐사" : "새 자유 서사");
+
     const newSession = {
       id: Date.now(),
-      title: charName ? `${charName}의 이야기` : (isCoc ? "새 CoC 탐사" : "새 자유 서사"),
+      title: sessionTitle,
       ruleMode: wizardMode,
       scenarioText: scenarioInput,
       sheet: isCoc
@@ -115,9 +135,10 @@ export default function App() {
     setActiveSessionId(newSession.id);
     setScenarioInput("");
     setCharName("");
+    setUploadedFileName("");
   };
 
-  // 주사위 굴림 (모드별 분기)
+  // 주사위 굴림
   const rollDice = () => {
     if (isRolling || !activeSession) return;
     setIsRolling(true);
@@ -127,7 +148,6 @@ export default function App() {
 
     setTimeout(() => {
       if (isCoc) {
-        // CoC 1D100
         const roll = Math.floor(Math.random() * 100) + 1;
         const target = Number(targetStat);
         let outcome = "";
@@ -141,9 +161,8 @@ export default function App() {
         else outcome = "실패 (Failure)";
 
         setDiceResult({ roll, outcome, target, type: "1D100" });
-        setInput((prev) => `${prev} [1D100 결과: ${roll} / 판정치: ${target} -> ${outcome}] `);
+        setInput((prev) => `${prev} [1D100 판정 결과: ${roll} / 목표치: ${target} -> ${outcome}] `);
       } else {
-        // 자유 서사용 1D20
         const roll = Math.floor(Math.random() * 20) + 1;
         const dc = Number(targetDc);
         let outcome = "";
@@ -160,7 +179,7 @@ export default function App() {
     }, 1000);
   };
 
-  // 메시지 전송 및 태그 파싱
+  // 대화 메시지 전송
   const sendMessage = async () => {
     if (!input.trim() || !activeSession) return;
 
@@ -257,7 +276,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. 중앙 메인 패널 */}
+      {/* 2. 메인 화면 */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", position: "relative" }}>
         {!activeSession ? (
           /* 세션 생성 마법사 */
@@ -304,7 +323,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 캐릭터 이름 */}
+            {/* 탐사자/캐릭터 이름 */}
             <div>
               <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>내 캐릭터 이름</label>
               <input
@@ -312,11 +331,11 @@ export default function App() {
                 value={charName}
                 onChange={(e) => setCharName(e.target.value)}
                 placeholder="예: 카르미아, 정서윤"
-                style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text }}
+                style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, boxSizing: "border-box" }}
               />
             </div>
 
-            {/* CoC 선택 시에만 나타나는 스탯 수치 입력 영역 */}
+            {/* CoC 특성치 입력창 */}
             {wizardMode === "coc" && (
               <div style={{ backgroundColor: theme.panel, padding: "15px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div style={{ fontWeight: "bold", fontSize: "0.9rem", marginBottom: "12px", color: theme.danger }}>CoC 탐사자 특성치 입력</div>
@@ -328,7 +347,7 @@ export default function App() {
                         type="number"
                         value={cocStats[statKey]}
                         onChange={(e) => setCocStats({ ...cocStats, [statKey]: e.target.value })}
-                        style={{ width: "100%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }}
+                        style={{ width: "100%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, boxSizing: "border-box" }}
                       />
                     </div>
                   ))}
@@ -336,15 +355,47 @@ export default function App() {
               </div>
             )}
 
-            {/* 시나리오 입력 / 첨부 */}
-            <div>
-              <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>시나리오 내용 또는 키워드 (선택)</label>
-              <textarea
-                value={scenarioInput}
-                onChange={(e) => setScenarioInput(e.target.value)}
-                placeholder="시나리오 문서를 붙여넣거나 원하는 배경(예: 황실 비밀 서고, 심해 탐사선)을 적어주세요."
-                style={{ width: "100%", height: "100px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "none" }}
-              />
+            {/* 시나리오 문서 업로드 & 본문 입력 영역 */}
+            <div style={{ backgroundColor: theme.panel, padding: "15px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "6px", fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>
+                  📁 시나리오 파일 불러오기 (.txt, .md)
+                </label>
+                <input
+                  type="file"
+                  accept=".txt,.md"
+                  onChange={handleFileUpload}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: "8px",
+                    backgroundColor: theme.inputBg,
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: "6px",
+                    color: theme.text,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    boxSizing: "border-box",
+                  }}
+                />
+                {uploadedFileName && (
+                  <div style={{ fontSize: "0.75rem", color: theme.success, marginTop: "4px" }}>
+                    ✓ 로드 완료: {uploadedFileName}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "6px", fontSize: "0.85rem", color: theme.textMuted }}>
+                  시나리오 본문 내용 (파일을 불러오면 자동으로 입력되며, 직접 수정도 가능합니다)
+                </label>
+                <textarea
+                  value={scenarioInput}
+                  onChange={(e) => setScenarioInput(e.target.value)}
+                  placeholder="파일을 선택하면 내용이 채워집니다. 파일이 없다면 원하는 설정이나 배경을 직접 입력하세요."
+                  style={{ width: "100%", height: "130px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
 
             <button
@@ -355,9 +406,8 @@ export default function App() {
             </button>
           </div>
         ) : (
-          /* 활성 대화방 인터페이스 */
+          /* 활성 대화창 */
           <>
-            {/* 상단 툴바 */}
             <div style={{ padding: "10px 20px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: "bold" }}>{activeSession.title}</span>
 
@@ -405,7 +455,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 대화창 */}
+            {/* 대화 기록 로그 */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "15px" }}>
               {activeSession.messages.map((m, i) => (
                 <div
@@ -428,7 +478,7 @@ export default function App() {
               {isLoading && <div style={{ color: theme.textMuted, fontSize: "0.9rem" }}>생각하는 중...</div>}
             </div>
 
-            {/* 입력창 */}
+            {/* 채팅 입력창 */}
             <div style={{ padding: "15px", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "10px" }}>
               <textarea
                 value={input}
@@ -440,7 +490,7 @@ export default function App() {
                   }
                 }}
                 placeholder="지문이나 대사를 입력하세요..."
-                style={{ flex: 1, height: "50px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "10px", resize: "none", outline: "none" }}
+                style={{ flex: 1, height: "50px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "10px", resize: "none", outline: "none", boxSizing: "border-box" }}
               />
               <button
                 onClick={sendMessage}
@@ -453,7 +503,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 (세션 활성화 시) */}
+      {/* 3. 우측 상태창 */}
       {activeSession && (
         <div style={{ width: "230px", backgroundColor: theme.sidebar, borderLeft: `1px solid ${theme.border}`, padding: "15px", display: "flex", flexDirection: "column", gap: "15px" }}>
           <div>
