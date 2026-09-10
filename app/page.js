@@ -7,42 +7,43 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  
-  // 좌/우 사이드바 접힘 제어
+
+  // 사이드바 및 상태창 토글
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(true);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // 캐릭터 및 시나리오 입력 상태
-  const [wizardMode, setWizardMode] = useState("d20");
+  // 마법사 설정값
+  const [wizardMode, setWizardMode] = useState("coc");
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
-  const [charAge, setCharAge] = useState("25");
-  const [charGender, setCharGender] = useState("");
+  const [charAge, setCharAge] = useState("26");
+  const [charGender, setCharGender] = useState("여성");
   const [charBackground, setCharBackground] = useState("");
   const [scenarioInput, setScenarioInput] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // CoC 7판 특성치
+  // CoC 7판 특성치 (합계 460 기본값)
   const [cocStats, setCocStats] = useState({
-    str: 50,
+    str: 40,
     con: 50,
-    siz: 65,
+    siz: 50,
     dex: 60,
-    app: 60,
-    int: 70,
-    pow: 65,
+    app: 70,
+    int: 75,
+    pow: 75,
     edu: 40,
-    luck: 50,
+    luck: 55,
   });
 
-  // 주사위 롤러 상태
+  // 주사위 및 키퍼 판정 상태
   const [isRolling, setIsRolling] = useState(false);
   const [diceResult, setDiceResult] = useState(null);
   const [targetDc, setTargetDc] = useState(12);
   const [targetStat, setTargetStat] = useState(50);
+  const [pendingCheck, setPendingCheck] = useState(null); // 키퍼가 요구한 판정 정보
 
-  // 특성치 포인트 한계 계산
   const totalAllocated =
     Number(cocStats.str) +
     Number(cocStats.con) +
@@ -54,7 +55,6 @@ export default function App() {
     Number(cocStats.edu);
   const remainingPoints = 460 - totalAllocated;
 
-  // CoC 7판 파생 수치 공식
   const derivedHp = Math.floor((Number(cocStats.con) + Number(cocStats.siz)) / 10);
   const derivedMp = Math.floor(Number(cocStats.pow) / 5);
   const derivedSan = Number(cocStats.pow);
@@ -68,10 +68,6 @@ export default function App() {
   else if (strPlusSiz <= 164) { derivedDb = "+1D4"; derivedBuild = 1; }
   else { derivedDb = "+1D6"; derivedBuild = 2; }
 
-  let derivedMov = 8;
-  if (Number(cocStats.dex) < Number(cocStats.siz) && Number(cocStats.str) < Number(cocStats.siz)) derivedMov = 7;
-  else if (Number(cocStats.str) >= Number(cocStats.siz) && Number(cocStats.dex) >= Number(cocStats.siz)) derivedMov = 9;
-
   const theme = isDarkMode
     ? {
         bg: "#0d1017",
@@ -83,6 +79,7 @@ export default function App() {
         textMuted: "#8e96b3",
         accent: "#6c8dfa",
         danger: "#f76585",
+        warning: "#e0af68",
         success: "#7bd88f",
         bubbleUser: "#324b87",
         bubbleAi: "#1b2030",
@@ -98,6 +95,7 @@ export default function App() {
         textMuted: "#727b94",
         accent: "#4368d4",
         danger: "#d13b5a",
+        warning: "#d97706",
         success: "#3ba358",
         bubbleUser: "#4f75c2",
         bubbleAi: "#ffffff",
@@ -115,16 +113,62 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  const handleFileUpload = (e) => {
+  // 세션 삭제 핸들러
+  const deleteSession = (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("이 시나리오 세션을 완전히 삭제하시겠습니까?")) return;
+    const filtered = sessions.filter((s) => s.id !== id);
+    setSessions(filtered);
+    if (activeSessionId === id) setActiveSessionId(null);
+  };
+
+  // TXT, MD 및 PDF 통합 파일 업로드 파서
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploadedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => setScenarioInput(event.target.result);
-    reader.readAsText(file, "UTF-8");
+
+    if (file.name.toLowerCase().endsWith(".pdf")) {
+      setIsPdfLoading(true);
+      try {
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let extractedText = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const strings = content.items.map((item) => item.str).join(" ");
+          extractedText += `[${i}페이지]\n${strings}\n\n`;
+        }
+
+        setScenarioInput(extractedText.trim());
+      } catch (err) {
+        alert("PDF 문서를 읽는 중 문제가 발생했습니다: " + err.message);
+      } finally {
+        setIsPdfLoading(false);
+      }
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => setScenarioInput(event.target.result);
+      reader.readAsText(file, "UTF-8");
+    }
   };
 
-  const startNewSession = () => {
+  // 세션 생성 및 도입부 자동 생성
+  const startNewSession = async () => {
     const isCoc = wizardMode === "coc";
     const sessionTitle = charName
       ? `${charName}의 여정`
@@ -134,103 +178,113 @@ export default function App() {
       ? "새 CoC 조사"
       : "새 샌드박스 RP";
 
+    const initialSheet = isCoc
+      ? {
+          name: charName || "탐사자",
+          job: charJob || "조사원",
+          age: charAge,
+          gender: charGender,
+          background: charBackground,
+          hp: derivedHp,
+          maxHp: derivedHp,
+          mp: derivedMp,
+          maxMp: derivedMp,
+          san: derivedSan,
+          maxSan: 99,
+          luck: Number(cocStats.luck),
+          db: derivedDb,
+          build: derivedBuild,
+          npcs: [],
+        }
+      : {
+          name: charName || "주인공",
+          job: charJob,
+          background: charBackground,
+          hp: 20,
+          maxHp: 20,
+          npcs: [],
+        };
+
+    const newId = Date.now();
     const newSession = {
-      id: Date.now(),
+      id: newId,
       title: sessionTitle,
       ruleMode: wizardMode,
       scenarioText: scenarioInput,
-      sheet: isCoc
-        ? {
-            name: charName || "탐사자",
-            job: charJob || "조사원",
-            age: charAge,
-            gender: charGender,
-            background: charBackground,
-            hp: derivedHp,
-            maxHp: derivedHp,
-            mp: derivedMp,
-            maxMp: derivedMp,
-            san: derivedSan,
-            maxSan: 99,
-            luck: Number(cocStats.luck),
-            db: derivedDb,
-            build: derivedBuild,
-            mov: derivedMov,
-            stats: { ...cocStats },
-            npcs: [],
-          }
-        : {
-            name: charName || "주인공",
-            job: charJob,
-            background: charBackground,
-            hp: 20,
-            maxHp: 20,
-            npcs: [],
-          },
-      messages: [
-        {
-          role: "model",
-          text: isCoc
-            ? `수호자가 막을 올립니다. 탐사자 [${charName || "플레이어"}](${charJob || "조사원"})의 조사가 시작됩니다. 어떤 행동을 취하시겠습니까?`
-            : `이야기가 준비되었습니다. [${charName || "주인공"}]의 서사가 펼쳐집니다. 어떤 행동으로 시작하시겠습니까?`,
-        },
-      ],
+      sheet: initialSheet,
+      messages: [],
     };
 
     setSessions([newSession, ...sessions]);
-    setActiveSessionId(newSession.id);
-    setScenarioInput("");
-    setCharName("");
-    setCharBackground("");
-  };
+    setActiveSessionId(newId);
+    setIsLoading(true);
+    setPendingCheck(null);
 
-  const rollDice = () => {
-    if (isRolling || !activeSession) return;
-    setIsRolling(true);
-    setDiceResult(null);
+    const openingPrompt = `[세션 시작: 시나리오 원문 및 인물 설정을 기반으로 현장의 도입부 서막을 문학적으로 서술하십시오. 
+- 메타 발언, 챗봇 인사말, 객관식 번호 선택지를 일체 배제하십시오.
+- 탐사자가 처한 공간의 공기, 냄새, 날씨와 함께 있는 인물들의 표정과 행동을 묘사하며 첫 위기나 대화 상황을 여십시오.]`;
 
-    const isCoc = activeSession.ruleMode === "coc";
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", text: openingPrompt }],
+          scenarioText: scenarioInput,
+          playerSheet: initialSheet,
+          ruleMode: wizardMode,
+        }),
+      });
 
-    setTimeout(() => {
-      if (isCoc) {
-        const roll = Math.floor(Math.random() * 100) + 1;
-        const target = Number(targetStat);
-        let outcome = "";
+      const data = await response.json();
+      let rawText = data.text || "서막을 불러오지 못했습니다.";
+      let updatedSheet = { ...initialSheet };
 
-        if (roll === 1) outcome = "대성공 (Critical)";
-        else if (roll <= Math.floor(target / 5)) outcome = "극단적 성공 (Extreme)";
-        else if (roll <= Math.floor(target / 2)) outcome = "어려운 성공 (Hard)";
-        else if (roll <= target) outcome = "보통 성공 (Regular)";
-        else if (roll >= 96 && target < 50) outcome = "대실패 (Fumble)";
-        else if (roll === 100) outcome = "대실패 (Fumble)";
-        else outcome = "실패 (Failure)";
-
-        setDiceResult({ roll, outcome, target, type: "1D100" });
-        setInput((prev) => `${prev} [1D100 판정 결과: ${roll} / 목표치: ${target} -> ${outcome}] `);
-      } else {
-        const roll = Math.floor(Math.random() * 20) + 1;
-        const dc = Number(targetDc);
-        let outcome = "";
-
-        if (roll === 20) outcome = "대성공 (Natural 20)";
-        else if (roll === 1) outcome = "대실패 (Natural 1)";
-        else if (roll >= dc) outcome = "성공";
-        else outcome = "실패";
-
-        setDiceResult({ roll, outcome, target: dc, type: "1D20" });
-        setInput((prev) => `${prev} [1D20 결과: ${roll} (DC ${dc}) -> ${outcome}] `);
+      // 판정 요구 태그 파싱
+      const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
+      if (checkMatch) {
+        try {
+          setPendingCheck(JSON.parse(checkMatch[1]));
+        } catch (e) {
+          console.error(e);
+        }
+        rawText = rawText.replace(/<!--CHECK:\s*({.*?})-->/s, "").trim();
       }
-      setIsRolling(false);
-    }, 900);
+
+      // 상태 태그 파싱
+      const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
+      if (statusMatch) {
+        try {
+          const parsed = JSON.parse(statusMatch[1]);
+          if (parsed.hp !== undefined) updatedSheet.hp = parsed.hp;
+          if (parsed.san !== undefined) updatedSheet.san = parsed.san;
+          if (parsed.luck !== undefined) updatedSheet.luck = parsed.luck;
+          if (parsed.npcs) updatedSheet.npcs = parsed.npcs;
+        } catch (e) {
+          console.error(e);
+        }
+        rawText = rawText.replace(/<!--STATUS:\s*({.*?})-->/s, "").trim();
+      }
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === newId
+            ? { ...s, sheet: updatedSheet, messages: [{ role: "model", text: rawText }] }
+            : s
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || !activeSession) return;
+  // 공통 대화 전송 코어 함수
+  const executeMessage = async (textToSend) => {
+    if (!textToSend.trim() || !activeSession) return;
 
-    const userText = input;
-    setInput("");
-    const updatedMessages = [...activeSession.messages, { role: "user", text: userText }];
-
+    const updatedMessages = [...activeSession.messages, { role: "user", text: textToSend }];
     setSessions((prev) =>
       prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages } : s))
     );
@@ -249,15 +303,26 @@ export default function App() {
       });
 
       const data = await response.json();
-
       if (!response.ok || !data.text) {
-        alert(`API 오류: ${data.error || "서버 응답이 없습니다."}`);
+        alert(`마스터 응답 에러: ${data.error || "빈 응답"}`);
         setIsLoading(false);
         return;
       }
 
       let rawText = data.text;
       let newSheet = { ...activeSession.sheet };
+
+      const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
+      if (checkMatch) {
+        try {
+          setPendingCheck(JSON.parse(checkMatch[1]));
+        } catch (e) {
+          console.error(e);
+        }
+        rawText = rawText.replace(/<!--CHECK:\s*({.*?})-->/s, "").trim();
+      } else {
+        setPendingCheck(null);
+      }
 
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
@@ -268,7 +333,7 @@ export default function App() {
           if (parsed.luck !== undefined) newSheet.luck = parsed.luck;
           if (parsed.npcs) newSheet.npcs = parsed.npcs;
         } catch (e) {
-          console.error("상태 파싱 에러:", e);
+          console.error(e);
         }
         rawText = rawText.replace(/<!--STATUS:\s*({.*?})-->/s, "").trim();
       }
@@ -281,15 +346,72 @@ export default function App() {
         )
       );
     } catch (err) {
-      alert(`네트워크 통신 오류: ${err.message}`);
+      alert(`통신 오류: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 수기 메시지 전송
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const text = input;
+    setInput("");
+    executeMessage(text);
+  };
+
+  // 조작 불가능한 시스템 공인 주사위 굴림 & 자동 전송
+  const rollDiceDirectly = (overrideTarget = null, reasonText = "") => {
+    if (isRolling || !activeSession) return;
+    setIsRolling(true);
+    setDiceResult(null);
+
+    const isCoc = activeSession.ruleMode === "coc";
+    const targetVal = Number(overrideTarget !== null ? overrideTarget : isCoc ? targetStat : targetDc);
+
+    setTimeout(() => {
+      let rollFormatted = "";
+      if (isCoc) {
+        const roll = Math.floor(Math.random() * 100) + 1;
+        let outcome = "";
+
+        if (roll === 1) outcome = "대성공 (Critical)";
+        else if (roll <= Math.floor(targetVal / 5)) outcome = "극단적 성공 (Extreme)";
+        else if (roll <= Math.floor(targetVal / 2)) outcome = "어려운 성공 (Hard)";
+        else if (roll <= targetVal) outcome = "보통 성공 (Regular)";
+        else if (roll >= 96 && targetVal < 50) outcome = "대실패 (Fumble)";
+        else if (roll === 100) outcome = "대실패 (Fumble)";
+        else outcome = "실패 (Failure)";
+
+        setDiceResult({ roll, outcome, target: targetVal, type: "1D100" });
+        rollFormatted = `[🎲 시스템 공인 주사위 판정: 1D100 결과 ${roll} / 목표치: ${targetVal}${
+          reasonText ? ` (${reasonText})` : ""
+        } ➔ 결과: ${outcome}]`;
+      } else {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        let outcome = "";
+
+        if (roll === 20) outcome = "대성공 (Natural 20)";
+        else if (roll === 1) outcome = "대실패 (Natural 1)";
+        else if (roll >= targetVal) outcome = "성공";
+        else outcome = "실패";
+
+        setDiceResult({ roll, outcome, target: targetVal, type: "1D20" });
+        rollFormatted = `[🎲 시스템 공인 주사위 판정: 1D20 결과 ${roll} / DC ${targetVal}${
+          reasonText ? ` (${reasonText})` : ""
+        } ➔ 결과: ${outcome}]`;
+      }
+
+      setIsRolling(false);
+      setPendingCheck(null);
+      // 입력창을 거치지 않고 위변조 불가능한 시스템 판정 메시지로 마스터에게 직행
+      executeMessage(rollFormatted);
+    }, 700);
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
-      {/* 1. 좌측 시나리오 목록 사이드바 */}
+      {/* 1. 좌측 시나리오 목록 (삭제 휴지통 버튼 탑재) */}
       <div
         style={{
           width: isSidebarOpen ? "250px" : "0px",
@@ -300,7 +422,6 @@ export default function App() {
           borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none",
           display: "flex",
           flexDirection: "column",
-          whiteSpace: "nowrap",
           flexShrink: 0,
         }}
       >
@@ -325,25 +446,37 @@ export default function App() {
               key={s.id}
               onClick={() => setActiveSessionId(s.id)}
               style={{
-                padding: "12px 15px",
+                padding: "10px 14px",
                 cursor: "pointer",
                 borderBottom: `1px solid ${theme.border}`,
                 backgroundColor: activeSessionId === s.id ? theme.panel : "transparent",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              <div style={{ fontWeight: "bold", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</div>
-              <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "2px" }}>
-                {s.ruleMode === "coc" ? "CoC 7판 정규" : "1D20 자유 서사"}
+              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "6px" }}>
+                <div style={{ fontWeight: "bold", fontSize: "0.86rem" }}>{s.title}</div>
+                <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>
+                  {s.ruleMode === "coc" ? "CoC 7판 정규" : "1D20 자유 서사"}
+                </div>
               </div>
+              <button
+                onClick={(e) => deleteSession(s.id, e)}
+                title="시나리오 세션 삭제"
+                style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px", fontSize: "0.9rem" }}
+              >
+                🗑️
+              </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 2. 중앙 메인 패널 */}
+      {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: "320px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         {!activeSession ? (
-          /* 세션 생성 마법사 */
+          /* 세션 생성 마법사 (PDF 파서 포함) */
           <div style={{ flex: 1, overflowY: "auto", padding: "30px 25px 60px 25px", maxWidth: "680px", margin: "0 auto", width: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
@@ -352,7 +485,7 @@ export default function App() {
               >
                 {isSidebarOpen ? "◀ 목록 닫기" : "▶ 목록 열기"}
               </button>
-              <h2 style={{ margin: 0, fontSize: "1.4rem" }}>새로운 롤플레잉 설정</h2>
+              <h2 style={{ margin: 0, fontSize: "1.4rem" }}>새로운 세션 구성</h2>
             </div>
 
             <div>
@@ -372,7 +505,7 @@ export default function App() {
                   }}
                 >
                   <strong>1D20 자유 서사</strong>
-                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>크랙 스타일 / 직관적 DC 판정</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>자유 샌드박스 / 직관적 DC 판정</div>
                 </button>
 
                 <button
@@ -394,31 +527,36 @@ export default function App() {
               </div>
             </div>
 
-            {/* 시나리오 파일 & 본문 */}
+            {/* 시나리오 문서 업로드 (PDF, TXT, MD 지원) */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
-              <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>📁 시나리오 문서 불러오기 (.txt, .md)</span>
+              <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>
+                📁 시나리오 문서 등록 (.pdf, .txt, .md 지원)
+              </span>
               <input
                 type="file"
-                accept=".txt,.md"
+                accept=".pdf,.txt,.md"
                 onChange={handleFileUpload}
                 style={{ display: "block", width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.85rem", cursor: "pointer", boxSizing: "border-box" }}
               />
-              {uploadedFileName && <div style={{ fontSize: "0.75rem", color: theme.success }}>✓ 자동 로드됨: {uploadedFileName}</div>}
-              
+              {isPdfLoading && <div style={{ fontSize: "0.78rem", color: theme.warning }}>⏳ PDF 문서의 본문 텍스트를 추출하는 중입니다...</div>}
+              {uploadedFileName && !isPdfLoading && (
+                <div style={{ fontSize: "0.75rem", color: theme.success }}>✓ 본문이 로드되었습니다: {uploadedFileName}</div>
+              )}
+
               <div>
-                <label style={{ display: "block", marginBottom: "4px", fontSize: "0.8rem", color: theme.textMuted }}>시나리오 배경 내용</label>
+                <label style={{ display: "block", marginBottom: "4px", fontSize: "0.8rem", color: theme.textMuted }}>시나리오 내용 미리보기 / 직접 작성</label>
                 <textarea
                   value={scenarioInput}
                   onChange={(e) => setScenarioInput(e.target.value)}
-                  placeholder="파일을 선택하면 내용이 채워집니다. 직접 배경을 입력하셔도 됩니다."
-                  style={{ width: "100%", height: "80px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
+                  placeholder="파일을 선택하면 내용이 자동으로 채워집니다. 직접 배경 설정을 적으셔도 됩니다."
+                  style={{ width: "100%", height: "85px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
             </div>
 
-            {/* 캐릭터 기본 정보 & 백스토리 */}
+            {/* 내 캐릭터 정보 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ fontWeight: "bold", fontSize: "0.9rem" }}>내 캐릭터 설정</div>
+              <div style={{ fontWeight: "bold", fontSize: "0.9rem" }}>내 캐릭터 정보</div>
               <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.2fr 0.7fr 0.7fr", gap: "8px" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "0.75rem", color: theme.textMuted }}>이름</label>
@@ -466,7 +604,7 @@ export default function App() {
                 <textarea
                   value={charBackground}
                   onChange={(e) => setCharBackground(e.target.value)}
-                  placeholder="성격, 과거의 사건, 비밀, 목적, 소지품 등을 적어주시면 AI 마스터가 서사에 적극 반영합니다."
+                  placeholder="성격, 비밀, 과거의 트라우마, 소지품, 추구하는 가치관 등을 상세히 적어주세요."
                   style={{ width: "100%", height: "70px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
@@ -487,7 +625,7 @@ export default function App() {
                 </div>
 
                 <div style={{ fontSize: "0.8rem", display: "flex", justifyContent: "space-between", padding: "6px 10px", backgroundColor: theme.panelAlt, borderRadius: "6px" }}>
-                  <span>포인트 풀 한계: <strong>460 pt</strong></span>
+                  <span>포인트 풀: <strong>460 pt</strong></span>
                   <span style={{ color: remainingPoints < 0 ? theme.danger : theme.success, fontWeight: "bold" }}>
                     잔여: {remainingPoints} pt {remainingPoints < 0 ? "(초과)" : ""}
                   </span>
@@ -530,15 +668,16 @@ export default function App() {
 
             <button
               onClick={startNewSession}
+              disabled={isLoading || isPdfLoading}
               style={{ padding: "14px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem" }}
             >
-              이야기 시작하기
+              {isLoading ? "키퍼가 서막을 여는 중..." : "이야기 시작하기"}
             </button>
           </div>
         ) : (
-          /* 활성 대화방 플레이 화면 */
+          /* 실제 롤플레잉 플레이 화면 */
           <>
-            {/* 상단 액션 바 */}
+            {/* 상단 컨트롤 바 */}
             <div style={{ padding: "8px 15px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <button
@@ -551,7 +690,7 @@ export default function App() {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "0.82rem", color: theme.textMuted }}>{activeSession.ruleMode === "coc" ? "목표치:" : "DC:"}</span>
+                <span style={{ fontSize: "0.82rem", color: theme.textMuted }}>{activeSession.ruleMode === "coc" ? "임의 수치:" : "임의 DC:"}</span>
                 <input
                   type="number"
                   value={activeSession.ruleMode === "coc" ? targetStat : targetDc}
@@ -559,11 +698,11 @@ export default function App() {
                   style={{ width: "45px", padding: "4px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "4px" }}
                 />
                 <button
-                  onClick={rollDice}
-                  disabled={isRolling}
+                  onClick={() => rollDiceDirectly()}
+                  disabled={isRolling || isLoading}
                   style={{ padding: "5px 12px", backgroundColor: activeSession.ruleMode === "coc" ? theme.danger : theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "0.85rem" }}
                 >
-                  🎲 {activeSession.ruleMode === "coc" ? "1D100 판정" : "1D20 판정"}
+                  🎲 {activeSession.ruleMode === "coc" ? "1D100 판정 굴리기" : "1D20 판정 굴리기"}
                 </button>
                 <button
                   onClick={() => setIsSheetOpen(!isSheetOpen)}
@@ -574,6 +713,23 @@ export default function App() {
               </div>
             </div>
 
+            {/* 키퍼의 판정 제안 알림 배너 (출현 시 즉시 원클릭 판정 가능) */}
+            {pendingCheck && (
+              <div style={{ backgroundColor: "#3b2611", borderBottom: `1px solid ${theme.warning}`, padding: "10px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <div style={{ fontSize: "0.85rem", color: "#fbd38d" }}>
+                  ⚠️ <strong>키퍼의 판정 요구:</strong> [{pendingCheck.stat}] (기준치: {pendingCheck.target}) — {pendingCheck.desc}
+                </div>
+                <button
+                  onClick={() => rollDiceDirectly(pendingCheck.target, `${pendingCheck.stat} 판정: ${pendingCheck.desc}`)}
+                  disabled={isRolling || isLoading}
+                  style={{ padding: "6px 14px", backgroundColor: theme.warning, color: "#1a1005", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", fontSize: "0.85rem" }}
+                >
+                  🎲 [{pendingCheck.stat}] 판정 주사위 굴리기
+                </button>
+              </div>
+            )}
+
+            {/* 최근 주사위 결과 브리핑 */}
             {diceResult && (
               <div style={{ backgroundColor: theme.panel, borderBottom: `1px solid ${theme.border}`, padding: "6px 15px", fontSize: "0.82rem", display: "flex", justifyContent: "space-between" }}>
                 <span>🎲 {diceResult.type} 결과: <strong>{diceResult.roll}</strong> (판정치: {diceResult.target})</span>
@@ -581,20 +737,28 @@ export default function App() {
               </div>
             )}
 
-            {/* 채팅 메시지 영역 */}
+            {/* 대화 히스토리 */}
             <div style={{ flex: 1, overflowY: "auto", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
               {activeSession.messages.map((m, i) => (
                 <div
                   key={i}
                   style={{
                     alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-                    backgroundColor: m.role === "user" ? theme.bubbleUser : theme.bubbleAi,
-                    color: m.role === "user" ? "#ffffff" : theme.text,
-                    border: m.role === "model" ? `1px solid ${theme.border}` : "none",
-                    padding: "12px 16px",
+                    backgroundColor: m.text.includes("[🎲 시스템 공인 주사위 판정")
+                      ? "rgba(122, 162, 247, 0.15)"
+                      : m.role === "user"
+                      ? theme.bubbleUser
+                      : theme.bubbleAi,
+                    color: m.role === "user" && !m.text.includes("[🎲 시스템 공인 주사위 판정") ? "#ffffff" : theme.text,
+                    border: m.text.includes("[🎲 시스템 공인 주사위 판정")
+                      ? `1px solid ${theme.accent}`
+                      : m.role === "model"
+                      ? `1px solid ${theme.border}`
+                      : "none",
+                    padding: "13px 17px",
                     borderRadius: "12px",
                     maxWidth: "85%",
-                    lineHeight: "1.6",
+                    lineHeight: "1.7",
                     whiteSpace: "pre-wrap",
                     wordBreak: "keep-all",
                   }}
@@ -602,10 +766,10 @@ export default function App() {
                   {m.text}
                 </div>
               ))}
-              {isLoading && <div style={{ color: theme.textMuted, fontSize: "0.88rem" }}>마스터가 서사를 구성하는 중...</div>}
+              {isLoading && <div style={{ color: theme.accent, fontSize: "0.88rem", padding: "10px" }}>키퍼가 서사를 구성하는 중...</div>}
             </div>
 
-            {/* 입력 영역 */}
+            {/* 입력창 (주사위와 완전히 분리되어 지문/대사만 타이핑) */}
             <div style={{ padding: "12px 15px", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "10px" }}>
               <textarea
                 value={input}
@@ -616,10 +780,10 @@ export default function App() {
                     sendMessage();
                   }
                 }}
-                placeholder="행동이나 대사를 입력하세요..."
+                placeholder="지문이나 대사를 입력하세요 (주사위는 상단 전용 버튼을 이용하세요)..."
                 style={{ flex: 1, height: "45px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", resize: "none", outline: "none", boxSizing: "border-box" }}
               />
-              <button onClick={sendMessage} style={{ padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
+              <button onClick={sendMessage} disabled={isLoading} style={{ padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
                 전송
               </button>
             </div>
@@ -627,7 +791,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 (접기/펼치기 지원) */}
+      {/* 3. 우측 상태창 */}
       {activeSession && (
         <div
           style={{
@@ -646,7 +810,7 @@ export default function App() {
         >
           <div style={{ padding: "15px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "240px", boxSizing: "border-box" }}>
             <div>
-              <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>캐릭터 정보</h4>
+              <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>탐사자 정보</h4>
               <div style={{ fontSize: "0.82rem", display: "flex", flexDirection: "column", gap: "4px" }}>
                 <div>이름: <strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "조사원"})</div>
                 <div>HP: <strong>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong></div>
@@ -692,7 +856,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. CoC 7판 가이드 모달 */}
+      {/* 4. CoC 룰 가이드 모달 */}
       {showGuideModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "520px", maxHeight: "80vh", overflowY: "auto", padding: "22px", color: theme.text, wordBreak: "keep-all" }}>
@@ -703,9 +867,9 @@ export default function App() {
             
             <div style={{ fontSize: "0.85rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
-                <strong>1. 특성치 포인트 배분 원칙</strong>
-                <div>• 총 8대 특성치 합계는 <strong>460 포인트</strong>를 기본 한계로 삼습니다.</div>
-                <div>• 일반 성인의 평균 수치는 50이며, 범위는 15~90 사이로 설정합니다.</div>
+                <strong>1. 특성치 배분</strong>
+                <div>• 총 8대 특성치 합계: <strong>460 포인트</strong> 기본 한계</div>
+                <div>• 성인 기준 평균치는 50이며, 범위는 15~90 사이로 설정합니다.</div>
               </div>
 
               <div>
@@ -713,14 +877,14 @@ export default function App() {
                 <div>• <strong>보통 성공:</strong> 판정치 이하</div>
                 <div>• <strong>어려운 성공:</strong> 판정치의 1/2 이하</div>
                 <div>• <strong>극단적 성공:</strong> 판정치의 1/5 이하</div>
-                <div>• <strong>대성공:</strong> 01 / <strong>대실패:</strong> 96~100 (상황별 기준)</div>
+                <div>• <strong>대성공:</strong> 01 / <strong>대실패:</strong> 96~100</div>
               </div>
 
               <div>
                 <strong>3. 파생 수치 공식</strong>
-                <div>• <strong>HP:</strong> (건강 CON + 크기 SIZ) ÷ 10</div>
-                <div>• <strong>MP:</strong> 정신력 POW ÷ 5</div>
-                <div>• <strong>초기 SAN:</strong> 정신력 POW 수치와 동일</div>
+                <div>• <strong>HP:</strong> (CON + SIZ) ÷ 10</div>
+                <div>• <strong>MP:</strong> POW ÷ 5</div>
+                <div>• <strong>초기 SAN:</strong> POW 수치와 동일</div>
               </div>
             </div>
 
