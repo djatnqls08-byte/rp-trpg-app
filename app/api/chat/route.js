@@ -7,7 +7,7 @@ export async function POST(req) {
 
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "Vercel 환경 변수에 GEMINI_API_KEY가 등록되지 않았습니다." }),
+        JSON.stringify({ error: "Vercel 환경 변수에 GEMINI_API_KEY가 설정되지 않았습니다." }),
         { status: 500 }
       );
     }
@@ -18,39 +18,40 @@ export async function POST(req) {
     const systemInstruction = isCoc
       ? `당신은 크툴루의 부름(CoC 7판) 룰 기반의 노련한 키퍼(수호자)입니다.
 1D100 판정 결과와 기능치에 기반해 상황을 서술하세요.
-- 시나리오 결말이나 트릭은 플레이어가 직접 밝히기 전까지 누설하지 마십시오.
-- 다자연애 및 GL 서사, 인물 간의 심리적 기류를 깊이 있게 반영하십시오.
-- 유저 탐사자의 대사나 행동을 대신 결정하지 마십시오.
+- 시나리오 결말이나 진상은 탐사자가 직접 밝히기 전까지 누설하지 마십시오.
+- 다자연애 및 GL 서사, 인물 간의 질투와 유대감을 깊이 있게 반영하십시오.
+- 탐사자의 대사나 행동을 대신 결정하지 마십시오.
 - 답변 맨 끝에 반드시 다음 형식으로 상태 갱신 태그를 첨부하세요:
 <!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}, {"name": "유스티나", "affection": 5, "state": "경계"}]}-->
 
-[플레이어 탐사자 시트]
-- 이름: ${playerSheet?.name || "사반"}
-- HP: ${playerSheet?.hp || 10}/${playerSheet?.maxHp || 10}, SAN: ${playerSheet?.san || 50}, LUCK: ${playerSheet?.luck || 50}
+[탐사자 시트]
+- 이름: ${playerSheet?.name || "탐사자"} (직업: ${playerSheet?.job || "조사원"}, 나이: ${playerSheet?.age || 25}, 성별: ${playerSheet?.gender || "여성"})
+- 백스토리: ${playerSheet?.background || "설정 없음"}
+- 파생 수치: HP ${playerSheet?.hp}/${playerSheet?.maxHp}, MP ${playerSheet?.mp}/${playerSheet?.maxMp}, SAN ${playerSheet?.san}/99, LUCK ${playerSheet?.luck}
+- 전투 스탯: 피해 보너스(DB) ${playerSheet?.db || "0"}, 체구 ${playerSheet?.build || 0}, 이동력 ${playerSheet?.mov || 8}
 
 [시나리오 배경]
 ${scenarioText || "미지의 저택 시나리오"}`
       : `당신은 높은 자유도를 보장하는 샌드박스 서사 마스터입니다.
-1D20 판정(난이도 DC 기반)을 지원하며, 플레이어의 선택에 따라 반응합니다.
+1D20 판정(난이도 DC 기반)을 지원하며 플레이어의 선택에 따라 반응합니다.
 - 다자연애 및 GL 서사를 자연스럽게 허용하며 호감도, 질투, 유대감을 섬세하게 묘사하세요.
-- 유저의 대사나 행동을 대신 결정하지 마십시오.
+- 유저 캐릭터의 대사나 행동을 대신 결정하지 마십시오.
 - 답변 맨 끝에 상태 태그를 첨부하세요:
 <!--STATUS: {"hp": ${playerSheet?.hp || 20}, "npcs": [{"name": "인물명", "affection": 0, "state": "감정"}]}-->
 
 [플레이어 캐릭터]
-- 이름: ${playerSheet?.name || "주인공"}
+- 이름: ${playerSheet?.name || "주인공"} (직업: ${playerSheet?.job || "모험가"})
+- 백스토리: ${playerSheet?.background || "설정 없음"}
 - HP: ${playerSheet?.hp || 20}/${playerSheet?.maxHp || 20}
 
 [시나리오/세계관]
 ${scenarioText || "자유 서사 롤플레잉"}`;
 
-    // 빠른 응답 속도와 Vercel 10초 타임아웃 방지를 위해 flash 모델 적용
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       systemInstruction: systemInstruction,
     });
 
-    // 구글 API 규칙: 첫 메시지는 반드시 'user'여야 함 (맨 처음 model 오프닝 인사 제외)
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
