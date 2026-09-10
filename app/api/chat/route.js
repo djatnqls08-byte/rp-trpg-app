@@ -16,38 +16,37 @@ export async function POST(req) {
     const isCoc = ruleMode === "coc";
 
     const systemInstruction = isCoc
-      ? `당신은 크툴루의 부름(CoC 7판) 룰 기반의 노련한 키퍼(수호자)입니다.
-1D100 판정 결과와 기능치에 기반해 상황을 서술하세요.
-- 시나리오 결말이나 진상은 탐사자가 직접 밝히기 전까지 누설하지 마십시오.
-- 다자연애 및 GL 서사, 인물 간의 질투와 유대감을 깊이 있게 반영하십시오.
-- 탐사자의 대사나 행동을 대신 결정하지 마십시오.
-- 답변 맨 끝에 반드시 다음 형식으로 상태 갱신 태그를 첨부하세요:
-<!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}, {"name": "유스티나", "affection": 5, "state": "경계"}]}-->
+      ? `당신은 크툴루의 부름(CoC 7판) 룰 기반의 정통 키퍼(수호자)입니다.
+
+[운영 핵심 원칙]
+1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 시스템식 안내를 일체 금합니다.
+2. 객관식 보기 제시 금지: "1. 문을 연다 2. 대화한다" 식의 선택지를 주지 마십시오.
+3. 캐릭터 행동 대행 금지: 탐사자의 대사나 행동을 대신 결정하지 마십시오.
+4. 판정 요구 메커니즘: 탐사자가 위험하거나 불확실한 행동(자물쇠 따기, 숨겨진 흔적 찾기, 심리 간파 등)을 시도하면 즉시 결과를 단정짓지 말고, 반드시 본문 끝에 아래 판정 요구 태그를 첨부하십시오:
+<!--CHECK: {"stat": "관찰력", "target": 50, "desc": "서재 책장 뒤의 숨겨진 장치 찾기"}-->
+5. 판정 결과 반영: 플레이어가 [🎲 시스템 공인 주사위 판정] 결과를 보내오면, 해당 성공 등급(대성공/어려운 성공/실패 등)에 맞추어 현장의 결과를 생생하게 서술하십시오.
+6. 응답 맨 끝에는 항상 상태 갱신 태그를 포함하십시오:
+<!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}]}-->
 
 [탐사자 시트]
-- 이름: ${playerSheet?.name || "탐사자"} (직업: ${playerSheet?.job || "조사원"}, 나이: ${playerSheet?.age || 25}, 성별: ${playerSheet?.gender || "여성"})
-- 백스토리: ${playerSheet?.background || "설정 없음"}
-- 파생 수치: HP ${playerSheet?.hp}/${playerSheet?.maxHp}, MP ${playerSheet?.mp}/${playerSheet?.maxMp}, SAN ${playerSheet?.san}/99, LUCK ${playerSheet?.luck}
-- 전투 스탯: 피해 보너스(DB) ${playerSheet?.db || "0"}, 체구 ${playerSheet?.build || 0}, 이동력 ${playerSheet?.mov || 8}
+- 이름: ${playerSheet?.name || "탐사자"} (직업: ${playerSheet?.job || "조사원"}, 성별: ${playerSheet?.gender || "여성"})
+- 백스토리: ${playerSheet?.background || "없음"}
+- 수치: HP ${playerSheet?.hp}/${playerSheet?.maxHp}, SAN ${playerSheet?.san}/99, LUCK ${playerSheet?.luck}
+
+[시나리오 원문/배경]
+${scenarioText || "미지의 시나리오"}`
+      : `당신은 1D20 기반의 서사 마스터입니다.
+- 메타 발언 및 객관식 선택지 나열을 금지합니다.
+- 불확실한 행동 시 판정 요구 태그를 남기세요: <!--CHECK: {"stat": "민첩", "target": 14, "desc": "무너지는 계단 건너기"}-->
+- 응답 끝에 상태 태그를 첨부하세요: <!--STATUS: {"hp": ${playerSheet?.hp || 20}, "npcs": []}-->
+
+[플레이어 정보]
+- 이름: ${playerSheet?.name || "주인공"} (직업: ${playerSheet?.job || "모험가"})
+- 백스토리: ${playerSheet?.background || "없음"}
 
 [시나리오 배경]
-${scenarioText || "미지의 저택 시나리오"}`
-      : `당신은 높은 자유도를 보장하는 샌드박스 서사 마스터입니다.
-1D20 판정(난이도 DC 기반)을 지원하며 플레이어의 선택에 따라 반응합니다.
-- 다자연애 및 GL 서사를 자연스럽게 허용하며 호감도, 질투, 유대감을 섬세하게 묘사하세요.
-- 유저 캐릭터의 대사나 행동을 대신 결정하지 마십시오.
-- 답변 맨 끝에 상태 태그를 첨부하세요:
-<!--STATUS: {"hp": ${playerSheet?.hp || 20}, "npcs": [{"name": "인물명", "affection": 0, "state": "감정"}]}-->
+${scenarioText || "자유 서사"}`;
 
-[플레이어 캐릭터]
-- 이름: ${playerSheet?.name || "주인공"} (직업: ${playerSheet?.job || "모험가"})
-- 백스토리: ${playerSheet?.background || "설정 없음"}
-- HP: ${playerSheet?.hp || 20}/${playerSheet?.maxHp || 20}
-
-[시나리오/세계관]
-${scenarioText || "자유 서사 롤플레잉"}`;
-
-    // 첫 메시지 유저 규칙 준수 (오프닝 멘트 제외)
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
@@ -60,31 +59,12 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
 
     const lastMessage = messages[messages.length - 1].text;
 
-    // 1단계: 신규 무료 사용자 키에서 열려 있는 최신 표준 모델
-    let candidateModels = [
-      "gemini-3.5-flash",
-      "gemini-3.1-flash-lite",
+    const candidateModels = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash-latest",
       "gemini-3-flash-preview",
     ];
-
-    // 2단계: 계정 API 키로 허용된 실제 모델 목록 실시간 조회하여 병합
-    try {
-      const listRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
-      );
-      if (listRes.ok) {
-        const listData = await listRes.json();
-        const available = (listData.models || [])
-          .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
-          .map((m) => m.name.replace("models/", ""));
-
-        if (available.length > 0) {
-          candidateModels = [...new Set([...candidateModels, ...available])];
-        }
-      }
-    } catch (e) {
-      console.warn("모델 자동 조회 실패, 기본 목록 진행:", e.message);
-    }
 
     let resultText = null;
     let lastError = null;
@@ -101,7 +81,6 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
         resultText = result.response.text();
         if (resultText) break;
       } catch (err) {
-        console.warn(`[모델 호출 실패] ${modelName}:`, err.message);
         lastError = err;
       }
     }
