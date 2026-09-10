@@ -8,12 +8,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 사이드바 및 상태창 토글
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(true);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // 마법사 설정값
   const [wizardMode, setWizardMode] = useState("coc");
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
@@ -24,7 +22,7 @@ export default function App() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // CoC 7판 특성치 (합계 460 기본값)
+  // CoC 7판 특성치
   const [cocStats, setCocStats] = useState({
     str: 40,
     con: 50,
@@ -37,12 +35,11 @@ export default function App() {
     luck: 55,
   });
 
-  // 주사위 및 키퍼 판정 상태
   const [isRolling, setIsRolling] = useState(false);
   const [diceResult, setDiceResult] = useState(null);
   const [targetDc, setTargetDc] = useState(12);
   const [targetStat, setTargetStat] = useState(50);
-  const [pendingCheck, setPendingCheck] = useState(null); // 키퍼가 요구한 판정 정보
+  const [pendingCheck, setPendingCheck] = useState(null);
 
   const totalAllocated =
     Number(cocStats.str) +
@@ -113,7 +110,6 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  // 세션 삭제 핸들러
   const deleteSession = (id, e) => {
     e.stopPropagation();
     if (!window.confirm("이 시나리오 세션을 완전히 삭제하시겠습니까?")) return;
@@ -122,7 +118,6 @@ export default function App() {
     if (activeSessionId === id) setActiveSessionId(null);
   };
 
-  // TXT, MD 및 PDF 통합 파일 업로드 파서
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -156,7 +151,7 @@ export default function App() {
 
         setScenarioInput(extractedText.trim());
       } catch (err) {
-        alert("PDF 문서를 읽는 중 문제가 발생했습니다: " + err.message);
+        alert("PDF 읽기 실패: " + err.message);
       } finally {
         setIsPdfLoading(false);
       }
@@ -167,7 +162,20 @@ export default function App() {
     }
   };
 
-  // 세션 생성 및 도입부 자동 생성
+  // 백스토리 기반 초기 아이템 세팅
+  const getInitialItems = (bgText) => {
+    const defaultList = [
+      { name: "황동 돋보기", desc: "오컬트 문양과 미세한 필적을 확대해 살피는 도구" },
+      { name: "가죽 수첩", desc: "고대 상형문자와 단서가 빼곡히 적힌 수첩" },
+      { name: "은제 만년필 나이프", desc: "겉보기엔 만년필이나 날카로운 칼날이 숨겨진 호신구" },
+    ];
+    if (bgText && bgText.includes("돋보기")) return defaultList;
+    return [
+      { name: "휴대용 라이터", desc: "어둠 속을 밝히거나 불을 지필 수 있는 금속제 라이터" },
+      { name: "가죽 지갑", desc: "신분증과 약간의 비상금이 들어 있는 지갑" },
+    ];
+  };
+
   const startNewSession = async () => {
     const isCoc = wizardMode === "coc";
     const sessionTitle = charName
@@ -177,6 +185,8 @@ export default function App() {
       : isCoc
       ? "새 CoC 조사"
       : "새 샌드박스 RP";
+
+    const initialItems = getInitialItems(charBackground);
 
     const initialSheet = isCoc
       ? {
@@ -195,6 +205,7 @@ export default function App() {
           db: derivedDb,
           build: derivedBuild,
           npcs: [],
+          items: initialItems,
         }
       : {
           name: charName || "주인공",
@@ -203,6 +214,7 @@ export default function App() {
           hp: 20,
           maxHp: 20,
           npcs: [],
+          items: initialItems,
         };
 
     const newId = Date.now();
@@ -240,7 +252,6 @@ export default function App() {
       let rawText = data.text || "서막을 불러오지 못했습니다.";
       let updatedSheet = { ...initialSheet };
 
-      // 판정 요구 태그 파싱
       const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
       if (checkMatch) {
         try {
@@ -251,7 +262,6 @@ export default function App() {
         rawText = rawText.replace(/<!--CHECK:\s*({.*?})-->/s, "").trim();
       }
 
-      // 상태 태그 파싱
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
         try {
@@ -260,6 +270,7 @@ export default function App() {
           if (parsed.san !== undefined) updatedSheet.san = parsed.san;
           if (parsed.luck !== undefined) updatedSheet.luck = parsed.luck;
           if (parsed.npcs) updatedSheet.npcs = parsed.npcs;
+          if (parsed.items) updatedSheet.items = parsed.items;
         } catch (e) {
           console.error(e);
         }
@@ -280,7 +291,6 @@ export default function App() {
     }
   };
 
-  // 공통 대화 전송 코어 함수
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
 
@@ -332,6 +342,7 @@ export default function App() {
           if (parsed.san !== undefined) newSheet.san = parsed.san;
           if (parsed.luck !== undefined) newSheet.luck = parsed.luck;
           if (parsed.npcs) newSheet.npcs = parsed.npcs;
+          if (parsed.items) newSheet.items = parsed.items;
         } catch (e) {
           console.error(e);
         }
@@ -352,7 +363,6 @@ export default function App() {
     }
   };
 
-  // 수기 메시지 전송
   const sendMessage = () => {
     if (!input.trim()) return;
     const text = input;
@@ -360,7 +370,11 @@ export default function App() {
     executeMessage(text);
   };
 
-  // 조작 불가능한 시스템 공인 주사위 굴림 & 자동 전송
+  // 아이템 사용 버튼 클릭 핸들러
+  const handleUseItem = (itemName) => {
+    setInput((prev) => `품에서 [${itemName}]을(를) 꺼내어 ` + prev);
+  };
+
   const rollDiceDirectly = (overrideTarget = null, reasonText = "") => {
     if (isRolling || !activeSession) return;
     setIsRolling(true);
@@ -404,14 +418,13 @@ export default function App() {
 
       setIsRolling(false);
       setPendingCheck(null);
-      // 입력창을 거치지 않고 위변조 불가능한 시스템 판정 메시지로 마스터에게 직행
       executeMessage(rollFormatted);
     }, 700);
   };
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100vw", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
-      {/* 1. 좌측 시나리오 목록 (삭제 휴지통 버튼 탑재) */}
+      {/* 1. 좌측 시나리오 목록 */}
       <div
         style={{
           width: isSidebarOpen ? "250px" : "0px",
@@ -463,7 +476,7 @@ export default function App() {
               </div>
               <button
                 onClick={(e) => deleteSession(s.id, e)}
-                title="시나리오 세션 삭제"
+                title="삭제"
                 style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px", fontSize: "0.9rem" }}
               >
                 🗑️
@@ -476,7 +489,7 @@ export default function App() {
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: "320px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         {!activeSession ? (
-          /* 세션 생성 마법사 (PDF 파서 포함) */
+          /* 마법사 */
           <div style={{ flex: 1, overflowY: "auto", padding: "30px 25px 60px 25px", maxWidth: "680px", margin: "0 auto", width: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
@@ -527,7 +540,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 시나리오 문서 업로드 (PDF, TXT, MD 지원) */}
+            {/* 시나리오 등록 (.pdf, .txt, .md) */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
               <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>
                 📁 시나리오 문서 등록 (.pdf, .txt, .md 지원)
@@ -548,13 +561,13 @@ export default function App() {
                 <textarea
                   value={scenarioInput}
                   onChange={(e) => setScenarioInput(e.target.value)}
-                  placeholder="파일을 선택하면 내용이 자동으로 채워집니다. 직접 배경 설정을 적으셔도 됩니다."
+                  placeholder="파일을 선택하면 내용이 채워집니다. 직접 배경을 입력하셔도 됩니다."
                   style={{ width: "100%", height: "85px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
             </div>
 
-            {/* 내 캐릭터 정보 */}
+            {/* 캐릭터 정보 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
               <div style={{ fontWeight: "bold", fontSize: "0.9rem" }}>내 캐릭터 정보</div>
               <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.2fr 0.7fr 0.7fr", gap: "8px" }}>
@@ -604,13 +617,12 @@ export default function App() {
                 <textarea
                   value={charBackground}
                   onChange={(e) => setCharBackground(e.target.value)}
-                  placeholder="성격, 비밀, 과거의 트라우마, 소지품, 추구하는 가치관 등을 상세히 적어주세요."
+                  placeholder="성격, 비밀, 소지품 등을 적어주세요. 소지품 내용(돋보기, 나이프 등)은 인벤토리에 자동 등록됩니다."
                   style={{ width: "100%", height: "70px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
             </div>
 
-            {/* CoC 7판 특성치 배분창 */}
             {wizardMode === "coc" && (
               <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -675,9 +687,8 @@ export default function App() {
             </button>
           </div>
         ) : (
-          /* 실제 롤플레잉 플레이 화면 */
+          /* 플레이 룸 */
           <>
-            {/* 상단 컨트롤 바 */}
             <div style={{ padding: "8px 15px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <button
@@ -702,7 +713,7 @@ export default function App() {
                   disabled={isRolling || isLoading}
                   style={{ padding: "5px 12px", backgroundColor: activeSession.ruleMode === "coc" ? theme.danger : theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "0.85rem" }}
                 >
-                  🎲 {activeSession.ruleMode === "coc" ? "1D100 판정 굴리기" : "1D20 판정 굴리기"}
+                  🎲 {activeSession.ruleMode === "coc" ? "1D100 판정" : "1D20 판정"}
                 </button>
                 <button
                   onClick={() => setIsSheetOpen(!isSheetOpen)}
@@ -713,7 +724,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 키퍼의 판정 제안 알림 배너 (출현 시 즉시 원클릭 판정 가능) */}
+            {/* 판정 요구 알림 배너 */}
             {pendingCheck && (
               <div style={{ backgroundColor: "#3b2611", borderBottom: `1px solid ${theme.warning}`, padding: "10px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <div style={{ fontSize: "0.85rem", color: "#fbd38d" }}>
@@ -729,10 +740,10 @@ export default function App() {
               </div>
             )}
 
-            {/* 최근 주사위 결과 브리핑 */}
+            {/* 주사위 판정 결과 */}
             {diceResult && (
               <div style={{ backgroundColor: theme.panel, borderBottom: `1px solid ${theme.border}`, padding: "6px 15px", fontSize: "0.82rem", display: "flex", justifyContent: "space-between" }}>
-                <span>🎲 {diceResult.type} 결과: <strong>{diceResult.roll}</strong> (판정치: {diceResult.target})</span>
+                <span>🎲 {diceResult.type} 결과: <strong>{diceResult.roll}</strong> (기준: {diceResult.target})</span>
                 <span style={{ color: diceResult.outcome.includes("성공") ? theme.success : theme.danger, fontWeight: "bold" }}>{diceResult.outcome}</span>
               </div>
             )}
@@ -769,7 +780,7 @@ export default function App() {
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.88rem", padding: "10px" }}>키퍼가 서사를 구성하는 중...</div>}
             </div>
 
-            {/* 입력창 (주사위와 완전히 분리되어 지문/대사만 타이핑) */}
+            {/* 입력창 */}
             <div style={{ padding: "12px 15px", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "10px" }}>
               <textarea
                 value={input}
@@ -780,7 +791,7 @@ export default function App() {
                     sendMessage();
                   }
                 }}
-                placeholder="지문이나 대사를 입력하세요 (주사위는 상단 전용 버튼을 이용하세요)..."
+                placeholder="지문이나 대사를 입력하세요..."
                 style={{ flex: 1, height: "45px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", resize: "none", outline: "none", boxSizing: "border-box" }}
               />
               <button onClick={sendMessage} disabled={isLoading} style={{ padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
@@ -791,12 +802,12 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 */}
+      {/* 3. 우측 상태창 (소지품/인벤토리 패널 탑재) */}
       {activeSession && (
         <div
           style={{
-            width: isSheetOpen ? "240px" : "0px",
-            minWidth: isSheetOpen ? "240px" : "0px",
+            width: isSheetOpen ? "250px" : "0px",
+            minWidth: isSheetOpen ? "250px" : "0px",
             transition: "width 0.2s ease",
             overflow: "hidden",
             backgroundColor: theme.sidebar,
@@ -808,7 +819,7 @@ export default function App() {
             wordBreak: "keep-all",
           }}
         >
-          <div style={{ padding: "15px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "240px", boxSizing: "border-box" }}>
+          <div style={{ padding: "15px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "250px", boxSizing: "border-box" }}>
             <div>
               <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>탐사자 정보</h4>
               <div style={{ fontSize: "0.82rem", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -825,17 +836,59 @@ export default function App() {
               </div>
             </div>
 
-            {activeSession.sheet.background && (
-              <div>
-                <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "3px" }}>배경/설정:</div>
-                <div style={{ fontSize: "0.8rem", backgroundColor: theme.panel, padding: "6px", borderRadius: "4px", lineHeight: "1.4" }}>
-                  {activeSession.sheet.background}
-                </div>
+            <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
+
+            {/* 신설: 소지품 / 인벤토리 영역 */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <h4 style={{ margin: 0, fontSize: "0.9rem", color: theme.accent }}>🎒 소지품 / 인벤토리</h4>
+                <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>{(activeSession.sheet.items || []).length}개</span>
               </div>
-            )}
+              
+              {(!activeSession.sheet.items || activeSession.sheet.items.length === 0) ? (
+                <div style={{ fontSize: "0.8rem", color: theme.textMuted }}>소지품이 비어 있습니다.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {activeSession.sheet.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        backgroundColor: theme.panel,
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: "6px",
+                        padding: "7px 9px",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
+                        <strong style={{ color: theme.text }}>{item.name}</strong>
+                        <button
+                          onClick={() => handleUseItem(item.name)}
+                          style={{
+                            padding: "2px 6px",
+                            backgroundColor: theme.panelAlt,
+                            border: `1px solid ${theme.border}`,
+                            color: theme.accent,
+                            borderRadius: "3px",
+                            cursor: "pointer",
+                            fontSize: "0.7rem",
+                          }}
+                        >
+                          사용
+                        </button>
+                      </div>
+                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, lineHeight: "1.3" }}>
+                        {item.desc}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
+            {/* 주변 인물 호감도 */}
             <div>
               <h4 style={{ margin: "0 0 8px 0", fontSize: "0.9rem", color: theme.accent }}>주변 인물 호감도</h4>
               {activeSession.sheet.npcs.length === 0 ? (
@@ -856,7 +909,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. CoC 룰 가이드 모달 */}
+      {/* CoC 가이드 모달 */}
       {showGuideModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "520px", maxHeight: "80vh", overflowY: "auto", padding: "22px", color: theme.text, wordBreak: "keep-all" }}>
@@ -868,18 +921,16 @@ export default function App() {
             <div style={{ fontSize: "0.85rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
                 <strong>1. 특성치 배분</strong>
-                <div>• 총 8대 특성치 합계: <strong>460 포인트</strong> 기본 한계</div>
-                <div>• 성인 기준 평균치는 50이며, 범위는 15~90 사이로 설정합니다.</div>
+                <div>• 8대 특성치 총합 <strong>460 pt</strong> 기본 한계</div>
+                <div>• 일반 성인 평균치 50 (범위 15~90)</div>
               </div>
-
               <div>
-                <strong>2. 성공 등급 판정 (1D100)</strong>
+                <strong>2. 성공 등급 (1D100)</strong>
                 <div>• <strong>보통 성공:</strong> 판정치 이하</div>
                 <div>• <strong>어려운 성공:</strong> 판정치의 1/2 이하</div>
                 <div>• <strong>극단적 성공:</strong> 판정치의 1/5 이하</div>
                 <div>• <strong>대성공:</strong> 01 / <strong>대실패:</strong> 96~100</div>
               </div>
-
               <div>
                 <strong>3. 파생 수치 공식</strong>
                 <div>• <strong>HP:</strong> (CON + SIZ) ÷ 10</div>
