@@ -47,11 +47,7 @@ ${scenarioText || "미지의 저택 시나리오"}`
 [시나리오/세계관]
 ${scenarioText || "자유 서사 롤플레잉"}`;
 
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: systemInstruction,
-    });
-
+    // 첫 메시지 유저 규칙 준수
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
@@ -63,12 +59,42 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
     }));
 
     const lastMessage = messages[messages.length - 1].text;
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage);
 
-    return new Response(JSON.stringify({ text: result.response.text() }), { status: 200 });
+    // 최신 Gemini 2.5 Flash 우선 호출 및 안정적 폴백 목록
+    const candidateModels = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash-latest",
+      "gemini-2.5-pro",
+    ];
+
+    let resultText = null;
+    let lastError = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: systemInstruction,
+        });
+
+        const chat = model.startChat({ history });
+        const result = await chat.sendMessage(lastMessage);
+        resultText = result.response.text();
+        if (resultText) break;
+      } catch (err) {
+        console.warn(`[모델 폴백] ${modelName} 시도 실패, 다음 모델로 재시도:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!resultText) {
+      throw lastError || new Error("사용 가능한 제미나이 모델을 찾을 수 없습니다.");
+    }
+
+    return new Response(JSON.stringify({ text: resultText }), { status: 200 });
   } catch (error) {
-    console.error("서버 에러:", error);
+    console.error("서버 처리 에러:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
