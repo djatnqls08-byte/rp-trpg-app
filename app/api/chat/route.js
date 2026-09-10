@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req) {
   try {
-    const { messages, scenarioText, playerSheet, ruleMode } = await req.json();
+    const { messages, scenarioText, playerSheet, ruleMode, playPreference } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -15,19 +15,29 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const isCoc = ruleMode === "coc";
 
+    // 플레이어가 입력한 관계성 및 서사 톤을 절대 지침으로 주입
+    const preferenceInstruction = playPreference
+      ? `[플레이어 서사 톤 & 관계성 지침 - 절대 준수]
+- 플레이어 요구 성향: "${playPreference}"
+- 위 지침에 명시된 관계성(GL/BL/HL/논로맨스 등)과 감정선(애증, 구원, 집착 등)을 인물 간의 시선 처리와 대사에 깊이 있게 반영하십시오.
+- 플레이어가 원치 않거나 지침과 충돌하는 불필요한 이성/동성 로맨스 구도는 철저히 배제하십시오.`
+      : `[플레이어 서사 톤]
+- 인물들 간의 미묘한 심리 기류, 시선 처리, 유대감을 섬세하게 서술하십시오.`;
+
     const systemInstruction = isCoc
       ? `당신은 크툴루의 부름(CoC 7판) 룰 기반의 정통 키퍼(수호자)입니다.
+
+${preferenceInstruction}
 
 [핵심 운영 원칙]
 1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 시스템식 멘트를 일체 배제하십시오.
 2. 객관식 보기 제시 금지: 번호 매겨진 선택지를 주지 말고 상황 자체를 서술하십시오.
 3. 캐릭터 행동 대행 금지: 탐사자의 대사나 심리를 마음대로 결정하지 마십시오.
-4. 소지품/인벤토리 관리:
-   - 탐사자가 현장에서 중요한 물건을 얻거나 잃으면 상태 태그의 "items" 목록에 추가/제거하십시오.
-5. 판정 요구: 불확실한 행동을 시도하면 본문 끝에 반드시 판정 요구 태그를 첨부하십시오:
+4. 소지품/인벤토리 관리: 탐사자가 현장에서 중요한 물건을 얻거나 잃으면 상태 태그의 "items" 목록에 추가/제거하십시오.
+5. 판정 요구: 불확실한 행동 시 판정 요구 태그를 첨부하십시오:
 <!--CHECK: {"stat": "관찰력", "target": 50, "desc": "서재 책장 뒤의 숨겨진 장치 찾기"}-->
 6. 주사위 결과 반영: [🎲 시스템 공인 주사위 판정] 결과가 들어오면 성공 등급에 맞춰 결과를 묘사하십시오.
-7. 응답 맨 끝에는 항상 상태 갱신 태그를 포함하십시오:
+7. 응답 맨 끝 상태 갱신 태그:
 <!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": [{"name": "엘리제", "affection": 10, "state": "호기심"}], "items": ${JSON.stringify(playerSheet?.items || [])}}-->
 
 [탐사자 시트]
@@ -39,6 +49,9 @@ export async function POST(req) {
 [시나리오 배경]
 ${scenarioText || "미지의 시나리오"}`
       : `당신은 1D20 기반의 서사 마스터입니다.
+
+${preferenceInstruction}
+
 - 메타 발언 및 객관식 선택지 나열을 금지합니다.
 - 아이템 획득 및 소비 시 상태 태그의 "items"를 갱신하십시오.
 - 판정 필요 시: <!--CHECK: {"stat": "민첩", "target": 14, "desc": "장애물 넘기"}-->
@@ -98,7 +111,7 @@ ${scenarioText || "자유 서사"}`;
 
     return new Response(JSON.stringify({ text: resultText, usage: usageData }), { status: 200 });
   } catch (error) {
-    console.error("서버 처리 에러:", error);
+    console.error("서버 에러:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
