@@ -47,7 +47,7 @@ ${scenarioText || "미지의 저택 시나리오"}`
 [시나리오/세계관]
 ${scenarioText || "자유 서사 롤플레잉"}`;
 
-    // 첫 메시지 유저 규칙 준수
+    // 첫 메시지는 user여야 하는 규칙 준수
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
@@ -60,12 +60,12 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
 
     const lastMessage = messages[messages.length - 1].text;
 
-    // 최신 Gemini 2.5 Flash 우선 호출 및 안정적 폴백 목록
+    // 구글 API 권장 최신 3.x 계열 모델 적용
     const candidateModels = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash-latest",
-      "gemini-2.5-pro",
+      "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-preview",
+      "gemini-3.0-pro",
+      "gemini-3.0-flash",
     ];
 
     let resultText = null;
@@ -83,7 +83,7 @@ ${scenarioText || "자유 서사 롤플레잉"}`;
         resultText = result.response.text();
         if (resultText) break;
       } catch (err) {
-        console.warn(`[모델 폴백] ${modelName} 시도 실패, 다음 모델로 재시도:`, err.message);
+        console.warn(`[모델 호출 실패] ${modelName}:`, err.message);
         lastError = err;
       }
     }
