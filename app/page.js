@@ -24,8 +24,8 @@ export default function App() {
   // 효과음, 연출, AI 답변 제안 칩 설정
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
-  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true); // AI 답변 제안 켜기/끄기
-  const [suggestedActions, setSuggestedActions] = useState([]); // AI가 제안한 선택지 3개
+  const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
+  const [suggestedActions, setSuggestedActions] = useState([]);
 
   // 대화록 내보내기 옵션
   const [exportFormat, setExportFormat] = useState("txt");
@@ -77,15 +77,17 @@ export default function App() {
   const [targetStat, setTargetStat] = useState(50);
   const [pendingCheck, setPendingCheck] = useState(null);
 
-  // 대규모 절차적 생성 데이터베이스 (CoC & 1D20 자유 서사 양방향 지원)
-  const generatorPool = {
+  // ============================================================
+  // 대규모 클리셰 서사 & 캐릭터 절차적 생성 데이터베이스
+  // ============================================================
+  const clichesPool = {
     coc: {
       names: ["사반", "로웨나", "비비안", "엘레노어", "카밀라", "샬롯", "이졸데", "마리안", "세실리아", "베아트리스"],
       jobs: [
         { job: "고서적 및 유물 감정사", item: "황동 돋보기, 가죽 수첩, 은제 만년필 나이프", bg: "금서와 고대 비전서의 기괴한 필적을 감정하며 살아온 인물. 지적 호기심과 미지에 대한 집착이 강하다." },
-        { job: "사립 탐정", item: "회중시계형 나침반, 콜트 32구경 권총, 잠금해제용 철사", bg: "어둠에 묻힌 실종 사건과 기괴한 범죄 현장을 전담해 온 베테랑 탐정. 날카로운 직관과 침착함을 지녔다." },
+        { job: "사립 탐정", item: "회중시계형 나침반, 콜트 32구경 권총, 잠금해제용 철사", bg: "어둠에 묻힌 실종 사건과 기괴한 밀실 범죄를 전담해 온 탐정. 날카로운 직관과 침착함을 지녔다." },
         { job: "정신과 의사", item: "진정제 앰플, 가죽 청진기, 임상 기록 노트", bg: "원인 불명의 집단 광기와 망상 환자들을 치료해 온 학자. 타인의 미묘한 심리 변화를 짚어낸다." },
-        { job: "고고학 발굴단원", item: "제도용 캘리퍼스, 손전등, 발굴용 작은 단도", bg: "모래와 석조 잔해 밑에 묻힌 고대 신전을 탐사해 온 현장주의자. 유적의 금기에 매료되어 있다." },
+        { job: "고고학 발굴단원", item: "제도용 캘리퍼스, 손전등, 발굴용 작은 단도", bg: "모래와 석조 잔해 밑에 묻힌 고대 신전을 탐사해 온 현장주의자. 금기된 유적에 매료되어 있다." },
         { job: "탐사 저널리스트", item: "소형 카메라, 만년필 녹음기, 압박 붕대", bg: "가문의 스캔들과 사교 집단의 밀실 의식을 파헤쳐 온 기자. 위험 앞에서도 물러서지 않는다." },
       ],
       places: [
@@ -93,63 +95,93 @@ export default function App() {
         "폭설로 외부 진입로가 완전히 봉쇄된 산 정상의 '아컴 요양 병동'",
         "지진으로 유일한 석조 출입구가 무너져 내린 고대 사막의 '이형 지하 신전'",
         "밤마다 짙은 안개 속에서 타종 소리가 울려 퍼지는 호숫가의 '폐쇄된 수녀원'",
+        "출항 직후 원인 불명으로 통신이 두절되고 안개 속에 표류한 호화 여객선",
+        "외지인의 출입을 극도로 꺼리며 매년 기괴한 제사를 지내는 외딴 섬마을",
       ],
       npc1: [
         { name: "엘리제", title: "은발의 상속녀", trait: "병약하고 서늘한 인상이지만 주인공에게 깊은 호기심과 강박적인 의존을 드러냄" },
         { name: "아이린", title: "의문의 기록원", trait: "비밀을 감춘 나른한 눈빛으로 주인공의 일거수일투족을 관찰하며 은밀한 호감을 보임" },
         { name: "베아트리스", title: "귀족 출신 후원자", trait: "오만하고 까칠한 말투 뒤편으로 주인공의 안위를 누구보다 조마조마하게 걱정함" },
+        { name: "세실", title: "비밀을 품은 섬마을 무녀", trait: "신비롭고 위태로운 분위기 속에서 오직 주인공에게만 진실을 털어놓으려 함" },
       ],
       npc2: [
         { name: "유스티나", title: "단호한 호위 경호원", trait: "권총을 차고 주인공을 외부인이라며 매섭게 견제하지만 기이한 독점욕을 숨기지 못함" },
         { name: "마가렛", title: "냉혹한 관리인", trait: "엄격하고 무자비하게 현장을 통제하면서도 주인공의 시선과 인정에 집착함" },
         { name: "카라", title: "과묵한 현지 길잡이", trait: "말수는 적으나 주인공을 가로막는 위험 앞에서는 목숨을 걸고 앞장서며 과보호함" },
+        { name: "다프네", title: "경찰 소속 수사관", trait: "주인공을 의심스러운 용의자로 대하면서도 결코 자신의 시야 밖으로 벗어나지 못하게 함" },
       ],
       events: [
         "서재 안쪽에서 유리창이 산산조각 나며 인간의 성대가 아닌 듯한 젖은 속삭임이 쏟아져 내립니다.",
         "석문 틈새로 푸른 인광이 새어 나오며 바닥의 마법진이 액체처럼 검게 끓어오르기 시작합니다.",
         "괘종시계의 바늘이 반대 방향으로 회전하며 저택 안의 모든 촛불이 일제히 푸른 불꽃으로 물듭니다.",
+        "복도 끝 어둠 속에서 축축한 점막이 마룻바닥을 기어오는 듯한 기괴한 소음이 다가옵니다.",
       ]
     },
-    d20: {
-      genres: [
-        {
-          genre: "다크 판타지",
-          names: ["레니에", "발렌티나", "이졸데", "모건"],
-          jobs: ["저주받은 마검사", "이단 심문관", "밀교의 점성술사", "그림자 암살자"],
-          places: ["붉은 비가 그치지 않는 저주받은 성채 '카르코사'", "마수의 뼈로 지어진 국경의 비밀 요새", "부서진 여신상이 잠든 지하 카타콤"],
-          npc1: { name: "모르가나", title: "은둔 마녀", trait: "나른한 미소로 주인공을 시험하며 금지된 지식을 흘림" },
-          npc2: { name: "클레어", title: "성기사", trait: "엄격한 신조를 가졌으나 주인공에게 등을 맡기며 억눌린 애증을 품음" },
-          event: "성소의 봉인이 파괴되며 심연의 마기가 검은 안개처럼 솟구쳐 오릅니다."
-        },
-        {
-          genre: "사이버펑크 느와르",
-          names: ["시안", "키이라", "로완", "제이드"],
-          jobs: ["블랙넷 해커", "신경 가속 사이보그 용병", "암시장 나노 엔지니어", "기업 특수요원"],
-          places: ["네온사인이 번쩍이는 슬럼가 지하 바 '글리치'", "메가코프 최상층의 스카이 가든 펜트하우스", "비 내리는 버려진 구룡성채형 거주구역"],
-          npc1: { name: "이브", title: "사이보그 집행관", trait: "체포 명령을 받았지만 주인공에게 기이한 독점욕과 집착을 드러냄" },
-          npc2: { name: "베로니카", title: "신디케이트 보스", trait: "주인공을 숨겨주는 대가로 영원한 복종과 계약을 요구함" },
-          event: "정체불명의 고위급 보안 프로토콜이 해킹 덱을 강타하며 경보 사이렌이 울립니다."
-        },
-        {
-          genre: "스페이스 오페라 SF",
-          names: ["알렉스", "세리스", "아리아", "헬리오스"],
-          jobs: ["개조 수송선 함장", "외계 유물 인양꾼", "성간 항로 파일럿", "사이오닉 감응자"],
-          places: ["버려진 군사 우주정거장의 잔해 구역", "동면 포드가 늘어선 심우주 탐사선 '노스토모'", "붉은 모래폭풍이 몰아치는 미개척 외계 행성"],
-          npc1: { name: "세레나", title: "망명 귀족", trait: "고귀한 태도 뒤에 깊은 불안을 감추고 주인공에게만 기대려 함" },
-          npc2: { name: "카라", title: "수석 엔지니어", trait: "거친 언행 속에서도 주인공의 생존과 안전만을 극단적으로 우선함" },
-          event: "인양한 고대 외계 코어가 맥박처럼 고동치며 함선의 중력 제어 장치가 요동칩니다."
-        },
-        {
-          genre: "어반 판타지 (현대 퇴마)",
-          names: ["서윤", "도아", "은채", "하경"],
-          jobs: ["현대 퇴마사", "오컬트 고서점 운영자", "영능력 특수경찰", "부적 제작자"],
-          places: ["자정이 되면 시간이 멈추는 비 내리는 폐지하철역", "결계가 찢어진 도심 한복판의 오래된 빌딩 옥상", "금기가 봉인된 인사동의 비밀 골동품점"],
-          npc1: { name: "유화", title: "신내림을 거부한 무녀", trait: "위태롭고 서늘하지만 주인공의 손길에만 안정감을 느낌" },
-          npc2: { name: "선우", title: "강력계 형사", trait: "오컬트를 불신한다면서도 주인공의 곁을 집요하게 지키며 과보호함" },
-          event: "결계석이 산산조각 나며 짙은 피비린내와 함께 붉은 부적들이 공중에 흩날립니다."
-        }
-      ]
-    }
+    d20: [
+      {
+        theme: "아카데미 수석·차석 라이벌",
+        name: "세리스",
+        job: "마법 아카데미 평민 수석",
+        age: "20",
+        items: "마력 각인 만년필, 정밀 양피지 노트, 비상용 마나 포션",
+        bg: "엄격한 신분제 아카데미에서 실력 하나로 수석을 꿰찬 수재. 타인에게 약점을 보이지 않으려 늘 꼿꼿하다.",
+        scenario: "황립 마법 아카데미의 봉인된 지하 서고. 주인공을 눈엣가시로 여기면서도 집착하는 명문 공작가의 차석 '비올라'와, 주인공을 과보호하며 전담 호위를 자처하는 기사학부 수석 '헬레나'가 함께 갇히게 됩니다. 봉인석이 깨지며 고대 금주가 폭주하기 시작합니다."
+      },
+      {
+        theme: "북부대공 & 계약 정략결혼",
+        name: "로웨나",
+        job: "몰락 귀족의 후계자",
+        age: "24",
+        items: "가문의 인장 반지, 독침이 숨겨진 부채, 해독제 앰플",
+        bg: "가문의 멸문을 막기 위해 냉혹하기로 악명 높은 북부 대공가로 팔려오듯 시집온 인물. 이성적이고 침착하다.",
+        scenario: "눈보라가 몰아치는 험준한 북부의 '흑철성'. 피도 눈물도 없다고 알려진 얼음 같은 북부 대공 '베아트릭스'는 주인공에게 냉정하게 선을 긋지만 묘한 집착을 드러내고, 그녀를 견제하는 근위대장 '발렌티나'는 주인공을 암살자로 의심하며 날을 세웁니다. 자정의 연회장 조명이 일제히 꺼집니다."
+      },
+      {
+        theme: "가이드버스 & 폭주 센티넬",
+        name: "서윤",
+        job: "S급 공인 가이드",
+        age: "25",
+        items: "고농축 안정제 키트, 가이딩 측정 팔찌, 호신용 섬광탄",
+        bg: "희귀한 파동을 지녀 통제 불능인 강력한 에스퍼들을 전담 진정시켜 온 베테랑 가이드.",
+        scenario: "폭주 경보가 울려 퍼지는 특수 격리 구역. 주인공 외에는 그 누구의 손길도 거부하며 파멸 직전에 이른 최강의 에스퍼 '권유화'가 피투성이가 된 채 주인공의 옷자락을 붙잡고, 그녀를 사살하라는 명령을 받은 냉혹한 집행관 '차선우'가 총구를 겨눈 채 주인공의 결단을 재촉합니다."
+      },
+      {
+        theme: "황녀 & 전속 호위기사",
+        name: "아리아",
+        job: "황실 근위 기사",
+        age: "23",
+        items: "서약의 은검, 황실 문장 망토, 숫돌",
+        bg: "반역으로 황궁이 불타던 날, 유일하게 어린 황녀를 빼돌려 지켜낸 전속 호위기사.",
+        scenario: "국경 지대의 버려진 산장. 황권을 되찾으려는 오만하지만 유약한 황녀 '카밀라'는 주인공에게만 필사적으로 의존하고, 피난길을 안내해 준 냉철한 용병 대장 '레니에'는 주인공에게 기이한 흥미를 보이며 자신의 곁에 남으라 회유합니다. 숲속에서 추격대의 말발굽 소리가 들려옵니다."
+      },
+      {
+        theme: "재벌 3세 & 전속 경호원",
+        name: "도아",
+        job: "VIP 전속 경호원",
+        age: "27",
+        items: "전술 무전 이어셋, 방탄 조끼, 특수 테이저건",
+        bg: "특수부대 출신의 과묵하고 유능한 경호원. VIP의 생명을 지키는 것을 절대 원칙으로 삼는다.",
+        scenario: "비 내리는 도심 펜트하우스. 의문의 살해 위협에 시달리며 누구도 믿지 못하는 까칠한 재벌 3세 '신예은'은 주인공에게만 곁을 내어주며 집착하고, 사건을 파헤치는 집요한 강력계 형사 '강이경'은 주인공과 날카로운 신경전을 벌입니다. 정전과 함께 도어록이 강제로 해제됩니다."
+      },
+      {
+        theme: "시한부 & 쌍방 구원 서사",
+        name: "이졸데",
+        job: "저주받은 연금술사",
+        age: "22",
+        items: "생명 유지 에테르병, 은제 단도, 고대 연구 수첩",
+        bg: "금지된 지식을 대가로 수명이 얼마 남지 않은 시한부 연구자. 담담하게 최후를 준비하고 있다.",
+        scenario: "안개 자욱한 성벽 도시의 은신처. 주인공을 구원하기 위해 자신의 영혼마저 악마에게 저당 잡힌 암살자 '키이라'가 피를 흘리며 돌아오고, 그녀를 추적해 온 거룩하지만 냉혹한 성기사 '클레어'가 칼을 빼어 듭니다. 주인공의 서약이 시험대에 오릅니다."
+      },
+      {
+        theme: "앙숙 배틀 라이벌 & 전우애",
+        name: "알렉스",
+        job: "자유 용병",
+        age: "26",
+        items: "개조 샷건, 군용 컴뱃 나이프, 지혈제",
+        bg: "거칠고 위험한 의뢰를 도맡아 온 용병. 입은 험하지만 등을 맡긴 동료는 절대 버리지 않는다.",
+        scenario: "무너져 내리는 지하 벙커. 오랜 라이벌이자 마주치기만 하면 칼부터 겨누던 앙숙 용병 '모건'과 단둘이 고립되었습니다. 서로 으르렁대면서도 등을 맞대고 총구를 겨눈 가운데, 어둠 속에서 기괴한 변이 생명체들이 떼를 지어 몰려들기 시작합니다."
+      }
+    ]
   };
 
   // CoC 460pt 정규 룰 주사위 배분
@@ -386,7 +418,6 @@ export default function App() {
   else if (strPlusSiz <= 164) { derivedDb = "+1D4"; derivedBuild = 1; }
   else { derivedDb = "+1D6"; derivedBuild = 2; }
 
-  // 로컬 스토리지 불러오기
   useEffect(() => {
     const saved = localStorage.getItem("rp_hub_sessions");
     if (saved) {
@@ -479,7 +510,6 @@ export default function App() {
     });
   };
 
-  // API 호출 카운트 수동 보정
   const handleUpdateManualApiCount = () => {
     const num = parseInt(manualCountInput, 10);
     if (isNaN(num) || num < 0) return alert("올바른 숫자를 입력하세요.");
@@ -492,12 +522,12 @@ export default function App() {
     alert(`오늘 API 호출 횟수가 ${num}회로 보정되었습니다.`);
   };
 
-  // 모드별 절차적 무작위 생성기 (CoC & 1D20 자유 서사 양방향 지원)
+  // 클리셰 무작위 조합 생성기
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
     if (wizardMode === "coc") {
-      const pool = generatorPool.coc;
+      const pool = clichesPool.coc;
       const name = pick(pool.names);
       const jobObj = pick(pool.jobs);
       const place = pick(pool.places);
@@ -510,39 +540,34 @@ export default function App() {
       setCharAge(String(Math.floor(Math.random() * 15) + 22));
       setCharGender("여성");
       setCharBackground(`${jobObj.bg} 품에는 [${jobObj.item}]을(를) 소지하고 있다.`);
-      setScenarioInput(`${place}. ${name}은(는) 숨겨진 진상을 조사하기 위해 도착했다. 곁에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 서로 팽팽한 신경전을 벌이며 동행 중이다. 자정이 지난 시각, ${evt}`);
+      setScenarioInput(`${place}. ${name}은(는) 숨겨진 진상을 조사하기 위해 도착했다. 곁에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 동행 중이다. 자정이 지난 시각, ${evt}`);
       setCocStats(generateRandomCocStats());
     } else {
-      const pool = generatorPool.d20;
-      const gObj = pick(pool.genres);
-      const name = pick(gObj.names);
-      const job = pick(gObj.jobs);
-      const place = pick(gObj.places);
-      const n1 = gObj.npc1;
-      const n2 = gObj.npc2;
-      const evt = gObj.event;
-
-      setCharName(name);
-      setCharJob(job);
-      setCharAge(String(Math.floor(Math.random() * 12) + 21));
+      const picked = pick(clichesPool.d20);
+      setCharName(picked.name);
+      setCharJob(picked.job);
+      setCharAge(picked.age);
       setCharGender("여성");
-      setCharBackground(`[${gObj.genre}] 위험한 임무를 수행하는 ${job}. 품에는 필수 호신 도구와 장비를 지니고 있다.`);
-      setScenarioInput(`[${gObj.genre}] ${place}. ${name}은(는) 의뢰를 완수하기 위해 진입했다. 이곳에는 ${n1.title} '${n1.name}'(${n1.trait})과(와), ${n2.title} '${n2.name}'(${n2.trait})이(가) 서로를 견제하며 주인공과 동행하고 있다. 긴장이 감돌던 순간, ${evt}`);
+      setCharBackground(`${picked.bg} 소지품: ${picked.items}`);
+      setScenarioInput(picked.scenario);
     }
   };
 
   // AI 즉석 신규 생성
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
-    const prompt = `당신은 노련한 TRPG 마스터입니다. ${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "1D20 자유 서사"}에 쓸 독창적인 캐릭터와 시나리오 도입부를 하나 작성하세요.
+    const prompt = `당신은 흥미진진한 이야기를 엮어내는 노련한 TRPG 마스터입니다. 
+${wizardMode === "coc" ? "크툴루의 부름(CoC 7판)" : "자유 서사(1D20)"} 룰에 쓸 매력적인 캐릭터와 몰입감 높은 시나리오 도입부를 작성하세요.
+절대로 장르 말머리(예: [다크 판타지])를 붙이지 마십시오.
+
 반드시 아래 JSON 포맷으로만 응답하세요:
 {
   "name": "캐릭터 이름",
   "job": "직업",
-  "age": "25",
+  "age": "24",
   "gender": "여성",
-  "background": "캐릭터의 상세 배경과 소지품 3가지",
-  "scenario": "고립된 배경, 매력적인 동행 NPC 2명과의 미묘한 관계성, 첫 장면에 닥친 위기 사건을 포함한 3~4문장의 시나리오 도입부"
+  "background": "캐릭터의 배경 설정과 소지품 3가지",
+  "scenario": "장소와 상황 묘사, 매력적인 동행 여성 인물 2명과의 미묘한 관계성, 첫 장면에 터진 위기 사건을 포함한 3~4문장의 소설 지문 도입부"
 }`;
 
     try {
@@ -566,7 +591,7 @@ export default function App() {
         const parsed = JSON.parse(jsonMatch[0]);
         setCharName(parsed.name || "주인공");
         setCharJob(parsed.job || "조사원");
-        setCharAge(parsed.age || "25");
+        setCharAge(parsed.age || "24");
         setCharGender(parsed.gender || "여성");
         setCharBackground(parsed.background || "");
         setScenarioInput(parsed.scenario || "");
@@ -678,7 +703,7 @@ export default function App() {
     const keywords = [
       { key: "돋보기", name: "황동 돋보기", desc: "오컬트 문양과 미세한 필적을 살피는 도구" },
       { key: "수첩", name: "가죽 수첩", desc: "단서와 기록이 빼곡히 적힌 수첩" },
-      { key: "만년필", name: "은제 만년필 나이프", desc: "만년필 모양 속에 숨겨진 호신용 단도" },
+      { key: "만년필", name: "마력 만년필", desc: "마력을 각인할 수 있는 정밀 만년필" },
       { key: "권총", name: "콜트 32구경 권총", desc: "호신용 소형 리볼버 권총" },
       { key: "철사", name: "잠금해제용 철사 세트", desc: "자물쇠를 해제할 수 있는 도구" },
       { key: "카메라", name: "소형 필름 카메라", desc: "현장의 결정적 단서를 기록하는 카메라" },
@@ -686,13 +711,13 @@ export default function App() {
       { key: "붕대", name: "응급 압박 붕대", desc: "지혈 및 부상 처치용 붕대" },
       { key: "나침반", name: "회중시계형 정밀 나침반", desc: "방향과 방위를 측정하는 도구" },
       { key: "손전등", name: "소형 손전등", desc: "어둠 속을 밝히는 도구" },
-      { key: "단도", name: "발굴용 단도", desc: "유적 조사와 호신에 쓰는 단도" },
-      { key: "메스", name: "은제 외과 메스", desc: "정밀하게 자르거나 해체할 수 있는 메스" },
-      { key: "롱소드", name: "흑철 롱소드", desc: "마기가 서려 있는 날카로운 장검" },
-      { key: "망토", name: "여행자 망토", desc: "비바람과 시선을 차단하는 두터운 외투" },
-      { key: "해킹", name: "휴대용 해킹 덱", desc: "전자 잠금장치와 네트워크를 교란하는 단말기" },
-      { key: "수류탄", name: "EMP 수류탄", desc: "기계를 일시 무력화하는 소형 폭탄" },
-      { key: "토치", name: "플라즈마 토치", desc: "금속을 절단하고 용접하는 휴대용 도구" },
+      { key: "은검", name: "서약의 은검", desc: "호위의 맹세가 깃든 날카로운 직검" },
+      { key: "단도", name: "은제 단도", desc: "호신용으로 은밀히 숨겨둔 단도" },
+      { key: "반지", name: "가문의 인장 반지", desc: "신분을 증명하고 마력을 품은 반지" },
+      { key: "부채", name: "철골 부채", desc: "날카로운 살이 숨겨진 무도회용 부채" },
+      { key: "안정제", name: "가이딩 안정제 키트", desc: "폭주하는 파동을 가라앉히는 주사기" },
+      { key: "테이저", name: "특수 테이저건", desc: "순간적으로 대상을 제압하는 전기 충격기" },
+      { key: "샷건", name: "개조 샷건", desc: "근접전에서 막강한 화력을 자랑하는 총기" },
     ];
 
     keywords.forEach((k) => {
@@ -758,12 +783,12 @@ export default function App() {
   const startNewSession = async () => {
     const isCoc = wizardMode === "coc";
     const sessionTitle = charName
-      ? `${charName}의 여정`
+      ? `${charName}의 이야기`
       : uploadedFileName
       ? uploadedFileName.replace(/\.[^/.]+$/, "")
       : isCoc
       ? "새 CoC 조사"
-      : "새 샌드박스 RP";
+      : "새 1D20 서사";
 
     const initialItems = getInitialItems(charBackground);
 
@@ -815,7 +840,7 @@ export default function App() {
 
     const openingPrompt = `[세션 시작: 시나리오 원문과 인물 설정, 그리고 지정된 서사/관계성 지침("${playPreference || "자연스러운 심리 묘사"}")을 깊이 있게 반영하여 첫 장면의 서막을 여십시오. 
 - 메타 발언, 챗봇 인사말, 본문 객관식 번호 선택지를 일체 배제하십시오.
-- 공간의 분위기와 날씨, 탐사자가 마주한 위기, 함께 있는 인물들의 표정과 미묘한 감정 기류를 생생하게 묘사하십시오.]`;
+- 공간의 분위기와 날씨, 주인공이 마주한 위기, 함께 있는 인물들의 표정과 미묘한 감정 기류를 생생하게 묘사하십시오.]`;
 
     try {
       const response = await fetch("/api/chat", {
@@ -836,7 +861,6 @@ export default function App() {
       let rawText = data.text || "서막을 불러오지 못했습니다.";
       let updatedSheet = { ...initialSheet };
 
-      // AI 행동 제안 칩 파싱
       const suggMatch = rawText.match(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s);
       if (suggMatch) {
         try {
@@ -847,7 +871,6 @@ export default function App() {
         rawText = rawText.replace(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s, "").trim();
       }
 
-      // 판정 요구 태그 파싱
       const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
       if (checkMatch) {
         try {
@@ -858,7 +881,6 @@ export default function App() {
         rawText = rawText.replace(/<!--CHECK:\s*({.*?})-->/s, "").trim();
       }
 
-      // 상태 태그 파싱
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
         try {
@@ -896,7 +918,7 @@ export default function App() {
       prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages } : s))
     );
     setIsLoading(true);
-    setSuggestedActions([]); // 대화 전송 시 이전 제안 칩 초기화
+    setSuggestedActions([]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -923,7 +945,6 @@ export default function App() {
       let rawText = data.text;
       let newSheet = { ...activeSession.sheet };
 
-      // 제안 칩 파싱
       const suggMatch = rawText.match(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s);
       if (suggMatch) {
         try {
@@ -934,7 +955,6 @@ export default function App() {
         rawText = rawText.replace(/<!--SUGGESTIONS:\s*(\[.*?\])-->/s, "").trim();
       }
 
-      // 판정 요구 태그 파싱
       const checkMatch = rawText.match(/<!--CHECK:\s*({.*?})-->/s);
       if (checkMatch) {
         try {
@@ -947,7 +967,6 @@ export default function App() {
         setPendingCheck(null);
       }
 
-      // 상태 태그 파싱
       const statusMatch = rawText.match(/<!--STATUS:\s*({.*?})-->/s);
       if (statusMatch) {
         try {
@@ -1178,7 +1197,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 진행 룰 선택 */}
+            {/* 진행 룰 선택 (깔끔한 문구로 개편) */}
             <div>
               <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "0.9rem" }}>진행 룰 선택</label>
               <div style={{ display: "flex", gap: "10px" }}>
@@ -1188,7 +1207,7 @@ export default function App() {
                   style={{ flex: 1, padding: "12px", borderRadius: "8px", border: `2px solid ${wizardMode === "d20" ? theme.accent : theme.border}`, backgroundColor: wizardMode === "d20" ? theme.panel : "transparent", color: theme.text, cursor: "pointer" }}
                 >
                   <strong>1D20 자유 서사</strong>
-                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>다크 판타지 / 사이버펑크 / SF</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>자유 샌드박스 서사 / 1D20 룰</div>
                 </button>
 
                 <button
@@ -1196,8 +1215,8 @@ export default function App() {
                   onClick={() => setWizardMode("coc")}
                   style={{ flex: 1, padding: "12px", borderRadius: "8px", border: `2px solid ${wizardMode === "coc" ? theme.danger : theme.border}`, backgroundColor: wizardMode === "coc" ? theme.panel : "transparent", color: theme.text, cursor: "pointer" }}
                 >
-                  <strong>CoC 1D100 정규 룰</strong>
-                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>크툴루 7판 / SAN & 460pt 자동 분배</div>
+                  <strong>CoC 크툴루 7판</strong>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "4px" }}>크툴루의 부름 정규 룰 / 1D100</div>
                 </button>
               </div>
             </div>
@@ -1246,7 +1265,7 @@ export default function App() {
               <textarea
                 value={playPreference}
                 onChange={(e) => setPlayPreference(e.target.value)}
-                placeholder="예: GL 지향, 애증 혐관 텐션, 쌍방 구원 서사, 불필요한 이성 로맨스 배제 등 자유롭게 적어주세요."
+                placeholder="예: 애증 혐관 텐션, 아카데미 라이벌, 북부대공 정략결혼, 쌍방 구원 등 원하는 설정을 자유롭게 적어주세요."
                 style={{ width: "100%", height: "65px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box", fontSize: "0.82rem" }}
               />
             </div>
@@ -1326,7 +1345,7 @@ export default function App() {
                 <textarea
                   value={charBackground}
                   onChange={(e) => setCharBackground(e.target.value)}
-                  placeholder="성격, 비밀, 소지품 등을 적어주세요. 소지품 내용(돋보기, 롱소드 등)은 인벤토리에 자동 등록됩니다."
+                  placeholder="성격, 비밀, 소지품 등을 적어주세요. 소지품 내용(돋보기, 은검 등)은 인벤토리에 자동 등록됩니다."
                   style={{ width: "100%", height: "70px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", boxSizing: "border-box" }}
                 />
               </div>
@@ -1507,10 +1526,10 @@ export default function App() {
                   {m.text}
                 </div>
               ))}
-              {isLoading && <div style={{ color: theme.accent, fontSize: "0.88rem", padding: "10px" }}>키퍼가 서사를 구성하는 중...</div>}
+              {isLoading && <div style={{ color: theme.accent, fontSize: "0.88rem", padding: "10px" }}>마스터가 서사를 구성하는 중...</div>}
             </div>
 
-            {/* 신설: 제미나이 스타일 AI 답변 제안 칩 (ON 설정 시 표시) */}
+            {/* AI 답변 제안 칩 */}
             {suggestionsEnabled && suggestedActions.length > 0 && !isLoading && (
               <div style={{ padding: "8px 15px", backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 <span style={{ fontSize: "0.76rem", color: theme.accent, display: "flex", alignItems: "center", fontWeight: "bold" }}>
@@ -1712,7 +1731,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-              {/* 신설: AI 행동 제안 칩 토글 */}
+              {/* AI 행동 제안 칩 토글 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>AI 답변 제안 칩 (3가지 선택지)</div>
@@ -1726,7 +1745,7 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 신설: API 사용량 수동 보정 */}
+              {/* API 사용량 수동 보정 */}
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div style={{ fontSize: "0.85rem", fontWeight: "bold", marginBottom: "4px", color: theme.accent }}>⚡ API 사용량 수동 동기화</div>
                 <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginBottom: "8px" }}>
@@ -1787,7 +1806,15 @@ export default function App() {
                     <button
                       key={p.id}
                       onClick={() => handleSelectPalette(p.id)}
-                      style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`, backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`,
+                        backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent",
+                        color: theme.text,
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                      }}
                     >
                       {p.label}
                     </button>
