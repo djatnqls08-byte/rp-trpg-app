@@ -15,18 +15,18 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const preferenceInstruction = playPreference
-      ? `[플레이어 서사 톤 & 관계성 지침 - 절대 준수]
+      ? `[플레이어 서사 톤 지침 - 절대 준수]
 - 플레이어 요구 성향: "${playPreference}"
-- 지정된 관계성(GL/BL/HL/논로맨스 등)과 감정선(애증, 구원, 집착, 동료애 등)을 대사와 지문에 최우선 반영하십시오.`
+- 지정된 관계성(GL/BL/HL/논로맨스 등)과 감정선을 대사와 지문에 최우선 반영하십시오.`
       : `[플레이어 서사 톤]
 - 인물 간의 미묘한 심리 기류와 시선 처리, 유대감을 섬세하게 서술하십시오.`;
 
     const commonRules = `[핵심 운영 원칙]
-1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 시스템식 멘트를 일체 배제하십시오.
+1. 메타 발언 및 챗봇 인사말 금지: "안녕하세요", "환영합니다" 등 멘트를 일체 배제하십시오.
 2. 본문 객관식 보기 제시 금지: 지문 안에 "1. 행동A 2. 행동B" 식의 선택지를 나열하지 마십시오.
-3. 캐릭터 행동 대행 금지: 플레이어 캐릭터의 대사나 심리를 마음대로 결정하지 마십시오.
+3. 캐릭터 행동 대행 금지: 플레이어 캐릭터의 대사를 마음대로 결정하지 마십시오.
 4. 응답 맨 끝 시스템 태그 필수 첨부:
-   ※ 중요: 아래 주석 태그들을 출력할 때 절대로 \`\`\`html 같은 마크다운 코드 블록을 감싸지 말고 순수 평문으로 출력하십시오.
+   ※ 중요: 아래 주석 태그들을 출력할 때 절대로 \`\`\`html 같은 마크다운 코드 블록으로 감싸지 말고 순수 텍스트 평문으로만 출력하십시오.
 - 상태 갱신: <!--STATUS: {...}-->
 - 행동 제안 3가지: <!--SUGGESTIONS: ["...", "...", "..."]-->`;
 
@@ -38,7 +38,7 @@ ${preferenceInstruction}
 ${commonRules}
 
 [인세인 절대 준수 규칙]
-1. 비밀(Secret) 정보 은닉: 각 인물의 '비밀'은 탐사자가 공식 조사 판정에 성공하기 전까지 본문에서 직접 폭로하지 마십시오. 복선만 은근히 흘리십시오.
+1. 비밀(Secret) 정보 은닉: 각 인물의 '비밀'은 탐사자가 공식 조사 판정에 성공하기 전까지 본문에서 폭로하지 마십시오.
 2. 조사 성공 시에만 비밀 해금 태그 첨부: <!--REVEAL_SECRET: {"name": "인물명", "secret": "밝혀진 비밀 내용"}-->
 3. 판정 요구: <!--CHECK: {"stat": "특기명", "target": 5, "desc": "판정 내용"}-->
 4. 상태 태그 예시: <!--STATUS: {"hp": ${playerSheet?.hp || 6}, "san": ${playerSheet?.san || 6}, "cycle": ${playerSheet?.cycle || 1}, "scene": ${playerSheet?.scene || 1}, "npcs": ${JSON.stringify(playerSheet?.npcs || [])}, "items": ${JSON.stringify(playerSheet?.items || [])}}-->
@@ -56,7 +56,7 @@ ${scenarioText || "인세인 괴이 시나리오"}`;
 ${preferenceInstruction}
 ${commonRules}
 
-- 판정 요구 예시: <!--CHECK: {"stat": "관찰력", "target": 50, "desc": "비밀 장치 탐색"}-->
+- 판정 요구 예시: <!--CHECK: {"stat": "관찰력", "target": 50, "desc": "비밀 탐색"}-->
 - 상태 태그 예시: <!--STATUS: {"hp": ${playerSheet?.hp || 10}, "san": ${playerSheet?.san || 50}, "luck": ${playerSheet?.luck || 50}, "npcs": ${JSON.stringify(playerSheet?.npcs || [])}, "items": ${JSON.stringify(playerSheet?.items || [])}}-->
 
 [탐사자 정보]
