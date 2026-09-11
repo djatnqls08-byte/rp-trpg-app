@@ -86,6 +86,8 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // 🌟 [추가] 모바일 슬라이드 터치 감지용
+  const [touchStartX, setTouchStartX] = useState(null);
   const [isTabletopOpen, setIsTabletopOpen] = useState(false);
 
   // 모달 제어
@@ -1400,9 +1402,26 @@ export default function App() {
         </div>
       </div>
 
-      {/* 2. 중앙 메인 뷰 */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-        
+      {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
+      {isMobile && isSheetOpen && (
+        <div 
+          onClick={() => setIsSheetOpen(false)} 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 45 }} 
+        />
+      )}
+
+      {/* 2. 중앙 메인 뷰 (◀ 왼쪽으로 밀면 시트 열림) */}
+      <div 
+        onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchStartX === null) return;
+          const diff = e.changedTouches[0].clientX - touchStartX;
+          // 오른쪽에서 왼쪽으로 60px 이상 밀었을 때 시트 열기
+          if (diff < -60 && !isSheetOpen) setIsSheetOpen(true);
+          setTouchStartX(null);
+        }}
+        style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
+      >
         {/* 상단 단일 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
@@ -1915,10 +1934,19 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 시트 패널 */}
+ {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
-        <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          
+        <div 
+          onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+          onTouchEnd={(e) => {
+            if (touchStartX === null) return;
+            const diff = e.changedTouches[0].clientX - touchStartX;
+            // 왼쪽에서 오른쪽으로 60px 이상 밀었을 때 시트 닫기
+            if (diff > 60 && isSheetOpen) setIsSheetOpen(false);
+            setTouchStartX(null);
+          }}
+          style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}
+        >
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>캐릭터 시트</span>
             {/* 🌟 PC만 저장 vs 전체 세팅 저장 분리 */}
@@ -2189,7 +2217,7 @@ export default function App() {
       )}
 
       {/* 설정 모달 */}
-      {/* 🌟 [수정] 오류 없이 완벽하게 정돈된 환경 설정 모달 */}
+{/* 🌟 완벽하게 정돈된 환경 설정 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "22px", borderRadius: "14px", color: theme.text }}>
@@ -2235,7 +2263,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3. 효과음 볼륨 */}
+              {/* 3. 볼륨 */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "4px" }}>
                   <span>주사위 효과음 볼륨</span>
