@@ -1292,7 +1292,9 @@ export default function App() {
   return (
     {/* 🌟 [추가] 본문 글씨체 선택 */}
               <div>
-                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>본문 서사 글씨체</label>
+                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>
+                  본문 서사 글씨체
+                </label>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                   <button 
                     type="button" 
@@ -1309,6 +1311,7 @@ export default function App() {
                     📱 프리텐다드 (고딕체)
                   </button>
                 </div>
+              </div>
               </div>
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
