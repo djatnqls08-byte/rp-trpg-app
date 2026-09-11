@@ -113,9 +113,9 @@ export default function App() {
   const [hiddenTruth, setHiddenTruth] = useState("");
   const [showHiddenTruth, setShowHiddenTruth] = useState(false);
   
-  // KPC(등장인물) 상태
+  // ⭐ KPC(등장인물) 상태 (showSecret 블라인드 변수 추가)
   const [kpcList, setKpcList] = useState([
-    { id: Date.now(), name: "파트너", job: "조력자", detail: "", secret: "" }
+    { id: Date.now(), name: "파트너", job: "조력자", detail: "", secret: "", showSecret: false }
   ]);
 
   const [isPdfLoading, setIsPdfLoading] = useState(false);
@@ -277,7 +277,7 @@ export default function App() {
     setScenarioTitle("미상의 사건");
     setPublicSynopsis(scenarioText);
     setHiddenTruth("흑막은 바로 등 뒤에 있습니다.");
-    setKpcList([{ id: Date.now(), name: "엘레나", job: "조력자", detail: "당신을 돕기 위해 온 인물", secret: "이 모든 사건의 원흉" }]);
+    setKpcList([{ id: Date.now(), name: "엘레나", job: "조력자", detail: "당신을 돕기 위해 온 인물", secret: "이 모든 사건의 원흉", showSecret: false }]);
 
     if (wizardMode === "coc") {
       const base = [30, 30, 30, 30, 30, 30, 30, 30];
@@ -295,6 +295,7 @@ export default function App() {
     }
   };
 
+  // ⭐ 개선된 AI 즉석 생성 (스포일러 분리 & KPC 갯수 완벽 호환)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     let ruleSpecificGuidance = "";
@@ -306,6 +307,10 @@ export default function App() {
       ruleSpecificGuidance = "기괴하고 초현실적인 이계 시프터를 묘사하고, 탈출 시 일어나는 몽환적인 신체 변이를 설계하십시오.";
     }
 
+    // ⭐ 유저가 생성해둔 KPC 갯수와 이름을 AI에게 전달하여 인원수를 맞춤
+    const existingKpcs = kpcList.map((k, i) => k.name || `인물${i+1}`).join(", ");
+    const currentKpcCount = kpcList.length || 1;
+
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터입니다.
 선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 시나리오를 작성하십시오.
 
@@ -314,6 +319,7 @@ export default function App() {
 2. 플레이어가 스포일러를 당하지 않도록, 상황을 묘사하는 [공개 시놉시스]와 마스터 전용의 [키퍼 전용 진상]을 철저히 분리하십시오.
 3. 인물들은 맹목적인 추종이나 유치한 소유욕 없이, 각자의 신념을 지키는 독립적 인격체로 묘사하십시오.
 4. ${ruleSpecificGuidance}
+5. 현재 플레이어는 ${currentKpcCount}명의 KPC(${existingKpcs})를 등장시키길 원합니다. 반드시 아래 JSON의 "kpcs" 배열에 ${currentKpcCount}명 분량의 프로필을 모두 채워 넣으십시오.
 
 반드시 아래 JSON 포맷으로만 응답하십시오:
 {
@@ -360,8 +366,16 @@ export default function App() {
         setPublicSynopsis(p.publicSynopsis || "눈을 뜨자 낯선 천장이 보입니다.");
         setHiddenTruth(`[배후 진상 및 흑막]\n${p.hiddenTruth || "금기된 봉인이 풀리고 있습니다."}`);
 
+        // ⭐ JSON 파싱 후 KPC 배열 세팅 (showSecret 블라인드 닫힘 상태로 초기화)
         if (p.kpcs && p.kpcs.length > 0) {
-          const generatedKpcs = p.kpcs.map((k, i) => ({ id: Date.now() + i, name: k.name, job: k.job, detail: k.detail, secret: k.secret }));
+          const generatedKpcs = p.kpcs.map((k, i) => ({ 
+            id: Date.now() + i, 
+            name: k.name, 
+            job: k.job, 
+            detail: k.detail, 
+            secret: k.secret,
+            showSecret: false 
+          }));
           setKpcList(generatedKpcs);
         }
 
@@ -382,10 +396,12 @@ export default function App() {
     } catch (e) { handleProceduralGenerate(); } finally { setIsAiGenerating(false); }
   };
 
+  // ⭐ KPC 추가 시 showSecret: false 포함
   const handleAddKpc = () => {
     if (kpcList.length >= 10) return alert("KPC는 최대 10명까지 추가할 수 있습니다.");
-    setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "" }]);
+    setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "", showSecret: false }]);
   };
+  
   const handleRemoveKpc = (id) => { setKpcList(kpcList.filter(k => k.id !== id)); };
   const updateKpc = (id, field, value) => { setKpcList(kpcList.map(k => k.id === id ? { ...k, [field]: value } : k)); };
 
@@ -915,13 +931,13 @@ ${hiddenTruth}`;
                   </div>
                 )}
                 
-                {/* 4. KPC 설정 분리 추가 */}
+                {/* 4. KPC 설정 분리 추가 (블라인드 렌더링 추가) */}
                 <div className="glass-card" style={{ padding: "18px", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.warning }}>4. KPC (주요 등장인물) 설정</span>
                     <button type="button" onClick={handleAddKpc} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "6px", color: theme.warning, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}>+ 인물 추가 ({kpcList.length}/10)</button>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "200px", overflowY: "auto", paddingRight: "4px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "250px", overflowY: "auto", paddingRight: "4px" }}>
                     {kpcList.length === 0 && <div style={{ fontSize: "0.75rem", color: theme.textMuted }}>등록된 KPC가 없습니다.</div>}
                     {kpcList.map((kpc, idx) => (
                       <div key={kpc.id} style={{ backgroundColor: theme.panelAlt, padding: "10px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
@@ -931,7 +947,25 @@ ${hiddenTruth}`;
                           <button onClick={() => handleRemoveKpc(kpc.id)} style={{ padding: "4px 8px", background: "none", border: "none", color: theme.danger, cursor: "pointer" }}>✕</button>
                         </div>
                         <textarea value={kpc.detail} onChange={(e) => updateKpc(kpc.id, 'detail', e.target.value)} placeholder="성격, 외형, PC와의 관계" style={{ width: "100%", height: "45px", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", marginBottom: "6px" }} />
-                        <textarea value={kpc.secret} onChange={(e) => updateKpc(kpc.id, 'secret', e.target.value)} placeholder="🔒 이 인물이 숨기고 있는 진심이나 비밀" style={{ width: "100%", height: "45px", padding: "6px", backgroundColor: "rgba(247, 101, 133, 0.1)", border: `1px dashed ${theme.danger}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem" }} />
+                        
+                        {/* ⭐ 비밀 블라인드 토글 영역 */}
+                        <div>
+                          <button 
+                            type="button" 
+                            onClick={() => updateKpc(kpc.id, 'showSecret', !kpc.showSecret)} 
+                            style={{ width: "100%", padding: "6px", backgroundColor: kpc.showSecret ? "rgba(247, 101, 133, 0.15)" : theme.inputBg, border: `1px dashed ${kpc.showSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: kpc.showSecret ? theme.danger : theme.textMuted, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", transition: "all 0.2s" }}
+                          >
+                            {kpc.showSecret ? "🔒 이 인물의 기밀/비밀 닫기" : "👀 이 인물의 기밀/비밀 열람 및 수정"}
+                          </button>
+                          {kpc.showSecret && (
+                            <textarea 
+                              value={kpc.secret} 
+                              onChange={(e) => updateKpc(kpc.id, 'secret', e.target.value)} 
+                              placeholder="🔒 이 인물이 숨기고 있는 진심이나 비밀" 
+                              style={{ width: "100%", height: "45px", padding: "6px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1px solid ${theme.danger}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", marginTop: "6px", animation: "fadeIn 0.2s ease" }} 
+                            />
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -992,7 +1026,7 @@ ${hiddenTruth}`;
           </div>
         ) : (
           /* 플레이어 룸 (기존 코드 그대로 렌더링 유지됨) */
-          <>
+          <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1 }}>
             <div style={{ minHeight: "50px", padding: isMobile ? "0 10px" : "0 16px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, flex: 1 }}>
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem", flexShrink: 0 }}>{isSidebarOpen ? "◀" : "▶"}</button>
@@ -1070,7 +1104,7 @@ ${hiddenTruth}`;
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="행동이나 대사를 입력하세요 (조사 버튼 클릭 시 멘트 병행 가능)..." style={{ flex: 1, minHeight: "52px", maxHeight: "130px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "16px", lineHeight: "1.4", resize: "vertical" }} />
               <button onClick={sendMessage} disabled={isLoading} style={{ height: "52px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.88rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>전송</button>
             </div>
-          </>
+          </div>
         )}
       </div>
 
