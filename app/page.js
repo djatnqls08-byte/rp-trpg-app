@@ -14,7 +14,6 @@ export default function App() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // 모달 제어
-  const [showGuideModal, setShowGuideModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -22,12 +21,13 @@ export default function App() {
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showCareerModal, setShowCareerModal] = useState(false);
+  const [ruleHelpModalKey, setRuleHelpModalKey] = useState(null); // 룰별 '?' 가이드 모달
 
-  // 초상화 설정 (배경 이미지는 삭제됨)
+  // 초상화 설정
   const [showPortraits, setShowPortraits] = useState(true);
   const [portraitStyle, setPortraitStyle] = useState("anime"); // 'anime' | 'realistic'
 
-  // 백업 포맷
+  // 백업
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
@@ -39,7 +39,6 @@ export default function App() {
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
-  const [suggestedActions, setSuggestedActions] = useState([]);
 
   // 대화록 내보내기 포맷
   const [exportFormat, setExportFormat] = useState("txt");
@@ -64,17 +63,22 @@ export default function App() {
   const [scenarioInput, setScenarioInput] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  // 서사 계승 상태
+  // 서사 계승 상태 (다중 선택 ID 배열)
+  const [selectedCareerIds, setSelectedCareerIds] = useState([]);
   const [pastChronicleText, setPastChronicleText] = useState("");
 
   // 프리셋 목록
   const [customPresets, setCustomPresets] = useState([]);
   const [newPresetTitle, setNewPresetTitle] = useState("");
 
-  // 인세인
-  const [charMission, setCharMission] = useState("");
-  const [charSecret, setCharSecret] = useState("");
+  // 룰별 고유 상태들
+  const [charMission, setCharMission] = useState(""); // 인세인 사명
+  const [charSecret, setCharSecret] = useState(""); // 인세인 비밀
+  const [unsungMutation, setUnsungMutation] = useState(""); // 언성듀엣 변이 징후
+  const [fiascoNeed, setFiascoNeed] = useState(""); // 피아스코 욕망
+  const [fiascoRelation, setFiascoRelation] = useState(""); // 피아스코 관계
 
   // DND & COC 스탯
   const [dndStats, setDndStats] = useState({ str: 15, dex: 14, con: 13, int: 10, wis: 12, cha: 8 });
@@ -107,12 +111,11 @@ export default function App() {
   const [diceResult, setDiceResult] = useState(null);
   const [targetDc, setTargetDc] = useState(5);
   const [targetStat, setTargetStat] = useState(50);
-  const [pendingCheck, setPendingCheck] = useState(null);
 
   // 테마 팔레트 정의
   const themePalettes = {
     midnight: { name: "미드나잇 블루", dark: { bg: "#0d1017", sidebar: "#131722", panel: "#1b2030", panelAlt: "#23293d", border: "#2b334d", text: "#e4e7f5", textMuted: "#8e96b3", accent: "#6c8dfa", danger: "#f76585", warning: "#e0af68", success: "#7bd88f", bubbleUser: "#324b87", bubbleAi: "#1b2030", inputBg: "#121520" }, light: { bg: "#eef2fa", sidebar: "#dfe5f5", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#c5cee8", text: "#1e2638", textMuted: "#606c88", accent: "#3f6cd8", danger: "#d13b5a", warning: "#b87514", success: "#2e8544", bubbleUser: "#4b74cb", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
-    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e9edf3", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
+    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
     sepia: { name: "고서적 세피아", dark: { bg: "#241e1a", sidebar: "#1c1714", panel: "#302822", panelAlt: "#3d332b", border: "#4d4036", text: "#ede3d8", textMuted: "#ad9c8f", accent: "#d49b6a", danger: "#d95b5b", warning: "#e3ad5d", success: "#8bb36b", bubbleUser: "#5e4533", bubbleAi: "#302822", inputBg: "#1a1512" }, light: { bg: "#f9f6f0", sidebar: "#efe7dc", panel: "#fffdf9", panelAlt: "#e6dcce", border: "#d6c8b4", text: "#362b22", textMuted: "#7a6a5a", accent: "#a96934", danger: "#b83d3d", warning: "#b0741b", success: "#4e7d34", bubbleUser: "#825d3d", bubbleAi: "#fffdf9", inputBg: "#fffdf9" } },
     classic: { name: "클래식 모던", dark: { bg: "#121316", sidebar: "#181a1f", panel: "#21242b", panelAlt: "#282c34", border: "#333842", text: "#abb2bf", textMuted: "#7f848e", accent: "#61afef", danger: "#e06c75", warning: "#e5c07b", success: "#98c379", bubbleUser: "#3b4860", bubbleAi: "#21242b", inputBg: "#16181d" }, light: { bg: "#f7f8fa", sidebar: "#edf0f4", panel: "#ffffff", panelAlt: "#e4e8ef", border: "#cfd5df", text: "#24272e", textMuted: "#6b7280", accent: "#2563eb", danger: "#dc2626", warning: "#d97706", success: "#16a34a", bubbleUser: "#3b82f6", bubbleAi: "#ffffff", inputBg: "#ffffff" } }
   };
@@ -120,6 +123,45 @@ export default function App() {
   const activePalette = themePalettes[currentPalette] || themePalettes.midnight;
   const theme = isDarkMode ? (activePalette?.dark || themePalettes.midnight.dark) : (activePalette?.light || themePalettes.midnight.light);
   const quotaPercentage = Math.min(100, Math.round((apiUsage.dailyRequests / 1500) * 100));
+
+  // 룰별 상세 가이드 정보
+  const ruleGuides = {
+    coc: {
+      title: "크툴루의 부름 (Call of Cthulhu 7판)",
+      desc: "러브크래프트의 코스믹 호러를 기반으로 한 정통 공포 추리 TRPG입니다. 평범한 조사원들이 인간의 이해를 아득히 초월한 금기의 진실과 괴이를 마주합니다.",
+      system: "1D100 백분율 다이스를 굴려 자신의 능력치/기능치 이하가 나오면 성공합니다. 공포스러운 진실을 마주할 때마다 감소하는 '이성치(SAN)'와 영구 광기 시스템이 백미입니다."
+    },
+    dnd: {
+      title: "던전 앤 드래곤 (D&D 5판)",
+      desc: "세계에서 가장 유명한 정통 하이 판타지 모험 TRPG입니다. 검과 마법, 신비로운 던전 크롤링과 괴물 토벌을 다룹니다.",
+      system: "20면체 주사위(1D20)에 능력치 보정치를 더해 마스터가 정한 목표 난이도(DC)나 몬스터의 방어도(AC)를 넘기면 성공합니다. 전술적인 공간 탐험과 스킬 체크가 핵심입니다."
+    },
+    insane: {
+      title: "멀티 호러 TRPG 인세인 (inSANe)",
+      desc: "공포와 광기, 의심이 소용돌이치는 현대 괴담 호러 룰입니다. 각 등장인물이 겉으로 드러난 '사명' 뒤에 끔찍하거나 위험한 '비밀'을 숨기고 있습니다.",
+      system: "2D6 주사위로 특기 판정을 진행하며, 정해진 사이클 동안 씬을 소모해 다른 인물의 '비밀'을 조사로 벗겨냅니다. 공포에 질릴 때마다 광기 카드가 터져 나옵니다."
+    },
+    unsung: {
+      title: "언성 듀엣 (Unsung Duet)",
+      desc: "현실이 일그러진 기괴한 이계 '시프터'에 휘말린 조난자(셰이터)와, 그를 구하기 위해 위험을 무릅쓰고 뛰어든 구원자(바인더) 단둘의 처절한 2인 서사 TRPG입니다.",
+      system: "2D6 주사위로 판정하며, 위험을 회피하지 못할 때마다 이계 침식도가 올라가며 신체나 정신이 이형으로 뒤틀리는 '변이'를 겪습니다. 둘만의 애절한 쌍방 구원이 핵심입니다."
+    },
+    blades: {
+      title: "블레이즈 인 더 다크 (Blades in the Dark)",
+      desc: "안개와 굴뚝 연기로 가득 찬 산업혁명풍 빅토리아 판타지 도시 '더스크월'에서 펼쳐지는 도둑/범죄 길드의 은밀한 잠입 액션 TRPG입니다.",
+      system: "지루한 사전 계획 없이 바로 범죄 현장에 투입되며, 돌발 위기가 닥치면 스트레스를 소모하고 '플래시백(과거 회상)'을 선언해 미리 준비해 둔 공작으로 상황을 모면합니다. D6 풀 중 가장 높은 눈금으로 판정합니다."
+    },
+    fiasco: {
+      title: "피아스코 (Fiasco)",
+      desc: "코엔 형제의 영화처럼 거대한 야망을 품고 한탕을 노리다 모든 게 걷잡을 수 없이 파국과 막장으로 치닫는 블랙코미디 소동극 TRPG입니다.",
+      system: "준비된 마스터 없이 인물 간의 얽히고설킨 '욕망', '치명적인 비밀', '위험한 사물'을 중심으로 상황이 파멸로 굴러떨어지는 과정을 흑백 주사위로 즐깁니다."
+    },
+    freeform: {
+      title: "자유 서사 (Freeform Sandbox)",
+      desc: "복잡한 룰북의 공식에 얽매이지 않고, 플레이어가 원하는 장르(현대 판타지, 아카데미, 가이드버스 등)와 관계성 서사에 온전히 몰입하는 샌드박스 모드입니다.",
+      system: "직관적인 1D20 판정으로 성공/실패를 가르며 마스터와 자유롭게 소설을 쓰듯 티키타카를 주고받습니다."
+    }
+  };
 
   function handleToggleDarkMode() {
     const nextVal = !isDarkMode;
@@ -197,33 +239,7 @@ export default function App() {
     } catch (e) {}
   }
 
-  // 모바일 리사이즈
-  useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) { setIsSidebarOpen(true); setIsSheetOpen(true); }
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const openModal = (setModalFn) => { window.history.pushState({ modalOpen: true }, ""); setModalFn(true); };
-  const closeModal = (setModalFn) => { setModalFn(false); if (window.history.state?.modalOpen) { window.history.back(); } };
-
-  useEffect(() => {
-    const handlePopState = () => {
-      setShowSettingsModal(false); setShowExportModal(false); setShowBackupModal(false);
-      setShowRestoreHelpModal(false); setShowGuideModal(false); setShowPortraitEditModal(false);
-      setShowPresetModal(false); setShowCareerModal(false);
-      if (isMobile) { setIsSidebarOpen(false); setIsSheetOpen(false); }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [isMobile]);
-
-  // 태그 토글
+  // 태그 토글 로직
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const currentList = prev.split(/\s+/).filter(Boolean);
@@ -320,6 +336,7 @@ export default function App() {
     ]
   };
 
+  // 무작위 조합 생성 (태그 텍스트 중복 오염 제거)
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const newTags = [pick(orientTags), ...[...tropeTags].sort(() => 0.5 - Math.random()).slice(0, 2)];
@@ -358,9 +375,67 @@ export default function App() {
         setDndAc(jobObj.ac || 14);
         setDndHp(jobObj.hp || 12);
       }
+    } else if (wizardMode === "unsung") {
+      setUnsungMutation("왼쪽 눈동자가 푸른빛으로 물드는 징후");
+    } else if (wizardMode === "fiasco") {
+      setFiascoNeed("거액의 다이아몬드를 손에 넣고 야반도주하기");
+      setFiascoRelation("위험한 뒷골목 채권자와 채무자");
     }
   };
 
+  // 복구: AI 즉석 생성 버튼
+  const handleAiGenerate = async () => {
+    setIsAiGenerating(true);
+    const prompt = `당신은 노련한 TRPG 기획자입니다.
+선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 어울리는 매력적인 캐릭터와 시나리오 도입부를 작성하세요.
+반드시 아래 JSON 포맷으로만 응답하세요:
+{
+  "name": "캐릭터 이름",
+  "job": "직업/클래스",
+  "age": "24",
+  "gender": "여성",
+  "background": "상세 배경 및 품에 지닌 소지품 3가지",
+  "scenario": "사건의 장소 묘사, 동행 파트너와의 관계성 분위기, 첫 장면의 위기 사건을 포함한 3~4문장의 소설 지문"
+}`;
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", text: prompt }],
+          scenarioText: "",
+          playerSheet: {},
+          ruleMode: wizardMode,
+          playPreference: playPreference,
+        }),
+      });
+
+      const data = await response.json();
+      recordApiCall(data.usage);
+
+      const jsonMatch = data.text?.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        setCharName(parsed.name || "주인공");
+        setCharJob(parsed.job || "조사원");
+        setCharAge(parsed.age || "24");
+        setCharGender(parsed.gender || "여성");
+        setCharBackground(parsed.background || "");
+        setScenarioInput(parsed.scenario || "");
+        setCharPortraitUrl(getPortraitUrl(`${parsed.name}, ${parsed.job}`));
+        if (wizardMode === "coc") setCocStats(generateRandomCocStats());
+      } else {
+        handleProceduralGenerate();
+      }
+    } catch (e) {
+      handleProceduralGenerate();
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  // 프리셋 저장
   const handleSaveCurrentAsPreset = () => {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
@@ -378,6 +453,9 @@ export default function App() {
       cocStats: cocStats,
       mission: charMission,
       secret: charSecret,
+      unsungMutation: unsungMutation,
+      fiascoNeed: fiascoNeed,
+      fiascoRelation: fiascoRelation,
     };
     const updated = [newPreset, ...customPresets];
     setCustomPresets(updated);
@@ -399,35 +477,59 @@ export default function App() {
     if (preset.cocStats) setCocStats(preset.cocStats);
     if (preset.mission) setCharMission(preset.mission);
     if (preset.secret) setCharSecret(preset.secret);
+    if (preset.unsungMutation) setUnsungMutation(preset.unsungMutation);
+    if (preset.fiascoNeed) setFiascoNeed(preset.fiascoNeed);
+    if (preset.fiascoRelation) setFiascoRelation(preset.fiascoRelation);
     closeModal(setShowPresetModal);
   };
 
-  const handleInheritFromSession = (prevSession) => {
-    const sheet = prevSession.sheet || {};
-    setCharName(sheet.name || "");
-    setCharJob(sheet.job || "");
-    setCharAge(sheet.age || "24");
-    setCharGender(sheet.gender || "여성");
-    
-    const itemsSummary = (sheet.items || []).map(it => it.name).join(", ");
-    const pastSummary = `[이전 세션 전승: '${prevSession.title}' 생환자]
-- 당시 잔여 수치: HP ${sheet.hp}/${sheet.maxHp}${prevSession.ruleMode === 'coc' ? `, SAN ${sheet.san}/99` : ''}
-- 보유 중인 전리품: ${itemsSummary || '기본 장비'}
-- 이전 모험의 기억과 트라우마를 고스란히 간직하고 있음.`;
+  // 신규: 이전 세션 서사 다중 선택(Multi-Select) 계승 로직
+  const toggleCareerSelection = (id) => {
+    setSelectedCareerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
-    setPastChronicleText(pastSummary);
-    setCharBackground(`${sheet.background || ''}\n\n${pastSummary}`);
-    if (sheet.portrait) setCharPortraitUrl(sheet.portrait);
-    if (sheet.dndStats) setDndStats(sheet.dndStats);
-    if (sheet.cocStats) setCocStats(sheet.cocStats);
+  const handleInheritFromMultipleSessions = () => {
+    if (selectedCareerIds.length === 0) return alert("계승할 세션을 1개 이상 체크해 주세요.");
+    const chosenSessions = sessions.filter((s) => selectedCareerIds.includes(s.id));
+    if (chosenSessions.length === 0) return;
+
+    // 가장 최근 세션의 시트 기본 정보 기준
+    const baseSheet = chosenSessions[0].sheet || {};
+    setCharName(baseSheet.name || "");
+    setCharJob(baseSheet.job || "");
+    setCharAge(baseSheet.age || "24");
+    setCharGender(baseSheet.gender || "여성");
+    if (baseSheet.portrait) setCharPortraitUrl(baseSheet.portrait);
+    if (baseSheet.dndStats) setDndStats(baseSheet.dndStats);
+    if (baseSheet.cocStats) setCocStats(baseSheet.cocStats);
+
+    // 복수 세션의 전승 이력 및 전리품 통합
+    let combinedChronicle = `[🔄 복수 세션 서사 통합 계승 이력]\n`;
+    let allItems = [];
+
+    chosenSessions.forEach((s, idx) => {
+      const sh = s.sheet || {};
+      const itemNames = (sh.items || []).map((it) => it.name).join(", ");
+      allItems = [...allItems, ...(sh.items || [])];
+      combinedChronicle += `\n• [세션 ${idx + 1}: ${s.title}] (규칙: ${s.ruleMode})\n`;
+      combinedChronicle += `  - 당시 생환 수치: HP ${sh.hp}/${sh.maxHp}${s.ruleMode === "coc" ? `, SAN ${sh.san}/99` : ""}\n`;
+      combinedChronicle += `  - 획득 전리품: ${itemNames || "없음"}\n`;
+    });
+
+    combinedChronicle += `\n위 세션들의 모든 흉터, 기억, 전리품을 간직한 채 새로운 모험에 들어섭니다.`;
+    setPastChronicleText(combinedChronicle);
+    setCharBackground(`${baseSheet.background || ""}\n\n${combinedChronicle}`);
 
     closeModal(setShowCareerModal);
-    alert(`'${prevSession.title}' 세션의 캐릭터 서사와 수치를 계승하여 불러왔습니다!`);
+    setSelectedCareerIds([]);
+    alert(`${chosenSessions.length}개 세션의 서사와 인벤토리가 성공적으로 통합 계승되었습니다!`);
   };
 
   const handleDeletePreset = (id, e) => {
     e.stopPropagation();
-    const updated = customPresets.filter(p => p.id !== id);
+    const updated = customPresets.filter((p) => p.id !== id);
     setCustomPresets(updated);
     if (typeof window !== "undefined") {
       localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
@@ -639,7 +741,7 @@ export default function App() {
       pastChronicle: pastChronicleText,
       hp: 20, maxHp: 20,
       npcs: [{ name: "파트너", title: "동행자", portrait: getPortraitUrl("companion"), affection: 10, state: "신뢰" }],
-      items: [{ name: "주 무기", desc: "기본 무기" }],
+      items: [{ name: "주 무기", desc: "기본 무기" }, { name: "모험 배낭", desc: "생존 키트" }],
     };
 
     if (wizardMode === "dnd") {
@@ -649,9 +751,11 @@ export default function App() {
     } else if (wizardMode === "coc") {
       initialSheet = { ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, build: derivedBuild, cocStats: { ...cocStats } };
     } else if (wizardMode === "unsung") {
-      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6 };
+      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, mutation: unsungMutation || "미확인 징후" };
     } else if (wizardMode === "blades") {
-      initialSheet = { ...initialSheet, hp: 9, maxHp: 9, san: 0, maxSan: 4 };
+      initialSheet = { ...initialSheet, hp: 9, maxHp: 9, san: 0, maxSan: 4 }; // hp: 스트레스, san: 트라우마
+    } else if (wizardMode === "fiasco") {
+      initialSheet = { ...initialSheet, need: fiascoNeed, relation: fiascoRelation };
     }
 
     const newId = Date.now();
@@ -751,6 +855,12 @@ export default function App() {
   const sendMessage = () => { if (!input.trim()) return; const text = input; setInput(""); executeMessage(text); };
   const handleUseItem = (itemName) => { setInput((prev) => `품에서 [${itemName}]을(를) 꺼내어 ` + prev); };
 
+  // 블레이즈 인 더 다크 전용: 플래시백 선언 매크로
+  const handleFlashback = () => {
+    setInput((prev) => `[플래시백 선언: 사실 나는 이 상황에 대비해 미리 공작을 해 두었다. 스트레스를 1점 지불하고 회상한다...] ` + prev);
+  };
+
+  // 룰별 판정기
   const rollDiceDirectly = (overrideTarget = null, reasonText = "") => {
     if (isRolling || !activeSession) return;
     setIsRolling(true); setDiceResult(null); playDiceSound();
@@ -772,9 +882,9 @@ export default function App() {
       } else if (mode === "blades") {
         const d1 = Math.floor(Math.random() * 6) + 1; const d2 = Math.floor(Math.random() * 6) + 1;
         const highest = Math.max(d1, d2);
-        let outcome = highest === 6 ? "치명적 성공 (완벽한 결과)" : highest >= 4 ? "부분적 성공 (대가 발생)" : "나쁜 결과 (위기 악화)";
+        let outcome = highest === 6 ? "치명적 성공 (완벽)" : highest >= 4 ? "부분적 성공 (대가/피해 발생)" : "나쁜 결과 (위기 악화)";
         setDiceResult({ roll: `[${d1}, ${d2}] ➔ 최고치 ${highest}`, outcome, target: 4, type: "블레이즈 D6" });
-        rollFormatted = `[🎲 시스템 공인 블레이즈 판정: [${d1}, ${d2}] ➔ 최고눈 ${highest}${reasonText ? ` (${reasonText})` : ""} ➔ 결과: ${outcome}]`;
+        rollFormatted = `[🎲 시스템 공인 블레이즈 판정: [${d1}, ${d2}] ➔ 최고치 ${highest}${reasonText ? ` (${reasonText})` : ""} ➔ 결과: ${outcome}]`;
       } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1; const targetVal = Number(overrideTarget !== null ? overrideTarget : targetStat);
         let outcome = roll === 1 ? "대성공" : roll <= Math.floor(targetVal / 5) ? "극단적 성공" : roll <= Math.floor(targetVal / 2) ? "어려운 성공" : roll <= targetVal ? "보통 성공" : roll >= 96 ? "대실패" : "실패";
@@ -850,11 +960,21 @@ export default function App() {
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "6px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}>{isSidebarOpen ? "◀" : "▶"}</button>
                 <h2 style={{ margin: 0, fontSize: "1.3rem" }}>새로운 세션 구성</h2>
               </div>
-              <button onClick={handleProceduralGenerate} style={{ padding: "7px 11px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, color: theme.accent, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}>🎲 무작위 조합 생성</button>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button onClick={handleProceduralGenerate} style={{ padding: "7px 11px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, color: theme.accent, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}>🎲 무작위 조합 생성</button>
+                <button onClick={handleAiGenerate} disabled={isAiGenerating} style={{ padding: "7px 11px", backgroundColor: theme.accent, border: "none", color: "#fff", borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}>
+                  {isAiGenerating ? "AI 집필 중..." : "✨ AI 즉석 생성"}
+                </button>
+              </div>
             </div>
 
             <div>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "0.9rem" }}>룰 대분류 선택</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label style={{ fontWeight: "bold", fontSize: "0.9rem" }}>룰 대분류 선택</label>
+                <button onClick={() => setRuleHelpModalKey(wizardMode)} style={{ background: "none", border: "none", color: theme.accent, fontSize: "0.8rem", cursor: "pointer", textDecoration: "underline" }}>
+                  현재 룰 설명서 보기 ?
+                </button>
+              </div>
               <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
                 <button type="button" onClick={() => handleSelectCategory("freeform")} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: `2px solid ${ruleCategory === "freeform" ? theme.accent : theme.border}`, backgroundColor: ruleCategory === "freeform" ? theme.panel : "transparent", color: theme.text, cursor: "pointer" }}>
                   <strong>자유 서사</strong><div style={{ fontSize: "0.74rem", color: theme.textMuted, marginTop: "3px" }}>자유 샌드박스 / 1D20</div>
@@ -864,32 +984,49 @@ export default function App() {
                 </button>
               </div>
 
-              {/* 6대 공식 TRPG 시스템 탭 */}
+              {/* 6대 공식 TRPG 시스템 탭 및 각 룰별 ? 버튼 */}
               {ruleCategory === "official" && (
                 <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "12px", display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: "8px" }}>
-                  <button type="button" onClick={() => setWizardMode("coc")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "coc" ? theme.danger : theme.border}`, backgroundColor: wizardMode === "coc" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: theme.danger }}>크툴루의 부름 (CoC)</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>1D100 / 7판 정규 &amp; SAN</div>
-                  </button>
-                  <button type="button" onClick={() => setWizardMode("dnd")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "dnd" ? theme.accent : theme.border}`, backgroundColor: wizardMode === "dnd" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: theme.accent }}>던전 앤 드래곤 (D&amp;D)</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>1D20 / 5e 던전 탐험</div>
-                  </button>
-                  <button type="button" onClick={() => setWizardMode("insane")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "insane" ? theme.warning : theme.border}`, backgroundColor: wizardMode === "insane" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: theme.warning }}>인세인 (inSANe)</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>2D6 / 사명과 비밀 탐색</div>
-                  </button>
-                  <button type="button" onClick={() => setWizardMode("unsung")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "unsung" ? "#b87bd8" : theme.border}`, backgroundColor: wizardMode === "unsung" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: "#b87bd8" }}>언성 듀엣</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>2D6 / 2인 이계 구원 서사</div>
-                  </button>
-                  <button type="button" onClick={() => setWizardMode("blades")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "blades" ? "#e0af68" : theme.border}`, backgroundColor: wizardMode === "blades" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: "#e0af68" }}>블레이즈 인 더 다크</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>D6 풀 / 플래시백 잠입극</div>
-                  </button>
-                  <button type="button" onClick={() => setWizardMode("fiasco")} style={{ padding: "8px 10px", borderRadius: "6px", border: `2px solid ${wizardMode === "fiasco" ? "#f76585" : theme.border}`, backgroundColor: wizardMode === "fiasco" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", textAlign: "left" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "0.82rem", color: "#f76585" }}>피아스코 (Fiasco)</div><div style={{ fontSize: "0.68rem", color: theme.textMuted }}>파국 소동극 블랙코미디</div>
-                  </button>
+                  {[
+                    { key: "coc", name: "크툴루의 부름", sub: "1D100 / 정규 & SAN", color: theme.danger },
+                    { key: "dnd", name: "던전 앤 드래곤", sub: "1D20 / 5e 던전 탐험", color: theme.accent },
+                    { key: "insane", name: "인세인 (inSANe)", sub: "2D6 / 사명과 비밀", color: theme.warning },
+                    { key: "unsung", name: "언성 듀엣", sub: "2D6 / 이계 침식 구원", color: "#b87bd8" },
+                    { key: "blades", name: "블레이즈 인더다크", sub: "D6 풀 / 플래시백 잠입", color: "#e0af68" },
+                    { key: "fiasco", name: "피아스코", sub: "파국 블랙코미디 소동극", color: "#f76585" },
+                  ].map((item) => (
+                    <div
+                      key={item.key}
+                      onClick={() => setWizardMode(item.key)}
+                      style={{
+                        padding: "8px 10px",
+                        borderRadius: "6px",
+                        border: `2px solid ${wizardMode === item.key ? item.color : theme.border}`,
+                        backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent",
+                        color: theme.text,
+                        cursor: "pointer",
+                        position: "relative",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: "bold", fontSize: "0.82rem", color: item.color }}>{item.name}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setRuleHelpModalKey(item.key); }}
+                          title="룰 가이드 보기"
+                          style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "0.76rem", cursor: "pointer", padding: "2px 4px" }}
+                        >
+                          ?
+                        </button>
+                      </div>
+                      <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "2px" }}>{item.sub}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* 서사 & 관계성 지향 */}
+            {/* 서사 & 관계성 지향 태그 및 텍스트 박스 */}
             <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
               <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>{"🎭 서사 및 관계성 지향 (클릭하여 텍스트에 추가/해제)"}</span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -905,10 +1042,79 @@ export default function App() {
               <textarea
                 value={playPreference}
                 onChange={(e) => setPlayPreference(e.target.value)}
-                placeholder="태그를 클릭하거나, 원하는 분위기를 직접 적어주세요."
+                placeholder="태그를 클릭하거나, 원하는 분위기를 직접 적어주세요. (예: #GL #혐관 서로에게 날을 세우는 관계 등)"
                 style={{ width: "100%", minWidth: 0, height: "65px", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", marginTop: "4px", fontSize: "0.82rem" }}
               />
             </div>
+
+            {/* 룰별 고유 설정란들 */}
+            {wizardMode === "insane" && (
+              <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid ${theme.warning}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                <span style={{ fontWeight: "bold", fontSize: "0.88rem", color: theme.warning }}>{"🔒 인세인 사명과 비밀 설정"}</span>
+                <div><label style={{ display: "block", fontSize: "0.75rem", color: theme.textMuted }}>겉보기 사명 (공개 정보)</label><input type="text" value={charMission} onChange={(e) => setCharMission(e.target.value)} style={{ width: "100%", minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }} /></div>
+                <div><label style={{ display: "block", fontSize: "0.75rem", color: theme.danger }}>숨겨진 비밀 (Secret)</label><textarea value={charSecret} onChange={(e) => setCharSecret(e.target.value)} style={{ width: "100%", height: "50px", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "4px", color: theme.text, resize: "none" }} /></div>
+              </div>
+            )}
+
+            {wizardMode === "unsung" && (
+              <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid #b87bd8`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                <span style={{ fontWeight: "bold", fontSize: "0.88rem", color: "#b87bd8" }}>{"🌀 언성 듀엣: 역할 및 이계 변이 증상"}</span>
+                <div><label style={{ display: "block", fontSize: "0.75rem", color: theme.textMuted }}>신체/정신적 변이 징후 (Mutation)</label><input type="text" value={unsungMutation} onChange={(e) => setUnsungMutation(e.target.value)} placeholder="예: 왼쪽 눈동자가 푸른빛으로 물듦, 체온이 얼음처럼 차가워짐" style={{ width: "100%", minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }} /></div>
+              </div>
+            )}
+
+            {wizardMode === "fiasco" && (
+              <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid #f76585`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                <span style={{ fontWeight: "bold", fontSize: "0.88rem", color: "#f76585" }}>{"💥 피아스코: 욕망과 치명적 관계 설정"}</span>
+                <div><label style={{ display: "block", fontSize: "0.75rem", color: theme.textMuted }}>내 인물의 절박한 욕망 (Need)</label><input type="text" value={fiascoNeed} onChange={(e) => setFiascoNeed(e.target.value)} placeholder="예: 눈먼 돈 5억을 챙겨 해외로 야반도주하기" style={{ width: "100%", minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }} /></div>
+                <div><label style={{ display: "block", fontSize: "0.75rem", color: theme.textMuted }}>동행자와의 위험한 관계 (Relationship)</label><input type="text" value={fiascoRelation} onChange={(e) => setFiascoRelation(e.target.value)} placeholder="예: 서로를 의심하는 불법 작전 공범" style={{ width: "100%", minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }} /></div>
+              </div>
+            )}
+
+            {wizardMode === "dnd" && (
+              <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid ${theme.accent}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                <span style={{ fontWeight: "bold", fontSize: "0.88rem", color: theme.accent }}>{"⚔️ D&D 5e 6대 능력치 및 방어도"}</span>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", width: "100%" }}>
+                  {[{ key: "str", label: "근력 (STR)" }, { key: "dex", label: "민첩 (DEX)" }, { key: "con", label: "건강 (CON)" }, { key: "int", label: "지능 (INT)" }, { key: "wis", label: "지혜 (WIS)" }, { key: "cha", label: "매력 (CHA)" }].map((stat) => (
+                    <div key={stat.key} style={{ backgroundColor: theme.inputBg, padding: "6px 8px", borderRadius: "4px", border: `1px solid ${theme.border}`, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>{stat.label}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <input type="number" value={dndStats[stat.key]} onChange={(e) => setDndStats({ ...dndStats, [stat.key]: e.target.value })} style={{ width: "42px", minWidth: 0, padding: "3px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "3px" }} />
+                        <span style={{ fontSize: "0.78rem", fontWeight: "bold", color: theme.accent }}>{calcMod(dndStats[stat.key])}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: "12px", fontSize: "0.8rem" }}>
+                  <div>방어도(AC): <input type="number" value={dndAc} onChange={(e) => setDndAc(e.target.value)} style={{ width: "45px", minWidth: 0, padding: "3px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "3px" }} /></div>
+                  <div>생명력(HP): <input type="number" value={dndHp} onChange={(e) => setDndHp(e.target.value)} style={{ width: "45px", minWidth: 0, padding: "3px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "3px" }} /></div>
+                </div>
+              </div>
+            )}
+
+            {wizardMode === "coc" && (
+              <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.danger}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: "bold", fontSize: "0.9rem", color: theme.danger }}>CoC 7판 특성치 배분 (460 pt)</span>
+                  <button type="button" onClick={() => setCocStats(generateRandomCocStats())} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.75rem", cursor: "pointer" }}>🎲 주사위 배분</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "8px", width: "100%" }}>
+                  {[{ key: "str", label: "근력(STR)" }, { key: "con", label: "건강(CON)" }, { key: "siz", label: "크기(SIZ)" }, { key: "dex", label: "민첩(DEX)" }, { key: "app", label: "외모(APP)" }, { key: "int", label: "지능(INT)" }, { key: "pow", label: "정신력(POW)" }, { key: "edu", label: "교육(EDU)" }].map((stat) => (
+                    <div key={stat.key} style={{ minWidth: 0 }}>
+                      <label style={{ display: "block", fontSize: "0.7rem", color: theme.textMuted }}>{stat.label}</label>
+                      <input type="number" min="15" max="90" value={cocStats[stat.key]} onChange={(e) => setCocStats({ ...cocStats, [stat.key]: e.target.value })} style={{ width: "100%", minWidth: 0, padding: "5px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: "8px 10px", backgroundColor: theme.inputBg, borderRadius: "6px", fontSize: "0.76rem", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
+                  <div>행운: <input type="number" value={cocStats.luck} onChange={(e) => setCocStats({ ...cocStats, luck: e.target.value })} style={{ width: "40px", minWidth: 0, padding: "2px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "3px" }} /></div>
+                  <div>체력(HP): <strong>{derivedHp}</strong></div>
+                  <div>마력(MP): <strong>{derivedMp}</strong></div>
+                  <div>이성(SAN): <strong>{derivedSan}</strong></div>
+                  <div>DB/체구: <strong>{derivedDb} / {derivedBuild}</strong></div>
+                </div>
+              </div>
+            )}
 
             {/* 기본 캐릭터 정보 + 서사 계승 & 프리셋 버튼 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
@@ -962,7 +1168,7 @@ export default function App() {
               </div>
             </div>
 
-            <button onClick={startNewSession} disabled={isLoading || isPdfLoading} style={{ width: "100%", padding: "15px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+            <button onClick={startNewSession} disabled={isLoading || isPdfLoading || isAiGenerating} style={{ width: "100%", padding: "15px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
               {isLoading ? "마스터가 서막을 여는 중..." : "이야기 시작하기"}
             </button>
           </div>
@@ -975,8 +1181,13 @@ export default function App() {
                 <span style={{ fontWeight: "bold", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeSession.title}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {activeSession.ruleMode === "blades" && (
+                  <button onClick={handleFlashback} style={{ padding: "5px 8px", backgroundColor: "#e0af68", color: "#000", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", fontSize: "0.75rem" }}>
+                    ⚡ 플래시백
+                  </button>
+                )}
                 <button onClick={() => rollDiceDirectly()} disabled={isRolling || isLoading} style={{ padding: "5px 10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "0.8rem" }}>
-                  🎲 주사위 굴림
+                  🎲 주사위 판정
                 </button>
                 <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", cursor: "pointer", fontSize: "0.78rem" }}>{isSheetOpen ? "시트▶" : "◀시트"}</button>
               </div>
@@ -1024,7 +1235,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 */}
+      {/* 3. 우측 상태창 (룰별 특화 항목 복원 완료) */}
       {activeSession && (
         <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "275px" : "0px", minWidth: isSheetOpen ? "275px" : "0px", transition: "width 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", width: "275px", boxSizing: "border-box" }}>
@@ -1040,12 +1251,69 @@ export default function App() {
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}><h4 style={{ margin: 0, fontSize: "0.88rem", color: theme.accent }}>내 캐릭터</h4>{showPortraits && <button onClick={() => openModal(setShowPortraitEditModal)} style={{ padding: "2px 6px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.7rem", cursor: "pointer" }}>✏️ 변경</button>}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}><h4 style={{ margin: 0, fontSize: "0.88rem", color: theme.accent }}>내 캐릭터 ({activeSession.ruleMode})</h4>{showPortraits && <button onClick={() => openModal(setShowPortraitEditModal)} style={{ padding: "2px 6px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.7rem", cursor: "pointer" }}>✏️ 변경</button>}</div>
               <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
                 {showPortraits && <div onClick={() => openModal(setShowPortraitEditModal)} style={{ position: "relative", width: "52px", height: "52px", borderRadius: "50%", overflow: "hidden", border: `2px solid ${theme.accent}`, flexShrink: 0, backgroundColor: theme.panelAlt, cursor: "pointer" }}><img src={activeSession.sheet.portrait || getPortraitUrl(activeSession.sheet.name)} alt="Portrait" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} /></div>}
-                <div style={{ fontSize: "0.8rem", display: "flex", flexDirection: "column", gap: "2px" }}><div><strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "모험가"})</div><div>HP: <strong>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong></div>{activeSession.ruleMode === "coc" && <div>SAN: <strong>{activeSession.sheet.san || "-"} / 99</strong></div>}{activeSession.ruleMode === "dnd" && <div>AC: <strong>{activeSession.sheet.ac || 14}</strong></div>}</div>
+                <div style={{ fontSize: "0.8rem", display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div><strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "모험가"})</div>
+                  <div>HP: <strong>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong></div>
+                  {activeSession.ruleMode === "coc" && <div>SAN: <strong>{activeSession.sheet.san || "-"} / 99</strong></div>}
+                  {activeSession.ruleMode === "dnd" && <div>AC: <strong>{activeSession.sheet.ac || 14}</strong></div>}
+                  {activeSession.ruleMode === "blades" && <div>트라우마: <strong>{activeSession.sheet.san || 0} / 4</strong></div>}
+                </div>
               </div>
+
+              {/* 룰별 세부 스탯 카드 복원 */}
+              {activeSession.ruleMode === "coc" && (
+                <div style={{ backgroundColor: theme.panel, padding: "6px 8px", borderRadius: "4px", fontSize: "0.74rem", display: "flex", justifyContent: "space-between", color: theme.textMuted }}>
+                  <span>MP: <strong>{activeSession.sheet.mp || 10}</strong></span>
+                  <span>LUCK: <strong>{activeSession.sheet.luck || 50}</strong></span>
+                  <span>DB: <strong>{activeSession.sheet.db || "0"}</strong></span>
+                </div>
+              )}
+
+              {activeSession.ruleMode === "dnd" && activeSession.sheet.dndStats && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px", fontSize: "0.72rem", backgroundColor: theme.panel, padding: "6px", borderRadius: "4px" }}>
+                  <div>STR: {calcMod(activeSession.sheet.dndStats.str)}</div>
+                  <div>DEX: {calcMod(activeSession.sheet.dndStats.dex)}</div>
+                  <div>CON: {calcMod(activeSession.sheet.dndStats.con)}</div>
+                  <div>INT: {calcMod(activeSession.sheet.dndStats.int)}</div>
+                  <div>WIS: {calcMod(activeSession.sheet.dndStats.wis)}</div>
+                  <div>CHA: {calcMod(activeSession.sheet.dndStats.cha)}</div>
+                </div>
+              )}
+
+              {activeSession.ruleMode === "unsung" && (
+                <div style={{ backgroundColor: theme.panel, padding: "6px 8px", borderRadius: "4px", fontSize: "0.74rem", color: "#b87bd8" }}>
+                  변이: <strong>{activeSession.sheet.mutation || "잠재적 징후"}</strong>
+                </div>
+              )}
+
+              {activeSession.ruleMode === "fiasco" && (
+                <div style={{ backgroundColor: theme.panel, padding: "6px 8px", borderRadius: "4px", fontSize: "0.72rem", color: "#f76585", display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <div>욕망: {activeSession.sheet.need || "미지정"}</div>
+                  <div>관계: {activeSession.sheet.relation || "미지정"}</div>
+                </div>
+              )}
             </div>
+
+            {/* 인세인 사명과 비밀 */}
+            {activeSession.ruleMode === "insane" && (
+              <>
+                <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
+                <div>
+                  <h4 style={{ margin: "0 0 6px 0", fontSize: "0.85rem", color: theme.warning }}>{"내 사명 및 비밀"}</h4>
+                  <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", padding: "7px 9px", marginBottom: "6px", fontSize: "0.74rem" }}>
+                    <div style={{ fontWeight: "bold", color: theme.accent }}>📜 사명:</div>
+                    <div>{activeSession.sheet.mission}</div>
+                  </div>
+                  <div style={{ backgroundColor: "#2b1414", border: `1px solid ${theme.danger}`, borderRadius: "6px", padding: "7px 9px", fontSize: "0.74rem" }}>
+                    <div style={{ fontWeight: "bold", color: theme.danger }}>🔒 비밀:</div>
+                    <div style={{ color: "#fca5a5" }}>{activeSession.sheet.secret}</div>
+                  </div>
+                </div>
+              </>
+            )}
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
@@ -1095,37 +1363,82 @@ export default function App() {
         </div>
       )}
 
-      {/* 이전 세션 서사 계승 모달 */}
+      {/* 룰별 상세 가이드 ? 모달 */}
+      {ruleHelpModalKey && ruleGuides[ruleHelpModalKey] && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "520px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", color: theme.accent }}>📖 {ruleGuides[ruleHelpModalKey].title}</h3>
+              <button onClick={() => setRuleHelpModalKey(null)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "0.85rem", lineHeight: "1.6" }}>
+              <div>
+                <strong style={{ color: theme.warning }}>💡 어떤 룰인가요?</strong>
+                <div style={{ color: theme.textMuted, marginTop: "4px" }}>{ruleGuides[ruleHelpModalKey].desc}</div>
+              </div>
+              <div>
+                <strong style={{ color: theme.accent }}>🎲 핵심 규칙 및 판정 방식:</strong>
+                <div style={{ color: theme.textMuted, marginTop: "4px" }}>{ruleGuides[ruleHelpModalKey].system}</div>
+              </div>
+            </div>
+            <button onClick={() => setRuleHelpModalKey(null)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>확인 완료</button>
+          </div>
+        </div>
+      )}
+
+      {/* 이전 세션 서사 계승: 다중 체크(Multi-Select) 모달 */}
       {showCareerModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 125, padding: "20px" }}>
-          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "520px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
-              <h3 style={{ margin: 0, fontSize: "1.1rem", color: theme.warning }}>🔄 이전 세션 캐릭터 서사 계승</h3>
+              <h3 style={{ margin: 0, fontSize: "1.1rem", color: theme.warning }}>🔄 이전 세션 서사 다중 계승</h3>
               <button onClick={() => closeModal(setShowCareerModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ fontSize: "0.8rem", color: theme.textMuted, marginBottom: "12px" }}>
-              이전에 플레이했던 세션의 캐릭터 상태(잔여 수치, 전리품, 흉터, 과거의 인연)를 그대로 이어받아 새로운 시나리오에 투입합니다.
+              이전에 클리어한 세션들을 체크박스로 복수 선택하면, 생환자의 잔여 수치와 획득 전리품, 흉터 이력을 하나로 통합하여 새 캐릭터에 부여합니다.
             </div>
             {sessions.length === 0 ? (
               <div style={{ padding: "16px", textAlign: "center", color: theme.textMuted, backgroundColor: theme.panelAlt, borderRadius: "6px" }}>계승할 수 있는 이전 플레이 세션이 없습니다.</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "240px", overflowY: "auto" }}>
-                {sessions.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => handleInheritFromSession(s)}
-                    style={{ padding: "10px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                  >
-                    <div>
-                      <strong style={{ fontSize: "0.85rem", color: theme.text }}>{s.title}</strong>
-                      <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{s.sheet?.name || '탐사자'} ({s.sheet?.job || '모험가'}) | 룰: {s.ruleMode}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "240px", overflowY: "auto", marginBottom: "14px" }}>
+                {sessions.map((s) => {
+                  const isChecked = selectedCareerIds.includes(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => toggleCareerSelection(s.id)}
+                      style={{
+                        padding: "10px 12px",
+                        backgroundColor: isChecked ? theme.panel : theme.panelAlt,
+                        border: `1px solid ${isChecked ? theme.warning : theme.border}`,
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        style={{ accentColor: theme.warning, width: "16px", height: "16px", cursor: "pointer" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: "0.85rem", color: theme.text }}>{s.title}</strong>
+                        <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{s.sheet?.name || "탐사자"} ({s.sheet?.job || "모험가"}) | 룰: {s.ruleMode}</div>
+                      </div>
                     </div>
-                    <button style={{ padding: "4px 8px", backgroundColor: theme.warning, color: "#000", border: "none", borderRadius: "4px", fontSize: "0.72rem", fontWeight: "bold" }}>계승 선택</button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-            <button onClick={() => closeModal(setShowCareerModal)} style={{ marginTop: "16px", width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}>닫기</button>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button onClick={() => closeModal(setShowCareerModal)} style={{ flex: 1, padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}>취소</button>
+              <button onClick={handleInheritFromMultipleSessions} style={{ flex: 2, padding: "10px", backgroundColor: theme.warning, color: "#000", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+                선택한 {selectedCareerIds.length}개 세션 통합 계승
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1209,6 +1522,7 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 인물 초상화 토글 & 화풍 선택 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>👤 인물 초상화 (상태창)</div>
@@ -1344,21 +1658,6 @@ export default function App() {
                 <button onClick={applyCustomPortrait} style={{ width: "100%", padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}>적용</button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* CoC 가이드 모달 */}
-      {showGuideModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "20px" }}>
-          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "500px", padding: "22px", color: theme.text }}>
-            <h3 style={{ margin: "0 0 12px 0", color: theme.danger }}>📖 CoC 7판 룰 가이드</h3>
-            <div style={{ fontSize: "0.85rem", lineHeight: "1.6" }}>
-              • 8대 특성치 총합: <strong>460 pt</strong><br />
-              • HP = (CON+SIZ)/10 | MP = POW/5 | 초기 SAN = POW<br />
-              • 판정 등급: 대성공(01), 극단(1/5 이하), 어려움(1/2 이하), 보통(목표 이하), 대실패(96~100)
-            </div>
-            <button onClick={() => closeModal(setShowGuideModal)} style={{ marginTop: "18px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>닫기</button>
           </div>
         </div>
       )}
