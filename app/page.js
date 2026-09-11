@@ -10,7 +10,7 @@ const THEME_PALETTES = {
 };
 
 const RULE_GUIDES = {
-  coc: { title: "크툴루의 부름 (Call of Cthulhu 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
+  coc: { title: "크툴루의 부름 (CoC 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
   insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 비밀이 교차하는 현대 괴담 심리 호러.", system: "2D6 판정. 사이클별 씬 소모 및 비밀(Secret) 조사." },
   unsung: { title: "언성 듀엣 (Unsung Duet)", desc: "이계 '시프터'에 갇힌 2인 탈출 서사.", system: "2D6 판정. 위기 시 침식도(0~6) 상승 및 신체 변이 발현." },
   freeform: { title: "자유 서사 (Freeform Sandbox)", desc: "정형화된 룰북 없이 분위기와 관계성에 몰입하는 샌드박스.", system: "직관적인 1D20 판정." }
@@ -21,43 +21,22 @@ const COC_MADNESS_TABLE = [
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
   { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
   { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
-  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
-  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
-  { roll: 7, name: "신체 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
-  { roll: 8, name: "심인성 기억상실", desc: "직전 목격한 공포스러운 진실에 대한 기억이 완전히 지워집니다." },
-  { roll: 9, name: "파괴 충동", desc: "주변의 사물을 닥치는 대로 부수거나 집어던집니다." },
-  { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
+  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." }
 ];
 
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
-  { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." },
-  { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
-  { roll: 5, name: "폭력 충동 (Impulse)", desc: "위협을 제거하기 위해 수단 방법을 가리지 않는 공격성을 드러냅니다." },
-  { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
+  { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." }
 ];
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
 const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#오컬트", "#광기"];
 
 const PROCEDURAL_DATA = {
-  names: {
-    western: { female: ["로웨나", "세실리아", "비비안", "엘레노어", "카밀라"], male: ["사반", "알렉스", "루시안", "아드리안", "빅터"] },
-    korean: { female: ["서윤", "도아", "은채", "하경", "지수"], male: ["도윤", "하준", "시우", "민재", "서진"] }
-  },
-  jobs: {
-    coc: [{ job: "고서적 감정사", item: "황동 돋보기, 가죽 수첩, 은제 단도", bg: "고대 비전서의 기괴한 필적을 감정해 온 전문가." }, { job: "사립 탐정", item: "리볼버, 라이터, 회중시계", bg: "실종 사건의 뒤편에 도사린 초자연적 어둠을 추적한다." }],
-    insane: [{ job: "기숙학교 전학생", item: "오르골, 만년필, 압박붕대", bg: "엄격한 규율 뒤에 기괴한 실종 괴담이 도사린 학교에 막 전학 왔다." }],
-    unsung: [{ job: "조난자 (셰이터)", item: "깨진 회중시계, 일기장", bg: "공간이 뒤틀린 이계에 휘말렸다." }],
-    freeform: [{ job: "아카데미 수석", item: "만년필, 양피지", bg: "명문 귀족들 틈바구니에서 실력 하나로 수석을 꿰찬 마법사." }]
-  },
-  scenarios: {
-    coc: ["폭풍우와 짙은 해무로 외부와 고립된 해안 절벽의 저택. 지하 서고에서 젖은 속삭임이 들려옵니다."],
-    insane: ["안개가 자욱한 숲속의 기숙학교. 자정이 지나 지하 예배당에서 멈췄던 오르골 소리가 울립니다."],
-    unsung: ["비가 내리지 않는 잿빛 하늘 아래, 모든 건물들이 중력을 잃고 뒤틀려 부유하는 기괴한 이계."],
-    freeform: ["황립 마법 아카데미의 봉인된 지하 서고. 고대 금주가 폭주하며 결계를 옥죄어 옵니다."]
-  }
+  names: { western: { female: ["로웨나", "세실리아"], male: ["사반", "알렉스"] }, korean: { female: ["서윤", "도아"], male: ["도윤", "하준"] } },
+  jobs: { coc: [{ job: "사립 탐정", item: "리볼버, 라이터", bg: "초자연적 어둠을 추적한다." }], insane: [{ job: "전학생", item: "오르골", bg: "기괴한 괴담이 도사린 학교에 왔다." }], unsung: [{ job: "조난자", item: "깨진 시계", bg: "이계에 휘말렸다." }], freeform: [{ job: "마법사", item: "만년필", bg: "명문 수석 마법사." }] },
+  scenarios: { coc: ["해안 절벽의 저택. 지하 서고에서 젖은 속삭임이 들려옵니다."], insane: ["안개가 자욱한 숲속의 기숙학교. 멈췄던 오르골 소리가 울립니다."], unsung: ["모든 건물들이 중력을 잃고 뒤틀려 부유하는 기괴한 이계."], freeform: ["봉인된 지하 서고. 고대 금주가 폭주하며 결계를 옥죄어 옵니다."] }
 };
 
 export default function App() {
@@ -652,48 +631,33 @@ export default function App() {
       initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, erosion: 1, mutation: unsungMutation || "미확인 징후" };
     }
 
-const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]
 [공개 시놉시스]
 ${publicSynopsis}
 
 [키퍼 전용 기밀/진상/기믹/엔딩조건]
 ${hiddenTruth}`;
 
-  const newId = Date.now();
-  const newSession = {
-    id: newId,
-    title: sessionTitleName,
-    ruleMode: wizardMode,
-    preference: finalPref,
-    scenarioText: fullScenarioContext,
-    publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.",
-    sheet: initialSheet,
-    messages: [],
-    suggestedActions: [],
-    investigationSpots: [],
-    pendingCheck: null,
-  };
+    const newId = Date.now();
+    // ⭐ 여기서 publicSynopsis를 세션 객체에 안전하게 저장합니다.
+    const newSession = { 
+      id: newId, 
+      title: sessionTitleName, 
+      ruleMode: wizardMode, 
+      preference: finalPref, 
+      scenarioText: fullScenarioContext, 
+      publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.",
+      sheet: initialSheet, 
+      messages: [], 
+      suggestedActions: [], 
+      investigationSpots: [], 
+      pendingCheck: null 
+    };
+    
+    setSessions([newSession, ...sessions]); 
+    setActiveSessionId(newId); 
+    setIsLoading(true);
 
-  setSessions([newSession, ...sessions]);
-  setActiveSessionId(newId);
-  setIsLoading(true);
-    
-const newId = Date.now();
-  const newSession = {
-    id: newId,
-    title: sessionTitleName,
-    ruleMode: wizardMode,
-    preference: finalPref,
-    scenarioText: fullScenarioContext,
-    publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.", // ⭐ 이 한 줄을 쏙 넣어주세요!
-    sheet: initialSheet,
-    messages: [],
-    suggestedActions: [],
-    investigationSpots: [],
-    pendingCheck: null,
-  };
-    
-    
     const openingPrompt = `[세션 시작: 첫 서막]
 서막을 열고 상황을 묘사하십시오. (반드시 정중한 ~합니다/였습니다 경어체 고정)
 조사 가능한 구역 2~3곳을 본문 끝에 <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] --> 형식으로 추출하십시오.`;
@@ -875,7 +839,7 @@ const newId = Date.now();
               {/* 좌측 칼럼 */}
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 
-                {/* 2. 탐사자 프로필 (상단 버튼 및 나이/성별 입력란 복구) */}
+                {/* 2. 탐사자 프로필 */}
                 <div className="glass-card" style={{ padding: "18px", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
                     <span style={{ fontWeight: "800", fontSize: "0.88rem" }}>2. 탐사자 프로필</span>
@@ -903,7 +867,6 @@ const newId = Date.now();
                   <textarea value={charBackground} onChange={(e) => setCharBackground(e.target.value)} placeholder="인물의 성격, 상세 백스토리, 품에 지닌 소지품 3가지 등을 입력하세요." style={{ width: "100%", minWidth: 0, height: "70px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, resize: "vertical", fontSize: "0.8rem", lineHeight: "1.5" }} />
                 </div>
 
-                {/* 룰 전용 특수 카드 UI 완벽 복구 */}
                 {wizardMode === "coc" && (
                   <div className="glass-card" style={{ padding: "16px", borderRadius: "14px", border: `1.5px solid ${theme.danger}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -1056,7 +1019,7 @@ const newId = Date.now();
             </button>
           </div>
         ) : (
-          /* 플레이어 룸 (기존 코드 그대로 렌더링 유지됨) */
+          /* 플레이어 룸 */
           <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1 }}>
             <div style={{ minHeight: "50px", padding: isMobile ? "0 10px" : "0 16px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, flex: 1 }}>
@@ -1162,6 +1125,19 @@ const newId = Date.now();
                 <strong style={{ color: theme.accent }}>🎭 서사 지향:</strong><div style={{ color: theme.textMuted, marginTop: "2px" }}>{activeSession.preference}</div>
               </div>
             )}
+
+            {/* ⭐ 시나리오 개요 상시 확인 카드 ⭐ */}
+            <div className="glass-card" style={{ fontSize: "0.74rem", padding: "10px 12px", borderRadius: "10px", lineHeight: "1.5" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                <strong style={{ color: theme.warning }}>📜 시나리오 개요</strong>
+              </div>
+              <div style={{ color: theme.textMuted, whiteSpace: "pre-wrap" }}>
+                {activeSession.publicSynopsis || (() => {
+                  const match = activeSession.scenarioText?.match(/\[공개 시놉시스\]\s*([\s\S]*?)(?=\n\n\[키퍼 전용|\n\[키퍼|$)/i);
+                  return match ? match[1].trim() : "시나리오 개요가 없습니다.";
+                })()}
+              </div>
+            </div>
 
             {activeSession.ruleMode === "coc" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.danger}` }}>
