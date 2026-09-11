@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// 테마 팔레트 4종 및 다크/라이트 모드 (원본 보존)
+// 테마 팔레트 4종 및 다크/라이트 모드
 const THEME_PALETTES = {
   midnight: {
     name: "미드나잇 블루",
@@ -64,7 +64,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 모바일 뷰포트 및 사이드바
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -104,7 +103,6 @@ export default function App() {
   const [charPortraitUrl, setCharPortraitUrl] = useState("");
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [scenarioInput, setScenarioInput] = useState("");
-  const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
@@ -137,6 +135,9 @@ export default function App() {
   const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
+
+  // activeSession 단일 선언
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
@@ -231,12 +232,6 @@ export default function App() {
       const currentList = prev.split(/\s+/).filter(Boolean);
       return currentList.includes(tag) ? currentList.filter((t) => t !== tag).join(" ") : [...currentList, tag].join(" ");
     });
-  };
-
-  const handleSelectCategory = (category) => {
-    setRuleCategory(category);
-    if (category === "freeform") setWizardMode("freeform");
-    else if (wizardMode === "freeform") setWizardMode("coc");
   };
 
   const getPortraitUrl = (promptText, forceStyle) => {
@@ -615,9 +610,6 @@ export default function App() {
     closeModal(setShowExportModal);
   };
 
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
-
-  // 🩸 광기 굴림 헬퍼 함수
   const getMadnessRoll = (rule, lossAmount) => {
     if (rule === "coc") {
       const rollNum = Math.floor(Math.random() * 10) + 1;
@@ -643,7 +635,6 @@ export default function App() {
     }
   };
 
-  // 수치 수동 조절 (원자적 상태 보존)
   const adjustStat = (statName, delta) => {
     if (!activeSession) return;
     const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
@@ -778,7 +769,6 @@ export default function App() {
     }
   };
 
-  // 대화 전송 및 원자적 광기 상태 보존
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
@@ -802,7 +792,7 @@ export default function App() {
         });
       }
 
-      // 🛡️ 광기 발작 처리: 중복 발작 방지 및 newSheet에 직접 동기화하여 상태 유실 원천 방지
+      // 광기 발작 처리: 중복 방지 및 newSheet에 직접 동기화
       const prevSan = Number(activeSession.sheet?.san ?? 50);
       const newSan = parsedData.newSheetVars?.san !== undefined ? Number(parsedData.newSheetVars.san) : prevSan;
       let triggeredMadness = null;
@@ -919,8 +909,10 @@ export default function App() {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  // 🛡️ 키퍼 지문 내 산 체크 요구 감지 (방금 굴린 직후 및 광기 중복 차단 완비)
-  const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
+  // 키퍼 지문 내 산 체크 요구 감지 (방금 굴린 직후 및 광기 중복 차단 완비)
+  const messagesList = activeSession?.messages || [];
+  const lastMsgText = messagesList.length > 0 ? (messagesList[messagesList.length - 1]?.text || "") : "";
+  const lastUserMsg = messagesList.slice().reverse().find((m) => m.role === "user")?.text || "";
   const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
   const isSanCheckDetected =
     activeSession?.ruleMode === "coc" &&
@@ -1181,22 +1173,22 @@ export default function App() {
             <div style={{ height: "50px", padding: "0 16px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "5px 10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.8rem" }}>{isSidebarOpen ? "◀" : "▶"}</button>
-                <span style={{ fontWeight: "800", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeSession?.title}</span>
+                <span style={{ fontWeight: "800", fontSize: "0.9rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{activeSession.title}</span>
                 <button onClick={() => handleEditTitle(activeSession.id, activeSession.title)} title="시나리오 제목 변경" style={{ background: "none", border: "none", color: theme.textMuted, cursor: "pointer", fontSize: "0.8rem", padding: "2px" }}>✏️</button>
                 
-                {activeSession?.sheet?.madnessStatus && (
+                {activeSession.sheet?.madnessStatus && (
                   <span style={{ padding: "2px 7px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1px solid ${theme.danger}`, borderRadius: "4px", fontSize: "0.68rem", color: theme.danger, fontWeight: "700", whiteSpace: "nowrap" }}>
                     ⚠️ {activeSession.sheet.madnessStatus}
                   </span>
                 )}
-                {activeSession?.ruleMode === "insane" && (
+                {activeSession.ruleMode === "insane" && (
                   <span style={{ padding: "2px 7px", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1px solid ${theme.warning}`, borderRadius: "4px", fontSize: "0.68rem", color: theme.warning, fontWeight: "700" }}>
-                    사이클 {activeSession?.sheet?.cycle || 1} / 씬 {activeSession?.sheet?.scene || 1}
+                    사이클 {activeSession.sheet?.cycle || 1} / 씬 {activeSession.sheet?.scene || 1}
                   </span>
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {activeSession?.ruleMode === "coc" && (
+                {activeSession.ruleMode === "coc" && (
                   <button
                     onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")}
                     disabled={isRolling || isLoading}
@@ -1207,7 +1199,7 @@ export default function App() {
                   </button>
                 )}
                 <button onClick={() => rollDiceDirectly()} disabled={isRolling || isLoading} style={{ padding: "6px 14px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "20px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>
-                  🎲 주사위 판정 ({activeSession?.ruleMode === "coc" ? "1D100" : activeSession?.ruleMode === "freeform" ? "1D20" : "2D6"})
+                  🎲 주사위 판정 ({activeSession.ruleMode === "coc" ? "1D100" : activeSession.ruleMode === "freeform" ? "1D20" : "2D6"})
                 </button>
                 <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem" }}>{isSheetOpen ? "시트▶" : "◀시트"}</button>
               </div>
@@ -1225,7 +1217,7 @@ export default function App() {
                 </div>
               )}
 
-              {(activeSession?.messages || []).map((m, i) => (
+              {(activeSession.messages || []).map((m, i) => (
                 <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: isMobile ? "92%" : "82%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
                   <div
                     style={{
@@ -1284,7 +1276,7 @@ export default function App() {
                 </div>
               )}
 
-              {activeSession?.pendingCheck && (
+              {activeSession.pendingCheck && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <span style={{ fontSize: "0.8rem", fontWeight: "700", color: theme.danger }}>
                     ⚠️ 키퍼 판정 요구: {activeSession.pendingCheck.skill} (목표치: {activeSession.pendingCheck.target || 50}%)
@@ -1296,7 +1288,7 @@ export default function App() {
               )}
 
               {/* 조사 구역 프리필 버튼 */}
-              {(activeSession?.investigationSpots || []).length > 0 && !isLoading && (
+              {(activeSession.investigationSpots || []).length > 0 && !isLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.74rem", color: theme.warning, fontWeight: "700" }}>🔍 조사 구역:</span>
                   {activeSession.investigationSpots.map((spot, idx) => (
@@ -1311,10 +1303,10 @@ export default function App() {
                 </div>
               )}
 
-              {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && !isLoading && (
+              {suggestionsEnabled && (activeSession.suggestedActions || []).length > 0 && !isLoading && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.74rem", color: theme.accent, fontWeight: "700", display: "flex", alignItems: "center" }}>💡 제안:</span>
-                  {(activeSession?.suggestedActions || []).map((sugg, idx) => (
+                  {(activeSession.suggestedActions || []).map((sugg, idx) => (
                     <button key={idx} onClick={() => setInput(sugg)} style={{ padding: "5px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "16px", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>{sugg}</button>
                   ))}
                 </div>
@@ -1813,7 +1805,7 @@ export default function App() {
             <h3 style={{ margin: "0 0 14px 0", fontSize: "1.05rem", color: theme.accent }}>📖 세이브 백업 및 복원 안내</h3>
             <div style={{ fontSize: "0.82rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>• <strong>JSON (.json):</strong> 시트 수치와 대화가 완벽 보존되는 게임 파일입니다. [복원]을 통해 그대로 다시 불러올 수 있습니다.</div>
-              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 편하게 읽을 수 있는 보관용 문서입니다.</div>
+              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 소설처럼 편하게 읽을 수 있는 보관용 문서입니다.</div>
             </div>
             <button onClick={() => closeModal(setShowRestoreHelpModal)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>확인</button>
           </div>
