@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const FALLBACK_MODELS = [
-  "gemini-3.5-flash-lite", // 1순위
-  "gemini-3.1-flash-lite", // 2순위
-  "gemini-3.5-flash",      // 3순위
-  "gemini-2.5-flash",      // 4순위
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
 ];
 
 export async function POST(req) {
@@ -20,48 +20,45 @@ export async function POST(req) {
 
     let rulePrompt = "";
     if (ruleMode === "coc") {
-      rulePrompt = `[크툴루의 부름 7판]
-- 단서 탐색, 은밀 행동 시 다이스 판정(CHECK)을 요구하세요.
-- 끔찍한 진실, 시체, 초자연적 현상 조우 시 이성(SAN) 체크를 지시하세요.
-- SAN이 5점 이상 급감하거나 플레이어 시트에 광기 상태가 발현되어 있다면 파트너 NPC가 당황해 부축하거나 상황이 극적으로 혼란해지는 모습을 생생하게 묘사하세요.`;
+      rulePrompt = `[크툴루의 부름 7판 CoC 진행 수칙]
+- 단서 탐색, 은밀 행동 시 다이스 판정을 유도하십시오.
+- 🚨 **이성(SAN) 차감 완급 조절 (절대 규칙)**:
+  1. 기괴한 냄새, 안개, 기이한 소리, 흉가 분위기 등 일상적 공포: 산치 감소는 **성공 0 / 실패 1점(최대 2점)**만 차감하십시오!
+  2. 한 번에 5점 이상 깎는 것은 신화 생물(신격체)과 직접 대면했을 때만 극히 예외적으로 적용하십시오. 함부로 5점씩 깎지 마십시오.
+  3. 플레이어가 산 체크를 굴린 직후에는 결과를 묘사하고 산치를 1~2점 깎은 뒤 다음 사건을 전개하십시오. 곧바로 또 산 체크를 요구하지 마십시오.
+  4. 조사원이 이미 광기 상태라면 추가 이성 체크를 일절 요구하지 말고, 파트너의 반응과 상황 수습에 집중하십시오.`;
     } else if (ruleMode === "insane") {
       rulePrompt = `[멀티 호러 TRPG 인세인]
-- 씬(Scene)을 진행하며 공포 판정과 비밀(Secret) 탐색을 유도하세요.
-- 공포 판정 실패나 이성치 손실로 광기 카드가 발현되면 의심과 망상에 사로잡힌 플레이어의 심리를 자극하세요.
-- 다른 등장인물의 비밀이 밝혀질 때는 <!-- REVEAL_SECRET: {"name": "인물명", "secret": "비밀내용"} --> 형식으로 출력하세요.`;
+- 씬을 진행하며 공포 판정과 비밀(Secret) 탐색을 유도하십시오.
+- 광기 카드가 발현 중인 플레이어에게 연쇄적으로 공포 판정을 난사하지 마십시오.`;
     } else if (ruleMode === "unsung") {
       rulePrompt = `[언성 듀엣]
-- 이계 '시프터' 탈출을 위한 2인 서사입니다.
-- 위기 상황에서 판정 실패 시 이계 침식도(Erosion) 상승과 신체적 변이 징후를 부각하세요.`;
+- 이계 '시프터' 탈출을 위한 2인 서사입니다. 위기 상황 시 이계 침식도 상승과 신체 변이를 묘사하십시오.`;
     } else {
       rulePrompt = `[자유 서사 모드]
-- 1D20 판정과 유연한 상호작용을 기반으로 서사를 전개하세요.`;
+- 1D20 판정과 유연한 상호작용을 기반으로 서사를 전개하십시오.`;
     }
 
     const systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
 ${rulePrompt}
 플레이어 성향: [${playPreference || "자유 서사"}]
-시나리오 배경 및 원문: [${scenarioText || "미상"}]
+시나리오 배경: [${scenarioText || "미상"}]
 캐릭터 상태: 이름(${playerSheet?.name}), 직업(${playerSheet?.job}), 체력(${playerSheet?.hp}), 이성(${playerSheet?.san}), 광기(${playerSheet?.madnessStatus || "정상"})
 
-[🚨 키퍼 진행 절대 엄벌 수칙 - 위반 절대 금지]
-1. **임의 완결 및 급발진 결말 절대 금지**:
-   - 시나리오의 모든 사건, 단서, 비밀이 해결되기 전에는 **절대로 이야기를 끝내지 마십시오.**
-   - "완벽한 결말을 맞이했습니다", "행복하게 살았습니다", "이야기는 막을 내립니다" 같은 결말형 문장을 작성하는 순간 룰 위반입니다.
-2. **임의 시간 스킵(Time-skip) 금지**:
-   - 플레이어의 명시적인 지시 없이 "[시간이 얼마나 흘렀을까]", "다음 날 아침이 밝았습니다"라며 장면을 건너뛰지 마십시오.
-   - 항상 현재 씬의 '바로 다음 1분'에 일어나는 일과 위기를 호흡감 있게 묘사하십시오.
-3. **조사 구역 및 판정 연계**:
-   - 현재 공간에 남아있는 미지의 단서나 위험 구역 2~3곳을 본문 끝에 반드시 태그로 추출하십시오.
+[🚨 키퍼 진행 절대 엄벌 수칙]
+1. **임의 완결 및 시간 건너뛰기 절대 금지**:
+   - "[시간이 얼마나 흘렀을까]", "다음 날 아침" 같은 임의 시간 스킵 금지. 현재 순간의 1분 뒤를 긴장감 있게 묘사하십시오.
+   - 시나리오의 진실이 다 밝혀지기 전까지 멋대로 이야기를 끝내지 마십시오.
+2. **조사 구역 태그 (SPOTS)**:
    <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] -->
-4. **수치 증감 (STATUS)**:
-   <!-- STATUS: {"san": 45, "hp": 8} -->
-5. **행동 제안 (SUGGESTIONS)**:
+3. **수치 증감 태그 (STATUS)**:
+   <!-- STATUS: {"san": 49, "hp": 10} -->
+4. **행동 제안 태그 (SUGGESTIONS)**:
    <!-- SUGGESTIONS: ["선택지 1", "선택지 2"] -->`;
 
     const formattedContents = [
       { role: "user", parts: [{ text: systemInstruction }] },
-      { role: "model", parts: [{ text: "시나리오를 절대 임의로 완결짓거나 시간을 건너뛰지 않고, 현장감을 살려 철저히 턴제 롤플레잉으로 진행하겠습니다." }] }
+      { role: "model", parts: [{ text: "룰북의 완급 조절 수칙을 철저히 준수하여 무분별한 산치 폭탄과 중복 체크를 방지하겠습니다." }] }
     ];
 
     for (const m of messages || []) {
@@ -89,7 +86,7 @@ ${rulePrompt}
           break;
         }
       } catch (err) {
-        console.warn(`[API Fallback] ${modelName} 호출 실패 (${err.message}). 다음 예비 모델로 전환합니다.`);
+        console.warn(`[API Fallback] ${modelName} 호출 실패 (${err.message}). 예비 모델 전환.`);
         lastError = err;
       }
     }
