@@ -1291,32 +1291,20 @@ export default function App() {
 
   const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
-  return (
-    {/* 🌟 [추가] 본문 글씨체 선택 */}
-              <div>
-                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>
-                  본문 서사 글씨체
-                </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setFontChoice("maru")} 
-                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "maru" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "maru" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "maru" ? "800" : "400" }}
-                  >
-                    📖 마루 부리 (명조체)
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setFontChoice("gothic")} 
-                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "gothic" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "gothic" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "gothic" ? "800" : "400" }}
-                  >
-                    📱 프리텐다드 (고딕체)
-                  </button>
-                </div>
-              </div>
-              </div>
+return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
+        *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+        .serif-text { font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"}; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
+        .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
+        .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid ${theme.border}; }
+        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
+      `}</style><style>{`
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
