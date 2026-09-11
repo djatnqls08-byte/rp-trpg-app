@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// 테마 팔레트 4종 및 다크/라이트 모드 (원본 100% 유지)
+// 테마 팔레트 4종 및 다크/라이트 모드 (원본 보존)
 const THEME_PALETTES = {
   midnight: {
     name: "미드나잇 블루",
@@ -25,52 +25,33 @@ const THEME_PALETTES = {
   }
 };
 
-// 4대 정규 룰 가이드
 const RULE_GUIDES = {
-  coc: {
-    title: "크툴루의 부름 (Call of Cthulhu 7판)",
-    desc: "러브크래프트의 코스믹 호러 기반 정통 추리 TRPG입니다. 평범한 인간 조사원들이 상식을 초월한 금기의 진실과 조우합니다.",
-    system: "1D100 다이스 판정. 이성치(SAN) 감소 및 광기 관리, 8대 특성치(460pt) 분배 기반."
-  },
-  insane: {
-    title: "멀티 호러 TRPG 인세인 (inSANe)",
-    desc: "의심과 광기가 교차하는 현대 괴담 호러. 겉보기 사명 뒤에 치명적인 비밀을 품고 있습니다.",
-    system: "2D6 판정. 사이클마다 씬을 소모해 비밀(Secret)을 조사하며 공포를 극복합니다."
-  },
-  unsung: {
-    title: "언성 듀엣 (Unsung Duet)",
-    desc: "이계 '시프터'에 갇힌 조난자(셰이터)와 구원자(바인더) 단둘의 처절한 2인 서사 TRPG입니다.",
-    system: "2D6 판정. 위기 시 이계 침식도(0~6)가 상승하며 신체/정신적 '변이'가 발현됩니다."
-  },
-  freeform: {
-    title: "자유 서사 (Freeform Sandbox)",
-    desc: "정형화된 룰북 없이 관계성과 분위기, 스토리텔링에 온전히 몰입하는 샌드박스 서사 모드입니다.",
-    system: "직관적인 1D20 판정과 키퍼와의 유연한 대화로 이야기를 직조합니다."
-  }
+  coc: { title: "크툴루의 부름 (Call of Cthulhu 7판)", desc: "러브크래프트 코스믹 호러 추리. 이성치(SAN) 감소 및 광기 관리.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
+  insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 광기가 교차하는 현대 괴담 호러.", system: "2D6 판정. 사명과 비밀(Secret) 조사." },
+  unsung: { title: "언성 듀엣 (Unsung Duet)", desc: "이계 '시프터'에 갇힌 2인 서사 TRPG.", system: "2D6 판정. 위기 시 이계 침식도(0~6) 상승 및 변이 발현." },
+  freeform: { title: "자유 서사 (Freeform Sandbox)", desc: "정형화된 룰북 없이 분위기에 몰입하는 샌드박스.", system: "1D20 직관적 판정." }
 };
 
-// CoC 1D10 일시적 광기 표
 const COC_MADNESS_TABLE = [
-  { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 의식을 잃고 바닥에 쓰러집니다." },
+  { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다. 은밀 행동 불가." },
-  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
-  { roll: 4, name: "편집증 및 피해망상", desc: "동행자나 주변 모든 존재가 자신을 해치려 한다는 극심한 의심에 사로잡힙니다." },
-  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 현재 방이나 위험 구역으로부터 반대 방향을 향해 질주합니다." },
-  { roll: 6, name: "히스테리성 실성", desc: "공포에 짓눌려 통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
-  { roll: 7, name: "신체 반응 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
-  { roll: 8, name: "심인성 기억상실 (Amnesia)", desc: "직전 목격한 공포스러운 진실에 대한 기억이 머릿속에서 완전히 지워집니다." },
-  { roll: 9, name: "파괴 충동 및 폭력성", desc: "주변의 사물을 닥치는 대로 부수거나 손에 닿는 것을 집어던집니다." },
-  { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 초점 없는 눈으로 석상처럼 굳어버립니다." }
+  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
+  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
+  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
+  { roll: 7, name: "신체 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
+  { roll: 8, name: "심인성 기억상실", desc: "직전 목격한 공포스러운 진실에 대한 기억이 완전히 지워집니다." },
+  { roll: 9, name: "파괴 충동", desc: "주변의 사물을 닥치는 대로 부수거나 집어던집니다." },
+  { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
 ];
 
-// inSANe 1D6 광기 카드 표
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
-  { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 등 특정 행동을 병적으로 반복합니다." },
-  { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨기거나 도망칩니다." },
-  { roll: 5, name: "폭력 충동 (Impulse)", desc: "위협을 제거하기 위해 수단과 방법을 가리지 않는 공격성을 드러냅니다." },
-  { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 자발적인 행동 선언이 극도로 제한됩니다." }
+  { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." },
+  { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
+  { roll: 5, name: "폭력 충동 (Impulse)", desc: "위협을 제거하기 위해 수단 방법을 가리지 않는 공격성을 드러냅니다." },
+  { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
 ];
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
@@ -88,7 +69,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // 모달 제어 8종 (온전한 유지)
+  // 모달 제어 8종
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -98,35 +79,23 @@ export default function App() {
   const [showCareerModal, setShowCareerModal] = useState(false);
   const [ruleHelpModalKey, setRuleHelpModalKey] = useState(null);
 
-  // 초상화 설정
   const [showPortraits, setShowPortraits] = useState(true);
   const [portraitStyle, setPortraitStyle] = useState("anime");
-
-  // 백업 포맷
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  // 테마 시스템
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
-
-  // 사운드 및 연출
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
-
-  // 대화록 내보내기 포맷
   const [exportFormat, setExportFormat] = useState("txt");
   const [exportScope, setExportScope] = useState("all");
-
-  // API 모니터링
   const [apiUsage, setApiUsage] = useState({ date: new Date().toISOString().slice(0, 10), dailyRequests: 0, totalTokens: 0, lastPromptTokens: 0, lastResponseTokens: 0 });
 
-  // 4대 정규 룰 모드 ('freeform' | 'coc' | 'insane' | 'unsung')
   const [ruleCategory, setRuleCategory] = useState("official");
   const [wizardMode, setWizardMode] = useState("coc");
 
-  // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
   const [charAge, setCharAge] = useState("24");
@@ -139,20 +108,15 @@ export default function App() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  // 서사 계승 상태
   const [selectedCareerIds, setSelectedCareerIds] = useState([]);
   const [pastChronicleText, setPastChronicleText] = useState("");
-
-  // 프리셋 목록
   const [customPresets, setCustomPresets] = useState([]);
   const [newPresetTitle, setNewPresetTitle] = useState("");
 
-  // 룰별 고유 상태
   const [charMission, setCharMission] = useState("");
   const [charSecret, setCharSecret] = useState("");
   const [unsungMutation, setUnsungMutation] = useState("");
 
-  // CoC 460pt 특성치 연산
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
   const totalAllocated = Number(cocStats.str) + Number(cocStats.con) + Number(cocStats.siz) + Number(cocStats.dex) + Number(cocStats.app) + Number(cocStats.int) + Number(cocStats.pow) + Number(cocStats.edu);
   const remainingPoints = 460 - totalAllocated;
@@ -167,17 +131,10 @@ export default function App() {
   else if (strPlusSiz <= 164) derivedDb = "+1D4";
   else derivedDb = "+1D6";
 
-  // 관계성 지향 태그
   const [playPreference, setPlayPreference] = useState("#GL #집착 #오컬트");
 
-  // 주사위 판정 상태
   const [isRolling, setIsRolling] = useState(false);
   const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
-  const [diceResult, setDiceResult] = useState(null);
-  const [targetDc, setTargetDc] = useState(5);
-  const [targetStat, setTargetStat] = useState(50);
-
-  // 🩸 비차단형 광기 칩 & 플래시 상태
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
 
@@ -214,7 +171,6 @@ export default function App() {
       const promptT = usage?.promptTokenCount || 0;
       const respT = usage?.candidatesTokenCount || 0;
       const totalT = (isToday ? prev.totalTokens : 0) + (usage?.totalTokenCount || 0);
-
       const updated = { date: todayStr, dailyRequests: newDaily, totalTokens: totalT, lastPromptTokens: promptT, lastResponseTokens: respT };
       if (typeof window !== "undefined") localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
       return updated;
@@ -273,11 +229,7 @@ export default function App() {
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const currentList = prev.split(/\s+/).filter(Boolean);
-      if (currentList.includes(tag)) {
-        return currentList.filter((t) => t !== tag).join(" ");
-      } else {
-        return [...currentList, tag].join(" ");
-      }
+      return currentList.includes(tag) ? currentList.filter((t) => t !== tag).join(" ") : [...currentList, tag].join(" ");
     });
   };
 
@@ -290,9 +242,7 @@ export default function App() {
   const getPortraitUrl = (promptText, forceStyle) => {
     const clean = promptText || "character portrait";
     const currentStyle = forceStyle || portraitStyle;
-    const styleTag = currentStyle === "anime" 
-      ? "anime style, 2d illustration, masterpiece" 
-      : "realistic photography, highly detailed, cinematic lighting, 8k";
+    const styleTag = currentStyle === "anime" ? "anime style, 2d illustration, masterpiece" : "realistic photography, highly detailed, cinematic lighting, 8k";
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   };
 
@@ -349,14 +299,11 @@ export default function App() {
 
     const isKorean = Math.random() > 0.5;
     const region = isKorean ? "korean" : "western";
-    
     const name = pick(proceduralData.names[region]);
     const modeKey = proceduralData.jobs[wizardMode] ? wizardMode : "freeform";
-    
-    const availableJobs = proceduralData.jobs[modeKey].filter(j => j.region === region);
+    const availableJobs = proceduralData.jobs[modeKey].filter((j) => j.region === region);
     const jobObj = pick(availableJobs.length > 0 ? availableJobs : proceduralData.jobs[modeKey]);
-    
-    const availableScenarios = proceduralData.scenarios[modeKey].filter(s => s.region === region);
+    const availableScenarios = proceduralData.scenarios[modeKey].filter((s) => s.region === region);
     const scenarioObj = pick(availableScenarios.length > 0 ? availableScenarios : proceduralData.scenarios[modeKey]);
 
     setCharName(name);
@@ -376,7 +323,7 @@ export default function App() {
       }
       setCocStats({ str: base[0], con: base[1], siz: base[2], dex: base[3], app: base[4], int: base[5], pow: base[6], edu: base[7], luck: Math.floor(Math.random() * 50) + 40 });
     } else if (wizardMode === "insane") {
-      const msList = proceduralData.insaneMissions.filter(m => m.region === region);
+      const msList = proceduralData.insaneMissions.filter((m) => m.region === region);
       const ms = pick(msList.length > 0 ? msList : proceduralData.insaneMissions);
       setCharMission(ms.mission);
       setCharSecret(ms.secret);
@@ -448,11 +395,7 @@ export default function App() {
     if (!scenarioInput.trim()) return alert("치환할 시나리오 본문이 없습니다.");
     const playerName = charName.trim() || "주인공";
     const partnerName = "파트너";
-
-    let replaced = scenarioInput;
-    replaced = replaced.replace(/\bKPC\b/gi, partnerName);
-    replaced = replaced.replace(/\bPC\b/gi, playerName);
-
+    let replaced = scenarioInput.replace(/\bKPC\b/gi, partnerName).replace(/\bPC\b/gi, playerName);
     setScenarioInput(replaced);
     alert(`시나리오 내 'PC' ➔ '${playerName}', 'KPC' ➔ '${partnerName}'(으)로 치환되었습니다!`);
   };
@@ -461,19 +404,9 @@ export default function App() {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
     const newPreset = {
-      id: Date.now(),
-      title: title,
-      name: charName,
-      job: charJob,
-      age: charAge,
-      gender: charGender,
-      background: charBackground,
-      portrait: charPortraitUrl,
-      ruleMode: wizardMode,
-      cocStats: cocStats,
-      mission: charMission,
-      secret: charSecret,
-      unsungMutation: unsungMutation,
+      id: Date.now(), title, name: charName, job: charJob, age: charAge, gender: charGender,
+      background: charBackground, portrait: charPortraitUrl, ruleMode: wizardMode,
+      cocStats, mission: charMission, secret: charSecret, unsungMutation
     };
     const updated = [newPreset, ...customPresets];
     setCustomPresets(updated);
@@ -497,9 +430,7 @@ export default function App() {
   };
 
   const toggleCareerSelection = (id) => {
-    setSelectedCareerIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+    setSelectedCareerIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   const handleInheritFromMultipleSessions = () => {
@@ -527,7 +458,6 @@ export default function App() {
     combinedChronicle += `\n위 세션들의 모든 흉터, 기억, 전리품을 간직한 채 새로운 모험에 들어섭니다.`;
     setPastChronicleText(combinedChronicle);
     setCharBackground(`${baseSheet.background || ""}\n\n${combinedChronicle}`);
-
     closeModal(setShowCareerModal);
     setSelectedCareerIds([]);
     alert(`${chosenSessions.length}개 세션의 서사와 전리품이 성공적으로 통합 계승되었습니다!`);
@@ -616,7 +546,6 @@ export default function App() {
     if (sessions.length === 0) return alert("백업할 시나리오 세션이 없습니다.");
     const targets = backupTarget === "all" ? sessions : sessions.filter((s) => s.id === Number(backupTarget));
     if (targets.length === 0) return alert("선택된 시나리오가 없습니다.");
-    
     const dateStr = new Date().toISOString().slice(0, 10);
     if (backupFormat === "json") {
       const blob = new Blob([JSON.stringify(targets, null, 2)], { type: "application/json" });
@@ -688,47 +617,17 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
-  // 🩸 비차단형 광기 발현 (화면 차단 팝업 대신 하단 칩 점등 + 중복 방지)
-  const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
-    const session = sessions.find((s) => s.id === targetSessionId);
-    if (session?.sheet?.madnessStatus) return; // 이미 광기 상태인 경우 씬 동안 중복 발작 차단
-
-    setShowInsanityFlash(true);
-    setTimeout(() => setShowInsanityFlash(false), 500);
-
-    let madnessName = "";
-    let madnessDesc = "";
-    let rollNum = 1;
-
+  // 🩸 광기 굴림 헬퍼 함수
+  const getMadnessRoll = (rule, lossAmount) => {
     if (rule === "coc") {
-      rollNum = Math.floor(Math.random() * 10) + 1;
+      const rollNum = Math.floor(Math.random() * 10) + 1;
       const m = COC_MADNESS_TABLE.find((item) => item.roll === rollNum) || COC_MADNESS_TABLE[0];
-      madnessName = m.name;
-      madnessDesc = m.desc;
+      return { name: m.name, desc: m.desc, loss: lossAmount, rule, roll: rollNum };
     } else {
-      rollNum = Math.floor(Math.random() * 6) + 1;
+      const rollNum = Math.floor(Math.random() * 6) + 1;
       const m = INSANE_MADNESS_TABLE.find((item) => item.roll === rollNum) || INSANE_MADNESS_TABLE[0];
-      madnessName = m.name;
-      madnessDesc = m.desc;
+      return { name: m.name, desc: m.desc, loss: lossAmount, rule, roll: rollNum };
     }
-
-    const madnessStatusStr = `일시적 광기: ${madnessName}`;
-
-    setActiveMadnessAlert({
-      name: madnessName,
-      desc: madnessDesc,
-      loss: lossAmount,
-      rule,
-      roll: rollNum,
-    });
-
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === targetSessionId
-          ? { ...s, sheet: { ...s.sheet, madnessStatus: madnessStatusStr } }
-          : s
-      )
-    );
   };
 
   const applyMadnessToInput = () => {
@@ -744,20 +643,30 @@ export default function App() {
     }
   };
 
+  // 수치 수동 조절 (원자적 상태 보존)
   const adjustStat = (statName, delta) => {
     if (!activeSession) return;
     const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
     const newVal = Math.max(0, currentVal + delta);
+    let madnessStatus = activeSession.sheet?.madnessStatus || null;
 
-    if (statName === "san" && !activeSession.sheet?.madnessStatus) {
+    if (statName === "san" && !madnessStatus) {
       if (activeSession.ruleMode === "coc" && delta <= -5) {
-        triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
+        const m = getMadnessRoll("coc", Math.abs(delta));
+        madnessStatus = `일시적 광기: ${m.name}`;
+        setActiveMadnessAlert(m);
+        setShowInsanityFlash(true);
+        setTimeout(() => setShowInsanityFlash(false), 500);
       } else if (activeSession.ruleMode === "insane" && delta < 0) {
-        triggerMadnessCheck("insane", Math.abs(delta), activeSessionId);
+        const m = getMadnessRoll("insane", Math.abs(delta));
+        madnessStatus = `광기 카드: ${m.name}`;
+        setActiveMadnessAlert(m);
+        setShowInsanityFlash(true);
+        setTimeout(() => setShowInsanityFlash(false), 500);
       }
     }
 
-    const updatedSheet = { ...activeSession.sheet, [statName]: newVal };
+    const updatedSheet = { ...activeSession.sheet, [statName]: newVal, madnessStatus };
     setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, sheet: updatedSheet } : s)));
   };
 
@@ -869,6 +778,7 @@ export default function App() {
     }
   };
 
+  // 대화 전송 및 원자적 광기 상태 보존
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
@@ -892,15 +802,25 @@ export default function App() {
         });
       }
 
-      // 이미 광기 상태가 아닐 때만 광기 발작 트리거 (중복 루프 방지)
+      // 🛡️ 광기 발작 처리: 중복 발작 방지 및 newSheet에 직접 동기화하여 상태 유실 원천 방지
       const prevSan = Number(activeSession.sheet?.san ?? 50);
       const newSan = parsedData.newSheetVars?.san !== undefined ? Number(parsedData.newSheetVars.san) : prevSan;
+      let triggeredMadness = null;
+
       if (!activeSession.sheet?.madnessStatus) {
         if (activeSession.ruleMode === "coc" && prevSan - newSan >= 5) {
-          triggerMadnessCheck("coc", prevSan - newSan, activeSessionId);
+          triggeredMadness = getMadnessRoll("coc", prevSan - newSan);
+          newSheet.madnessStatus = `일시적 광기: ${triggeredMadness.name}`;
         } else if (activeSession.ruleMode === "insane" && prevSan > newSan) {
-          triggerMadnessCheck("insane", prevSan - newSan, activeSessionId);
+          triggeredMadness = getMadnessRoll("insane", prevSan - newSan);
+          newSheet.madnessStatus = `광기 카드: ${triggeredMadness.name}`;
         }
+      }
+
+      if (triggeredMadness) {
+        setActiveMadnessAlert(triggeredMadness);
+        setShowInsanityFlash(true);
+        setTimeout(() => setShowInsanityFlash(false), 500);
       }
 
       setSessions((prev) =>
@@ -939,7 +859,7 @@ export default function App() {
     if (!window.confirm("이 발언을 취소하고 다시 작성하시겠습니까? (이후 마스터 답변도 삭제됩니다)")) return;
     setInput(activeSession.messages[msgIndex].text);
     const newMessages = activeSession.messages.slice(0, msgIndex);
-    setSessions((prev) => (prev.map((s) => (s.id === activeSessionId ? { ...s, messages: newMessages } : s))));
+    setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, messages: newMessages } : s)));
   };
 
   const rollDiceDirectly = (overrideTarget = null, skillName = "") => {
@@ -999,9 +919,18 @@ export default function App() {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  // 키퍼 지문 내 산 체크 요구 여부 감지
-  const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
-  const isSanCheckDetected = activeSession?.ruleMode === "coc" && (lastMsgText.includes("산 체크") || lastMsgText.includes("이성 체크") || lastMsgText.includes("산치 체크") || lastMsgText.includes("SAN 체크"));
+  // 🛡️ 키퍼 지문 내 산 체크 요구 감지 (방금 굴린 직후 및 광기 중복 차단 완비)
+  const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
+  const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
+  const isSanCheckDetected =
+    activeSession?.ruleMode === "coc" &&
+    !activeSession?.sheet?.madnessStatus &&
+    !activeMadnessAlert &&
+    !justRolledSan &&
+    (activeSession?.pendingCheck?.skill?.includes("이성") ||
+      lastMsgText.includes("산 체크를 진행") ||
+      lastMsgText.includes("이성 체크를 진행") ||
+      lastMsgText.includes("산치 체크를 요구"));
 
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", overflow: "hidden", position: "relative" }}>
@@ -1051,7 +980,7 @@ export default function App() {
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         {!activeSession ? (
-          /* 세션 생성 마법사 (원본 100% 완전 복원) */
+          /* 세션 생성 마법사 */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 140px 14px" : "28px 24px 80px 24px", maxWidth: "1080px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", paddingBottom: "12px", borderBottom: `1px solid ${theme.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1267,7 +1196,6 @@ export default function App() {
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {/* 🧠 CoC 전용: 상단 헤더 산 체크 원클릭 버튼 (시트 열 필요 없음) */}
                 {activeSession?.ruleMode === "coc" && (
                   <button
                     onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")}
@@ -1327,7 +1255,7 @@ export default function App() {
             {/* 터치형 조사 구역 (SPOTS) & 비차단형 광기 칩 & 산 체크 배너 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px", padding: "8px 14px" }}>
               
-              {/* 🩸 비차단형 광기 발현 칩 (화면 가림 없이 터치 시 입력창 프리필) */}
+              {/* 🩸 비차단형 광기 발현 칩 */}
               {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.25)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.8rem", color: theme.danger }}>
@@ -1344,7 +1272,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 지문 내 산 체크 요구 배너 */}
+              {/* 🛡️ 지문 내 산 체크 요구 배너 (주사위 굴린 직후 및 광기 중복 차단 완비) */}
               {isSanCheckDetected && !isLoading && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <span style={{ fontSize: "0.8rem", fontWeight: "800", color: theme.danger }}>
@@ -1393,7 +1321,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 입력창 (모바일 엔터 줄바꿈 정상화) */}
+            {/* 입력창 */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
               <textarea
                 value={input}
@@ -1530,7 +1458,7 @@ export default function App() {
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.warning}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                   <h4 style={{ margin: 0, fontSize: "0.85rem", color: theme.warning, fontWeight: "800" }}>인세인 파일철</h4>
-                  <button onClick={() => triggerMadnessCheck("insane", 1, activeSessionId)} style={{ padding: "2px 6px", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "4px", fontSize: "0.68rem", cursor: "pointer", fontWeight: "700" }}>🎲 광기 유발</button>
+                  <button onClick={() => adjustStat("san", -1)} style={{ padding: "2px 6px", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "4px", fontSize: "0.68rem", cursor: "pointer", fontWeight: "700" }}>🎲 광기 유발</button>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px", backgroundColor: theme.panelAlt, padding: "8px", borderRadius: "8px", marginBottom: "8px" }}>
@@ -1667,7 +1595,7 @@ export default function App() {
                           <span>{npc.name}</span>
                           <span style={{ color: theme.danger }}>♥ {npc.affection || 0}</span>
                         </div>
-                        <div style={{ color: theme.textMuted, fontSize: "0.7rem" }}>{npc.state || npc.title || "동행자"}</div>
+                        <div style={{ color: theme.textMuted, fontSize: "0.7rem" }}>{npc.secretRevealed ? npc.secret : npc.state || npc.title || "동행자"}</div>
                       </div>
                     </div>
                   </div>
@@ -1678,7 +1606,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 8종 팝업 모달 (완전 복원) */}
+      {/* 8종 팝업 모달 */}
 
       {/* 1. 룰 가이드 모달 */}
       {ruleHelpModalKey && RULE_GUIDES[ruleHelpModalKey] && (
@@ -1742,7 +1670,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. 환경 설정 모달 (모든 컨트롤 완벽 복원) */}
+      {/* 3. 환경 설정 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "460px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1885,7 +1813,7 @@ export default function App() {
             <h3 style={{ margin: "0 0 14px 0", fontSize: "1.05rem", color: theme.accent }}>📖 세이브 백업 및 복원 안내</h3>
             <div style={{ fontSize: "0.82rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>• <strong>JSON (.json):</strong> 시트 수치와 대화가 완벽 보존되는 게임 파일입니다. [복원]을 통해 그대로 다시 불러올 수 있습니다.</div>
-              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 소설처럼 편하게 읽을 수 있는 보관용 문서입니다.</div>
+              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 편하게 읽을 수 있는 보관용 문서입니다.</div>
             </div>
             <button onClick={() => closeModal(setShowRestoreHelpModal)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>확인</button>
           </div>
