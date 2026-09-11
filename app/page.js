@@ -438,7 +438,7 @@ export default function App() {
     }
   };
 
-  // 백엔드 실제 통신 및 파싱 로직
+// 백엔드 실제 통신 및 파싱 로직
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
@@ -451,28 +451,41 @@ export default function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...updatedMessages, { role: "user", text: "(※ 시스템 지침: 플레이어가 조사할 만한 장소나 물건이 있다면 문단 끝에 [조사: 사물명] 형태로, 행동 추천이 있다면 [추천: 행동명] 형태로 1~2개 덧붙여주세요. 없으면 생략 가능)" }],
+          messages: updatedMessages, // 쓸데없는 시스템 프롬프트 덧붙임 제거!
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference,
-          scenarioText: activeSession.scenarioText
+          scenarioText: activeSession.scenarioText,
+          playerSheet: activeSession.sheet // [핵심] 백엔드가 캐릭터 상태를 알도록 전달
         })
       });
       const data = await response.json();
       let aiText = data.text || "마스터가 응답하지 않았습니다.";
       
-      // 조사(SPOTS)와 추천행동(ACTIONS) 파싱
-      const spots = [];
-      const actions = [];
-      
-      aiText = aiText.replace(/\[조사:\s*(.*?)\]/g, (match, p1) => {
-          spots.push(p1.trim());
-          return "";
-      });
-      aiText = aiText.replace(/\[추천:\s*(.*?)\]/g, (match, p1) => {
-          actions.push(p1.trim());
-          return "";
-      });
+      // 오리지널 태그 파싱 로직 (<!-- SPOTS:... -->, <!-- SUGGESTIONS:... -->)
+      let spots = [];
+      let actions = [];
 
+      // SPOTS 파싱
+      const spotsMatch = aiText.match(/<!--\s*SPOTS:\s*(\[.*?\])\s*-->/);
+      if (spotsMatch) {
+        try {
+          const parsedSpots = JSON.parse(spotsMatch[1]);
+          // "책상 (관찰력)" 형태로 변환
+          spots = parsedSpots.map(s => `${s.name} (${s.stat})`);
+          aiText = aiText.replace(spotsMatch[0], "");
+        } catch(e) {}
+      }
+
+      // SUGGESTIONS 파싱
+      const sugMatch = aiText.match(/<!--\s*SUGGESTIONS:\s*(\[.*?\])\s*-->/);
+      if (sugMatch) {
+        try {
+          actions = JSON.parse(sugMatch[1]);
+          aiText = aiText.replace(sugMatch[0], "");
+        } catch(e) {}
+      }
+
+      // 상태 업데이트
       setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { 
           ...s, 
           messages: [...updatedMessages, { role: "model", text: aiText.trim() }],
