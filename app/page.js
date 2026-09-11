@@ -20,7 +20,7 @@ export default function App() {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
-  const [showPresetModal, setShowPresetModal] = useState(false); // 프리셋 관리 모달
+  const [showPresetModal, setShowPresetModal] = useState(false);
 
   // 초상화 설정
   const [showPortraits, setShowPortraits] = useState(true);
@@ -34,7 +34,7 @@ export default function App() {
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 사운드 & 연출
+  // 사운드 및 연출
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
@@ -64,7 +64,7 @@ export default function App() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // 사용자 저장 캐릭터 프리셋 목록
+  // 프리셋 목록
   const [customPresets, setCustomPresets] = useState([]);
   const [newPresetTitle, setNewPresetTitle] = useState("");
 
@@ -72,7 +72,7 @@ export default function App() {
   const [charMission, setCharMission] = useState("");
   const [charSecret, setCharSecret] = useState("");
 
-  // DND & COC
+  // DND 및 COC
   const [dndStats, setDndStats] = useState({ str: 15, dex: 14, con: 13, int: 10, wis: 12, cha: 8 });
   const [dndAc, setDndAc] = useState(14);
   const [dndHp, setDndHp] = useState(12);
@@ -92,7 +92,7 @@ export default function App() {
   else if (strPlusSiz <= 164) { derivedDb = "+1D4"; derivedBuild = 1; }
   else { derivedDb = "+1D6"; derivedBuild = 2; }
 
-  // 관계성 지향 태그
+  // 관계성 태그
   const orientTags = ["#GL", "#BL", "#HL", "#논로맨스"];
   const tropeTags = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#오컬트", "#광기"];
   const [playPreference, setPlayPreference] = useState("#GL #집착 #오컬트");
@@ -108,12 +108,81 @@ export default function App() {
   // 테마 팔레트 정의
   const themePalettes = {
     midnight: { name: "미드나잇 블루", dark: { bg: "#0d1017", sidebar: "#131722", panel: "#1b2030", panelAlt: "#23293d", border: "#2b334d", text: "#e4e7f5", textMuted: "#8e96b3", accent: "#6c8dfa", danger: "#f76585", warning: "#e0af68", success: "#7bd88f", bubbleUser: "#324b87", bubbleAi: "#1b2030", inputBg: "#121520" }, light: { bg: "#eef2fa", sidebar: "#dfe5f5", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#c5cee8", text: "#1e2638", textMuted: "#606c88", accent: "#3f6cd8", danger: "#d13b5a", warning: "#b87514", success: "#2e8544", bubbleUser: "#4b74cb", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
-    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
+    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e9edf3", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
     sepia: { name: "고서적 세피아", dark: { bg: "#241e1a", sidebar: "#1c1714", panel: "#302822", panelAlt: "#3d332b", border: "#4d4036", text: "#ede3d8", textMuted: "#ad9c8f", accent: "#d49b6a", danger: "#d95b5b", warning: "#e3ad5d", success: "#8bb36b", bubbleUser: "#5e4533", bubbleAi: "#302822", inputBg: "#1a1512" }, light: { bg: "#f9f6f0", sidebar: "#efe7dc", panel: "#fffdf9", panelAlt: "#e6dcce", border: "#d6c8b4", text: "#362b22", textMuted: "#7a6a5a", accent: "#a96934", danger: "#b83d3d", warning: "#b0741b", success: "#4e7d34", bubbleUser: "#825d3d", bubbleAi: "#fffdf9", inputBg: "#fffdf9" } },
     classic: { name: "클래식 모던", dark: { bg: "#121316", sidebar: "#181a1f", panel: "#21242b", panelAlt: "#282c34", border: "#333842", text: "#abb2bf", textMuted: "#7f848e", accent: "#61afef", danger: "#e06c75", warning: "#e5c07b", success: "#98c379", bubbleUser: "#3b4860", bubbleAi: "#21242b", inputBg: "#16181d" }, light: { bg: "#f7f8fa", sidebar: "#edf0f4", panel: "#ffffff", panelAlt: "#e4e8ef", border: "#cfd5df", text: "#24272e", textMuted: "#6b7280", accent: "#2563eb", danger: "#dc2626", warning: "#d97706", success: "#16a34a", bubbleUser: "#3b82f6", bubbleAi: "#ffffff", inputBg: "#ffffff" } }
   };
   const theme = isDarkMode ? themePalettes[currentPalette].dark : themePalettes[currentPalette].light;
   const quotaPercentage = Math.min(100, Math.round((apiUsage.dailyRequests / 1500) * 100));
+
+  // 호이스팅 보장 함수 정의
+  function handleToggleDarkMode() {
+    const nextVal = !isDarkMode;
+    setIsDarkMode(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_darkmode", nextVal.toString());
+    }
+  }
+
+  function handleSelectPalette(pKey) {
+    setCurrentPalette(pKey);
+    localStorage.setItem("rp_hub_palette", pKey);
+  }
+
+  function handleSaveVolume(vol) {
+    setSoundVolume(vol);
+    localStorage.setItem("rp_hub_sound_vol", vol.toString());
+  }
+
+  function handleSaveAnim(enabled) {
+    setAnimationEnabled(enabled);
+    localStorage.setItem("rp_hub_anim", enabled.toString());
+  }
+
+  function recordApiCall(usage) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    setApiUsage((prev) => {
+      const isToday = prev.date === todayStr;
+      const newDaily = (isToday ? prev.dailyRequests : 0) + 1;
+      const promptT = usage?.promptTokenCount || 0;
+      const respT = usage?.candidatesTokenCount || 0;
+      const totalT = (isToday ? prev.totalTokens : 0) + (usage?.totalTokenCount || 0);
+
+      const updated = {
+        date: todayStr,
+        dailyRequests: newDaily,
+        totalTokens: totalT,
+        lastPromptTokens: promptT,
+        lastResponseTokens: respT,
+      };
+      localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
+      return updated;
+    });
+  }
+
+  function playDiceSound() {
+    if (soundVolume <= 0) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      for (let i = 0; i < 5; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        const startTime = now + i * 0.08;
+        osc.frequency.setValueAtTime(160 + Math.random() * 150, startTime);
+        osc.frequency.exponentialRampToValueAtTime(50, startTime + 0.04);
+        gain.gain.setValueAtTime(soundVolume * 0.35, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.05);
+      }
+    } catch (e) {}
+  }
 
   // 모바일 리사이즈
   useEffect(() => {
@@ -141,7 +210,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [isMobile]);
 
-  // 오류 완벽 해결: 배열 필터링 기반 태그 토글 로직
+  // 태그 토글 로직
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const currentList = prev.split(/\s+/).filter(Boolean);
@@ -167,20 +236,10 @@ export default function App() {
     const styleTag = currentStyle === "anime" 
       ? "anime style, 2d illustration, masterpiece" 
       : "realistic photography, highly detailed, cinematic lighting, 8k";
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
+    return `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   };
 
-  const generateRandomCocStats = () => {
-    const base = [30, 30, 30, 30, 30, 30, 30, 30];
-    let remaining = 220;
-    while (remaining > 0) {
-      const idx = Math.floor(Math.random() * 8);
-      if (base[idx] < 85) { base[idx] += 5; remaining -= 5; }
-    }
-    return { str: base[0], con: base[1], siz: base[2], dex: base[3], app: base[4], int: base[5], pow: base[6], edu: base[7], luck: Math.floor(Math.random() * 50) + 40 };
-  };
-
-  // 절차적 생성 풀
+  // 절차적 데이터 풀
   const proceduralData = {
     names: {
       western: ["사반", "로웨나", "세실리아", "비비안", "엘레노어", "카밀라", "발렌티나", "이졸데", "마리안", "키이라", "아리아", "알렉스"],
@@ -233,7 +292,6 @@ export default function App() {
     ]
   };
 
-  // 오류 해결: 시나리오 텍스트 뒤 관계성 태그 중복 제거
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const newTags = [pick(orientTags), ...[...tropeTags].sort(() => 0.5 - Math.random()).slice(0, 2)];
@@ -256,7 +314,6 @@ export default function App() {
     setCharAge(String(Math.floor(Math.random() * 12) + 18));
     setCharGender("여성");
     setCharBackground(`${jobObj.bg} 품에는 [${jobObj.item}]을(를) 소지하고 있다.`);
-    // 시나리오 텍스트만 깨끗하게 넣음 (태그 중복 삭제)
     setScenarioInput(scenarioObj.text);
     setCharPortraitUrl(getPortraitUrl(`${name}, ${jobObj.job}`));
 
@@ -276,7 +333,6 @@ export default function App() {
     }
   };
 
-  // 프리셋 저장/불러오기 핸들러
   const handleSaveCurrentAsPreset = () => {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
@@ -333,13 +389,13 @@ export default function App() {
         if (!window.pdfjsLib) {
           await new Promise((resolve, reject) => {
             const script = document.createElement("script");
-            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
             script.onload = resolve;
             script.onerror = reject;
             document.head.appendChild(script);
           });
         }
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)";
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let extractedText = "";
@@ -535,7 +591,7 @@ export default function App() {
         name: charName || "탐사자", job: charJob || "조사원", age: charAge, gender: charGender, portrait: defaultPortrait,
         hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, build: derivedBuild, cocStats: { ...cocStats },
         npcs: [{ name: "파트너", title: "동료", portrait: getPortraitUrl("companion"), affection: 10, state: "호기심" }],
-        items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩", desc: "단서 보관" }],
+        items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩", desc: "단서 보관" }, { name: "은제 만년필 나이프", desc: "호신용 단도" }],
       };
     } else {
       initialSheet = {
@@ -562,7 +618,6 @@ export default function App() {
 3. 동행 인물이 있다면 그들이 현재 주인공을 어떻게 바라보는지(관계성 지침 반영) 짧은 행동이나 표정으로 암시합니다.
 4. 플레이어가 주변을 둘러보거나 말을 걸 수 있도록 여유를 준 뒤, "어떻게 하시겠습니까?"라고 물으며 턴을 넘기십시오.`;
 
-    // 1회 자동 재시도 로직 탑재
     const fetchOpening = async (retryCount = 0) => {
       try {
         const response = await fetch("/api/chat", {
@@ -744,7 +799,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 서사 & 관계성 지향 태그 및 텍스트 박스 (오류 수정 완료) */}
+            {/* 서사 & 관계성 지향 태그 및 텍스트 박스 */}
             <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
               <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>{"🎭 서사 및 관계성 지향 (클릭하여 직접 텍스트에 추가/해제)"}</span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -760,7 +815,7 @@ export default function App() {
               <textarea
                 value={playPreference}
                 onChange={(e) => setPlayPreference(e.target.value)}
-                placeholder="태그를 클릭하거나, 원하는 분위기를 직접 적어주세요."
+                placeholder="태그를 클릭하거나, 원하는 분위기를 직접 적어주세요. (예: #GL #혐관 서로에게 날을 세우는 관계 등)"
                 style={{ width: "100%", minWidth: 0, height: "65px", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, resize: "vertical", marginTop: "4px", fontSize: "0.82rem" }}
               />
             </div>
@@ -814,7 +869,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 기본 캐릭터 정보 + 신규: 프리셋 관리 버튼 탑재 */}
+            {/* 기본 캐릭터 정보 + 프리셋 관리 버튼 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "bold", fontSize: "0.85rem" }}>내 캐릭터 정보</span>
@@ -858,7 +913,7 @@ export default function App() {
               </div>
             </div>
 
-            <button onClick={startNewSession} disabled={isLoading || isPdfLoading || isAiGenerating} style={{ width: "100%", padding: "15px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+            <button onClick={startNewSession} disabled={isLoading || isPdfLoading} style={{ width: "100%", padding: "15px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "1rem", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
               {isLoading ? "마스터가 서막을 여는 중..." : "이야기 시작하기"}
             </button>
           </div>
@@ -920,7 +975,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 (시트 전체 복원) */}
+      {/* 3. 우측 상태창 */}
       {activeSession && (
         <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "275px" : "0px", minWidth: isSheetOpen ? "275px" : "0px", transition: "width 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", width: "275px", boxSizing: "border-box" }}>
@@ -942,7 +997,6 @@ export default function App() {
                 <div style={{ fontSize: "0.8rem", display: "flex", flexDirection: "column", gap: "2px" }}><div><strong>{activeSession.sheet.name}</strong> ({activeSession.sheet.job || "모험가"})</div><div>HP: <strong>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong></div>{activeSession.ruleMode === "coc" && <div>SAN: <strong>{activeSession.sheet.san || "-"} / 99</strong></div>}{activeSession.ruleMode === "dnd" && <div>AC: <strong>{activeSession.sheet.ac || 14}</strong></div>}</div>
               </div>
 
-              {/* CoC 추가 수치 */}
               {activeSession.ruleMode === "coc" && (
                 <div style={{ backgroundColor: theme.panel, padding: "6px 8px", borderRadius: "4px", fontSize: "0.74rem", display: "flex", justifyContent: "space-between", color: theme.textMuted }}>
                   <span>MP: <strong>{activeSession.sheet.mp || 10}</strong></span>
@@ -951,7 +1005,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* D&D 6대 능력치 */}
               {activeSession.ruleMode === "dnd" && activeSession.sheet.dndStats && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px", fontSize: "0.72rem", backgroundColor: theme.panel, padding: "6px", borderRadius: "4px" }}>
                   <div>STR: {calcMod(activeSession.sheet.dndStats.str)}</div>
@@ -964,7 +1017,6 @@ export default function App() {
               )}
             </div>
 
-            {/* 인세인 사명과 비밀 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
@@ -984,7 +1036,6 @@ export default function App() {
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
-            {/* 소지품 / 인벤토리 및 [사용] 버튼 */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <h4 style={{ margin: 0, fontSize: "0.85rem", color: theme.accent }}>🎒 소지품 / 인벤토리</h4>
@@ -1011,7 +1062,6 @@ export default function App() {
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
-            {/* 주변 인물 & 호감도 */}
             <div>
               <h4 style={{ margin: "0 0 6px 0", fontSize: "0.85rem", color: theme.accent }}>{"주변 인물 & 호감도"}</h4>
               {(!activeSession.sheet.npcs || activeSession.sheet.npcs.length === 0) ? <div style={{ fontSize: "0.76rem", color: theme.textMuted }}>등장인물 없음</div> : activeSession.sheet.npcs.map((npc, idx) => (
@@ -1045,6 +1095,64 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "0.85rem", fontWeight: "bold" }}>테마 색상 팔레트</label>
+                  <span style={{ fontSize: "0.75rem", color: theme.accent }}>{isDarkMode ? "🌙 나이트" : "☀️ 라이트"}</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                  {[
+                    { id: "midnight", label: "미드나잇 블루" },
+                    { id: "abyss", label: "심연 어비스" },
+                    { id: "sepia", label: "고서적 세피아" },
+                    { id: "classic", label: "클래식 모던" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelectPalette(p.id)}
+                      style={{
+                        padding: "8px 10px", borderRadius: "6px",
+                        border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`,
+                        backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent",
+                        color: theme.text, fontSize: "0.8rem", cursor: "pointer", fontWeight: currentPalette === p.id ? "bold" : "normal",
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.85rem", fontWeight: "bold" }}>주사위 효과음 볼륨</label>
+                  <span style={{ fontSize: "0.8rem", color: theme.accent }}>{Math.round(soundVolume * 100)}%</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <input
+                    type="range" min="0" max="1" step="0.05" value={soundVolume}
+                    onChange={(e) => handleSaveVolume(Number(e.target.value))}
+                    style={{ flex: 1, accentColor: theme.accent }}
+                  />
+                  <button onClick={playDiceSound} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer" }}>
+                    🔊 테스트
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>주사위 굴림 연출 효과</div>
+                  <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>주사위 회전 3D 연출과 난수 롤링을 표시합니다.</div>
+                </div>
+                <button
+                  onClick={() => handleSaveAnim(!animationEnabled)}
+                  style={{ padding: "6px 14px", backgroundColor: animationEnabled ? theme.success : theme.border, color: "#fff", border: "none", borderRadius: "20px", fontWeight: "bold", fontSize: "0.8rem", cursor: "pointer" }}
+                >
+                  {animationEnabled ? "켜짐 (ON)" : "꺼짐 (OFF)"}
+                </button>
+              </div>
+
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold", color: theme.accent }}>{"💾 세이브 데이터 관리 & 백업"}</span>
@@ -1056,7 +1164,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 초상화 토글 & 화풍 선택 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>👤 인물 초상화 (상태창)</div>
@@ -1096,7 +1203,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 신규: 캐릭터 프리셋 관리 모달 */}
+      {/* 프리셋 관리 모달 */}
       {showPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1105,7 +1212,6 @@ export default function App() {
               <button onClick={() => closeModal(setShowPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* 현재 작성 캐릭터 저장 */}
             <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, marginBottom: "16px" }}>
               <span style={{ fontSize: "0.85rem", fontWeight: "bold", color: theme.accent, display: "block", marginBottom: "6px" }}>💾 현재 작성한 캐릭터를 프리셋으로 저장</span>
               <div style={{ display: "flex", gap: "6px" }}>
@@ -1125,7 +1231,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 사용자 저장 프리셋 목록 */}
             <div style={{ marginBottom: "16px" }}>
               <span style={{ fontSize: "0.85rem", fontWeight: "bold", display: "block", marginBottom: "8px" }}>⭐ 내가 저장한 프리셋 ({customPresets.length}개)</span>
               {customPresets.length === 0 ? (
