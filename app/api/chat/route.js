@@ -1,11 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 🌟 최신 3.5 모델을 1순위로 배치한 자동 전환 체인 (총 1,020+ 회/일)
 const FALLBACK_MODELS = [
-  "gemini-3.5-flash-lite", // 1순위: 최신 세대 고성능·초고속 모델 (일 500회)
-  "gemini-3.1-flash-lite", // 2순위: 3.5 소진 시 자동 전환 예비 모델 (일 500회)
-  "gemini-3.5-flash",      // 3순위: 상위 플래그십 Flash (일 20회)
-  "gemini-2.5-flash",      // 4순위: 비상용 표준 모델 (일 20회)
+  "gemini-3.5-flash-lite", // 1순위
+  "gemini-3.1-flash-lite", // 2순위
+  "gemini-3.5-flash",      // 3순위
+  "gemini-2.5-flash",      // 4순위
 ];
 
 export async function POST(req) {
@@ -19,12 +18,11 @@ export async function POST(req) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // 4대 정규 룰별 키퍼 수칙
     let rulePrompt = "";
     if (ruleMode === "coc") {
       rulePrompt = `[크툴루의 부름 7판]
 - 단서 탐색, 은밀 행동 시 다이스 판정(CHECK)을 요구하세요.
-- 끔찍한 진실, 시체, 신화생물 조우 시 이성(SAN) 체크를 지시하세요.
+- 끔찍한 진실, 시체, 초자연적 현상 조우 시 이성(SAN) 체크를 지시하세요.
 - SAN이 5점 이상 급감하거나 플레이어 시트에 광기 상태가 발현되어 있다면 파트너 NPC가 당황해 부축하거나 상황이 극적으로 혼란해지는 모습을 생생하게 묘사하세요.`;
     } else if (ruleMode === "insane") {
       rulePrompt = `[멀티 호러 TRPG 인세인]
@@ -43,30 +41,27 @@ export async function POST(req) {
     const systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
 ${rulePrompt}
 플레이어 성향: [${playPreference || "자유 서사"}]
-시나리오 배경: [${scenarioText || "미상"}]
+시나리오 배경 및 원문: [${scenarioText || "미상"}]
 캐릭터 상태: 이름(${playerSheet?.name}), 직업(${playerSheet?.job}), 체력(${playerSheet?.hp}), 이성(${playerSheet?.san}), 광기(${playerSheet?.madnessStatus || "정상"})
 
-[키퍼 진행 절대 원칙]
-1. **장면 묘사와 탐색 구역 제시 (필수)**:
-   - 새로운 방이나 장면이 열릴 때마다 플레이어가 단서를 조사할 수 있는 구역 2~3곳을 본문 끝에 반드시 태그로 추출하십시오.
-   <!-- SPOTS: [{"name": "오브젝트명", "stat": "필요기능"}] -->
-   예시: <!-- SPOTS: [{"name": "피 묻은 양피지 책", "stat": "관찰력"}] -->
-
-2. **적극적인 판정 유도 (CHECK)**:
-   - 플레이어가 문을 열거나 고서를 해독하는 등 위기/수색 행동을 취하면 결과를 임의로 확정하지 말고 판정을 요구하십시오.
-   <!-- CHECK: {"skill": "관찰력", "target": 60, "reason": "숨겨진 일기장 수색"} -->
-
-3. **수치 증감 (STATUS)**:
-   - 체력(HP)이나 이성(SAN)에 변동이 생기면 반영된 최종 수치를 출력하세요.
+[🚨 키퍼 진행 절대 엄벌 수칙 - 위반 절대 금지]
+1. **임의 완결 및 급발진 결말 절대 금지**:
+   - 시나리오의 모든 사건, 단서, 비밀이 해결되기 전에는 **절대로 이야기를 끝내지 마십시오.**
+   - "완벽한 결말을 맞이했습니다", "행복하게 살았습니다", "이야기는 막을 내립니다" 같은 결말형 문장을 작성하는 순간 룰 위반입니다.
+2. **임의 시간 스킵(Time-skip) 금지**:
+   - 플레이어의 명시적인 지시 없이 "[시간이 얼마나 흘렀을까]", "다음 날 아침이 밝았습니다"라며 장면을 건너뛰지 마십시오.
+   - 항상 현재 씬의 '바로 다음 1분'에 일어나는 일과 위기를 호흡감 있게 묘사하십시오.
+3. **조사 구역 및 판정 연계**:
+   - 현재 공간에 남아있는 미지의 단서나 위험 구역 2~3곳을 본문 끝에 반드시 태그로 추출하십시오.
+   <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] -->
+4. **수치 증감 (STATUS)**:
    <!-- STATUS: {"san": 45, "hp": 8} -->
-
-4. **행동 제안 (SUGGESTIONS)**:
-   - 턴을 넘길 때 플레이어가 선택할 만한 흥미로운 행동 2가지를 제안하세요.
+5. **행동 제안 (SUGGESTIONS)**:
    <!-- SUGGESTIONS: ["선택지 1", "선택지 2"] -->`;
 
     const formattedContents = [
       { role: "user", parts: [{ text: systemInstruction }] },
-      { role: "model", parts: [{ text: "TRPG 마스터로서 정규 룰과 광기 수칙을 완벽하게 이끌겠습니다." }] }
+      { role: "model", parts: [{ text: "시나리오를 절대 임의로 완결짓거나 시간을 건너뛰지 않고, 현장감을 살려 철저히 턴제 롤플레잉으로 진행하겠습니다." }] }
     ];
 
     for (const m of messages || []) {
