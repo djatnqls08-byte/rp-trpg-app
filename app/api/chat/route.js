@@ -15,7 +15,7 @@ export async function POST(req) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const preferenceInstruction = playPreference
-      ? `[플레이어 서사 톤 & 관계성 지침 - 절대 준수]
+      ? `[플레이어 서사 톤 지침 - 절대 준수]
 - 플레이어 요구 성향: "${playPreference}"
 - 지정된 관계성(GL/BL/HL/논로맨스 등)과 감정선을 대사와 지문에 최우선 반영하십시오.`
       : `[플레이어 서사 톤]
@@ -31,9 +31,8 @@ export async function POST(req) {
    - 목숨을 건 구원이나 결정적 비밀 공유: 최대 +3 ~ +4
    - 불신, 거친 태도, 갈등: -1 ~ -3 감소
 5. 응답 맨 끝 시스템 태그 필수 첨부:
-   ※ 마크다운 코드 블록으로 감싸지 말고 순수 텍스트 평문으로만 출력하십시오.
-- 상태 갱신: <!--STATUS: {...}-->
-- 행동 제안 3가지: <!--SUGGESTIONS: ["...", "...", "..."]-->`;
+   - 상태 갱신: <!--STATUS: {...}-->
+   - 행동 제안 3가지: <!--SUGGESTIONS: ["...", "...", "..."]-->`;
 
     let systemInstruction = "";
 
@@ -46,7 +45,7 @@ ${commonRules}
 1. 비밀(Secret) 은닉: 각 인물의 비밀은 탐사자가 조사 판정에 성공하기 전까지 본문에서 직접 폭로하지 마십시오.
 2. 조사 성공 시에만 비밀 해금 태그 첨부: <!--REVEAL_SECRET: {"name": "인물명", "secret": "밝혀진 비밀 내용"}-->
 3. 판정 요구: <!--CHECK: {"stat": "특기명", "target": 5, "desc": "판정 내용"}-->
-4. 상태 태그: <!--STATUS: {"hp": ${playerSheet?.hp || 6}, "san": ${playerSheet?.san || 6}, "cycle": ${playerSheet?.cycle || 1}, "scene": ${playerSheet?.scene || 1}, "npcs": ${JSON.stringify(playerSheet?.npcs || [])}, "items": ${JSON.stringify(playerSheet?.items || [])}}-->
+4. 상태 태그 예시: <!--STATUS: {"hp": ${playerSheet?.hp || 6}, "san": ${playerSheet?.san || 6}, "cycle": ${playerSheet?.cycle || 1}, "scene": ${playerSheet?.scene || 1}, "npcs": ${JSON.stringify(playerSheet?.npcs || [])}, "items": ${JSON.stringify(playerSheet?.items || [])}}-->
 
 [시트 정보]
 - 이름: ${playerSheet?.name || "탐사자"} (사명: ${playerSheet?.mission || "생존"})
@@ -79,7 +78,7 @@ ${scenarioText || "CoC 호러 시나리오"}`;
 ${preferenceInstruction}
 ${commonRules}
 
-[D&D 5e 던전 탐험 필수 규칙]
+[D&D 5e 던전 크롤링 필수 규칙]
 1. 공간 규격과 시야: 묘사 시 방/통로의 크기(예: 30피트 석실, 천장 높이)와 광원 상태(완전한 암흑, 횃불 불빛)를 명확히 짚어주십시오.
 2. 진출입로 분기 제시: 탐험 중인 방에서 나아갈 수 있는 출구(예: 북쪽 철문, 동쪽 무너진 통로)를 제시하여 플레이어가 전술적 이동을 선택하게 하십시오.
 3. 스킬 체크 적극 요구: 함정 조사(Investigation), 기척 지각(Perception), 고대 룬 분석(Arcana) 등 DC를 지정해 판정을 요구하십시오.
@@ -192,14 +191,13 @@ ${scenarioText || "자유 샌드박스 세계관"}`;
 
     const lastMessage = messages[messages.length - 1].text;
 
-    // RPD 20회 제한 모델 대신, 한도가 넉넉한 2.5/2.0 및 Lite 계열을 1순위로 배치
+    // RPD 20회 제한 모델을 제외하고, 한도가 넉넉한 3.1 Flash Lite 및 2.0 계열을 1순위로 배치
     const candidateModels = [
-      "gemini-2.5-flash",
+      "gemini-3.1-flash-lite",
       "gemini-2.5-flash-lite",
       "gemini-2.0-flash",
       "gemini-1.5-flash-latest",
-      "gemini-3.1-flash-lite",
-      "gemini-3-flash",
+      "gemini-2.5-flash",
     ];
 
     let resultText = null;
