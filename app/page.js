@@ -876,7 +876,7 @@ export default function App() {
   }, [sessions, isLoaded]);
 
   return (
-    <div style={{ display: "flex", height: "100dvh", minHeight: "100vh", width: "100vw", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", overflow: "hidden", position: "relative" }}>
+    <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", overflow: "hidden", position: "relative" }}>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -896,13 +896,13 @@ export default function App() {
       {isMobile && isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
       {isMobile && isSheetOpen && <div onClick={() => setIsSheetOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
 
-      {/* 1. 좌측 사이드바 */}
-      <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
+      {/* 1. 좌측 사이드바 (fixed + safe-area 대응) */}
+      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px", flexShrink: 0 }}>
           <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>+ 새 시나리오</button>
           <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px" }}>
           {sessions.map((s) => (
             <div key={s.id} onClick={() => { setActiveSessionId(s.id); if (isMobile) setIsSidebarOpen(false); }} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "4px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : "transparent", border: activeSessionId === s.id ? `1px solid ${theme.border}` : "1px solid transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "6px" }}>
@@ -913,9 +913,9 @@ export default function App() {
             </div>
           ))}
         </div>
-        <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px" }}>
-          {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>📥 대화록 내보내기</button>}
-          <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>⚙️ 설정</button>
+        <div style={{ padding: "12px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0, backgroundColor: theme.sidebar }}>
+          {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "600" }}>📥 대화록 내보내기</button>}
+          <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "700" }}>⚙️ 설정</button>
         </div>
       </div>
 
@@ -1040,7 +1040,7 @@ export default function App() {
                       <div>행운: <input type="number" value={cocStats.luck} onChange={(e) => setCocStats({ ...cocStats, luck: e.target.value })} style={{ width: "40px", padding: "2px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", textAlign: "center" }} /></div>
                       <div>체력: <strong>{derivedHp}</strong></div>
                       <div>마력: <strong>{derivedMp}</strong></div>
-                      <div>이성: <strong>{derivedSan}</strong></div>
+                      <div>이성(SAN): <strong>{derivedSan}</strong></div>
                       <div>DB: <strong>{derivedDb}</strong></div>
                     </div>
                   </div>
@@ -1194,10 +1194,10 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 (다이얼 대신 안전한 미니멀 슬림 바 적용) */}
+      {/* 3. 우측 상태창 (fixed + safe-area 대응) */}
       {activeSession && (
-        <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "290px" }}>
+        <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div style={{ padding: "16px", paddingBottom: "max(24px, env(safe-area-inset-bottom, 24px))", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "290px", height: "100%" }}>
             
             {/* API 모니터링 */}
             <div className="glass-card" style={{ borderRadius: "10px", padding: "10px 12px" }}>
@@ -1222,7 +1222,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI: 가로형 슬림 게이지 바] */}
+            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI] */}
             {activeSession.ruleMode === "coc" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1242,7 +1242,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 안정적인 가로형 게이지 바 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.panelAlt, padding: "10px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "3px" }}>
@@ -1296,7 +1295,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 3. 언성 듀엣 전용 UI: 인라인 세그먼트 침식 바] */}
+            {/* [룰 3. 언성 듀엣 전용 UI] */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1407,7 +1406,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 룰별 가이드 모달 */}
+      {/* 룰별 상세 가이드 모달 */}
       {ruleHelpModalKey && RULE_GUIDES[ruleHelpModalKey] && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "500px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
