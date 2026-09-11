@@ -342,28 +342,60 @@ export default function App() {
     }
   };
 
-  // ✨ AI 즉석 생성 (진상, 기믹, 3대 엔딩 분기)
+// ✨ AI 즉석 생성 (진상, 기믹, 3대 엔딩 분기)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
-    const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
-선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 캐릭터와 고밀도 시나리오를 설계하십시오.
+
+    // 1. 선택된 룰에 따른 맞춤형 시나리오 집필 가이드라인
+    let ruleSpecificGuidance = "";
+    if (wizardMode === "coc") {
+      ruleSpecificGuidance = `[크툴루의 부름 전용 가이드]
+- 기괴한 신화생물이나 고대의 금기, 아티팩트가 개입된 정통 코스믹 호러 서사를 작성하세요.
+- 탐사자의 이성(SAN)을 깎아먹을 만한 끔찍한 진실과 점진적인 공포를 설계하세요.
+- 탐사자들이 단서를 수집하여 합리적으로 진상에 다가갈 수 있도록 2~3개의 구체적인 핵심 단서를 구상하세요.`;
+    } else if (wizardMode === "insane") {
+      ruleSpecificGuidance = `[인세인 전용 가이드]
+- 겉으로 드러난 [사명]과 전혀 다른, 충격적이고 소름 돋는 [비밀(Secret)]이 얽힌 현대 괴담 심리 호러를 작성하세요.
+- 각 씬마다 긴장감이 고조되는 구조여야 하며, 의심암귀나 광기가 전염될 수 있는 기믹을 포함하세요.
+- 협력형, 대립형, 특수형 중 서사 지향에 가장 잘 맞는 구조를 설정하세요.`;
+    } else if (wizardMode === "unsung") {
+      ruleSpecificGuidance = `[언성 듀엣 전용 가이드]
+- 두 사람을 가둔 초현실적이고 기괴한 이계 '시프터'를 설계하세요 (예: 중력이 거꾸로 된 학교, 시간이 멈춘 수족관 등).
+- 탈출 과정에서 침식도가 오를 때 어떤 아름답고 기괴한 '변이(Mutation)'가 일어나는지 구체적으로 명시하세요.
+- 파트너와의 관계성이 탈출의 유일한 열쇠가 되는 몽환적인 서사를 작성하세요.`;
+    } else {
+      ruleSpecificGuidance = `[자유 서사 전용 가이드]
+- 룰에 얽매이지 않고 플레이어의 관계성 취향에 딱 맞는 샌드박스형 서사를 설계하세요.
+- 뚜렷한 기승전결과 매력적인 갈등 요소를 배치하세요.`;
+    }
+
+    // 2. 고밀도 시스템 프롬프트 구성
+    const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터입니다.
+선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 밀도 높은 시나리오를 설계하십시오.
+
+[시나리오 집필 절대 수칙]
+1. 시나리오 내 모든 등장인물은 예외 없이 여성으로 구성하십시오 (백합/GL 지향).
+2. 인물들은 맹목적인 추종이나 유치한 소유욕 없이, 각자의 신념을 지키는 독립적 인격체로 묘사하십시오.
+3. 플레이어의 취향 태그([${playPreference}])를 단순한 분위기가 아니라 '사건의 배후 원인이나 핵심 갈등 요소'로 깊이 있게 편입하십시오. (예: 집착 태그라면, 흑막의 섬세하고 비틀린 집착이 사건의 발단이 됨)
+4. ${ruleSpecificGuidance}
+
 반드시 아래 JSON 포맷으로만 응답하십시오:
 {
   "name": "이름 (한국식 또는 서양식)",
-  "gender": "여성 또는 남성",
+  "gender": "여성",
   "age": "26",
   "job": "역할/직업",
   "background": "인물의 과거 흉터, 성격, 소지품 3가지 상세",
   "scenarioTitle": "시나리오 제목",
-  "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper Only 기밀)",
-  "scenarioGimmick": "해당 룰 특유의 특수 기믹 (예: CoC 고서 해독 제약 / inSANe 사이클 공포 기믹 / 언성듀엣 시프터 왜곡 법칙)",
+  "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper Only 기밀. 서사 지향 태그를 반영하여 아주 상세하게 기재)",
+  "scenarioGimmick": "해당 룰 특유의 특수 기믹 및 구체적인 조사 포인트 (핵심 단서 3가지 포함)",
   "mission": "인세인 전용 공개 사명 (인세인이 아니면 공백)",
   "secret": "인세인 전용 충격적인 개인 비밀 (인세인이 아니면 공백)",
   "mutation": "언성듀엣 전용 변이 징후 (언성듀엣이 아니면 공백)",
   "endingTrue": "트루/베스트 엔딩 조건 및 결말",
   "endingNormal": "노말/생환 엔딩 조건 및 결말",
   "endingBad": "배드/파멸 엔딩 조건 및 결말",
-  "openingNovel": "플레이어가 마주하는 첫 장소의 감각적 분위기와 날씨, 동행 파트너와의 관계성을 담은 3~4문장의 서막 지문 (반드시 ~합니다/였습니다 경어체)"
+  "openingNovel": "플레이어가 마주하는 첫 장소의 감각적 분위기와 날씨, 동행자와의 텐션을 담은 3~4문장의 서막 지문 (반드시 ~합니다/였습니다 경어체)"
 }`;
 
     try {
@@ -396,12 +428,13 @@ export default function App() {
         if (p.secret) setCharSecret(p.secret);
         if (p.mutation) setUnsungMutation(p.mutation);
 
+        // UI 텍스트 영역에 뿌려질 시나리오 아키텍처 포맷팅
         const richScenarioArchitecture = `[시나리오 제목: ${p.scenarioTitle || "미상의 밤"}]
 
 [사건의 배후 진상 (Keeper's Secret)]
 ${p.scenarioTruth || "금기된 의식과 봉인이 서서히 풀려나고 있습니다."}
 
-[핵심 서사 기믹 & 특수 룰]
+[핵심 서사 기믹 및 조사 포인트]
 ${p.scenarioGimmick || "시간이 흐를수록 안전 구역이 침식됩니다."}
 
 [엔딩 분기 가이드 (Ending Branches)]
@@ -415,6 +448,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
         setScenarioInput(richScenarioArchitecture.trim());
 
+        // CoC 스탯 무작위 굴림
         if (wizardMode === "coc") {
           const base = [30, 30, 30, 30, 30, 30, 30, 30];
           let remaining = 220;
