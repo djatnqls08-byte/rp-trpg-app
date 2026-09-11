@@ -9,12 +9,6 @@ const THEME_PALETTES = {
   capri: { name: "카프리 블루", dark: { bg: "#091214", sidebar: "#0d1b1e", panel: "rgba(19, 37, 41, 0.75)", panelAlt: "rgba(27, 51, 56, 0.8)", border: "rgba(0, 183, 211, 0.25)", text: "#e3f0f2", textMuted: "#6b8e96", accent: "#00B7D3", accentGlow: "rgba(0, 183, 211, 0.3)", danger: "#e0536c", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(20, 72, 82, 0.5)", bubbleAi: "transparent", inputBg: "#0d1b1e" }, light: { bg: "#e9f4f7", sidebar: "#d9edf2", panel: "rgba(255, 255, 255, 0.75)", panelAlt: "rgba(242, 249, 251, 0.8)", border: "rgba(0, 152, 176, 0.2)", text: "#16282c", textMuted: "#5e7c85", accent: "#0098b0", accentGlow: "rgba(0, 152, 176, 0.25)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(217, 237, 242, 0.6)", bubbleAi: "transparent", inputBg: "#ffffff" } }
 };
 
-const RULE_GUIDES = {
-  coc: { title: "크툴루의 부름 (CoC 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
-  insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 비밀이 교차하는 현대 괴담 심리 호러.", system: "2D6 판정. 사이클별 씬 소모 및 비밀(Secret) 조사." },
-  freeform: { title: "자유 서사 (공동 집필 역극)", desc: "주사위와 룰의 압박 없이, 아름다운 문장으로 서사를 엮어가는 소설형 롤플레잉.", system: "판정 없음. 온전히 대화와 묘사만으로 진행." }
-};
-
 const INSANE_MATRIX = [
   { category: "폭력", skills: ["소각", "고문", "포박", "협박", "파괴", "구타", "절단", "찌르기", "사격", "전쟁", "매장"] },
   { category: "정서", skills: ["연심", "기쁨", "걱정", "부끄러움", "웃음", "인내", "놀람", "노여움", "원한", "슬픔", "친애"] },
@@ -26,6 +20,7 @@ const INSANE_MATRIX = [
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
 const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트"];
+const COC_STAT_LABELS = { str: "근력", con: "건강", siz: "크기", dex: "민첩", app: "외모", int: "지능", pow: "정신력", edu: "교육", luck: "행운" };
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
@@ -42,9 +37,6 @@ export default function App() {
   // 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showBackupModal, setShowBackupModal] = useState(false);
-  const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false);
   const [activePortraitTarget, setActivePortraitTarget] = useState(null); 
 
   // 설정 상태
@@ -53,10 +45,8 @@ export default function App() {
   const [portraitStyle, setPortraitStyle] = useState("anime");
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
-  const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  const [ruleCategory, setRuleCategory] = useState("official");
   const [wizardMode, setWizardMode] = useState("coc");
 
   // 캐릭터 폼 상태
@@ -79,14 +69,15 @@ export default function App() {
   const [hiddenTruth, setHiddenTruth] = useState("");
   const [showHiddenTruth, setShowHiddenTruth] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
-  const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  // 룰 별 세팅 스탯
+  // 룰 별 세팅 스탯 (CoC)
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
   const [cocSkills, setCocSkills] = useState("관찰력 60, 자료조사 50, 듣기 40");
+  const currentCocTotal = Object.keys(cocStats).filter(k => k !== 'luck').reduce((sum, k) => sum + Number(cocStats[k]), 0);
   
+  // 룰 별 세팅 스탯 (인세인)
   const [insaneSkills, setInsaneSkills] = useState([]); 
   const [insaneCuriosity, setInsaneCuriosity] = useState("폭력");
   const [insaneFear, setInsaneFear] = useState("");
@@ -184,7 +175,6 @@ export default function App() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploadedFileName(file.name);
     if (file.name.toLowerCase().endsWith(".pdf")) {
       setIsPdfLoading(true);
       try {
@@ -231,9 +221,6 @@ export default function App() {
     } else {
       ruleSpecificGuidance = "자유 서사 역극. 주사위 판정이나 스탯 기믹을 일절 배제하고, 인물 간의 감정선, 과거사, 그리고 현재 부딪힌 극적인 상황 세팅에 집중하십시오.";
     }
-
-    const existingKpcs = kpcList.map((k, i) => k.name || `인물${i+1}`).join(", ");
-    const currentKpcCount = kpcList.length || 1;
 
     const systemPrompt = `당신은 최고 권위의 정통 TRPG/역극 시나리오 라이터입니다.
 선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 뼈대를 작성하십시오.
@@ -287,7 +274,7 @@ export default function App() {
     const blob = new Blob([JSON.stringify(targets, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a"); link.href = url; link.download = `TRPG_전체세이브_${dateStr}.json`; link.click(); URL.revokeObjectURL(url);
-    closeModal(setShowBackupModal);
+    closeModal(setShowSettingsModal);
   };
 
   const importSaveFile = (e) => {
@@ -432,16 +419,15 @@ export default function App() {
         .glass-panel { background: ${theme.panel}; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid ${theme.border}; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
         .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid ${theme.border}; }
         
-        input, textarea, button { outline: none; transition: all 0.2s ease; }
-        input:focus, textarea:focus { border-color: ${theme.accent}; box-shadow: 0 0 0 2px ${theme.accentGlow}; }
+        input, textarea, button, select { outline: none; transition: all 0.2s ease; }
+        input:focus, textarea:focus, select:focus { border-color: ${theme.accent}; box-shadow: 0 0 0 2px ${theme.accentGlow}; }
         
-        /* Chat bubble override for storytelling */
         .msg-box { padding: 16px 20px; border-radius: 12px; font-size: 0.95rem; max-width: 90%; }
         .msg-user { border-left: 3px solid ${theme.accent}; background: ${theme.bubbleUser}; color: ${theme.text}; align-self: flex-end; border-radius: 12px 2px 12px 12px; }
         .msg-ai { border-left: 3px solid ${theme.textMuted}; background: ${theme.bubbleAi}; color: ${theme.text}; align-self: flex-start; border-radius: 2px 12px 12px 12px; }
       `}} />
 
-      {/* 헤더 바 (Fixed Top) */}
+      {/* 헤더 바 */}
       <header className="glass-panel" style={{ height: "60px", flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 16px", zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
           <button onClick={() => setIsSidebarOpen(true)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer", padding: "4px" }}>☰</button>
@@ -458,7 +444,7 @@ export default function App() {
       {/* 메인 컨텐츠 영역 */}
       <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
         
-        {/* 좌측 사이드바 (모달형) */}
+        {/* 좌측 사이드바 */}
         {isSidebarOpen && (
           <div style={{ position: "absolute", inset: 0, zIndex: 150, display: "flex" }}>
             <div onClick={() => setIsSidebarOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
@@ -553,7 +539,7 @@ export default function App() {
                   <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>등장인물 (KPC)</div>
                   <button onClick={handleAddKpc} style={{ background: "none", border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", padding: "2px 8px", fontSize: "0.75rem", cursor: "pointer" }}>+ 추가</button>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, overflowY: "auto", maxHeight: "200px", paddingRight: "4px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, overflowY: "auto", maxHeight: "240px", paddingRight: "4px" }}>
                   {kpcList.map(kpc => (
                     <div key={kpc.id} className="glass-alt" style={{ padding: "12px", borderRadius: "8px", position: "relative" }}>
                       <button onClick={() => handleRemoveKpc(kpc.id)} style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", color: theme.danger, cursor: "pointer", fontSize: "0.8rem" }}>✕</button>
@@ -566,15 +552,24 @@ export default function App() {
                           <input type="text" value={kpc.job} onChange={(e) => updateKpc(kpc.id, 'job', e.target.value)} placeholder="역할" style={{ width: "50%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.8rem" }} />
                         </div>
                       </div>
-                      <input type="text" value={kpc.detail} onChange={(e) => updateKpc(kpc.id, 'detail', e.target.value)} placeholder="외모, 성격, PC와의 관계" style={{ width: "100%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.8rem", marginBottom: "6px" }} />
-                      <input type="text" value={kpc.secret} onChange={(e) => updateKpc(kpc.id, 'secret', e.target.value)} placeholder="🔒 숨겨진 진심/비밀 (마스터 전용)" style={{ width: "100%", padding: "6px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1px solid ${theme.danger}`, borderRadius: "4px", color: theme.danger, fontSize: "0.8rem" }} />
+                      <input type="text" value={kpc.detail} onChange={(e) => updateKpc(kpc.id, 'detail', e.target.value)} placeholder="외모, 성격, PC와의 관계" style={{ width: "100%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.8rem" }} />
+                      
+                      {/* [복구] KPC 비밀 스포일러 방지 토글 */}
+                      <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px", marginTop: "8px" }}>
+                        <button type="button" onClick={() => updateKpc(kpc.id, 'showSecret', !kpc.showSecret)} style={{ width: "100%", padding: "6px", backgroundColor: kpc.showSecret ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, borderRadius: "4px", color: kpc.showSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700" }}>
+                          {kpc.showSecret ? "🔒 비밀 닫기" : "👀 이 인물의 비밀 열람 및 수정"}
+                        </button>
+                        {kpc.showSecret && (
+                          <textarea value={kpc.secret} onChange={(e) => updateKpc(kpc.id, 'secret', e.target.value)} placeholder="숨겨진 진심/비밀 (마스터 전용)" style={{ width: "100%", height: "60px", marginTop: "8px", padding: "8px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1px solid ${theme.danger}`, borderRadius: "4px", color: theme.danger, fontSize: "0.8rem", resize: "none" }} />
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* 4. 시나리오 개요 및 진상 (수동 입력 & 파일 업로드 복구!) */}
+            {/* 4. 시나리오 개요 및 진상 */}
             <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>시나리오 개요 및 진상</div>
@@ -607,15 +602,34 @@ export default function App() {
               </div>
             </div>
 
-            {/* 5. 특화 룰 세팅 (CoC, 인세인 한정) */}
+            {/* 5-1. 특화 룰 세팅 (CoC 7판) */}
             {wizardMode === "coc" && (
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.danger}` }}>
-                 <div style={{ fontWeight: "700", marginBottom: "12px", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 기능치(Skill) 세팅</div>
-                 <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>직업에 맞는 주요 기능치와 수치를 쉼표로 구분해 적어주세요. 판정 시 이 수치를 끌어옵니다.</div>
+                 <div style={{ fontWeight: "700", marginBottom: "8px", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 특성치 & 기능치 세팅</div>
+                 
+                 {/* [복구] CoC 460pt 캡 특성치 분배 UI */}
+                 <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "12px" }}>탐사자의 8대 특성치(총합 460 권장) 및 행운을 설정하세요. HP, 이성 등은 자동 계산됩니다.</div>
+                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "16px" }}>
+                   {Object.keys(cocStats).map(key => (
+                     <label key={key} style={{ display: "flex", flexDirection: "column", fontSize: "0.75rem", gap: "4px" }}>
+                       {COC_STAT_LABELS[key]}
+                       <input type="number" min="15" max="99" value={cocStats[key]} onChange={e => setCocStats({...cocStats, [key]: Number(e.target.value)})} style={{ padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, textAlign: "center" }} />
+                     </label>
+                   ))}
+                 </div>
+                 <div style={{ textAlign: "right", fontSize: "0.85rem", fontWeight: "700", color: currentCocTotal > 460 ? theme.danger : theme.accent, marginBottom: "16px", paddingBottom: "16px", borderBottom: `1px dashed ${theme.border}` }}>
+                   특성치 총합: {currentCocTotal} / 460 pt (행운 제외)
+                 </div>
+
+                 {/* CoC 기능치 세팅 가이드 보강 */}
+                 <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>
+                   <strong>추가 기능치(Skill):</strong> 직업과 배경에 맞는 주요 기능치와 수치를 쉼표(,)로 구분해 적어주세요. <br/>다이스 판정 시 기본값 대신 여기서 입력한 수치를 최우선으로 끌어옵니다.
+                 </div>
                  <input type="text" value={cocSkills} onChange={(e) => setCocSkills(e.target.value)} placeholder="예: 관찰력 70, 자료조사 60, 심리학 50" style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem" }} />
               </div>
             )}
             
+            {/* 5-2. 특화 룰 세팅 (인세인) */}
             {wizardMode === "insane" && (
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.warning}` }}>
                  <div style={{ fontWeight: "700", marginBottom: "12px", fontSize: "0.95rem", color: theme.warning }}>인세인 특기표 체킹</div>
@@ -653,10 +667,9 @@ export default function App() {
             </button>
           </div>
         ) : (
-          /* 채팅 룸 (모바일 Flex 구조) */
+          /* 채팅 룸 */
           <div style={{ display: "flex", flexDirection: "column", height: "100%", flex: 1, position: "relative" }}>
             
-            {/* 룰 별 특수 헤더 (인세인 핸드아웃 바 등) */}
             {activeSession.ruleMode === "insane" && (
               <div className="glass-alt" style={{ padding: "8px 16px", borderBottom: `1px solid ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
                 <span style={{ fontSize: "0.8rem", fontWeight: "700", color: theme.warning }}>{activeSession.sheet?.cycle}C / {activeSession.sheet?.scene}S (리미트: {activeSession.sheet?.limit})</span>
@@ -666,7 +679,6 @@ export default function App() {
               </div>
             )}
 
-            {/* 채팅 로그 영역 */}
             <div ref={chatContainerRef} style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "16px", scrollBehavior: "smooth" }}>
               {activeSession.messages.map((m, i) => (
                 <div key={i} className={`msg-box ${m.role === 'user' ? 'msg-user' : 'msg-ai'} ${m.role === 'ai' ? 'serif-text' : 'sans-text'}`}>
@@ -676,9 +688,7 @@ export default function App() {
               {isLoading && <div style={{ fontSize: "0.85rem", color: theme.textMuted, fontStyle: "italic", alignSelf: "flex-start", padding: "10px" }}>마스터가 서사를 집필 중입니다...</div>}
             </div>
 
-            {/* 입력창 바 (Fixed Bottom style) */}
             <div className="glass-panel" style={{ padding: "12px 16px", paddingBottom: "max(12px, env(safe-area-inset-bottom))", borderTop: `1px solid ${theme.border}`, flexShrink: 0, display: "flex", gap: "10px", alignItems: "flex-end", zIndex: 100 }}>
-              {/* 자유 서사 모드가 아닐 때만 다이스 렌더링 */}
               {activeSession.ruleMode !== "freeform" && (
                 <button title="주사위 판정" style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>🎲</button>
               )}
@@ -692,7 +702,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 우측 시트 패널 (토글형 모달/오버레이) */}
+        {/* 우측 시트 패널 */}
         {activeSession && isSheetOpen && (
           <div style={{ position: "absolute", inset: 0, zIndex: 120, display: "flex", justifyContent: "flex-end" }}>
             <div onClick={() => setIsSheetOpen(false)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.4)" }} />
@@ -703,7 +713,6 @@ export default function App() {
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "20px" }}>
                 
-                {/* 📜 시나리오 개요 상시 확인 카드 (복구됨!) */}
                 <div className="glass-alt" style={{ fontSize: "0.8rem", padding: "12px", borderRadius: "12px", lineHeight: "1.5", border: `1px solid ${theme.border}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <strong style={{ color: theme.warning }}>📜 시나리오 개요</strong>
@@ -713,7 +722,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 프로필 요약 */}
                 <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                   <div style={{ width: "56px", height: "56px", borderRadius: "50%", backgroundColor: theme.panelAlt, border: `2px solid ${theme.accent}`, overflow: "hidden", flexShrink: 0 }}>
                     <img src={activeSession.sheet.portrait} alt="PC" style={{width:"100%", height:"100%", objectFit:"cover"}} onError={(e)=>(e.currentTarget.style.display='none')}/>
@@ -724,7 +732,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 룰 별 스탯창 (자유서사는 숨김) */}
                 {activeSession.ruleMode === "coc" && (
                   <div className="glass-alt" style={{ padding: "16px", borderRadius: "12px", border: `1px solid ${theme.danger}` }}>
                     <div style={{ fontWeight: "700", color: theme.danger, marginBottom: "12px", fontSize: "0.85rem" }}>CoC 7판 스테이터스</div>
@@ -746,7 +753,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* KPC 목록 (자유서사에서도 노출) */}
                 <div>
                   <div style={{ fontWeight: "700", fontSize: "0.9rem", marginBottom: "12px", color: theme.accent }}>주요 등장인물 (KPC)</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -771,7 +777,7 @@ export default function App() {
 
       </div>
 
-      {/* 설정 모달 (완벽 복구됨!) */}
+      {/* 설정 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div onClick={() => closeModal(setShowSettingsModal)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)" }} />
@@ -782,7 +788,6 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* 1. 테마 */}
               <div>
                 <div style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "10px" }}>테마 색상 팔레트</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
@@ -794,7 +799,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 2. 사운드 */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                   <label style={{ fontSize: "0.9rem", fontWeight: "700" }}>주사위 효과음 볼륨</label>
@@ -806,7 +810,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 3. 주사위 애니메이션 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>주사위 굴림 연출 효과</div>
@@ -815,7 +818,6 @@ export default function App() {
                 <button onClick={() => handleSaveAnim(!animationEnabled)} style={{ padding: "8px 16px", backgroundColor: animationEnabled ? theme.accent : "transparent", color: animationEnabled ? "#fff" : theme.text, border: `1px solid ${animationEnabled ? theme.accent : theme.border}`, borderRadius: "20px", fontWeight: "700", fontSize: "0.8rem", cursor: "pointer" }}>{animationEnabled ? "켜짐" : "꺼짐"}</button>
               </div>
 
-              {/* 4. 세이브 데이터 관리 (백업/복원) */}
               <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                   <span style={{ fontSize: "0.9rem", fontWeight: "700", color: theme.accent }}>💾 세이브 백업 및 복원</span>
@@ -829,7 +831,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 5. 초상화 스타일 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>🎨 초상화 화풍 (스타일)</div>
@@ -845,7 +846,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 초상화 수정 모달 (PC/KPC 완벽 개별 지원) */}
+      {/* 초상화 수정 모달 */}
       {showPortraitEditModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div onClick={() => closeModal(setShowPortraitEditModal)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)" }} />
