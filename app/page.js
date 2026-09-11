@@ -563,6 +563,30 @@ export default function App() {
     closeModal(setShowPortraitEditModal);
   };
 
+  // 🌟 내 컴퓨터에서 이미지 파일 직접 업로드 처리
+  const handlePortraitFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      if (activePortraitTarget === "pc") {
+        if (activeSession) {
+          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, portrait: dataUrl } } : s));
+        } else setCharPortraitUrl(dataUrl);
+      } else {
+        if (activeSession) {
+          const npcs = activeSession.sheet.npcs.map(n => n.id === activePortraitTarget ? { ...n, portrait: dataUrl } : n);
+          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, npcs } } : s));
+        } else {
+          setKpcList(prev => prev.map(k => k.id === activePortraitTarget ? { ...k, portraitUrl: dataUrl } : k));
+        }
+      }
+      closeModal(setShowPortraitEditModal);
+    };
+    reader.readAsDataURL(file);
+  };
+  
   // CoC 10종 광기 발작 처리
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
@@ -1609,6 +1633,15 @@ export default function App() {
               <h3 style={{ margin: 0, fontSize: "0.95rem" }}>초상화 변경 ({activePortraitTarget === "pc" ? "내 캐릭터" : "파트너"})</h3>
               <button onClick={() => closeModal(setShowPortraitEditModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
+
+            {/* 🌟 파일 직접 업로드 버튼 */}
+            <label style={{ display: "block", width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px dashed ${theme.accent}`, borderRadius: "8px", textAlign: "center", cursor: "pointer", fontSize: "0.82rem", fontWeight: "700", color: theme.accent, marginBottom: "12px" }}>
+              📁 내 컴퓨터에서 이미지 파일 선택
+              <input type="file" accept="image/*" onChange={handlePortraitFileUpload} style={{ display: "none" }} />
+            </label>
+
+            <div style={{ textAlign: "center", fontSize: "0.72rem", color: theme.textMuted, marginBottom: "8px" }}>또는 AI 프롬프트 / 이미지 URL 입력</div>
+
             <input type="text" value={customPortraitPrompt} onChange={e => setCustomPortraitPrompt(e.target.value)} placeholder="예: silver hair girl / 이미지 URL" style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem", marginBottom: "12px" }} />
             <button onClick={applyCustomPortrait} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>적용</button>
           </div>
