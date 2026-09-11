@@ -25,6 +25,18 @@ const THEME_PALETTES = {
   }
 };
 
+const COC_STAT_LABELS = { str: "근력", con: "건강", siz: "크기", dex: "민첩", app: "외모", int: "지능", pow: "정신", edu: "교육" };
+
+// 인세인 6대 분야 66개 정통 특기표
+const INSANE_MATRIX = [
+  { category: "폭력", skills: ["소각", "고문", "포박", "협박", "파괴", "구타", "절단", "찌르기", "사격", "전쟁", "매장"] },
+  { category: "정서", skills: ["연심", "기쁨", "걱정", "부끄러움", "웃음", "인내", "놀람", "노여움", "원한", "슬픔", "친애"] },
+  { category: "지각", skills: ["고통", "관능", "촉감", "냄새", "맛", "소리", "풍경", "추적", "미행", "제육감", "그늘"] },
+  { category: "기술", skills: ["분해", "전자기기", "정리", "약품", "효율", "미디어", "카메라", "탈것", "기계", "함정", "병기"] },
+  { category: "지식", skills: ["물리학", "수학", "화학", "생물학", "의학", "교양", "인류학", "역사", "민속학", "고고학", "천문학"] },
+  { category: "괴이", skills: ["시간", "혼돈", "심해", "죽음", "영혼", "마술", "암흑", "종말", "꿈", "지저", "우주"] }
+];
+
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
@@ -37,7 +49,7 @@ const INSANE_MADNESS_TABLE = [
 const COC_MADNESS_TABLE = [
   { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
-  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
   { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
   { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
   { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." }
@@ -75,9 +87,9 @@ export default function App() {
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
 
-  // 설정값 (오너님의 캡처 디자인 모드 지원)
+  // 테마 상태
   const [currentPalette, setCurrentPalette] = useState("cloud");
-  const [isDarkMode, setIsDarkMode] = useState(false); // 캡처 화면 톤 기준(라이트 지원)
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
@@ -89,7 +101,7 @@ export default function App() {
 
   const [wizardMode, setWizardMode] = useState("coc");
 
-  // 캐릭터 폼 상태 (캡처와 1:1 일치)
+  // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
   const [charAge, setCharAge] = useState("24");
@@ -102,8 +114,22 @@ export default function App() {
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [activePortraitTarget, setActivePortraitTarget] = useState("pc");
 
-  // 인세인 동적 리미트 & 핸드아웃 임시 버퍼
+  // CoC 특화 설정 (스탯 & 기능치)
+  const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
+  const [cocSkills, setCocSkills] = useState("관찰력 60, 자료조사 50, 듣기 40, 심리학 50");
+  const remainingPoints = 460 - (Number(cocStats.str) + Number(cocStats.con) + Number(cocStats.siz) + Number(cocStats.dex) + Number(cocStats.app) + Number(cocStats.int) + Number(cocStats.pow) + Number(cocStats.edu));
+  const derivedHp = Math.floor((Number(cocStats.con) + Number(cocStats.siz)) / 10);
+  const derivedMp = Math.floor(Number(cocStats.pow) / 5);
+  const derivedSan = Number(cocStats.pow);
+  const strPlusSiz = Number(cocStats.str) + Number(cocStats.siz);
+  let derivedDb = "0";
+  if (strPlusSiz <= 64) derivedDb = "-2"; else if (strPlusSiz <= 84) derivedDb = "-1"; else if (strPlusSiz <= 124) derivedDb = "0"; else if (strPlusSiz <= 164) derivedDb = "+1D4"; else derivedDb = "+1D6";
+
+  // 인세인 특화 설정 (특기표 매트릭스, 리미트, 호기심, 공포심)
   const [insaneLimit, setInsaneLimit] = useState(3);
+  const [insaneSkills, setInsaneSkills] = useState(["연심", "소리", "정리"]);
+  const [insaneCuriosity, setInsaneCuriosity] = useState("정서");
+  const [insaneFear, setInsaneFear] = useState("죽음");
   const [generatedHandouts, setGeneratedHandouts] = useState([]);
 
   // KPC(파트너) 상태
@@ -120,17 +146,6 @@ export default function App() {
 
   // 프리셋 상태
   const [customPresets, setCustomPresets] = useState([]);
-  const [newPresetTitle, setNewPresetTitle] = useState("");
-
-  // CoC 460pt 스탯
-  const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
-  const remainingPoints = 460 - (Number(cocStats.str) + Number(cocStats.con) + Number(cocStats.siz) + Number(cocStats.dex) + Number(cocStats.app) + Number(cocStats.int) + Number(cocStats.pow) + Number(cocStats.edu));
-  const derivedHp = Math.floor((Number(cocStats.con) + Number(cocStats.siz)) / 10);
-  const derivedMp = Math.floor(Number(cocStats.pow) / 5);
-  const derivedSan = Number(cocStats.pow);
-  const strPlusSiz = Number(cocStats.str) + Number(cocStats.siz);
-  let derivedDb = "0";
-  if (strPlusSiz <= 64) derivedDb = "-2"; else if (strPlusSiz <= 84) derivedDb = "-1"; else if (strPlusSiz <= 124) derivedDb = "0"; else if (strPlusSiz <= 164) derivedDb = "+1D4"; else derivedDb = "+1D6";
 
   // 연출 상태
   const [isRolling, setIsRolling] = useState(false);
@@ -167,11 +182,6 @@ export default function App() {
   function handleSaveVolume(vol) {
     setSoundVolume(vol);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_sound_vol", vol.toString());
-  }
-
-  function handleSaveAnim(enabled) {
-    setAnimationEnabled(enabled);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_anim", enabled.toString());
   }
 
   function playDiceSound() {
@@ -212,21 +222,15 @@ export default function App() {
   const openModal = (setModalFn) => { window.history.pushState({ modalOpen: true }, ""); setModalFn(true); };
   const closeModal = (setModalFn) => { setModalFn(false); if (window.history.state?.modalOpen) window.history.back(); };
 
-  useEffect(() => {
-    const handlePopState = () => {
-      setShowSettingsModal(false); setShowExportModal(false); setShowBackupModal(false);
-      setShowPortraitEditModal(false); setShowPresetModal(false);
-      if (isMobile) { setIsSidebarOpen(false); setIsSheetOpen(false); }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [isMobile]);
-
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const list = prev.split(/\s+/).filter(Boolean);
       return list.includes(tag) ? list.filter((t) => t !== tag).join(" ") : [...list, tag].join(" ");
     });
+  };
+
+  const toggleInsaneSkill = (skill) => {
+    setInsaneSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
   };
 
   const handleRandomCocStats = () => {
@@ -248,27 +252,27 @@ export default function App() {
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
-선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 부합하는 깊이 있는 시나리오와 캐릭터를 설계하십시오.
+선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 맞추어 시나리오와 캐릭터를 설계하십시오.
 
 [🚨 절대 수칙]
-1. 모든 인물은 무조건 여성(GL)입니다. '너는 내 것' 같은 유치한 소유욕이나 얀데레를 배제하고, 절제되고 성숙한 유대감을 묘사하십시오.
-2. 지문과 설정에서 'PC', 'KPC'라는 단어를 일절 쓰지 마십시오! 주인공과 파트너의 실제 이름을 직접 지어 사용하십시오.
-3. initialHandouts에는 인세인 룰을 위한 4개의 완전한 카드가 포함되어야 합니다:
+1. 모든 인물은 무조건 여성(GL)입니다. '너는 내 것' 같은 유치한 소유욕이나 얀데레를 배제하고, 절제되고 성숙한 유대감을 부여하십시오.
+2. 지문과 설정에서 'PC', 'KPC'라는 단어를 쓰지 마십시오! 실제 이름을 직접 지어 사용하십시오.
+3. initialHandouts에는 인세인을 위한 4개의 완전한 카드가 포함되어야 합니다:
    - 1번: 주인공 카드 (사명 및 비밀)
    - 2번: 파트너 카드 (관계 및 숨겨진 진심/비밀)
-   - 3번: 현장 중요한 사물/장소 핸드아웃 (개요 및 비밀)
-   - 4번: 결정적 사건 단서 핸드아웃 (개요 및 비밀)
+   - 3번: 현장 사물/장소 핸드아웃
+   - 4번: 결정적 사건 단서 핸드아웃
 
-반드시 마크다운 코드블럭 없이 순수 JSON 포맷으로만 응답하십시오:
+반드시 마크다운 없이 순수 JSON 포맷으로만 응답하십시오:
 {
-  "name": "주인공 이름",
+  "name": "주인공 이름 (예: 하진)",
   "gender": "여성",
   "age": "24",
   "job": "역할/직업",
   "background": "인물의 과거 상처, 성격, 소지품 3가지 상세",
   "mission": "주인공의 공개 사명",
   "secret": "주인공의 숨겨진 개인적 비밀",
-  "kpcName": "파트너 이름",
+  "kpcName": "파트너 이름 (예: 도윤)",
   "kpcJob": "파트너 직업",
   "kpcDetail": "파트너의 성격, 외모, 주인공과의 관계성 상세",
   "kpcSecret": "파트너가 숨기고 있는 진심이나 비밀",
@@ -276,12 +280,12 @@ export default function App() {
   "scenarioTitle": "시나리오 제목",
   "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper 기밀)",
   "scenarioGimmick": "특수 서사 기믹 및 엔딩 조건",
-  "openingNovel": "플레이어가 마주하는 첫 장소의 감각적 분위기와 날씨, 파트너와의 첫 대사를 담은 풍성한 서막 지문 (반드시 ~합니다/였습니다 경어체)",
+  "openingNovel": "플레이어가 마주하는 첫 장소의 분위기와 파트너와의 첫 대사를 담은 풍성한 서막 지문 (반드시 ~합니다/였습니다 경어체)",
   "initialHandouts": [
-    { "title": "주인공의 사명과 비밀", "overview": "표면상 일상과 현재 상태입니다.", "secret": "홀로 남겨지는 것에 극심한 공포를 느끼고 있습니다." },
-    { "title": "파트너의 손길", "overview": "문을 두드려 찾아온 파트너의 위로와 사명입니다.", "secret": "상대방이 무너지지 않도록 제 감정을 숨긴 채 곁을 지키고 있습니다." },
-    { "title": "오래된 화분", "overview": "창가에 놓인 작은 토분. 잊혀 있던 식물이 심겨 있습니다.", "secret": "화분 밑바닥에 물에 젖지 않는 재질의 작은 열쇠가 묻혀 있습니다." },
-    { "title": "기억의 다이어리", "overview": "서랍 깊은 곳에 간직된 오래된 기록장입니다.", "secret": "과거 두 사람이 나누었던 진심의 기록이 적혀 있습니다." }
+    { "title": "하진의 사명과 비밀", "overview": "작업실 한켠에서 기록을 보수하고 있는 하진의 현재 상태입니다.", "secret": "사실은 홀로 남겨지는 것에 극심한 공포를 느끼고 있습니다." },
+    { "title": "도윤의 손길", "overview": "비 오는 날 문을 두드려 찾아온 도윤이 가져온 위로와 온기입니다.", "secret": "하진이 무너지지 않도록 제 감정을 숨긴 채 곁을 지키고 있습니다." },
+    { "title": "오래된 화분", "overview": "창가에 놓인 작은 토분. 오랫동안 잊혀 있던 식물이 심겨 있습니다.", "secret": "화분 밑바닥에 작은 열쇠가 묻혀 있습니다." },
+    { "title": "기억의 다이어리", "overview": "서랍 깊은 곳에 간직된 하진의 오래된 기록장입니다.", "secret": "과거 도윤과 처음으로 진심을 터놓았던 밤의 기록이 적혀 있습니다." }
   ]
 }`;
 
@@ -366,7 +370,7 @@ ${p.openingNovel}`;
     const sheetData = activeSession ? activeSession.sheet : {
       name: charName, job: charJob, age: charAge, gender: charGender,
       background: charBackground, portrait: charPortraitUrl, ruleMode: wizardMode,
-      cocStats, mission: charMission, secret: charSecret
+      cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, mission: charMission, secret: charSecret
     };
 
     const newPreset = {
@@ -389,6 +393,10 @@ ${p.openingNovel}`;
     setCharBackground(preset.background || "");
     if (preset.portrait) setCharPortraitUrl(preset.portrait);
     if (preset.cocStats) setCocStats(preset.cocStats);
+    if (preset.cocSkills) setCocSkills(preset.cocSkills);
+    if (preset.insaneSkills) setInsaneSkills(preset.insaneSkills);
+    if (preset.insaneCuriosity) setInsaneCuriosity(preset.insaneCuriosity);
+    if (preset.insaneFear) setInsaneFear(preset.insaneFear);
     if (preset.mission) setCharMission(preset.mission);
     if (preset.secret) setCharSecret(preset.secret);
     closeModal(setShowPresetModal);
@@ -470,19 +478,6 @@ ${p.openingNovel}`;
     reader.readAsText(file);
   };
 
-  const executeExport = () => {
-    if (!activeSession) return;
-    let txt = `=========================================\n${activeSession.title}\n=========================================\n\n`;
-    (activeSession.messages || []).forEach((m) => {
-      if (exportScope === "storyOnly" && m.text.includes("[🎲")) return;
-      txt += `${m.role === "user" ? `[${activeSession.sheet?.name || "플레이어"}]` : "[마스터]"}\n${m.text}\n\n`;
-    });
-    const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `${activeSession.title}_대화록.${exportFormat}`; a.click(); URL.revokeObjectURL(url);
-    closeModal(setShowExportModal);
-  };
-
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -539,12 +534,10 @@ ${p.openingNovel}`;
       if (suggMatch) {
         try {
           const rawSuggs = JSON.parse(suggMatch[1]);
-          // KPC 단어를 파트너 실명으로 치환
           parsedData.suggActions = rawSuggs.map(s => s.replace(/\bKPC\b/g, partnerName || "파트너"));
         } catch(e) {}
       }
 
-      // 인세인 모드가 아닐 때만 SPOTS 허용
       if (currentRule !== "insane") {
         const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
         if (spotsMatch) {
@@ -568,7 +561,6 @@ ${p.openingNovel}`;
       }
     } catch (e) {}
 
-    // 말풍선 본문에서 태그 제거 및 KPC 단어를 실명으로 교체
     cleanText = cleanText
       .replace(/```html|```json|```/gi, "")
       .replace(/<!--[\s\S]*?-{1,3}>/g, "")
@@ -604,9 +596,16 @@ ${p.openingNovel}`;
     };
 
     if (wizardMode === "insane") {
-      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: insaneLimit, cycle: 1, scene: 1, mission: charMission || "일상의 온기를 되찾는다.", secret: charSecret || "밝혀지지 않은 과거" };
+      initialSheet = { 
+        ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: insaneLimit, cycle: 1, scene: 1, 
+        mission: charMission || "일상의 온기를 되찾는다.", secret: charSecret || "밝혀지지 않은 과거",
+        insaneSkills, insaneCuriosity, insaneFear
+      };
     } else if (wizardMode === "coc") {
-      initialSheet = { ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, cocStats: { ...cocStats } };
+      initialSheet = { 
+        ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, 
+        luck: Number(cocStats.luck), db: derivedDb, cocStats: { ...cocStats }, cocSkills 
+      };
     }
 
     const newId = Date.now();
@@ -621,7 +620,7 @@ ${p.openingNovel}`;
     setIsLoading(true);
 
     const openingPrompt = `[세션 시작: 첫 서막 지문 요청]
-시나리오의 [배후 진상]과 [첫 장면 도입부 설정]을 충실히 반영하여, 플레이어가 현장 분위기와 날씨, 감정선에 완전히 몰입할 수 있도록 서막을 여십시오.
+시나리오의 [배후 진상]과 [첫 장면 도입부 설정]을 충실히 반영하여 서막을 여십시오.
 반드시 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
 
 [🚨 호칭 준수]
@@ -763,6 +762,17 @@ ${p.openingNovel}`;
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, handouts } } : s));
   };
 
+  // CoC 기능치 문자열 파싱 헬퍼
+  const parseCocSkills = (skillsStr) => {
+    if (!skillsStr) return [];
+    return skillsStr.split(",").map(s => {
+      const parts = s.trim().split(/\s+/);
+      const val = Number(parts[parts.length - 1]);
+      const name = parts.slice(0, -1).join(" ");
+      return { name: name || s.trim(), val: isNaN(val) ? 50 : val };
+    }).filter(s => s.name);
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -824,7 +834,7 @@ ${p.openingNovel}`;
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         
-        {/* 상단 헤더 바 (캡처 화면 1:1) */}
+        {/* 상단 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: "transparent" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: theme.text }}>☰</button>
@@ -837,7 +847,7 @@ ${p.openingNovel}`;
           /* 오너님의 캡처 UI와 100% 동일한 로비 화면 */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 100px 14px" : "28px 24px 80px 24px", maxWidth: "860px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             
-            {/* 타이틀 및 AI 즉석 생성 버튼 */}
+            {/* 타이틀 및 AI 즉석 생성 버튼 (단독) */}
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div>
                 <h1 className="serif-text" style={{ margin: "0 0 6px 0", fontSize: "1.65rem", fontWeight: "800", color: theme.text }}>새로운 서사의 시작</h1>
@@ -950,6 +960,72 @@ ${p.openingNovel}`;
               </div>
             </div>
 
+            {/* 🌟 룰별 특화 설정 (기능치 / 인세인 특기표) */}
+            {wizardMode === "coc" && (
+              <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.danger}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontWeight: "800", fontSize: "0.9rem", color: theme.danger }}>CoC 7판 특성치 & 주요 기능치(Skill) 설정</span>
+                  <button onClick={handleRandomCocStats} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.accent, fontSize: "0.74rem", cursor: "pointer", fontWeight: "700" }}>🎲 460pt 자동 분배</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "10px" }}>
+                  {[{ k: "str", l: "근력" }, { k: "con", l: "건강" }, { k: "siz", l: "크기" }, { k: "dex", l: "민첩" }, { k: "app", l: "외모" }, { k: "int", l: "지능" }, { k: "pow", l: "정신" }, { k: "edu", l: "교육" }].map(s => (
+                    <div key={s.k}>
+                      <label style={{ fontSize: "0.7rem", color: theme.textMuted }}>{s.l}</label>
+                      <input type="number" min="15" max="90" value={cocStats[s.k]} onChange={e => setCocStats({ ...cocStats, [s.k]: Number(e.target.value) })} style={{ width: "100%", padding: "5px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", textAlign: "center" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "12px", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "8px" }}>
+                  <span>잔여 포인트: <strong style={{ color: remainingPoints < 0 ? theme.danger : theme.success }}>{remainingPoints} pt</strong></span>
+                  <span>행운: <input type="number" value={cocStats.luck} onChange={e => setCocStats({ ...cocStats, luck: Number(e.target.value) })} style={{ width: "45px", padding: "2px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", textAlign: "center" }} /></span>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "700", marginBottom: "4px" }}>추가 보유 기능치 (Skill):</label>
+                  <input type="text" value={cocSkills} onChange={e => setCocSkills(e.target.value)} placeholder="예: 관찰력 60, 자료조사 50, 듣기 40, 심리학 50" style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} />
+                  <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "4px" }}>※ 시트에서 이 기능치들을 원클릭 주사위로 굴릴 수 있습니다.</div>
+                </div>
+              </div>
+            )}
+
+            {wizardMode === "insane" && (
+              <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.warning}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontWeight: "800", fontSize: "0.9rem", color: theme.warning }}>인세인 특기표 매트릭스 (HP 6 / SAN 6)</span>
+                  <label style={{ fontSize: "0.75rem", fontWeight: "700", color: theme.warning }}>
+                    리미트: <input type="number" min="2" max="5" value={insaneLimit} onChange={e => setInsaneLimit(Number(e.target.value))} style={{ width: "45px", padding: "2px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.warning}`, borderRadius: "4px", color: theme.text, textAlign: "center" }} /> 사이클
+                  </label>
+                </div>
+                
+                {/* 6대 분야 특기표 매트릭스 */}
+                <div style={{ overflowX: "auto", paddingBottom: "6px", marginBottom: "12px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", minWidth: "480px", gap: "4px" }}>
+                    {INSANE_MATRIX.map(col => (
+                      <div key={col.category} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <div style={{ textAlign: "center", fontSize: "0.72rem", fontWeight: "800", padding: "4px 0", backgroundColor: theme.panelAlt, borderRadius: "4px" }}>{col.category}</div>
+                        {col.skills.map(skill => {
+                          const isSel = insaneSkills.includes(skill);
+                          return (
+                            <button key={skill} type="button" onClick={() => toggleInsaneSkill(skill)} style={{ padding: "4px 0", fontSize: "0.68rem", backgroundColor: isSel ? theme.warning : theme.inputBg, color: isSel ? "#000" : theme.text, border: `1px solid ${isSel ? theme.warning : theme.border}`, borderRadius: "4px", cursor: "pointer", fontWeight: isSel ? "800" : "400" }}>{skill}</button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <label style={{ flex: 1, fontSize: "0.78rem" }}>호기심 분야:
+                    <select value={insaneCuriosity} onChange={e => setInsaneCuriosity(e.target.value)} style={{ width: "100%", padding: "6px", marginTop: "2px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px" }}>
+                      {INSANE_MATRIX.map(c => <option key={c.category} value={c.category}>{c.category}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ flex: 1, fontSize: "0.78rem" }}>공포심 특기:
+                    <input type="text" value={insaneFear} onChange={e => setInsaneFear(e.target.value)} placeholder="예: 죽음, 피" style={{ width: "100%", padding: "6px", marginTop: "2px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px" }} />
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* 시나리오 정보 및 서막(Prologue) */}
             <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -973,7 +1049,7 @@ ${p.openingNovel}`;
         ) : (
           /* 플레이 룸 */
           <>
-            {/* 상단 바 */}
+            {/* 상단 바 (우측에 다크/라이트 토글 포함) */}
             <div style={{ height: "52px", padding: "0 14px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "4px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>{isSidebarOpen ? "◀" : "▶"}</button>
@@ -1003,6 +1079,8 @@ ${p.openingNovel}`;
                   </button>
                 )}
                 <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>{isSheetOpen ? "시트▶" : "◀시트"}</button>
+                {/* ☀️/🌙 토글 버튼 추가 */}
+                <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", padding: "0 2px" }}>{isDarkMode ? "☀️" : "🌙"}</button>
               </div>
             </div>
 
@@ -1104,9 +1182,9 @@ ${p.openingNovel}`;
         )}
       </div>
 
-      {/* 3. 우측 시트 패널 (💾 아이콘 저장 버튼 복원) */}
+      {/* 3. 우측 시트 패널 (기능치/스탯 주사위 굴림 복원!) */}
       {activeSession && (
-        <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "280px" : "0px", minWidth: isSheetOpen ? "280px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           
           {/* 헤더: 캐릭터 시트 타이틀 | 💾 저장 아이콘 | ✕ 닫기 */}
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1156,14 +1234,85 @@ ${p.openingNovel}`;
               )}
             </div>
 
-            {/* 인세인 사명/비밀 카드 */}
+            {/* 🌟 CoC 특화: 8대 특성치 & 기능치 주사위 굴림 패널 */}
+            {activeSession.ruleMode === "coc" && (
+              <>
+                {/* 8대 특성치 목록 & 🎲 원클릭 굴림 */}
+                {activeSession.sheet.cocStats && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.danger }}>📊 8대 특성치 (클릭하여 1D100 판정)</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                      {Object.keys(COC_STAT_LABELS).map(k => (
+                        <button
+                          key={k}
+                          onClick={() => rollDiceDirectly(activeSession.sheet.cocStats[k], COC_STAT_LABELS[k])}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.68rem", cursor: "pointer" }}
+                        >
+                          <span>{COC_STAT_LABELS[k]}</span>
+                          <span style={{ fontWeight: "700" }}>{activeSession.sheet.cocStats[k]}% 🎲</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 보유 기능치 목록 & 🎲 원클릭 굴림 */}
+                {activeSession.sheet.cocSkills && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.accent }}>🎯 보유 기능치 (Skill 🎲)</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {parseCocSkills(activeSession.sheet.cocSkills).map((sk, idx) => (
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem" }}>
+                          <span>{sk.name} ({sk.val}%)</span>
+                          <button
+                            onClick={() => rollDiceDirectly(sk.val, sk.name)}
+                            style={{ padding: "2px 6px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.68rem", cursor: "pointer", fontWeight: "700" }}
+                          >
+                            🎲 판정
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* 🌟 inSANe 특화: 특기 목록 & 2D6 주사위 굴림 패널 */}
             {activeSession.ruleMode === "insane" && (
-              <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <div><strong style={{ color: theme.warning }}>공개 사명:</strong> {activeSession.sheet.mission}</div>
-                <div style={{ color: theme.danger, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
-                  <strong>🔒 비밀:</strong> {activeSession.sheet.secret}
+              <>
+                <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div><strong style={{ color: theme.warning }}>공개 사명:</strong> {activeSession.sheet.mission}</div>
+                  <div style={{ color: theme.danger, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+                    <strong>🔒 비밀:</strong> {activeSession.sheet.secret}
+                  </div>
                 </div>
-              </div>
+
+                {/* 습득 특기 목록 & 🎲 원클릭 굴림 */}
+                {(activeSession.sheet.insaneSkills || []).length > 0 && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (목표 5 / 2D6 🎲)</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                      {activeSession.sheet.insaneSkills.map((sk, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
+                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
+                        >
+                          <span>{sk}</span>
+                          <span style={{ fontSize: "0.65rem", color: theme.warning }}>🎲</span>
+                        </button>
+                      ))}
+                    </div>
+                    {(activeSession.sheet.insaneCuriosity || activeSession.sheet.insaneFear) && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, marginTop: "6px", paddingTop: "4px" }}>
+                        <span>호기심: <strong>{activeSession.sheet.insaneCuriosity}</strong></span>
+                        <span>공포심: <strong style={{ color: theme.danger }}>{activeSession.sheet.insaneFear}</strong></span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             {/* 소지품 & 사용 버튼 */}
@@ -1214,7 +1363,10 @@ ${p.openingNovel}`;
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
-                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>2026 팬톤 테마 팔레트</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.8rem", fontWeight: "700" }}>2026 팬톤 테마 팔레트</label>
+                  <span style={{ fontSize: "0.75rem", color: theme.accent }}>{isDarkMode ? "🌙 나이트" : "☀️ 라이트"}</span>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                   {Object.entries(THEME_PALETTES).map(([k, p]) => (
                     <button key={k} onClick={() => handleSelectPalette(k)} style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${currentPalette === k ? theme.accent : theme.border}`, backgroundColor: currentPalette === k ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: currentPalette === k ? "700" : "400" }}>{p.name}</button>
