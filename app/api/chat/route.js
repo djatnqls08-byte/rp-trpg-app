@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 1순위 소진 시 순서대로 자동 우회할 모델 체인 (총 1,020+ 회/일)
+// 🌟 최신 3.5 모델을 1순위로 배치한 자동 전환 체인 (총 1,020+ 회/일)
 const FALLBACK_MODELS = [
-  "gemini-3.1-flash-lite", // 1순위: 일 500회 초고속 경량 모델
-  "gemini-3.5-flash-lite", // 2순위: 일 500회 예비 경량 모델
-  "gemini-2.5-flash",      // 3순위: 일 20회 표준 모델
+  "gemini-3.5-flash-lite", // 1순위: 최신 세대 고성능·초고속 모델 (일 500회)
+  "gemini-3.1-flash-lite", // 2순위: 3.5 소진 시 자동 전환 예비 모델 (일 500회)
+  "gemini-3.5-flash",      // 3순위: 상위 플래그십 Flash (일 20회)
+  "gemini-2.5-flash",      // 4순위: 비상용 표준 모델 (일 20회)
 ];
 
 export async function POST(req) {
@@ -80,7 +81,6 @@ ${rulePrompt}
       }
     }
 
-    // 모델 자동 우회(Fallback) 호출 루프
     let responseText = null;
     let lastError = null;
 
@@ -91,16 +91,16 @@ ${rulePrompt}
         responseText = result.response.text();
 
         if (responseText) {
-          break; // 정상 응답 수신 시 루프 탈출
+          break;
         }
       } catch (err) {
-        console.warn(`[API Fallback] ${modelName} 요청 실패 (${err.message}). 다음 예비 모델로 자동 전환합니다.`);
+        console.warn(`[API Fallback] ${modelName} 호출 실패 (${err.message}). 다음 예비 모델로 전환합니다.`);
         lastError = err;
       }
     }
 
     if (!responseText) {
-      throw lastError || new Error("모든 예비 모델의 한도가 초과되었거나 호출에 실패했습니다.");
+      throw lastError || new Error("모든 예비 모델의 한도가 초과되었습니다.");
     }
 
     return new Response(JSON.stringify({ text: responseText }), {
