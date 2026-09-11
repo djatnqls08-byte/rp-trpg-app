@@ -33,6 +33,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isTabletopOpen, setIsTabletopOpen] = useState(false); // [추가] 인세인 테이블탑 상태
 
   // 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -68,6 +69,7 @@ export default function App() {
   const [publicSynopsis, setPublicSynopsis] = useState("");
   const [hiddenTruth, setHiddenTruth] = useState("");
   const [showHiddenTruth, setShowHiddenTruth] = useState(false);
+  const [openingScene, setOpeningScene] = useState(""); // [복구] 서막 및 초기 배경 설정
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -172,6 +174,16 @@ export default function App() {
     });
   };
 
+  // [복구] CoC 7판 특성치 랜덤 굴림 로직
+  const handleRandomCocStats = () => {
+    const r3d6 = () => (Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1) * 5;
+    const r2d6plus6 = () => (Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1 + 6) * 5;
+    setCocStats({
+      str: r3d6(), con: r3d6(), dex: r3d6(), app: r3d6(), pow: r3d6(),
+      siz: r2d6plus6(), int: r2d6plus6(), edu: r2d6plus6(), luck: r3d6()
+    });
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -203,12 +215,14 @@ export default function App() {
   const handleAutoReplaceKpcPc = () => {
     let replacedSyn = publicSynopsis.replace(/\bPC\b/gi, charName || "주인공");
     let replacedTru = hiddenTruth.replace(/\bPC\b/gi, charName || "주인공");
+    let replacedOpen = openingScene.replace(/\bPC\b/gi, charName || "주인공");
     if (kpcList.length > 0) {
       replacedSyn = replacedSyn.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
       replacedTru = replacedTru.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
+      replacedOpen = replacedOpen.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
     }
-    setPublicSynopsis(replacedSyn); setHiddenTruth(replacedTru);
-    alert(`개요 및 진상의 'PC/KPC' 단어가 치환되었습니다!`);
+    setPublicSynopsis(replacedSyn); setHiddenTruth(replacedTru); setOpeningScene(replacedOpen);
+    alert(`텍스트 내의 'PC/KPC' 단어가 모두 치환되었습니다!`);
   };
 
   const handleAiGenerate = async () => {
@@ -227,16 +241,16 @@ export default function App() {
 
 [🚨 장르(Tone) 절대 우위 수칙]
 룰이 CoC나 인세인이더라도, 플레이어의 태그([${playPreference}])에 #달달, #일상, #로맨스 등이 있다면 유혈이나 징그러운 괴물 묘사를 100% 배제하십시오. 
-이성 감소나 광기, 비밀 역시 '감정적인 동요'나 '숨겨왔던 애틋한 진심' 등으로 장르에 맞게 완벽히 재해석해야 합니다.
 
 반드시 아래 JSON 포맷으로만 응답하십시오:
 {
-  "scenarioTone": "플레이어 태그를 바탕으로 설정한 분위기 (예: 잔잔하고 애틋한 힐링 로맨스)",
+  "scenarioTone": "플레이어 태그를 바탕으로 설정한 분위기",
   "name": "주인공 이름",
   "job": "직업",
   "background": "백스토리",
-  "scenarioTitle": "멋진 시나리오 제목",
-  "publicSynopsis": "플레이어가 읽게 될 스포일러 없는 시나리오 개요",
+  "scenarioTitle": "시나리오 제목",
+  "publicSynopsis": "스포일러 없는 시나리오 개요",
+  "openingScene": "플레이어가 게임을 시작할 때 맞닥뜨리는 첫 씬의 구체적인 시간, 장소, 상황 묘사",
   "hiddenTruth": "마스터 전용 배후 진상 및 엔딩 분기 조건. ${ruleSpecificGuidance}",
   "kpcs": [
     {
@@ -257,6 +271,7 @@ export default function App() {
         setCharName(p.name || "주인공"); setCharJob(p.job || "조사원"); setCharBackground(p.background || "");
         setScenarioTitle(p.scenarioTitle || "미상의 밤");
         setPublicSynopsis(p.publicSynopsis || "눈을 뜨자 낯선 천장이 보입니다.");
+        setOpeningScene(p.openingScene || "당신은 현재 거리를 걷고 있습니다.");
         setHiddenTruth(`[장르 톤: ${p.scenarioTone}]\n\n[배후 진상]\n${p.hiddenTruth || "진상이 없습니다."}`);
         
         if (p.kpcs && p.kpcs.length > 0) {
@@ -329,6 +344,7 @@ export default function App() {
     setInsaneSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
   };
 
+  // [복구] 서막 열기(세션 시작) 버그 픽스 및 개요 연동
   const startNewSession = async () => {
     const sessionTitleName = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     
@@ -348,7 +364,7 @@ export default function App() {
       initialSheet = { ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, cocStats: { ...cocStats }, cocSkills };
     } 
 
-    const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[키퍼 전용 기밀/진상/기믹/엔딩조건]\n${hiddenTruth}`;
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[초기 배경/서막]\n${openingScene}\n\n[키퍼 전용 기밀/진상]\n${hiddenTruth}`;
 
     const newId = Date.now();
     const newSession = { 
@@ -364,12 +380,14 @@ export default function App() {
       pendingCheck: null 
     };
     
-    setSessions([newSession, ...sessions]); 
+    // 상태 업데이트를 동기적으로 강제하여 화면 전환 유도
+    setSessions(prev => [newSession, ...prev]); 
     setActiveSessionId(newId); 
     setIsLoading(true);
 
+    // 1초 뒤 임시 웰컴 메시지 렌더링 (추후 백엔드가 대신 작성할 부분)
     setTimeout(() => {
-      setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `[${wizardMode === 'freeform' ? '자유 서사' : wizardMode === 'insane' ? '인세인' : '크툴루의 부름'}] 방이 세팅되었습니다. 대화나 판정을 시작하세요.` }] } : s));
+      setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `[시스템] ${wizardMode === 'freeform' ? '자유 서사' : wizardMode === 'insane' ? '인세인' : '크툴루의 부름'} 방이 세팅되었습니다.\n\n${openingScene ? openingScene : '대화나 판정을 시작하세요.'}` }] } : s));
       setIsLoading(false);
     }, 1000);
   };
@@ -554,7 +572,7 @@ export default function App() {
                       </div>
                       <input type="text" value={kpc.detail} onChange={(e) => updateKpc(kpc.id, 'detail', e.target.value)} placeholder="외모, 성격, PC와의 관계" style={{ width: "100%", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.8rem" }} />
                       
-                      {/* [복구] KPC 비밀 스포일러 방지 토글 */}
+                      {/* [복구 완료] KPC 비밀 스포일러 방지 토글 */}
                       <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px", marginTop: "8px" }}>
                         <button type="button" onClick={() => updateKpc(kpc.id, 'showSecret', !kpc.showSecret)} style={{ width: "100%", padding: "6px", backgroundColor: kpc.showSecret ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, borderRadius: "4px", color: kpc.showSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700" }}>
                           {kpc.showSecret ? "🔒 비밀 닫기" : "👀 이 인물의 비밀 열람 및 수정"}
@@ -569,10 +587,10 @@ export default function App() {
               </div>
             </div>
 
-            {/* 4. 시나리오 개요 및 진상 */}
+            {/* 4. 시나리오 개요 및 진상 & [복구] 서막 입력란 */}
             <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>시나리오 개요 및 진상</div>
+                <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>시나리오 정보 및 서막(Prologue)</div>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <label style={{ padding: "6px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "600" }}>
                     📄 파일 첨부
@@ -586,7 +604,13 @@ export default function App() {
               
               <div style={{ marginBottom: "12px" }}>
                 <label style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "6px", display: "block" }}>[공개 시놉시스] 플레이어에게 주어지는 초기 정보</label>
-                <textarea value={publicSynopsis} onChange={(e) => setPublicSynopsis(e.target.value)} placeholder="도입부, 소문, 미스터리 등 스포일러 없는 배경 설명..." style={{ width: "100%", height: "80px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem", resize: "none" }} />
+                <textarea value={publicSynopsis} onChange={(e) => setPublicSynopsis(e.target.value)} placeholder="도입부, 소문, 미스터리 등 스포일러 없는 배경 설명..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem", resize: "none" }} />
+              </div>
+
+              {/* [복구 완료] 서막 및 초기 배경 묘사 입력란 */}
+              <div style={{ marginBottom: "12px" }}>
+                <label style={{ fontSize: "0.75rem", color: theme.accent, marginBottom: "6px", display: "block", fontWeight: "700" }}>[서막] 시작되는 시간, 장소, 혹은 상황 묘사</label>
+                <textarea value={openingScene} onChange={(e) => setOpeningScene(e.target.value)} placeholder="예: 비 내리는 수요일 밤, 당신은 낡은 서재에서 누군가를 기다리고 있습니다..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.accent}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem", resize: "none" }} />
               </div>
               
               <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
@@ -605,9 +629,12 @@ export default function App() {
             {/* 5-1. 특화 룰 세팅 (CoC 7판) */}
             {wizardMode === "coc" && (
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.danger}` }}>
-                 <div style={{ fontWeight: "700", marginBottom: "8px", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 특성치 & 기능치 세팅</div>
+                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                   <div style={{ fontWeight: "700", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 특성치 & 기능치 세팅</div>
+                   {/* [복구 완료] CoC 특성치 랜덤 생성 버튼 */}
+                   <button onClick={handleRandomCocStats} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.danger}`, color: theme.text, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>🎲 룰북 기준 난수 굴림</button>
+                 </div>
                  
-                 {/* [복구] CoC 460pt 캡 특성치 분배 UI */}
                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "12px" }}>탐사자의 8대 특성치(총합 460 권장) 및 행운을 설정하세요. HP, 이성 등은 자동 계산됩니다.</div>
                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "16px" }}>
                    {Object.keys(cocStats).map(key => (
@@ -621,7 +648,6 @@ export default function App() {
                    특성치 총합: {currentCocTotal} / 460 pt (행운 제외)
                  </div>
 
-                 {/* CoC 기능치 세팅 가이드 보강 */}
                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>
                    <strong>추가 기능치(Skill):</strong> 직업과 배경에 맞는 주요 기능치와 수치를 쉼표(,)로 구분해 적어주세요. <br/>다이스 판정 시 기본값 대신 여기서 입력한 수치를 최우선으로 끌어옵니다.
                  </div>
@@ -674,7 +700,26 @@ export default function App() {
               <div className="glass-alt" style={{ padding: "8px 16px", borderBottom: `1px solid ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
                 <span style={{ fontSize: "0.8rem", fontWeight: "700", color: theme.warning }}>{activeSession.sheet?.cycle}C / {activeSession.sheet?.scene}S (리미트: {activeSession.sheet?.limit})</span>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button style={{ padding: "4px 10px", backgroundColor: "transparent", border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "12px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑 보기</button>
+                  <button onClick={() => setIsTabletopOpen(!isTabletopOpen)} style={{ padding: "4px 10px", backgroundColor: isTabletopOpen ? theme.warning : "transparent", border: `1px solid ${theme.warning}`, color: isTabletopOpen ? "#000" : theme.warning, borderRadius: "12px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑 보기</button>
+                </div>
+              </div>
+            )}
+
+            {/* [복구 완료] 인세인 테이블탑 오버레이 */}
+            {activeSession.ruleMode === "insane" && isTabletopOpen && (
+              <div style={{ position: "absolute", top: "45px", left: 0, right: 0, bottom: "70px", backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", zIndex: 50, display: "flex", flexWrap: "wrap", alignContent: "flex-start", gap: "16px", padding: "20px", overflowY: "auto" }}>
+                <div style={{ width: "100%", color: "#fff", fontWeight: "700", marginBottom: "8px" }}>🃏 현재 활성화된 카드 덱</div>
+                {/* 핸드아웃 덱 더미 */}
+                <div className="glass-panel" style={{ width: "140px", height: "200px", borderRadius: "12px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: theme.panelAlt }}>
+                  <span style={{ fontSize: "2rem" }}>📜</span>
+                  <span style={{ fontWeight: "700", marginTop: "12px", fontSize: "0.9rem" }}>핸드아웃 덱</span>
+                  <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>(추후 데이터 연동)</span>
+                </div>
+                {/* 광기 덱 더미 */}
+                <div className="glass-panel" style={{ width: "140px", height: "200px", borderRadius: "12px", border: `1px solid ${theme.danger}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: "rgba(214, 56, 87, 0.1)" }}>
+                  <span style={{ fontSize: "2rem" }}>💀</span>
+                  <span style={{ fontWeight: "700", marginTop: "12px", fontSize: "0.9rem", color: theme.danger }}>미공개 광기</span>
+                  <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>남은 장수: 6장</span>
                 </div>
               </div>
             )}
