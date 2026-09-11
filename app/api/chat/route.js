@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 export async function POST(req) {
   try {
@@ -100,6 +100,14 @@ ${commonRules}
 ${scenarioText || "자유 샌드박스 세계관"}`;
     }
 
+    // TRPG 서사 특성상 차단되지 않도록 안전 필터 완화
+    const safetySettings = [
+      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    ];
+
     let historyMessages = messages.slice(0, -1);
     if (historyMessages.length > 0 && historyMessages[0].role === "model") {
       historyMessages = historyMessages.slice(1);
@@ -128,11 +136,19 @@ ${scenarioText || "자유 샌드박스 세계관"}`;
         const model = genAI.getGenerativeModel({
           model: modelName,
           systemInstruction: systemInstruction,
+          safetySettings: safetySettings,
         });
 
         const chat = model.startChat({ history });
         const result = await chat.sendMessage(lastMessage);
-        resultText = result.response.text();
+        
+        // 텍스트 안전 추출
+        if (result.response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          resultText = result.response.candidates[0].content.parts[0].text;
+        } else {
+          resultText = result.response.text();
+        }
+        
         usageData = result.response.usageMetadata || null;
         if (resultText) break;
       } catch (err) {
