@@ -6,44 +6,47 @@ export async function POST(req) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API 키가 누락되었습니다." }), { status: 400 });
+      return new Response(JSON.stringify({ error: "API 키가 등록되지 않았습니다." }), { status: 400 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 룰에 따른 마스터 지침 분기 (복구됨)
-    let ruleInstruction = "";
+    // 4대 룰별 맞춤 키퍼 수칙
+    let rulePrompt = "";
     if (ruleMode === "coc") {
-      ruleInstruction = `룰: 크툴루의 부름 7판 (1D100).
-- 단서 수색, 은밀 행동 시 다이스 판정을 요구하세요.
-- 시체나 기괴한 현상 조우 시 이성(SAN) 체크를 지시하세요.
-- SAN이 5점 이상 급감하면 플레이어는 일시적 광기에 빠지며, NPC가 이에 동요하는 묘사를 넣으세요.`;
+      rulePrompt = `[크툴루의 부름 7판]
+- 단서 탐색, 은밀 행동 시 다이스 판정(CHECK)을 요구하세요.
+- 끔찍한 진실, 시체, 신화생물 조우 시 이성(SAN) 체크를 지시하세요.
+- SAN이 5점 이상 급감하거나 플레이어의 시트에 광기 상태가 발현되어 있다면 파트너 NPC가 당황해 부축하거나 상황이 극적으로 혼란해지는 모습을 생생하게 묘사하세요.`;
     } else if (ruleMode === "insane") {
-      ruleInstruction = `룰: 멀티 호러 TRPG 인세인 (2D6).
-- 씬(Scene) 단위로 진행하며, 플레이어의 광기나 숨겨진 비밀을 서서히 압박하세요.`;
+      rulePrompt = `[멀티 호러 TRPG 인세인]
+- 씬(Scene)을 진행하며 공포 판정과 비밀(Secret) 탐색을 유도하세요.
+- 공포 판정 실패나 이성치 손실로 광기 카드가 발현되면 의심과 망상에 사로잡힌 플레이어의 심리를 자극하세요.
+- 다른 등장인물의 비밀이 밝혀질 때는 <!-- REVEAL_SECRET: {"name": "인물명", "secret": "비밀내용"} --> 형식으로 출력하세요.`;
     } else if (ruleMode === "unsung") {
-      ruleInstruction = `룰: 언성 듀엣 (2D6).
-- 몽환적이고 기괴한 이계 '시프터' 탈출 서사.
-- 플레이어가 위기에 처하면 '이계 침식도(Erosion)' 증가와 신체 변이를 묘사하세요.`;
+      rulePrompt = `[언성 듀엣]
+- 이계 '시프터' 탈출을 위한 2인 서사입니다.
+- 위기 상황에서 판정 실패 시 이계 침식도(Erosion) 상승과 신체적 변이 징후를 부각하세요.`;
     } else {
-      ruleInstruction = `룰: 자유 서사 (1D20). 샌드박스 형식으로 유연하게 판정합니다.`;
+      rulePrompt = `[자유 서사 모드]
+- 1D20 판정과 유연한 상호작용을 기반으로 서사를 전개하세요.`;
     }
 
-    const systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터입니다.
-적용 룰: [${ruleInstruction}]
-플레이어 서사 성향: [${playPreference || "자유로운 전개"}]
+    const systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
+${rulePrompt}
+플레이어 성향: [${playPreference || "자유 서사"}]
 시나리오 배경: [${scenarioText || "미상"}]
-캐릭터 상태: 이름(${playerSheet?.name}), 직업(${playerSheet?.job})
+캐릭터 상태: 이름(${playerSheet?.name}), 직업(${playerSheet?.job}), 체력(${playerSheet?.hp}), 이성(${playerSheet?.san}), 광기(${playerSheet?.madnessStatus || "정상"})
 
 [키퍼 진행 절대 원칙]
-1. **장면 묘사와 조사 구역 제시 (필수)**:
-   - 새로운 방이나 장소에 들어설 때 시각/청각적 분위기를 묘사하고, 조사 가능한 구역 2~3곳을 본문 끝에 반드시 태그로 명시하세요.
+1. **장면 묘사와 탐색 구역 제시 (필수)**:
+   - 새로운 방이나 장면이 열릴 때마다 플레이어가 단서를 조사할 수 있는 구역 2~3곳을 본문 끝에 반드시 태그로 추출하십시오.
    <!-- SPOTS: [{"name": "오브젝트명", "stat": "필요기능"}] -->
    예시: <!-- SPOTS: [{"name": "피 묻은 양피지 책", "stat": "관찰력"}] -->
 
-2. **적극적인 다이스 판정 요구 (CHECK)**:
-   - 플레이어가 위험을 무릅쓰거나 단서를 찾을 때 임의로 결과를 정하지 말고 판정을 요구하세요.
+2. **적극적인 판정 유도 (CHECK)**:
+   - 플레이어가 문을 열거나 고서를 해독하는 등 위기/수색 행동을 취하면 결과를 임의로 확정하지 말고 판정을 요구하십시오.
    <!-- CHECK: {"skill": "관찰력", "target": 60, "reason": "숨겨진 일기장 수색"} -->
 
 3. **수치 증감 (STATUS)**:
@@ -62,15 +65,16 @@ export async function POST(req) {
     const chat = model.startChat({
       history: [
         { role: "user", parts: [{ text: systemInstruction }] },
-        { role: "model", parts: [{ text: "TRPG 마스터로서 규칙과 서사를 완벽하게 이끌겠습니다." }] },
+        { role: "model", parts: [{ text: "TRPG 마스터로서 정규 룰과 광기 수칙을 완벽하게 이끌겠습니다." }] },
         ...chatHistory.slice(0, -1),
       ],
     });
 
     const lastMessage = chatHistory[chatHistory.length - 1].parts[0].text;
     const result = await chat.sendMessage(lastMessage);
-    
-    return new Response(JSON.stringify({ text: result.response.text() }), {
+    const responseText = result.response.text();
+
+    return new Response(JSON.stringify({ text: responseText }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
