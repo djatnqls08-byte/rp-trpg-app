@@ -2189,6 +2189,7 @@ export default function App() {
       )}
 
       {/* 설정 모달 */}
+      {/* 🌟 [수정] 오류 없이 완벽하게 정돈된 환경 설정 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "22px", borderRadius: "14px", color: theme.text }}>
@@ -2196,7 +2197,9 @@ export default function App() {
               <h3 style={{ margin: 0, fontSize: "1rem" }}>⚙️ 환경 설정</h3>
               <button onClick={() => closeModal(setShowSettingsModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
+            
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {/* 1. 테마 선택 */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                   <label style={{ fontSize: "0.8rem", fontWeight: "700" }}>2026 팬톤 테마 팔레트</label>
@@ -2206,6 +2209,53 @@ export default function App() {
                   {Object.entries(THEME_PALETTES).map(([k, p]) => (
                     <button key={k} onClick={() => handleSelectPalette(k)} style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${currentPalette === k ? theme.accent : theme.border}`, backgroundColor: currentPalette === k ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: currentPalette === k ? "700" : "400" }}>{p.name}</button>
                   ))}
+                </div>
+              </div>
+
+              {/* 2. 본문 글씨체 선택 */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>
+                  본문 서사 글씨체
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setFontChoice("maru")} 
+                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "maru" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "maru" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "maru" ? "800" : "400" }}
+                  >
+                    📖 마루 부리 (명조체)
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setFontChoice("gothic")} 
+                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "gothic" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "gothic" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "gothic" ? "800" : "400" }}
+                  >
+                    📱 프리텐다드 (고딕체)
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. 효과음 볼륨 */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "4px" }}>
+                  <span>주사위 효과음 볼륨</span>
+                  <span>{Math.round(soundVolume * 100)}%</span>
+                </div>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input type="range" min="0" max="1" step="0.05" value={soundVolume} onChange={e => handleSaveVolume(Number(e.target.value))} style={{ flex: 1 }} />
+                  <button onClick={playDiceSound} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", fontSize: "0.72rem", cursor: "pointer" }}>🔊 테스트</button>
+                </div>
+              </div>
+
+              {/* 4. 백업 및 복원 */}
+              <div style={{ display: "flex", gap: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "10px" }}>
+                <button onClick={() => openModal(setShowBackupModal)} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>💾 백업</button>
+                <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>📤 복원<input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} /></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
                 </div>
               </div>
               <div>
