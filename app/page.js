@@ -171,7 +171,6 @@ export default function App() {
         let imported = JSON.parse(ev.target.result);
         if (!Array.isArray(imported)) imported = [imported];
         const merged = [...imported, ...lobbyPresets];
-        // 중복 방지를 위해 ID 기준으로 고유값만 필터링
         const unique = Array.from(new Map(merged.map(item => [item.id, item])).values());
         setLobbyPresets(unique);
         localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(unique));
@@ -179,13 +178,13 @@ export default function App() {
       } catch (err) { alert("복원 실패: " + err.message); }
     };
     reader.readAsText(file);
-    e.target.value = null; // 같은 파일 연속 선택 가능하게 초기화
+    e.target.value = null;
   };
 
   // 🌟 AI 답변 강제 취소 함수
   const handleCancelResponse = () => {
     if (abortController) {
-      abortController.abort(); // 통신 강제 절단
+      abortController.abort();
       setAbortController(null);
       setIsLoading(false);
       setIsAiGenerating(false);
@@ -272,7 +271,7 @@ export default function App() {
   function getPortraitUrl(promptText) {
     const clean = promptText || "character portrait";
     const styleTag = portraitStyle === "anime" ? "anime style, 2d illustration, masterpiece" : "realistic photography, cinematic lighting, 8k";
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
+    return `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   }
 
   function handleToggleDarkMode() {
@@ -617,12 +616,55 @@ export default function App() {
     const titlePrompt = prompt("로비 전체 세팅으로 저장할 이름을 입력하세요:", defaultTitle);
     if (!titlePrompt) return;
 
+    let parsedSynopsis = "";
+    let parsedOpening = "";
+    let parsedTruth = s.scenarioText || "";
+
+    // 🌟 통째로 합쳐진 텍스트에서 시놉시스, 서막, 진상을 각각 분리 복원
+    if (s.scenarioText) {
+      const synMatch = s.scenarioText.match(/\[공개 시놉시스\]\n([\s\S]*?)\n\n\[초기 배경\/서막\]/);
+      const opMatch = s.scenarioText.match(/\[초기 배경\/서막\]\n([\s\S]*?)\n\n\[키퍼 전용 기밀\/진상\]/);
+      const trMatch = s.scenarioText.match(/\[키퍼 전용 기밀\/진상\]\n([\s\S]*)$/);
+      
+      if (synMatch) parsedSynopsis = synMatch[1].trim();
+      if (opMatch) parsedOpening = opMatch[1].trim();
+      if (trMatch) parsedTruth = trMatch[1].trim();
+    }
+
     const restoredKpcList = (s.sheet?.npcs || []).map((npc, idx) => ({
-      id: npc.id || Date.now() + idx, name: npc.name || "", job: npc.title || "", detail: "", secret: npc.secret || "", portraitUrl: npc.portrait || "", showSecret: false
+      id: npc.id || Date.now() + idx, 
+      name: npc.name || "", 
+      job: npc.title || "", 
+      detail: npc.detail || "", 
+      secret: npc.secret || "", 
+      portraitUrl: npc.portrait || "", 
+      showSecret: false
     }));
 
     const newLobbyPreset = {
-      id: Date.now(), presetTitle: titlePrompt, scenarioTitle: s.title || "", publicSynopsis: "", openingScene: "", hiddenTruth: s.scenarioText || "", playPreference: s.preference || "#GL #쌍방구원 #달달", wizardMode: s.ruleMode || "coc", charName: s.sheet?.name || "", charJob: s.sheet?.job || "", charAge: s.sheet?.age || "24", charGender: s.sheet?.gender || "여성", charBackground: s.sheet?.background || "", charMission: s.sheet?.mission || "", charSecret: s.sheet?.secret || "", charPortraitUrl: s.sheet?.portrait || "", cocStats: s.sheet?.cocStats || { str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 }, cocSkills: s.sheet?.cocSkills || "", insaneSkills: s.sheet?.insaneSkills || [], insaneCuriosity: s.sheet?.insaneCuriosity || "정서", insaneFear: s.sheet?.insaneFear || "죽음", insaneLimit: s.sheet?.limit || 4, kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }]
+      id: Date.now(), 
+      presetTitle: titlePrompt, 
+      scenarioTitle: s.title || "", 
+      publicSynopsis: parsedSynopsis, 
+      openingScene: parsedOpening, 
+      hiddenTruth: parsedTruth, 
+      playPreference: s.preference || "#GL #쌍방구원 #달달", 
+      wizardMode: s.ruleMode || "coc", 
+      charName: s.sheet?.name || "", 
+      charJob: s.sheet?.job || "", 
+      charAge: s.sheet?.age || "24", 
+      charGender: s.sheet?.gender || "여성", 
+      charBackground: s.sheet?.background || "", 
+      charMission: s.sheet?.mission || "", 
+      charSecret: s.sheet?.secret || "", 
+      charPortraitUrl: s.sheet?.portrait || "", 
+      cocStats: s.sheet?.cocStats || { str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 }, 
+      cocSkills: s.sheet?.cocSkills || "", 
+      insaneSkills: s.sheet?.insaneSkills || [], 
+      insaneCuriosity: s.sheet?.insaneCuriosity || "정서", 
+      insaneFear: s.sheet?.insaneFear || "죽음", 
+      insaneLimit: s.sheet?.limit || 4, 
+      kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }]
     };
 
     const updated = [newLobbyPreset, ...lobbyPresets];
@@ -656,11 +698,11 @@ export default function App() {
       try {
         if (!window.pdfjsLib) {
           await new Promise((res, rej) => {
-            const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            const script = document.createElement("script"); script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
             script.onload = res; script.onerror = rej; document.head.appendChild(script);
           });
         }
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)";
         const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
         let text = "";
         for (let i = 1; i <= pdf.numPages; i++) {
@@ -789,7 +831,7 @@ export default function App() {
 
     let mName = "", mDesc = "", rollNum = 1;
     if (rule === "coc") {
-      rollNum = Math.floor(Math.random() * 10) + 1; // 1D10
+      rollNum = Math.floor(Math.random() * 10) + 1;
       const m = COC_MADNESS_TABLE.find(it => it.roll === rollNum) || COC_MADNESS_TABLE[0];
       mName = m.name; mDesc = m.desc;
     } else {
@@ -1040,31 +1082,51 @@ export default function App() {
       const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-      // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 '완벽 차단'
+      // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 완벽 방어
       if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
         const currentNpcs = activeSession.sheet?.npcs || [];
         const mergedNpcs = currentNpcs.map(cNpc => {
           const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
           if (updatedNpc) {
             return {
-              ...cNpc, // 1차로 원본 데이터를 그대로 깐 뒤
-              // 2차로 AI가 변경해도 되는 '안전한 항목'만 허락합니다.
+              ...cNpc,
               affection: updatedNpc.affection !== undefined ? updatedNpc.affection : cNpc.affection,
               title: updatedNpc.title || cNpc.title,
               secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
-              // 🚨 핵심: detail(설정), secret(비밀), portrait(초상화)는 AI가 빈칸을 보내도 무시하고 절대 덮어쓰지 않음!
             };
           }
-          return cNpc; 
+          return cNpc;
         });
-        
-        // AI가 시나리오 도중 완전히 새로운 KPC를 창조해냈을 경우에만 배열에 새로 추가
         parsedData.newSheetVars.npcs.forEach(aNpc => {
           if (!currentNpcs.find(cNpc => cNpc.name === aNpc.name || cNpc.id === aNpc.id)) {
             mergedNpcs.push({ ...aNpc, id: aNpc.id || Date.now() + Math.random(), portrait: getPortraitUrl(aNpc.name), detail: "", secret: "" });
           }
         });
         newSheet.npcs = mergedNpcs;
+      }
+
+      if (parsedData.triggeredMadness) {
+        const mObj = parsedData.triggeredMadness;
+        setShowInsanityFlash(true);
+        setTimeout(() => setShowInsanityFlash(false), 500);
+        setActiveMadnessAlert({ name: mObj.name, desc: mObj.desc });
+        newSheet.madnessStatus = `광기 발현: ${mObj.name}`;
+        
+        const cardExists = (newSheet.madnessCards || []).some(c => c.name.includes(mObj.name) || mObj.name.includes(c.name));
+        if (!cardExists) {
+          newSheet.madnessCards = [...(newSheet.madnessCards || []), { name: mObj.name, desc: mObj.desc, revealed: true, id: Date.now() }];
+        } else {
+          newSheet.madnessCards = (newSheet.madnessCards || []).map(c => c.name.includes(mObj.name) || mObj.name.includes(c.name) ? { ...c, revealed: true } : c);
+        }
+      }
+
+      if (parsedData.revealedHandoutTitles && parsedData.revealedHandoutTitles.length > 0) {
+        newSheet.handouts = (newSheet.handouts || []).map(h => {
+          if (parsedData.revealedHandoutTitles.some(t => h.title.includes(t) || t.includes(h.title))) {
+            return { ...h, revealed: true };
+          }
+          return h;
+        });
       }
 
       if (parsedData.newHandouts.length > 0) {
@@ -1174,8 +1236,8 @@ export default function App() {
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
-        @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
-        @import url('[https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap](https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap)');
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
         .serif-text { font-family: 'Noto Serif KR', serif; line-height: 1.85; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -1188,7 +1250,7 @@ export default function App() {
 
       {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.35)", pointerEvents: "none" }} />}
 
-      {/* 🌟 추가: 모바일에서 화면 바깥 누르면 날개 접히는 기능 */}
+      {/* 🌟 모바일 사이드바 닫기용 터치 영역 */}
       {isMobile && isSidebarOpen && (
         <div 
           onClick={() => setIsSidebarOpen(false)} 
@@ -1197,12 +1259,14 @@ export default function App() {
       )}
 
       {/* 1. 좌측 사이드바 */}
-      <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
-  <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
-  <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
-  {/* 🌟 닫기 버튼 */}
-  <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
-</div>
+      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
+          <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
+          <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
+          {isMobile && (
+            <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+          )}
+        </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
           {sessions.map((s) => (
             <div key={s.id} onClick={() => { setActiveSessionId(s.id); if (isMobile) setIsSidebarOpen(false); }} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "4px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : "transparent", border: activeSessionId === s.id ? `1px solid ${theme.border}` : "1px solid transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1640,8 +1704,8 @@ export default function App() {
                         setSessions(prev => prev.map(s => {
                           if (s.id !== activeSessionId) return s;
                           const newMsgs = [...s.messages];
-                          newMsgs.pop(); // 마스터 답변 삭제
-                          if (newMsgs.length > 0 && newMsgs[newMsgs.length - 1].role === "user") newMsgs.pop(); // 내 채팅 삭제
+                          newMsgs.pop();
+                          if (newMsgs.length > 0 && newMsgs[newMsgs.length - 1].role === "user") newMsgs.pop();
                           return { ...s, messages: newMsgs, suggestedActions: [], pendingCheck: null };
                         }));
                       }
@@ -1742,7 +1806,7 @@ export default function App() {
           
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>캐릭터 시트</span>
-            {/* 🌟 추가: PC만 저장 vs 전체 세팅 저장 분리 */}
+            {/* 🌟 PC만 저장 vs 전체 세팅 저장 분리 */}
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <button onClick={handleSaveCurrentAsPreset} title="내 캐릭터만 저장" style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", color: theme.text, fontWeight: "700" }}>💾 PC만</button>
               <button onClick={handleSaveSessionAsLobbyPreset} title="전체 세팅 저장" style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", color: theme.text, fontWeight: "700" }}>📁 전체</button>
@@ -2047,7 +2111,7 @@ export default function App() {
               <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* 🌟 추가: 로비 세팅 JSON 백업/복원 버튼 */}
+            {/* 🌟 로비 세팅 JSON 백업/복원 버튼 */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
               <button onClick={exportLobbyPresets} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>
                 📥 JSON 다운로드
