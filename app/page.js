@@ -25,6 +25,7 @@ const THEME_PALETTES = {
   }
 };
 
+// 4대 정규 룰 가이드
 const RULE_GUIDES = {
   coc: { title: "크툴루의 부름 (Call of Cthulhu 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
   insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 비밀이 교차하는 현대 괴담 심리 호러.", system: "2D6 판정. 사이클별 씬 소모 및 비밀(Secret) 조사." },
@@ -119,13 +120,14 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState(""); // 추가됨
 
   // 모바일 반응형
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // 8종 모달 제어
+  // 8종 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -193,7 +195,6 @@ export default function App() {
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
 
-  // 🌟 단일 활성 세션 선언
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
@@ -341,7 +342,7 @@ export default function App() {
     }
   };
 
-  // ✨ AI 즉석 생성
+  // ✨ AI 즉석 생성 (진상, 기믹, 3대 엔딩 분기)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
@@ -657,7 +658,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     closeModal(setShowExportModal);
   };
 
-  // 광기 트리거 (중복 발작 차단)
+  // 광기 트리거
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -754,7 +755,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({.*?})\s*-->/is);
       if (checkMatch) parsedData.pendingCheck = JSON.parse(checkMatch[1]);
-    } catch (e) {}
+    } catch(e) {}
 
     cleanText = cleanText
       .replace(/```html|```json|```/gi, "")
@@ -836,9 +837,11 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
+
+    // [수정 핵심 2] 전송하는 텍스트가 주사위 굴림 결과(예: "[🎲 CoC 1D100...") 인지 확인합니다.
+    const isDiceRollSubmission = textToSend.includes("[🎲");
+
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
-    
-    // 🌟 사용자가 메시지를 보내거나 주사위를 굴리면 대기 중이던 판정(pendingCheck) 즉시 해제
     setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s)));
     setIsLoading(true);
 
@@ -851,6 +854,13 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
       const data = await response.json();
       recordApiCall(data.usage);
       const { cleanText, parsedData } = parseTagsSafely(data.text || "");
+
+      // [수정 핵심 3] 플레이어가 방금 주사위 결과를 제출했다면, 
+      // 해당 턴에 AI가 습관적으로 또 내뱉은 CHECK 태그를 강제로 무시(Consume)합니다.
+      if (isDiceRollSubmission) {
+        parsedData.pendingCheck = null;
+      }
+
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
       if (parsedData.revealedSecrets.length > 0) {
@@ -859,7 +869,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         });
       }
 
-      // 이미 광기 상태가 아닐 때만 새 광기 트리거 (중복 루프 방지)
       const prevSan = Number(activeSession.sheet?.san ?? 50);
       const newSan = parsedData.newSheetVars?.san !== undefined ? Number(parsedData.newSheetVars.san) : prevSan;
       if (!activeSession.sheet?.madnessStatus) {
@@ -870,7 +879,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         }
       }
 
-      // 🌟 새로운 턴의 데이터로 온전히 덮어쓰기 (새 판정 요구가 있을 때만 pendingCheck 갱신)
       setSessions((prev) =>
         prev.map((s) =>
           s.id === activeSessionId
@@ -880,7 +888,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
                 messages: [...updatedMessages, { role: "model", text: cleanText }],
                 suggestedActions: parsedData.suggActions,
                 investigationSpots: parsedData.investigationSpots,
-                pendingCheck: parsedData.pendingCheck || null,
+                pendingCheck: parsedData.pendingCheck, // 방어 로직에 의해 정제된 pendingCheck
               }
             : s
         )
@@ -913,6 +921,10 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
   const rollDiceDirectly = (overrideTarget = null, skillName = "") => {
     if (isRolling || !activeSession) return;
     setIsRolling(true);
+
+    // [수정 핵심 1] 주사위를 굴리기 시작하는 즉시 pendingCheck 상태를 강제로 비워, UI 배너를 화면에서 즉각 제거합니다.
+    setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, pendingCheck: null } : s)));
+
     playDiceSound();
     const mode = activeSession.ruleMode;
 
@@ -944,7 +956,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
       }
 
       setIsRolling(false);
-      // 🌟 주사위를 굴린 결과를 보내며 판정을 온전히 소모
       executeMessage(rollFormatted);
     }, animationEnabled ? 650 : 150);
   };
@@ -968,16 +979,16 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  // 🛡️ 지문 분석 및 산 체크 배너 감지 로직
+  // 🛡️ 지문 분석 및 산 체크 배너 감지
   const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
   const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
-  const justRolledAny = lastUserMsg.includes("판정:"); // 방금 판정 주사위를 굴린 직후라면 배너 미표시
+  const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
 
   const isSanCheckDetected =
     activeSession?.ruleMode === "coc" &&
     !activeSession?.sheet?.madnessStatus &&
     !activeMadnessAlert &&
-    !justRolledAny &&
+    !justRolledSan &&
     (activeSession?.pendingCheck?.skill?.includes("이성") ||
       lastMsgText.includes("산 체크를 진행") ||
       lastMsgText.includes("이성 체크를 진행") ||
@@ -1208,7 +1219,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
                 <div className="glass-card" style={{ padding: "18px", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                    <span style={{ fontWeight: "800", fontSize: "0.88rem" }}>4. 시나리오 문서 및 배경</span>
+                    <span style={{ fontWeight: "800", fontSize: "0.88rem" }}>4. 시나리오 문서 및 배경 (기믹/엔딩 설계)</span>
                     <button type="button" onClick={handleAutoReplaceKpcPc} style={{ padding: "5px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "6px", color: theme.accent, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}>
                       🔄 시나리오 내 KPC/PC 자동 치환
                     </button>
@@ -1363,7 +1374,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
                 </div>
               )}
 
-              {/* 🌟 소모된 판정은 중복 표시하지 않는 단일 체크 배너 */}
               {activeSession?.pendingCheck && !isSanCheckDetected && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <span style={{ fontSize: "0.8rem", fontWeight: "700", color: theme.danger }}>
@@ -1564,7 +1574,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
               </div>
             )}
 
-            {/* Unsung Duet 전용 UI */}
+            {/* Unsung Duet UI */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1875,7 +1885,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         </div>
       )}
 
-      {/* 6. 복원 도움말 모달 */}
+      {/* 6. 복원 안내 모달 */}
       {showRestoreHelpModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "450px", padding: "24px", color: theme.text }}>
