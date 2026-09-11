@@ -563,26 +563,37 @@ export default function App() {
     closeModal(setShowPortraitEditModal);
   };
 
-  // 🌟 내 컴퓨터에서 이미지 파일 직접 업로드 처리
+// 🌟 내 컴퓨터에서 이미지 파일 직접 업로드 처리 (자동 경량화 압축)
   const handlePortraitFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      if (activePortraitTarget === "pc") {
-        if (activeSession) {
-          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, portrait: dataUrl } } : s));
-        } else setCharPortraitUrl(dataUrl);
-      } else {
-        if (activeSession) {
-          const npcs = activeSession.sheet.npcs.map(n => n.id === activePortraitTarget ? { ...n, portrait: dataUrl } : n);
-          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, npcs } } : s));
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 200; // 시트 및 초상화에 최적화된 해상도
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8); // 15KB 내외로 대폭 압축
+
+        if (activePortraitTarget === "pc") {
+          if (activeSession) {
+            setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, portrait: dataUrl } } : s));
+          } else setCharPortraitUrl(dataUrl);
         } else {
-          setKpcList(prev => prev.map(k => k.id === activePortraitTarget ? { ...k, portraitUrl: dataUrl } : k));
+          if (activeSession) {
+            const npcs = activeSession.sheet.npcs.map(n => n.id === activePortraitTarget ? { ...n, portrait: dataUrl } : n);
+            setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, npcs } } : s));
+          } else {
+            setKpcList(prev => prev.map(k => k.id === activePortraitTarget ? { ...k, portraitUrl: dataUrl } : k));
+          }
         }
-      }
-      closeModal(setShowPortraitEditModal);
+        closeModal(setShowPortraitEditModal);
+      };
+      img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   };
@@ -702,6 +713,16 @@ export default function App() {
     return { cleanText, parsedData };
   };
 
+// AI 통신 시 불필요한 대용량 이미지 데이터를 제거하여 전송 오류 방지
+  const cleanSheetForAi = (sheet) => {
+    if (!sheet) return {};
+    const { portrait, ...rest } = sheet;
+    return {
+      ...rest,
+      npcs: (rest.npcs || []).map(({ portrait, ...npcRest }) => npcRest)
+    };
+  };
+  
   const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "클레어";
@@ -770,7 +791,7 @@ export default function App() {
         body: JSON.stringify({
           messages: [{ role: "user", text: openingPrompt }],
           scenarioText: fullScenarioContext,
-          playerSheet: initialSheet,
+          playerSheet: cleanSheetForAi(initialSheet),
           ruleMode: wizardMode,
           playPreference
         })
@@ -806,7 +827,7 @@ export default function App() {
         body: JSON.stringify({
           messages: updatedMessages,
           scenarioText: activeSession.scenarioText,
-          playerSheet: activeSession.sheet,
+          playerSheet: cleanSheetForAi(activeSession.sheet),
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference
         })
