@@ -1,20 +1,20 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// 테마 팔레트 4종 및 다크/라이트 모드
+// 테마 팔레트 4종 및 다크/라이트 모드 (원본 100% 유지)
 const THEME_PALETTES = {
   midnight: {
-    name: "블루",
+    name: "미드나잇 블루",
     dark: { bg: "#090b10", sidebar: "#0f131c", panel: "#151a26", panelAlt: "#1c2333", border: "rgba(108, 141, 250, 0.2)", text: "#e6eaf5", textMuted: "#8591ab", accent: "#6c8dfa", accentGlow: "rgba(108, 141, 250, 0.35)", danger: "#f76585", warning: "#e5a93c", success: "#62d681", bubbleUser: "#25355e", bubbleAi: "#151a26", inputBg: "#0f131c" },
     light: { bg: "#f0f4fc", sidebar: "#e2e8f5", panel: "#ffffff", panelAlt: "#ebf1fd", border: "rgba(58, 104, 216, 0.2)", text: "#1a2233", textMuted: "#5e6c88", accent: "#3a68d8", accentGlow: "rgba(58, 104, 216, 0.25)", danger: "#d63857", warning: "#b57212", success: "#26823f", bubbleUser: "#4b74cb", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   abyss: {
-    name: "어비스",
+    name: "심연 어비스",
     dark: { bg: "#040507", sidebar: "#080a0f", panel: "#0d1118", panelAlt: "#131822", border: "rgba(86, 121, 224, 0.2)", text: "#dfe3ee", textMuted: "#6f788e", accent: "#5679e0", accentGlow: "rgba(86, 121, 224, 0.35)", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a0f" },
     light: { bg: "#f3f5f8", sidebar: "#e4e8f0", panel: "#ffffff", panelAlt: "#eaeff6", border: "rgba(52, 82, 168, 0.2)", text: "#12151c", textMuted: "#5c6475", accent: "#3452a8", accentGlow: "rgba(52, 82, 168, 0.25)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   sepia: {
-    name: "세피아",
+    name: "고서적 세피아",
     dark: { bg: "#1a1512", sidebar: "#15100e", panel: "#241d18", panelAlt: "#302620", border: "rgba(212, 155, 106, 0.22)", text: "#ebe1d5", textMuted: "#9c8b7c", accent: "#d49b6a", accentGlow: "rgba(212, 155, 106, 0.35)", danger: "#d95b5b", warning: "#e3ad5d", success: "#8bb36b", bubbleUser: "#4a3526", bubbleAi: "#241d18", inputBg: "#15100e" },
     light: { bg: "#faf7f2", sidebar: "#f1ebe0", panel: "#ffffff", panelAlt: "#ece4d6", border: "rgba(166, 100, 46, 0.22)", text: "#30241b", textMuted: "#7a6755", accent: "#a6642e", accentGlow: "rgba(166, 100, 46, 0.25)", danger: "#b83b3b", warning: "#ad7017", success: "#48782f", bubbleUser: "#825d3d", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
@@ -53,7 +53,7 @@ const RULE_GUIDES = {
 const COC_MADNESS_TABLE = [
   { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 의식을 잃고 바닥에 쓰러집니다." },
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다. 은밀 행동 불가." },
-  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물(어둠, 책, 젖은 해무 등)에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
   { roll: 4, name: "편집증 및 피해망상", desc: "동행자나 주변 모든 존재가 자신을 해치려 한다는 극심한 의심에 사로잡힙니다." },
   { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 현재 방이나 위험 구역으로부터 반대 방향을 향해 질주합니다." },
   { roll: 6, name: "히스테리성 실성", desc: "공포에 짓눌려 통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
@@ -63,7 +63,7 @@ const COC_MADNESS_TABLE = [
   { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 초점 없는 눈으로 석상처럼 굳어버립니다." }
 ];
 
-// 인세인(inSANe) 1D6 광기 카드 표
+// inSANe 1D6 광기 카드 표
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
@@ -88,7 +88,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // 모달 제어
+  // 모달 제어 8종 (온전한 유지)
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -177,8 +177,8 @@ export default function App() {
   const [targetDc, setTargetDc] = useState(5);
   const [targetStat, setTargetStat] = useState(50);
 
-  // 🩸 광기 발작 및 연출
-  const [madnessModal, setMadnessModal] = useState(null);
+  // 🩸 비차단형 광기 칩 & 플래시 상태
+  const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
@@ -214,6 +214,7 @@ export default function App() {
       const promptT = usage?.promptTokenCount || 0;
       const respT = usage?.candidatesTokenCount || 0;
       const totalT = (isToday ? prev.totalTokens : 0) + (usage?.totalTokenCount || 0);
+
       const updated = { date: todayStr, dailyRequests: newDaily, totalTokens: totalT, lastPromptTokens: promptT, lastResponseTokens: respT };
       if (typeof window !== "undefined") localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
       return updated;
@@ -272,7 +273,11 @@ export default function App() {
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const currentList = prev.split(/\s+/).filter(Boolean);
-      return currentList.includes(tag) ? currentList.filter((t) => t !== tag).join(" ") : [...currentList, tag].join(" ");
+      if (currentList.includes(tag)) {
+        return currentList.filter((t) => t !== tag).join(" ");
+      } else {
+        return [...currentList, tag].join(" ");
+      }
     });
   };
 
@@ -285,7 +290,9 @@ export default function App() {
   const getPortraitUrl = (promptText, forceStyle) => {
     const clean = promptText || "character portrait";
     const currentStyle = forceStyle || portraitStyle;
-    const styleTag = currentStyle === "anime" ? "anime style, 2d illustration, masterpiece" : "realistic photography, highly detailed, cinematic lighting, 8k";
+    const styleTag = currentStyle === "anime" 
+      ? "anime style, 2d illustration, masterpiece" 
+      : "realistic photography, highly detailed, cinematic lighting, 8k";
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   };
 
@@ -342,10 +349,13 @@ export default function App() {
 
     const isKorean = Math.random() > 0.5;
     const region = isKorean ? "korean" : "western";
+    
     const name = pick(proceduralData.names[region]);
     const modeKey = proceduralData.jobs[wizardMode] ? wizardMode : "freeform";
+    
     const availableJobs = proceduralData.jobs[modeKey].filter(j => j.region === region);
     const jobObj = pick(availableJobs.length > 0 ? availableJobs : proceduralData.jobs[modeKey]);
+    
     const availableScenarios = proceduralData.scenarios[modeKey].filter(s => s.region === region);
     const scenarioObj = pick(availableScenarios.length > 0 ? availableScenarios : proceduralData.scenarios[modeKey]);
 
@@ -438,7 +448,11 @@ export default function App() {
     if (!scenarioInput.trim()) return alert("치환할 시나리오 본문이 없습니다.");
     const playerName = charName.trim() || "주인공";
     const partnerName = "파트너";
-    let replaced = scenarioInput.replace(/\bKPC\b/gi, partnerName).replace(/\bPC\b/gi, playerName);
+
+    let replaced = scenarioInput;
+    replaced = replaced.replace(/\bKPC\b/gi, partnerName);
+    replaced = replaced.replace(/\bPC\b/gi, playerName);
+
     setScenarioInput(replaced);
     alert(`시나리오 내 'PC' ➔ '${playerName}', 'KPC' ➔ '${partnerName}'(으)로 치환되었습니다!`);
   };
@@ -447,9 +461,19 @@ export default function App() {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
     const newPreset = {
-      id: Date.now(), title, name: charName, job: charJob, age: charAge, gender: charGender,
-      background: charBackground, portrait: charPortraitUrl, ruleMode: wizardMode,
-      cocStats, mission: charMission, secret: charSecret, unsungMutation
+      id: Date.now(),
+      title: title,
+      name: charName,
+      job: charJob,
+      age: charAge,
+      gender: charGender,
+      background: charBackground,
+      portrait: charPortraitUrl,
+      ruleMode: wizardMode,
+      cocStats: cocStats,
+      mission: charMission,
+      secret: charSecret,
+      unsungMutation: unsungMutation,
     };
     const updated = [newPreset, ...customPresets];
     setCustomPresets(updated);
@@ -473,7 +497,9 @@ export default function App() {
   };
 
   const toggleCareerSelection = (id) => {
-    setSelectedCareerIds((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+    setSelectedCareerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
   const handleInheritFromMultipleSessions = () => {
@@ -501,6 +527,7 @@ export default function App() {
     combinedChronicle += `\n위 세션들의 모든 흉터, 기억, 전리품을 간직한 채 새로운 모험에 들어섭니다.`;
     setPastChronicleText(combinedChronicle);
     setCharBackground(`${baseSheet.background || ""}\n\n${combinedChronicle}`);
+
     closeModal(setShowCareerModal);
     setSelectedCareerIds([]);
     alert(`${chosenSessions.length}개 세션의 서사와 전리품이 성공적으로 통합 계승되었습니다!`);
@@ -589,6 +616,7 @@ export default function App() {
     if (sessions.length === 0) return alert("백업할 시나리오 세션이 없습니다.");
     const targets = backupTarget === "all" ? sessions : sessions.filter((s) => s.id === Number(backupTarget));
     if (targets.length === 0) return alert("선택된 시나리오가 없습니다.");
+    
     const dateStr = new Date().toISOString().slice(0, 10);
     if (backupFormat === "json") {
       const blob = new Blob([JSON.stringify(targets, null, 2)], { type: "application/json" });
@@ -660,37 +688,59 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
-  // 광기 트리거 (CoC / inSANe)
+  // 🩸 비차단형 광기 발현 (화면 차단 팝업 대신 하단 칩 점등 + 중복 방지)
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
+    const session = sessions.find((s) => s.id === targetSessionId);
+    if (session?.sheet?.madnessStatus) return; // 이미 광기 상태인 경우 씬 동안 중복 발작 차단
+
     setShowInsanityFlash(true);
-    setTimeout(() => setShowInsanityFlash(false), 700);
+    setTimeout(() => setShowInsanityFlash(false), 500);
+
+    let madnessName = "";
+    let madnessDesc = "";
+    let rollNum = 1;
 
     if (rule === "coc") {
-      const roll1D10 = Math.floor(Math.random() * 10) + 1;
-      const m = COC_MADNESS_TABLE.find((item) => item.roll === roll1D10) || COC_MADNESS_TABLE[0];
-      setMadnessModal({ rule: "coc", loss: lossAmount, roll: roll1D10, name: m.name, desc: m.desc, sessionId: targetSessionId });
-      setSessions((prev) => prev.map((s) => s.id === targetSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: `일시적 광기: ${m.name}` } } : s));
-    } else if (rule === "insane") {
-      const roll1D6 = Math.floor(Math.random() * 6) + 1;
-      const m = INSANE_MADNESS_TABLE.find((item) => item.roll === roll1D6) || INSANE_MADNESS_TABLE[0];
-      setMadnessModal({ rule: "insane", loss: lossAmount, roll: roll1D6, name: m.name, desc: m.desc, sessionId: targetSessionId });
-      setSessions((prev) => prev.map((s) => s.id === targetSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: `광기 카드: ${m.name}` } } : s));
+      rollNum = Math.floor(Math.random() * 10) + 1;
+      const m = COC_MADNESS_TABLE.find((item) => item.roll === rollNum) || COC_MADNESS_TABLE[0];
+      madnessName = m.name;
+      madnessDesc = m.desc;
+    } else {
+      rollNum = Math.floor(Math.random() * 6) + 1;
+      const m = INSANE_MADNESS_TABLE.find((item) => item.roll === rollNum) || INSANE_MADNESS_TABLE[0];
+      madnessName = m.name;
+      madnessDesc = m.desc;
     }
+
+    const madnessStatusStr = `일시적 광기: ${madnessName}`;
+
+    setActiveMadnessAlert({
+      name: madnessName,
+      desc: madnessDesc,
+      loss: lossAmount,
+      rule,
+      roll: rollNum,
+    });
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === targetSessionId
+          ? { ...s, sheet: { ...s.sheet, madnessStatus: madnessStatusStr } }
+          : s
+      )
+    );
   };
 
-  const confirmMadnessToMaster = () => {
-    if (!madnessModal) return;
-    const ruleLabel = madnessModal.rule === "coc" ? "CoC 7판 정규 룰" : "인세인";
-    const diceLabel = madnessModal.rule === "coc" ? `1D10=${madnessModal.roll}` : `1D6=${madnessModal.roll}`;
-    const notice = `[⚠️ ${ruleLabel}: 이성치 손실(${madnessModal.loss}점)에 따른 ${diceLabel} 발작 ➔ '${madnessModal.name}' 발현]`;
-    setMadnessModal(null);
-    executeMessage(notice);
+  const applyMadnessToInput = () => {
+    if (!activeMadnessAlert) return;
+    setInput((prev) => `[광기 발작: ${activeMadnessAlert.name}] ` + prev);
+    setActiveMadnessAlert(null);
   };
 
   const handleEditTitle = (id, currentTitle) => {
     const newTitle = window.prompt("시나리오 제목 변경:", currentTitle);
     if (newTitle !== null && newTitle.trim() !== "") {
-      setSessions((prev) => prev.map((s) => s.id === id ? { ...s, title: newTitle.trim() } : s));
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, title: newTitle.trim() } : s)));
     }
   };
 
@@ -699,7 +749,7 @@ export default function App() {
     const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
     const newVal = Math.max(0, currentVal + delta);
 
-    if (statName === "san") {
+    if (statName === "san" && !activeSession.sheet?.madnessStatus) {
       if (activeSession.ruleMode === "coc" && delta <= -5) {
         triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
       } else if (activeSession.ruleMode === "insane" && delta < 0) {
@@ -708,7 +758,7 @@ export default function App() {
     }
 
     const updatedSheet = { ...activeSession.sheet, [statName]: newVal };
-    setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, sheet: updatedSheet } : s));
+    setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, sheet: updatedSheet } : s)));
   };
 
   const parseTagsSafely = (rawText) => {
@@ -724,16 +774,23 @@ export default function App() {
 
       const secRegex = /<!--\s*REVEAL_SECRET:\s*({.*?})\s*-->/gis;
       const secMatches = [...cleanText.matchAll(secRegex)];
-      secMatches.forEach(match => { try { parsedData.revealedSecrets.push(JSON.parse(match[1])); } catch(e){} });
+      secMatches.forEach((match) => {
+        try {
+          parsedData.revealedSecrets.push(JSON.parse(match[1]));
+        } catch (e) {}
+      });
 
       const statMatch = cleanText.match(/<!--\s*STATUS:\s*({.*?})\s*-->/is);
       if (statMatch) parsedData.newSheetVars = JSON.parse(statMatch[1]);
 
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({.*?})\s*-->/is);
       if (checkMatch) parsedData.pendingCheck = JSON.parse(checkMatch[1]);
-    } catch(e) {}
+    } catch (e) {}
 
-    cleanText = cleanText.replace(/```html|```json|```/gi, "").replace(/<!--[\s\S]*?-->/g, "").trim();
+    cleanText = cleanText
+      .replace(/```html|```json|```/gi, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .trim();
     return { cleanText, parsedData };
   };
 
@@ -747,7 +804,7 @@ export default function App() {
       portrait: defaultPortrait, pastChronicle: pastChronicleText, hp: 20, maxHp: 20,
       npcs: [{ name: "파트너", title: "동행자", portrait: getPortraitUrl("companion"), affection: 10, state: "신뢰" }],
       items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "가죽 수첩", desc: "단서 보관" }, { name: "만년필 나이프", desc: "호신구" }],
-      madnessStatus: null
+      madnessStatus: null,
     };
 
     if (wizardMode === "insane") {
@@ -770,8 +827,12 @@ export default function App() {
     setIsLoading(true);
 
     const openingPrompt = `[세션 시작: 첫 서막]
-서막을 열고 상황을 묘사하세요.
-플레이어가 조사할 수 있는 구역 2~3곳을 본문 끝에 <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] --> 형식으로 추출하세요.`;
+플레이어를 곧바로 위기나 전투로 던져넣지 마십시오.
+마치 웰메이드 소설의 첫 페이지처럼, 천천히 몰입할 수 있도록 다음을 순서대로 서술하십시오:
+1. 현재 장소의 풍경, 날씨, 시각적 분위기를 감각적으로 묘사합니다.
+2. 주인공이 왜 이곳에 있는지, 현재 상황과 목적을 자연스럽게 짚어줍니다.
+3. 동행 인물이 있다면 그들이 현재 주인공을 어떻게 바라보는지 짧은 행동이나 표정으로 암시합니다.
+4. 조사 가능한 구역 2~3곳을 본문 끝에 <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] --> 형식으로 추출하세요.`;
 
     try {
       const response = await fetch("/api/chat", {
@@ -781,15 +842,28 @@ export default function App() {
       const data = await response.json();
       recordApiCall(data.usage);
       const { cleanText, parsedData } = parseTagsSafely(data.text);
-      setSessions((prev) => prev.map((s) => s.id === newId ? {
-        ...s, sheet: { ...initialSheet, ...parsedData.newSheetVars },
-        messages: [{ role: "model", text: cleanText }],
-        suggestedActions: parsedData.suggActions,
-        investigationSpots: parsedData.investigationSpots,
-        pendingCheck: parsedData.pendingCheck,
-      } : s));
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === newId
+            ? {
+                ...s,
+                sheet: { ...initialSheet, ...parsedData.newSheetVars },
+                messages: [{ role: "model", text: cleanText }],
+                suggestedActions: parsedData.suggActions,
+                investigationSpots: parsedData.investigationSpots,
+                pendingCheck: parsedData.pendingCheck,
+              }
+            : s
+        )
+      );
     } catch (err) {
-      setSessions((prev) => prev.map((s) => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오지 못했습니다 (${err.message}). 잠시 후 행동을 입력해 주세요.` }] } : s));
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === newId
+            ? { ...s, messages: [{ role: "model", text: `서막을 불러오지 못했습니다 (${err.message}). 잠시 후 행동을 입력해 주세요.` }] }
+            : s
+        )
+      );
     } finally {
       setIsLoading(false);
     }
@@ -813,41 +887,65 @@ export default function App() {
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
       if (parsedData.revealedSecrets.length > 0) {
-        parsedData.revealedSecrets.forEach(rev => {
-          newSheet.npcs = (newSheet.npcs || []).map(npc => npc.name === rev.name ? { ...npc, secret: rev.secret, secretRevealed: true } : npc);
+        parsedData.revealedSecrets.forEach((rev) => {
+          newSheet.npcs = (newSheet.npcs || []).map((npc) => (npc.name === rev.name ? { ...npc, secret: rev.secret, secretRevealed: true } : npc));
         });
       }
 
+      // 이미 광기 상태가 아닐 때만 광기 발작 트리거 (중복 루프 방지)
       const prevSan = Number(activeSession.sheet?.san ?? 50);
       const newSan = parsedData.newSheetVars?.san !== undefined ? Number(parsedData.newSheetVars.san) : prevSan;
-      if (activeSession.ruleMode === "coc" && prevSan - newSan >= 5) {
-        triggerMadnessCheck("coc", prevSan - newSan, activeSessionId);
-      } else if (activeSession.ruleMode === "insane" && prevSan > newSan) {
-        triggerMadnessCheck("insane", prevSan - newSan, activeSessionId);
+      if (!activeSession.sheet?.madnessStatus) {
+        if (activeSession.ruleMode === "coc" && prevSan - newSan >= 5) {
+          triggerMadnessCheck("coc", prevSan - newSan, activeSessionId);
+        } else if (activeSession.ruleMode === "insane" && prevSan > newSan) {
+          triggerMadnessCheck("insane", prevSan - newSan, activeSessionId);
+        }
       }
 
-      setSessions((prev) => prev.map((s) => s.id === activeSessionId ? {
-        ...s, sheet: newSheet, messages: [...updatedMessages, { role: "model", text: cleanText }],
-        suggestedActions: parsedData.suggActions,
-        investigationSpots: parsedData.investigationSpots,
-        pendingCheck: parsedData.pendingCheck,
-      } : s));
-    } catch (err) { alert(`통신 오류: ${err.message}`); } finally { setIsLoading(false); }
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === activeSessionId
+            ? {
+                ...s,
+                sheet: newSheet,
+                messages: [...updatedMessages, { role: "model", text: cleanText }],
+                suggestedActions: parsedData.suggActions,
+                investigationSpots: parsedData.investigationSpots,
+                pendingCheck: parsedData.pendingCheck,
+              }
+            : s
+        )
+      );
+    } catch (err) {
+      alert(`통신 오류: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const sendMessage = () => { if (!input.trim()) return; const text = input; setInput(""); executeMessage(text); };
-  const handleUseItem = (itemName) => { setInput((prev) => `품에서 [${itemName}]을(를) 꺼내어 ` + prev); };
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const text = input;
+    setInput("");
+    executeMessage(text);
+  };
+
+  const handleUseItem = (itemName) => {
+    setInput((prev) => `품에서 [${itemName}]을(를) 꺼내어 ` + prev);
+  };
 
   const handleRollback = (msgIndex) => {
     if (!window.confirm("이 발언을 취소하고 다시 작성하시겠습니까? (이후 마스터 답변도 삭제됩니다)")) return;
     setInput(activeSession.messages[msgIndex].text);
     const newMessages = activeSession.messages.slice(0, msgIndex);
-    setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, messages: newMessages } : s));
+    setSessions((prev) => (prev.map((s) => (s.id === activeSessionId ? { ...s, messages: newMessages } : s))));
   };
 
   const rollDiceDirectly = (overrideTarget = null, skillName = "") => {
     if (isRolling || !activeSession) return;
-    setIsRolling(true); playDiceSound();
+    setIsRolling(true);
+    playDiceSound();
     const mode = activeSession.ruleMode;
 
     const rollInterval = setInterval(() => {
@@ -859,17 +957,20 @@ export default function App() {
       let rollFormatted = "";
 
       if (mode === "insane" || mode === "unsung") {
-        const d1 = Math.floor(Math.random() * 6) + 1; const d2 = Math.floor(Math.random() * 6) + 1; const sum = d1 + d2;
-        const targetVal = Number(overrideTarget !== null ? overrideTarget : (mode === "unsung" ? 6 : 5));
+        const d1 = Math.floor(Math.random() * 6) + 1;
+        const d2 = Math.floor(Math.random() * 6) + 1;
+        const sum = d1 + d2;
+        const targetVal = Number(overrideTarget !== null ? overrideTarget : mode === "unsung" ? 6 : 5);
         let outcome = sum === 12 ? "스페셜(대성공)" : sum === 2 ? "펌블(대실패)" : sum >= targetVal ? "성공" : "실패";
         rollFormatted = `[🎲 시스템 공인 2D6 판정: ${d1}+${d2}=${sum} / 목표: ${targetVal}${skillName ? ` (${skillName})` : ""} ➔ 결과: ${outcome}]`;
       } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1;
-        const targetVal = Number(overrideTarget !== null ? overrideTarget : (activeSession.sheet?.san ?? 50));
+        const targetVal = Number(overrideTarget !== null ? overrideTarget : activeSession.sheet?.san ?? 50);
         let outcome = roll === 1 ? "대성공" : roll <= Math.floor(targetVal / 5) ? "극단적 성공" : roll <= Math.floor(targetVal / 2) ? "어려운 성공" : roll <= targetVal ? "보통 성공" : roll >= 96 ? "대실패" : "실패";
         rollFormatted = `[🎲 CoC 1D100 ${skillName ? `${skillName} ` : ""}판정: ${roll} / 목표치: ${targetVal}% ➔ 결과: ${outcome}]`;
       } else {
-        const roll = Math.floor(Math.random() * 20) + 1; const targetVal = Number(overrideTarget !== null ? overrideTarget : 12);
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const targetVal = Number(overrideTarget !== null ? overrideTarget : 12);
         const outcome = roll >= targetVal ? "성공" : "실패";
         rollFormatted = `[🎲 판정: 1D20 결과 ${roll} / 목표: ${targetVal}${skillName ? ` (${skillName})` : ""} ➔ 결과: ${outcome}]`;
       }
@@ -898,7 +999,7 @@ export default function App() {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  // 키퍼 지문 내 산 체크 요구 여부 자동 감지
+  // 키퍼 지문 내 산 체크 요구 여부 감지
   const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
   const isSanCheckDetected = activeSession?.ruleMode === "coc" && (lastMsgText.includes("산 체크") || lastMsgText.includes("이성 체크") || lastMsgText.includes("산치 체크") || lastMsgText.includes("SAN 체크"));
 
@@ -907,11 +1008,20 @@ export default function App() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
-        .glass-card { background: ${isDarkMode ? "rgba(21, 26, 38, 0.85)" : "rgba(255, 255, 255, 0.9)"}; backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(140, 160, 210, 0.4); }
+        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
+        .glass-card {
+          background: ${isDarkMode ? "rgba(21, 26, 38, 0.85)" : "rgba(255, 255, 255, 0.9)"};
+          backdrop-filter: blur(14px);
+          border: 1px solid ${theme.border};
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
       `}</style>
       
-      {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.4)", pointerEvents: "none", transition: "opacity 0.7s ease" }} />}
+      {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.35)", pointerEvents: "none", transition: "opacity 0.5s ease" }} />}
       {isMobile && isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
       {isMobile && isSheetOpen && <div onClick={() => setIsSheetOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
 
@@ -941,7 +1051,7 @@ export default function App() {
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         {!activeSession ? (
-          /* 세션 생성 마법사 (온전한 원본 복원) */
+          /* 세션 생성 마법사 (원본 100% 완전 복원) */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 140px 14px" : "28px 24px 80px 24px", maxWidth: "1080px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", paddingBottom: "12px", borderBottom: `1px solid ${theme.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1214,14 +1324,31 @@ export default function App() {
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.85rem", padding: "4px" }}>마스터가 서사를 집필하는 중...</div>}
             </div>
 
-            {/* 터치형 조사 구역 (SPOTS) & 산 체크 자동 감지 배너 & 제안 칩 */}
+            {/* 터치형 조사 구역 (SPOTS) & 비차단형 광기 칩 & 산 체크 배너 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px", padding: "8px 14px" }}>
               
-              {/* 🩸 지문 내 산 체크 요구 자동 감지 배너 */}
+              {/* 🩸 비차단형 광기 발현 칩 (화면 가림 없이 터치 시 입력창 프리필) */}
+              {activeMadnessAlert && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.25)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
+                  <div style={{ fontSize: "0.8rem", color: theme.danger }}>
+                    🩸 <strong>충격! 이성 손실로 인한 [{activeMadnessAlert.name}] 발현</strong>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>{activeMadnessAlert.desc}</div>
+                  </div>
+                  <button
+                    onClick={applyMadnessToInput}
+                    title="입력창에 광기 접두사를 넣고 대사를 추가할 수 있습니다"
+                    style={{ padding: "5px 12px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "800", fontSize: "0.78rem", cursor: "pointer", whiteSpace: "nowrap", marginLeft: "8px" }}
+                  >
+                    대사 작성에 반영
+                  </button>
+                </div>
+              )}
+
+              {/* 지문 내 산 체크 요구 배너 */}
               {isSanCheckDetected && !isLoading && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <span style={{ fontSize: "0.8rem", fontWeight: "800", color: theme.danger }}>
-                    🩸 키퍼의 이성(SAN) 체크 선언! (현재 이성치: {activeSession.sheet?.san ?? 50}%)
+                    🩸 키퍼의 이성(SAN) 체크 요구 발생! (현재 SAN: {activeSession.sheet?.san ?? 50}%)
                   </span>
                   <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} style={{ padding: "5px 12px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "800", fontSize: "0.78rem", cursor: "pointer" }}>
                     🎲 즉시 산 체크 굴리기
@@ -1240,7 +1367,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 조사 구역 터치 시 입력창에 [조사: ...] 문구 자동 프리필 */}
+              {/* 조사 구역 프리필 버튼 */}
               {(activeSession?.investigationSpots || []).length > 0 && !isLoading && (
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.74rem", color: theme.warning, fontWeight: "700" }}>🔍 조사 구역:</span>
@@ -1248,7 +1375,6 @@ export default function App() {
                     <button
                       key={idx}
                       onClick={() => setInput((prev) => `[조사: ${spot.name}] ` + prev)}
-                      title="클릭 시 입력창에 조사 문구가 자동 삽입되어 멘트를 이어서 작성할 수 있습니다"
                       style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "14px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "600" }}
                     >
                       {spot.name}
@@ -1267,7 +1393,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 입력창 (모바일 엔터=줄바꿈, 우측 전송 터치) */}
+            {/* 입력창 (모바일 엔터 줄바꿈 정상화) */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
               <textarea
                 value={input}
@@ -1321,7 +1447,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 서사 지향 태그 */}
+            {/* 서사 지향 */}
             {activeSession.preference && (
               <div className="glass-card" style={{ fontSize: "0.74rem", padding: "8px 10px", borderRadius: "8px", lineHeight: "1.4" }}>
                 <strong style={{ color: theme.accent }}>🎭 서사 지향:</strong>
@@ -1329,18 +1455,18 @@ export default function App() {
               </div>
             )}
 
-            {/* 광기 상태 활성화 배지 */}
+            {/* 광기 배지 */}
             {activeSession.sheet?.madnessStatus && (
               <div style={{ backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1.5px dashed ${theme.danger}`, borderRadius: "8px", padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: "0.7rem", fontWeight: "800", color: theme.danger }}>⚠️ 광기 상태 발현 중</div>
                   <div style={{ fontSize: "0.76rem", color: "#fca5a5", fontWeight: "700" }}>{activeSession.sheet.madnessStatus}</div>
                 </div>
-                <button onClick={() => setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: null } } : s))} style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "0.75rem", cursor: "pointer" }}>해제 ✕</button>
+                <button onClick={() => setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: null } } : s)))} style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "0.75rem", cursor: "pointer" }}>해제 ✕</button>
               </div>
             )}
 
-            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI] */}
+            {/* CoC 기밀 시트 */}
             {activeSession.ruleMode === "coc" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1399,7 +1525,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 2. 인세인 (inSANe) 전용 UI] */}
+            {/* inSANe 전용 UI */}
             {activeSession.ruleMode === "insane" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.warning}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1441,7 +1567,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 3. 언성 듀엣 전용 UI] */}
+            {/* Unsung Duet 전용 UI */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1461,7 +1587,9 @@ export default function App() {
                         <div
                           key={idx}
                           style={{
-                            flex: 1, height: "10px", borderRadius: "2px",
+                            flex: 1,
+                            height: "10px",
+                            borderRadius: "2px",
                             backgroundColor: filled ? "#b87bd8" : "rgba(255,255,255,0.08)",
                             boxShadow: filled ? "0 0 8px #b87bd8" : "none",
                             transition: "all 0.3s ease"
@@ -1479,7 +1607,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 4. 자유 서사 전용 UI] */}
+            {/* 자유 서사 UI */}
             {activeSession.ruleMode === "freeform" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -1493,7 +1621,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 소지품 및 인벤토리 */}
+            {/* 소지품 */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <h4 style={{ margin: 0, fontSize: "0.84rem", color: theme.accent, fontWeight: "800" }}>🎒 소지품 및 인벤토리</h4>
@@ -1520,7 +1648,7 @@ export default function App() {
 
             <hr style={{ border: "none", borderTop: `1px solid ${theme.border}`, margin: 0 }} />
 
-            {/* 주변 인물 및 호감도 */}
+            {/* 주변 인물 */}
             <div>
               <h4 style={{ margin: "0 0 6px 0", fontSize: "0.84rem", color: theme.accent, fontWeight: "800" }}>주변 인물 및 호감도</h4>
               {(!activeSession.sheet?.npcs || activeSession.sheet.npcs.length === 0) ? (
@@ -1539,7 +1667,7 @@ export default function App() {
                           <span>{npc.name}</span>
                           <span style={{ color: theme.danger }}>♥ {npc.affection || 0}</span>
                         </div>
-                        <div style={{ color: theme.textMuted, fontSize: "0.7rem" }}>{npc.secretRevealed ? npc.secret : npc.state || npc.title || "동행자"}</div>
+                        <div style={{ color: theme.textMuted, fontSize: "0.7rem" }}>{npc.state || npc.title || "동행자"}</div>
                       </div>
                     </div>
                   </div>
@@ -1550,43 +1678,9 @@ export default function App() {
         </div>
       )}
 
-      {/* 🩸 광기 발작 팝업 모달 */}
-      {madnessModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 135, padding: "20px" }}>
-          <div style={{ backgroundColor: theme.panel, border: `2px solid ${theme.danger}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "24px", color: theme.text, boxShadow: "0 0 32px rgba(247, 101, 133, 0.4)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
-              <span style={{ fontSize: "1.3rem" }}>🩸</span>
-              <h3 style={{ margin: 0, fontSize: "1.05rem", color: theme.danger, fontWeight: "800" }}>
-                {madnessModal.rule === "coc" ? "CoC 7판 정규 룰: 일시적 광기 발작!" : "인세인 (inSANe): 광기 카드 발현!"}
-              </h3>
-            </div>
-            <div style={{ fontSize: "0.85rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ color: theme.warning }}>
-                ⚠️ <strong>이성치(SAN)가 급감하여 심각한 정신적 충격을 받았습니다!</strong>
-              </div>
-              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
-                <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "2px" }}>
-                  {madnessModal.rule === "coc" ? `1D10 굴림 결과: ${madnessModal.roll}번` : `1D6 굴림 결과: ${madnessModal.roll}번`}
-                </div>
-                <div style={{ fontSize: "1.05rem", fontWeight: "800", color: theme.danger, marginBottom: "4px" }}>
-                  [{madnessModal.name}]
-                </div>
-                <div style={{ fontSize: "0.82rem", color: theme.text }}>
-                  {madnessModal.desc}
-                </div>
-              </div>
-              <div style={{ fontSize: "0.76rem", color: theme.textMuted }}>
-                * 광기 증상은 상태 시트에 기록되며, 키퍼에게 전달되어 즉시 서사에 반영됩니다.
-              </div>
-            </div>
-            <button onClick={confirmMadnessToMaster} style={{ marginTop: "18px", width: "100%", padding: "12px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "800", fontSize: "0.9rem" }}>
-              서사에 광기 발작 반영하기
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 8종 팝업 모달 (완전 복원) */}
 
-      {/* 룰별 상세 가이드 모달 */}
+      {/* 1. 룰 가이드 모달 */}
       {ruleHelpModalKey && RULE_GUIDES[ruleHelpModalKey] && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "500px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1609,7 +1703,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 서사 다중 계승 모달 */}
+      {/* 2. 서사 다중 계승 모달 */}
       {showCareerModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 125, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "500px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1648,7 +1742,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 환경 설정 모달 */}
+      {/* 3. 환경 설정 모달 (모든 컨트롤 완벽 복원) */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "460px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1726,7 +1820,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 프리셋 관리 모달 */}
+      {/* 4. 캐릭터 프리셋 모달 */}
       {showPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1767,7 +1861,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 세이브 백업 옵션 모달 */}
+      {/* 5. 세이브 백업 모달 */}
       {showBackupModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "24px", color: theme.text }}>
@@ -1784,21 +1878,21 @@ export default function App() {
         </div>
       )}
 
-      {/* 복원 도움말 모달 */}
+      {/* 6. 복원 도움말 모달 */}
       {showRestoreHelpModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "450px", padding: "24px", color: theme.text }}>
             <h3 style={{ margin: "0 0 14px 0", fontSize: "1.05rem", color: theme.accent }}>📖 세이브 백업 및 복원 안내</h3>
             <div style={{ fontSize: "0.82rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "10px" }}>
               <div>• <strong>JSON (.json):</strong> 시트 수치와 대화가 완벽 보존되는 게임 파일입니다. [복원]을 통해 그대로 다시 불러올 수 있습니다.</div>
-              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 편하게 읽을 수 있는 보관용 문서입니다.</div>
+              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 소설처럼 편하게 읽을 수 있는 보관용 문서입니다.</div>
             </div>
             <button onClick={() => closeModal(setShowRestoreHelpModal)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>확인</button>
           </div>
         </div>
       )}
 
-      {/* 초상화 변경 모달 */}
+      {/* 7. 초상화 편집 모달 */}
       {showPortraitEditModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "22px", color: theme.text }}>
@@ -1817,6 +1911,35 @@ export default function App() {
                 <button onClick={applyCustomPortrait} style={{ width: "100%", padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer" }}>적용</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. 대화록 내보내기 모달 */}
+      {showExportModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "24px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.05rem" }}>📥 대화록 내보내기</h3>
+              <button onClick={() => closeModal(setShowExportModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>포맷 선택</label>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => setExportFormat("txt")} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: `1.5px solid ${exportFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>텍스트 (.txt)</button>
+                  <button onClick={() => setExportFormat("md")} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: `1.5px solid ${exportFormat === "md" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "md" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>마크다운 (.md)</button>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>내보내기 범위</label>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => setExportScope("all")} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: `1.5px solid ${exportScope === "all" ? theme.accent : theme.border}`, backgroundColor: exportScope === "all" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>전체 대화록</button>
+                  <button onClick={() => setExportScope("storyOnly")} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: `1.5px solid ${exportScope === "storyOnly" ? theme.accent : theme.border}`, backgroundColor: exportScope === "storyOnly" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer", fontSize: "0.8rem" }}>순수 서사만</button>
+                </div>
+              </div>
+            </div>
+            <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>내보내기 다운로드</button>
           </div>
         </div>
       )}
