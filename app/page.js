@@ -19,7 +19,7 @@ const INSANE_MATRIX = [
 ];
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
-const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#슬픔", "#짝사랑", "#달달", "#일상", "#오컬트"];
+const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트"];
 const COC_STAT_LABELS = { str: "근력", con: "건강", siz: "크기", dex: "민첩", app: "외모", int: "지능", pow: "정신력", edu: "교육", luck: "행운" };
 
 export default function App() {
@@ -38,7 +38,7 @@ export default function App() {
   // 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
-  const [showPresetModal, setShowPresetModal] = useState(false); // [신규] 프리셋 로드 모달
+  const [showPresetModal, setShowPresetModal] = useState(false);
   const [activePortraitTarget, setActivePortraitTarget] = useState(null); 
 
   // 설정 및 데이터 상태
@@ -48,16 +48,18 @@ export default function App() {
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [backupTarget, setBackupTarget] = useState("all");
-  const [pcPresets, setPcPresets] = useState([]); // [신규] 저장된 PC 프리셋 목록
+  const [pcPresets, setPcPresets] = useState([]); 
 
   const [wizardMode, setWizardMode] = useState("coc");
 
-  // 캐릭터 폼 상태
+  // PC 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
   const [charAge, setCharAge] = useState("24");
   const [charGender, setCharGender] = useState("여성");
   const [charBackground, setCharBackground] = useState("");
+  const [charSecret, setCharSecret] = useState(""); // [신규] PC 비밀
+  const [showCharSecret, setShowCharSecret] = useState(false); // [신규] PC 비밀 토글
   const [charPortraitUrl, setCharPortraitUrl] = useState("");
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   
@@ -72,7 +74,9 @@ export default function App() {
   const [hiddenTruth, setHiddenTruth] = useState("");
   const [showHiddenTruth, setShowHiddenTruth] = useState(false);
   const [openingScene, setOpeningScene] = useState(""); 
+  const [scenarioLimit, setScenarioLimit] = useState(3); // [신규] 인세인 리미트
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // 룰 별 세팅 스탯 (CoC)
@@ -175,21 +179,19 @@ export default function App() {
     });
   };
 
-  // [복구 및 수정] CoC 460pt 완벽 캡 분배 알고리즘
   const handleRandomCocStats = () => {
     let stats = { str: 15, con: 15, siz: 15, dex: 15, app: 15, int: 15, pow: 15, edu: 15 };
-    let remaining = 460 - (15 * 8); // 340을 랜덤하게 분배
+    let remaining = 460 - (15 * 8); 
     const keys = Object.keys(stats);
     
     while(remaining > 0) {
       let key = keys[Math.floor(Math.random() * keys.length)];
-      if(stats[key] < 90) { // 한계치 90
+      if(stats[key] < 90) { 
         let add = Math.min(Math.floor(Math.random() * 5) + 1, remaining, 90 - stats[key]);
         stats[key] += add;
         remaining -= add;
       }
     }
-    // 행운은 460pt 캡 외 별도 굴림 (3D6*5)
     const luckRoll = (Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1 + Math.floor(Math.random()*6)+1) * 5;
     setCocStats({ ...stats, luck: luckRoll });
   };
@@ -197,21 +199,43 @@ export default function App() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => setHiddenTruth(event.target.result);
-    reader.readAsText(file, "UTF-8");
+    if (file.name.toLowerCase().endsWith(".pdf")) {
+      setIsPdfLoading(true);
+      try {
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload = resolve; script.onerror = reject; document.head.appendChild(script);
+          });
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        const arrayBuffer = await file.arrayBuffer(); const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let extractedText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i); const content = await page.getTextContent();
+          extractedText += `[${i}페이지]\n${content.items.map((item) => item.str).join(" ")}\n\n`;
+        }
+        setHiddenTruth(extractedText.trim()); setPublicSynopsis("PDF 파일이 업로드되었습니다. 아래 진상 탭을 확인하세요.");
+      } catch (err) { alert("PDF 읽기 실패: " + err.message); } finally { setIsPdfLoading(false); }
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => setHiddenTruth(event.target.result);
+      reader.readAsText(file, "UTF-8");
+    }
   };
 
   const handleAutoReplaceKpcPc = () => {
     let replacedSyn = publicSynopsis.replace(/\bPC\b/gi, charName || "주인공");
     let replacedTru = hiddenTruth.replace(/\bPC\b/gi, charName || "주인공");
     let replacedOpen = openingScene.replace(/\bPC\b/gi, charName || "주인공");
+    let replacedSec = charSecret.replace(/\bPC\b/gi, charName || "주인공");
     if (kpcList.length > 0) {
       replacedSyn = replacedSyn.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
       replacedTru = replacedTru.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
       replacedOpen = replacedOpen.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
+      replacedSec = replacedSec.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
     }
-    setPublicSynopsis(replacedSyn); setHiddenTruth(replacedTru); setOpeningScene(replacedOpen);
+    setPublicSynopsis(replacedSyn); setHiddenTruth(replacedTru); setOpeningScene(replacedOpen); setCharSecret(replacedSec);
     alert(`텍스트 내의 'PC/KPC' 단어가 모두 치환되었습니다!`);
   };
 
@@ -221,33 +245,35 @@ export default function App() {
     if (wizardMode === "coc") {
       ruleSpecificGuidance = "크툴루 신화, 코스믹 호러. 핵심 단서 노드 3개와 요구 기능치(Skill), 이성(SAN) 체크 구간을 진상에 명시하십시오.";
     } else if (wizardMode === "insane") {
-      ruleSpecificGuidance = "인세인 룰. 리미트(2~4 사이클)를 설정하고, PC와 KPC 모두에게 [공개 사명]과 뒷면의 [비밀(Secret)]을 매칭하십시오. 시나리오 테마에 맞는 [초기 핸드아웃 2개]와 [광기 카드 6장 덱]을 세팅하십시오.";
+      ruleSpecificGuidance = "인세인 룰. [limit]을 2~5 사이의 정수로 필히 반환하고, PC와 KPC 모두에게 공개 사명과 [pcSecret] 등 숨겨진 진심/비밀을 매칭하십시오.";
     } else {
-      ruleSpecificGuidance = "자유 서사 역극. 주사위 판정이나 스탯 기믹을 일절 배제하고, 인물 간의 감정선, 과거사, 그리고 현재 부딪힌 극적인 상황 세팅에 집중하십시오.";
+      ruleSpecificGuidance = "자유 서사 역극. 주사위 판정이나 스탯 기믹을 일절 배제하고 감정선에 집중하십시오.";
     }
 
     const systemPrompt = `당신은 최고 권위의 정통 TRPG/역극 시나리오 라이터입니다.
 선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 뼈대를 작성하십시오.
 
-[🚨 장르(Tone) 절대 우위 수칙]
-룰이 CoC나 인세인이더라도, 플레이어의 태그([${playPreference}])에 #달달, #일상, #로맨스 등이 있다면 유혈이나 징그러운 괴물 묘사를 100% 배제하십시오. 
+[🚨 절대 수칙]
+태그에 #달달, #일상 등이 있다면 유혈이나 고어 묘사를 100% 배제하고 애틋하게 재해석하십시오.
 
-반드시 아래 JSON 포맷으로만 응답하십시오:
+반드시 아래 JSON 포맷으로만 응답하십시오 (마크다운 없이 순수 JSON만 반환할 것):
 {
-  "scenarioTone": "플레이어 태그를 바탕으로 설정한 분위기",
+  "scenarioTone": "분위기 요약",
+  "limit": 3,
   "name": "주인공 이름",
-  "job": "직업",
-  "background": "백스토리",
+  "job": "주인공 직업",
+  "background": "주인공 백스토리",
+  "pcSecret": "주인공(PC)의 숨겨진 과거, 흑막, 혹은 진짜 목적/비밀",
   "scenarioTitle": "시나리오 제목",
-  "publicSynopsis": "스포일러 없는 시나리오 개요",
-  "openingScene": "플레이어가 게임을 시작할 때 맞닥뜨리는 첫 씬의 구체적인 시간, 장소, 상황 묘사",
+  "publicSynopsis": "스포일러 없는 개요",
+  "openingScene": "플레이어가 게임을 시작할 때 맞닥뜨리는 첫 씬의 장소, 시간, 상황 묘사",
   "hiddenTruth": "마스터 전용 배후 진상 및 엔딩 분기 조건. ${ruleSpecificGuidance}",
   "kpcs": [
     {
       "name": "KPC 이름",
       "job": "역할/직업",
       "detail": "외모, 성격, 주인공과의 관계",
-      "secret": "숨기고 있는 진심이나 비밀"
+      "secret": "KPC가 숨기고 있는 진심이나 비밀"
     }
   ]
 }`;
@@ -255,19 +281,26 @@ export default function App() {
     try {
       const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", text: systemPrompt }], ruleMode: wizardMode, playPreference }) });
       const data = await response.json();
+      
       const jsonMatch = data.text?.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        const p = JSON.parse(jsonMatch[0]);
-        setCharName(p.name || "주인공"); setCharJob(p.job || "조사원"); setCharBackground(p.background || "");
-        setScenarioTitle(p.scenarioTitle || "미상의 밤");
-        setPublicSynopsis(p.publicSynopsis || "눈을 뜨자 낯선 천장이 보입니다.");
-        setOpeningScene(p.openingScene || "당신은 현재 거리를 걷고 있습니다.");
-        setHiddenTruth(`[장르 톤: ${p.scenarioTone}]\n\n[배후 진상]\n${p.hiddenTruth || "진상이 없습니다."}`);
-        
-        if (p.kpcs && p.kpcs.length > 0) {
-          setKpcList(p.kpcs.map((k, i) => ({ id: Date.now() + i, name: k.name, job: k.job, detail: k.detail, secret: k.secret, portraitUrl: "", showSecret: false })));
+        try {
+          const p = JSON.parse(jsonMatch[0]);
+          setCharName(p.name || "주인공"); setCharJob(p.job || "조사원"); setCharBackground(p.background || "");
+          setCharSecret(p.pcSecret || "");
+          if (p.limit) setScenarioLimit(p.limit);
+          setScenarioTitle(p.scenarioTitle || "미상의 밤");
+          setPublicSynopsis(p.publicSynopsis || "눈을 뜨자 낯선 천장이 보입니다.");
+          setOpeningScene(p.openingScene || "당신은 현재 거리를 걷고 있습니다.");
+          setHiddenTruth(`[장르 톤: ${p.scenarioTone}]\n\n[배후 진상]\n${p.hiddenTruth || "진상이 없습니다."}`);
+          
+          if (p.kpcs && p.kpcs.length > 0) {
+            setKpcList(p.kpcs.map((k, i) => ({ id: Date.now() + i, name: k.name, job: k.job, detail: k.detail, secret: k.secret, portraitUrl: "", showSecret: false })));
+          }
+        } catch(parseErr) {
+           alert("AI가 반환한 데이터를 분석하는 중 오류가 발생했습니다. 다시 시도해 주세요.");
         }
-      } else alert("AI가 올바른 규격으로 응답하지 않았습니다. 다시 시도해주세요.");
+      } else alert("AI가 올바른 규격으로 응답하지 않았습니다. 다시 시도해 주세요.");
     } catch (e) { alert("생성 실패: " + e.message); } finally { setIsAiGenerating(false); }
   };
 
@@ -301,20 +334,19 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // [신규] 프리셋 저장 로직
+  // 프리셋 저장/로드
   const savePcPreset = () => {
     if (!activeSession) return;
     const sheet = activeSession.sheet;
-    const newPreset = { id: Date.now(), name: sheet.name, job: sheet.job, age: sheet.age, gender: sheet.gender, background: sheet.background, portraitUrl: sheet.portrait };
+    const newPreset = { id: Date.now(), name: sheet.name, job: sheet.job, age: sheet.age, gender: sheet.gender, background: sheet.background, secret: sheet.secret, portraitUrl: sheet.portrait };
     const updated = [...pcPresets, newPreset];
     setPcPresets(updated);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_pc_presets", JSON.stringify(updated));
     alert(`[${sheet.name}] 프리셋이 저장되었습니다.`);
   };
 
-  // [신규] 프리셋 로드 로직
   const loadPcPreset = (preset) => {
-    setCharName(preset.name); setCharJob(preset.job); setCharAge(preset.age || "24"); setCharGender(preset.gender || "여성"); setCharBackground(preset.background); setCharPortraitUrl(preset.portraitUrl);
+    setCharName(preset.name); setCharJob(preset.job); setCharAge(preset.age || "24"); setCharGender(preset.gender || "여성"); setCharBackground(preset.background); setCharSecret(preset.secret || ""); setCharPortraitUrl(preset.portraitUrl);
     closeModal(setShowPresetModal);
   };
 
@@ -360,13 +392,13 @@ export default function App() {
 
     let initialSheet = {
       name: charName || "주인공", job: charJob || "조사원", age: charAge, gender: charGender,
-      background: charBackground, portrait: charPortraitUrl || getPortraitUrl(charName), 
+      background: charBackground, secret: charSecret, portrait: charPortraitUrl || getPortraitUrl(charName), 
       hp: 20, maxHp: 20,
       npcs: sessionNpcs, items: ["기본 소지품", "스마트폰"], madnessStatus: null,
     };
 
     if (wizardMode === "insane") {
-      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: 3, cycle: 1, scene: 1, insaneSkills, insaneCuriosity, insaneFear, madnessDeck: 6, handouts: [] };
+      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: scenarioLimit, cycle: 1, scene: 1, insaneSkills, insaneCuriosity, insaneFear, madnessDeck: 6, handouts: [] };
     } else if (wizardMode === "coc") {
       initialSheet = { ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, cocStats: { ...cocStats }, cocSkills };
     } 
@@ -382,23 +414,17 @@ export default function App() {
       scenarioText: fullScenarioContext, 
       publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.",
       sheet: initialSheet, 
-      messages: [], 
-      investigationSpots: ["주변", "소지품"], // [복구] 초기 조사 스팟
-      suggestedActions: ["관찰력을 굴려본다", "인물에게 말을 건다"], // [복구] 초기 추천 행동
+      messages: [{ role: "model", text: `[시스템] ${wizardMode === 'freeform' ? '자유 서사' : wizardMode === 'insane' ? '인세인' : '크툴루의 부름'} 방이 세팅되었습니다.\n\n${openingScene ? openingScene : '대화나 판정을 시작하세요.'}` }], 
+      investigationSpots: ["주변", "소지품"], 
+      suggestedActions: ["관찰력을 굴려본다", "인물에게 말을 건다"], 
       pendingCheck: null 
     };
     
     setSessions(prev => [newSession, ...prev]); 
     setActiveSessionId(newId); 
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `[시스템] ${wizardMode === 'freeform' ? '자유 서사' : wizardMode === 'insane' ? '인세인' : '크툴루의 부름'} 방이 세팅되었습니다.\n\n${openingScene ? openingScene : '대화나 판정을 시작하세요.'}` }] } : s));
-      setIsLoading(false);
-    }, 1000);
   };
 
-  // [복구] 주사위 버튼 굴림 로직
+  // 주사위 버튼 굴림 로직
   const handleDiceClick = () => {
     if (!activeSession) return;
     playDiceSound();
@@ -412,16 +438,53 @@ export default function App() {
     }
   };
 
-  const executeMessage = (textToSend) => {
+  // 백엔드 실제 통신 및 파싱 로직
+  const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
     setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages, pendingCheck: null, investigationSpots: [], suggestedActions: [] } : s)));
     setIsLoading(true);
-    
-    setTimeout(() => {
-      setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, messages: [...updatedMessages, { role: "model", text: "(AI 응답 대기 중: 백엔드 적용 후 정상 동작합니다)" }], suggestedActions: ["어떻게 할까?", "주변을 더 살핀다"] } : s ));
+
+    try {
+      // route.js 백엔드 호출
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...updatedMessages, { role: "user", text: "(※ 시스템 지침: 플레이어가 조사할 만한 장소나 물건이 있다면 문단 끝에 [조사: 사물명] 형태로, 행동 추천이 있다면 [추천: 행동명] 형태로 1~2개 덧붙여주세요. 없으면 생략 가능)" }],
+          ruleMode: activeSession.ruleMode,
+          playPreference: activeSession.preference,
+          scenarioText: activeSession.scenarioText
+        })
+      });
+      const data = await response.json();
+      let aiText = data.text || "마스터가 응답하지 않았습니다.";
+      
+      // 조사(SPOTS)와 추천행동(ACTIONS) 파싱
+      const spots = [];
+      const actions = [];
+      
+      aiText = aiText.replace(/\[조사:\s*(.*?)\]/g, (match, p1) => {
+          spots.push(p1.trim());
+          return "";
+      });
+      aiText = aiText.replace(/\[추천:\s*(.*?)\]/g, (match, p1) => {
+          actions.push(p1.trim());
+          return "";
+      });
+
+      setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { 
+          ...s, 
+          messages: [...updatedMessages, { role: "model", text: aiText.trim() }],
+          investigationSpots: spots.length > 0 ? spots : [],
+          suggestedActions: actions.length > 0 ? actions : []
+      } : s ));
+
+    } catch (e) {
+      setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, messages: [...updatedMessages, { role: "model", text: `[통신 오류] ${e.message}` }] } : s ));
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   const sendMessage = () => { if (!input.trim()) return; executeMessage(input); setInput(""); };
@@ -566,7 +629,7 @@ export default function App() {
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                   <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>내 프로필 (PC)</div>
-                  {/* [신규] 프리셋 불러오기 버튼 */}
+                  {/* 프리셋 불러오기 */}
                   <button onClick={() => openModal(setShowPresetModal)} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", fontSize: "0.75rem", color: theme.text, cursor: "pointer", fontWeight: "700" }}>📂 프리셋 불러오기</button>
                 </div>
                 <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
@@ -579,6 +642,16 @@ export default function App() {
                   </div>
                 </div>
                 <textarea value={charBackground} onChange={(e) => setCharBackground(e.target.value)} placeholder="백스토리 및 성격..." style={{ width: "100%", height: "80px", padding: "12px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, resize: "none", fontSize: "0.85rem" }} />
+                
+                {/* [복구] PC 비밀 스포일러 방지 토글 */}
+                <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px", marginTop: "8px" }}>
+                  <button type="button" onClick={() => setShowCharSecret(!showCharSecret)} style={{ width: "100%", padding: "6px", backgroundColor: showCharSecret ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showCharSecret ? theme.danger : theme.border}`, borderRadius: "4px", color: showCharSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700" }}>
+                    {showCharSecret ? "🔒 내 비밀 닫기" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)"}
+                  </button>
+                  {showCharSecret && (
+                    <textarea value={charSecret} onChange={(e) => setCharSecret(e.target.value)} placeholder="다른 사람에게 숨기고 있는 진짜 목적이나 과거" style={{ width: "100%", height: "60px", marginTop: "8px", padding: "8px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1px solid ${theme.danger}`, borderRadius: "4px", color: theme.danger, fontSize: "0.8rem", resize: "none" }} />
+                  )}
+                </div>
               </div>
 
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", display: "flex", flexDirection: "column" }}>
@@ -658,8 +731,7 @@ export default function App() {
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.danger}` }}>
                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                    <div style={{ fontWeight: "700", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 특성치 & 기능치 세팅</div>
-                   {/* [완벽 복구] 460pt 한계치 맞춤 난수 굴림 버튼 */}
-                   <button onClick={handleRandomCocStats} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.danger}`, color: theme.text, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>🎲 460pt 난수 굴림</button>
+                   <button onClick={handleRandomCocStats} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.danger}`, color: theme.text, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>🎲 460pt 캡 난수 굴림</button>
                  </div>
                  
                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "12px" }}>탐사자의 8대 특성치(총합 460 고정 권장) 및 행운을 설정하세요. HP, 이성 등은 자동 계산됩니다.</div>
@@ -671,7 +743,7 @@ export default function App() {
                      </label>
                    ))}
                  </div>
-                 <div style={{ textAlign: "right", fontSize: "0.85rem", fontWeight: "700", color: currentCocTotal !== 460 ? theme.danger : theme.accent, marginBottom: "16px", paddingBottom: "16px", borderBottom: `1px dashed ${theme.border}` }}>
+                 <div style={{ textAlign: "right", fontSize: "0.85rem", fontWeight: "700", color: currentCocTotal > 460 ? theme.danger : theme.accent, marginBottom: "16px", paddingBottom: "16px", borderBottom: `1px dashed ${theme.border}` }}>
                    특성치 총합: {currentCocTotal} / 460 pt (행운 제외)
                  </div>
 
@@ -685,7 +757,10 @@ export default function App() {
             {/* 5-2. 특화 룰 세팅 (인세인) */}
             {wizardMode === "insane" && (
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.warning}` }}>
-                 <div style={{ fontWeight: "700", marginBottom: "12px", fontSize: "0.95rem", color: theme.warning }}>인세인 특기표 체킹</div>
+                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div style={{ fontWeight: "700", fontSize: "0.95rem", color: theme.warning }}>인세인 특기표 체킹</div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: "700", color: theme.warning }}>리미트 설정: <input type="number" min="2" max="6" value={scenarioLimit} onChange={e => setScenarioLimit(Number(e.target.value))} style={{ width: "50px", padding: "4px", backgroundColor: theme.inputBg, border: `1px solid ${theme.warning}`, borderRadius: "4px", color: theme.text, textAlign: "center" }} /></div>
+                 </div>
                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "12px" }}>나의 특기(2~6개)를 클릭하고, 하단의 호기심/공포심을 지정하세요.</div>
                  <div style={{ overflowX: "auto", paddingBottom: "8px" }}>
                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", minWidth: "500px", gap: "4px" }}>
@@ -757,16 +832,16 @@ export default function App() {
               {isLoading && <div style={{ fontSize: "0.85rem", color: theme.textMuted, fontStyle: "italic", alignSelf: "flex-start", padding: "10px" }}>마스터가 서사를 집필 중입니다...</div>}
             </div>
 
-            {/* [완벽 복구] 조사(SPOTS) 버튼 및 추천 행동 칩 영역 */}
+            {/* 조사(SPOTS) 버튼 및 추천 행동 칩 영역 */}
             {(activeSession.investigationSpots?.length > 0 || activeSession.suggestedActions?.length > 0) && (
               <div style={{ padding: "0 16px 10px 16px", display: "flex", flexWrap: "wrap", gap: "8px", zIndex: 100 }}>
                 {activeSession.investigationSpots?.map((spot, idx) => (
-                  <button key={`spot-${idx}`} onClick={() => setInput(`[${spot}] 조사할게요.`)} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "16px", color: theme.accent, fontSize: "0.8rem", cursor: "pointer", fontWeight: "600" }}>
+                  <button key={`spot-${idx}`} onClick={() => { setInput(`[${spot}] 조사할게요.`); executeMessage(`[${spot}] 조사할게요.`); }} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "16px", color: theme.accent, fontSize: "0.8rem", cursor: "pointer", fontWeight: "600" }}>
                     🔍 {spot}
                   </button>
                 ))}
                 {activeSession.suggestedActions?.map((act, idx) => (
-                  <button key={`act-${idx}`} onClick={() => setInput(act)} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "16px", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}>
+                  <button key={`act-${idx}`} onClick={() => { setInput(act); executeMessage(act); }} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "16px", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}>
                     💡 {act}
                   </button>
                 ))}
@@ -774,7 +849,6 @@ export default function App() {
             )}
 
             <div className="glass-panel" style={{ padding: "12px 16px", paddingBottom: "max(12px, env(safe-area-inset-bottom))", borderTop: `1px solid ${theme.border}`, flexShrink: 0, display: "flex", gap: "10px", alignItems: "flex-end", zIndex: 100 }}>
-              {/* [복구] 주사위 버튼 굴림 연결 */}
               {activeSession.ruleMode !== "freeform" && (
                 <button onClick={handleDiceClick} title="주사위 판정" style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>🎲</button>
               )}
@@ -799,7 +873,6 @@ export default function App() {
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "20px" }}>
                 
-                {/* [신규 추가] 내 캐릭터 프리셋 저장 버튼 */}
                 <button onClick={savePcPreset} style={{ width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "8px", color: theme.accent, cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>
                   💾 이 캐릭터 프리셋으로 저장
                 </button>
@@ -813,7 +886,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* [복구] PC 백스토리 노출 */}
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "4px" }}>
                   <div style={{ width: "56px", height: "56px", borderRadius: "50%", backgroundColor: theme.panelAlt, border: `2px solid ${theme.accent}`, overflow: "hidden", flexShrink: 0 }}>
                     <img src={activeSession.sheet.portrait} alt="PC" style={{width:"100%", height:"100%", objectFit:"cover"}} onError={(e)=>(e.currentTarget.style.display='none')}/>
@@ -823,9 +895,19 @@ export default function App() {
                     <div style={{ fontSize: "0.8rem", color: theme.textMuted }}>{activeSession.sheet.job}</div>
                   </div>
                 </div>
+                
+                {/* [복구] PC 백스토리 노출 */}
                 {activeSession.sheet.background && (
                   <div style={{ fontSize: "0.8rem", color: theme.text, backgroundColor: theme.inputBg, padding: "10px", borderRadius: "8px", border: `1px solid ${theme.border}`, whiteSpace: "pre-wrap" }}>
                     {activeSession.sheet.background}
+                  </div>
+                )}
+                
+                {/* [복구] PC 비밀 노출 (토글) */}
+                {activeSession.sheet.secret && (
+                  <div style={{ border: `1px dashed ${theme.danger}`, borderRadius: "8px", padding: "10px", backgroundColor: "rgba(247, 101, 133, 0.05)" }}>
+                    <div style={{ fontSize: "0.75rem", fontWeight: "700", color: theme.danger, marginBottom: "4px" }}>🔒 나의 진짜 목적 / 비밀</div>
+                    <div style={{ fontSize: "0.8rem", color: theme.danger, whiteSpace: "pre-wrap" }}>{activeSession.sheet.secret}</div>
                   </div>
                 )}
 
@@ -871,7 +953,6 @@ export default function App() {
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <span style={{ fontWeight: "700", fontSize: "0.85rem" }}>{npc.name}</span>
-                            {/* [복구] NPC 호감도 하트 */}
                             <span style={{ fontSize: "0.75rem", color: theme.danger }}>♥ {npc.affection}</span>
                           </div>
                           <div style={{ fontSize: "0.75rem", color: theme.textMuted }}>{npc.title}</div>
@@ -951,7 +1032,7 @@ export default function App() {
         </div>
       )}
 
-      {/* [신규] 프리셋 로드 모달 */}
+      {/* 프리셋 로드 모달 */}
       {showPresetModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div onClick={() => closeModal(setShowPresetModal)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)" }} />
