@@ -152,6 +152,36 @@ export default function App() {
     closeModal(setShowLobbyPresetModal);
   };
 
+  // 🌟 로비 세팅 JSON 다운로드 (백업)
+  const exportLobbyPresets = () => {
+    if (lobbyPresets.length === 0) return alert("백업할 로비 세팅이 없습니다.");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(lobbyPresets, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `TRPG_로비세팅_${dateStr}.json`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  // 🌟 로비 세팅 JSON 불러오기 (복원)
+  const importLobbyPresets = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        let imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) imported = [imported];
+        const merged = [...imported, ...lobbyPresets];
+        // 중복 방지를 위해 ID 기준으로 고유값만 필터링
+        const unique = Array.from(new Map(merged.map(item => [item.id, item])).values());
+        setLobbyPresets(unique);
+        localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(unique));
+        alert(`${imported.length}개의 로비 세팅을 성공적으로 불러왔습니다!`);
+      } catch (err) { alert("복원 실패: " + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = null; // 같은 파일 연속 선택 가능하게 초기화
+  };
+
   // 🌟 AI 답변 강제 취소 함수
   const handleCancelResponse = () => {
     if (abortController) {
@@ -577,6 +607,28 @@ export default function App() {
     setCustomPresets(updated);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
     alert(`'${sheetData.name}' 캐릭터가 프리셋으로 저장되었습니다!`);
+  };
+
+  // 🌟 세션 전체(PC + KPC + 시나리오)를 로비 세팅으로 저장
+  const handleSaveSessionAsLobbyPreset = () => {
+    if (!activeSession) return;
+    const s = activeSession;
+    const defaultTitle = s.title || `${s.sheet?.name || "캐릭터"} 세팅`;
+    const titlePrompt = prompt("로비 전체 세팅으로 저장할 이름을 입력하세요:", defaultTitle);
+    if (!titlePrompt) return;
+
+    const restoredKpcList = (s.sheet?.npcs || []).map((npc, idx) => ({
+      id: npc.id || Date.now() + idx, name: npc.name || "", job: npc.title || "", detail: "", secret: npc.secret || "", portraitUrl: npc.portrait || "", showSecret: false
+    }));
+
+    const newLobbyPreset = {
+      id: Date.now(), presetTitle: titlePrompt, scenarioTitle: s.title || "", publicSynopsis: "", openingScene: "", hiddenTruth: s.scenarioText || "", playPreference: s.preference || "#GL #쌍방구원 #달달", wizardMode: s.ruleMode || "coc", charName: s.sheet?.name || "", charJob: s.sheet?.job || "", charAge: s.sheet?.age || "24", charGender: s.sheet?.gender || "여성", charBackground: s.sheet?.background || "", charMission: s.sheet?.mission || "", charSecret: s.sheet?.secret || "", charPortraitUrl: s.sheet?.portrait || "", cocStats: s.sheet?.cocStats || { str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 }, cocSkills: s.sheet?.cocSkills || "", insaneSkills: s.sheet?.insaneSkills || [], insaneCuriosity: s.sheet?.insaneCuriosity || "정서", insaneFear: s.sheet?.insaneFear || "죽음", insaneLimit: s.sheet?.limit || 4, kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }]
+    };
+
+    const updated = [newLobbyPreset, ...lobbyPresets];
+    setLobbyPresets(updated);
+    localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
+    alert(`'${titlePrompt}' 세팅이 로비 전체 프리셋으로 저장되었습니다!`);
   };
 
   const handleLoadPreset = (preset) => {
@@ -1133,6 +1185,14 @@ export default function App() {
 
       {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.35)", pointerEvents: "none" }} />}
 
+      {/* 🌟 추가: 모바일에서 화면 바깥 누르면 날개 접히는 기능 */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          onClick={() => setIsSidebarOpen(false)} 
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 45 }} 
+        />
+      )}
+
       {/* 1. 좌측 사이드바 */}
       <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
@@ -1203,7 +1263,7 @@ export default function App() {
         </div>
 
         {!activeSession ? (
-          /* 로비 화면 (UI 1:1 완벽 반영) */
+          /* 로비 화면 */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 100px 14px" : "28px 24px 80px 24px", maxWidth: "860px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -1212,65 +1272,65 @@ export default function App() {
                 <div style={{ fontSize: "0.82rem", color: theme.textMuted }}>룰과 장르를 선택하면 AI 마스터가 세계를 구축합니다.</div>
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
-  <button 
-    type="button" 
-    onClick={handleSaveLobbyPreset} 
-    title="로비 세팅 저장"
-    style={{ 
-      width: "38px", 
-      height: "38px", 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      backgroundColor: theme.panelAlt, 
-      border: `1px solid ${theme.border}`, 
-      borderRadius: "50%", 
-      cursor: "pointer", 
-      fontSize: "1.05rem" 
-    }}
-  >
-    💾
-  </button>
-  <button 
-    type="button" 
-    onClick={() => openModal(setShowLobbyPresetModal)} 
-    title="로비 세팅 불러오기"
-    style={{ 
-      width: "38px", 
-      height: "38px", 
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      backgroundColor: theme.panelAlt, 
-      border: `1px solid ${theme.border}`, 
-      borderRadius: "50%", 
-      cursor: "pointer", 
-      fontSize: "1.05rem" 
-    }}
-  >
-    📂
-  </button>
-  <button 
-    type="button" 
-    onClick={handleAiGenerate} 
-    disabled={isAiGenerating || isLoading} 
-    style={{ 
-      padding: "8px 16px", 
-      height: "38px",
-      backgroundColor: "#4a4947", 
-      color: "#fff", 
-      border: "none", 
-      borderRadius: "20px", 
-      cursor: "pointer", 
-      fontSize: "0.82rem", 
-      fontWeight: "700", 
-      boxShadow: "0 4px 12px rgba(0,0,0,0.15)", 
-      whiteSpace: "nowrap" 
-    }}
-  >
-    {isAiGenerating || isLoading ? "기획 중..." : "✨ AI 즉석 생성"}
-  </button>
-</div>
+                <button 
+                  type="button" 
+                  onClick={handleSaveLobbyPreset} 
+                  title="로비 세팅 저장"
+                  style={{ 
+                    width: "38px", 
+                    height: "38px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    backgroundColor: theme.panelAlt, 
+                    border: `1px solid ${theme.border}`, 
+                    borderRadius: "50%", 
+                    cursor: "pointer", 
+                    fontSize: "1.05rem" 
+                  }}
+                >
+                  💾
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => openModal(setShowLobbyPresetModal)} 
+                  title="로비 세팅 불러오기"
+                  style={{ 
+                    width: "38px", 
+                    height: "38px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    backgroundColor: theme.panelAlt, 
+                    border: `1px solid ${theme.border}`, 
+                    borderRadius: "50%", 
+                    cursor: "pointer", 
+                    fontSize: "1.05rem" 
+                  }}
+                >
+                  📂
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleAiGenerate} 
+                  disabled={isAiGenerating || isLoading} 
+                  style={{ 
+                    padding: "8px 16px", 
+                    height: "38px",
+                    backgroundColor: "#4a4947", 
+                    color: "#fff", 
+                    border: "none", 
+                    borderRadius: "20px", 
+                    cursor: "pointer", 
+                    fontSize: "0.82rem", 
+                    fontWeight: "700", 
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)", 
+                    whiteSpace: "nowrap" 
+                  }}
+                >
+                  {isAiGenerating || isLoading ? "기획 중..." : "✨ AI 즉석 생성"}
+                </button>
+              </div>
             </div>
 
             {/* 1. 룰 시스템 선택 */}
@@ -1372,7 +1432,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 🌟 1. CoC 특화 설정 블록 (460pt & 기능치 복원) */}
+            {/* 🌟 1. CoC 특화 설정 블록 */}
             {wizardMode === "coc" && (
               <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1566,6 +1626,28 @@ export default function App() {
                 </div>
               ))}
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>마스터가 서사를 집필하는 중...</div>}
+              
+              {/* 🌟 추가: 마지막 대화 취소(되돌리기) 버튼 */}
+              {!isLoading && (activeSession.messages || []).length > 0 && (
+                <div style={{ display: "flex", justifyContent: "center", margin: "10px 0" }}>
+                  <button
+                    onClick={() => {
+                      if (confirm("마지막 대화(내 채팅 + 마스터 답변)를 취소하시겠습니까?")) {
+                        setSessions(prev => prev.map(s => {
+                          if (s.id !== activeSessionId) return s;
+                          const newMsgs = [...s.messages];
+                          newMsgs.pop(); // 마스터 답변 삭제
+                          if (newMsgs.length > 0 && newMsgs[newMsgs.length - 1].role === "user") newMsgs.pop(); // 내 채팅 삭제
+                          return { ...s, messages: newMsgs, suggestedActions: [], pendingCheck: null };
+                        }));
+                      }
+                    }}
+                    style={{ padding: "6px 16px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "20px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}
+                  >
+                    ⎌ 마지막 대화 취소
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 알림 배너 */}
@@ -1606,7 +1688,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 🌟 CoC 전용 조사 칩 (인세인이 아닐 때만 노출) */}
+              {/* 🌟 CoC 전용 조사 칩 */}
               {activeSession.ruleMode !== "insane" && (activeSession.investigationSpots || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "700", alignSelf: "center" }}>🔍 조사:</span>
@@ -1650,15 +1732,17 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 시트 패널 (CoC 8대 스탯/기능치 주사위 & 인세인 광기 복원) */}
+      {/* 3. 우측 시트 패널 */}
       {activeSession && (
         <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>캐릭터 시트</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <button onClick={handleSaveCurrentAsPreset} title="이 캐릭터를 프리셋으로 저장" style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", padding: "2px" }}>💾</button>
-              <button onClick={() => setIsSheetOpen(false)} style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", color: theme.text }}>✕</button>
+            {/* 🌟 추가: PC만 저장 vs 전체 세팅 저장 분리 */}
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <button onClick={handleSaveCurrentAsPreset} title="내 캐릭터만 저장" style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", color: theme.text, fontWeight: "700" }}>💾 PC만</button>
+              <button onClick={handleSaveSessionAsLobbyPreset} title="전체 세팅 저장" style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer", color: theme.text, fontWeight: "700" }}>📁 전체</button>
+              <button onClick={() => setIsSheetOpen(false)} style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", color: theme.text, marginLeft: "4px" }}>✕</button>
             </div>
           </div>
 
@@ -1674,7 +1758,7 @@ export default function App() {
               </div>
             </div>
 
-        {/* 🌟 내 캐릭터 상세 설정 & 비밀 열람 */}
+            {/* 🌟 내 캐릭터 상세 설정 & 비밀 열람 */}
             <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
               <details style={{ cursor: "pointer" }}>
                 <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none" }}>
@@ -1914,7 +1998,6 @@ export default function App() {
               <button onClick={() => closeModal(setShowPortraitEditModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* 🌟 파일 직접 업로드 버튼 */}
             <label style={{ display: "block", width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px dashed ${theme.accent}`, borderRadius: "8px", textAlign: "center", cursor: "pointer", fontSize: "0.82rem", fontWeight: "700", color: theme.accent, marginBottom: "12px" }}>
               📁 내 컴퓨터에서 이미지 파일 선택
               <input type="file" accept="image/*" onChange={handlePortraitFileUpload} style={{ display: "none" }} />
@@ -1959,6 +2042,18 @@ export default function App() {
               <h3 style={{ margin: 0, fontSize: "0.95rem" }}>📂 로비 전체 세팅 목록</h3>
               <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
+
+            {/* 🌟 추가: 로비 세팅 JSON 백업/복원 버튼 */}
+            <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+              <button onClick={exportLobbyPresets} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>
+                📥 JSON 다운로드
+              </button>
+              <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>
+                📤 JSON 복원
+                <input type="file" accept=".json" onChange={importLobbyPresets} style={{ display: "none" }} />
+              </label>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "240px", overflowY: "auto" }}>
               {lobbyPresets.length === 0 ? (
                 <div style={{ fontSize: "0.78rem", color: theme.textMuted, textAlign: "center", padding: "20px 0" }}>
@@ -1993,7 +2088,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 대화록 내보내기 모달 (범위/포맷 선택 복구) */}
       {showExportModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "400px", padding: "20px", borderRadius: "14px", color: theme.text }}>
