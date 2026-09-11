@@ -739,8 +739,10 @@ export default function App() {
       { id: 4, title: "책상 서랍의 다이어리", overview: "서랍 안쪽에 숨겨진 묘한 이질감의 책입니다.", secret: "말하지 못했던 진실의 마지막 페이지가 담겨 있습니다.", revealed: false }
     ];
 
+    // 🟢 수정 코드
     let initialSheet = {
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
+      background: charBackground, secret: charSecret, mission: charMission, // 👈 추가
       portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
       npcs, items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩과 만년필", desc: "기록 도구" }],
       madnessStatus: null, 
@@ -1448,6 +1450,39 @@ export default function App() {
               </div>
             </div>
 
+        {/* 🌟 내 캐릭터 상세 설정 & 비밀 열람 */}
+            <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
+              <details style={{ cursor: "pointer" }}>
+                <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none" }}>
+                  📖 내 캐릭터 백스토리 & 비밀
+                </summary>
+                <div style={{ marginTop: "8px", fontSize: "0.74rem", lineHeight: "1.5", color: theme.text, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
+                  <div style={{ marginBottom: "6px", whiteSpace: "pre-wrap" }}>
+                    <strong style={{ color: theme.textMuted }}>[성격 및 백스토리]</strong><br />
+                    {activeSession.sheet.background || "기재된 설정이 없습니다."}
+                  </div>
+                  {activeSession.sheet.secret && (
+                    <div style={{ color: theme.danger, whiteSpace: "pre-wrap" }}>
+                      <strong>[🔒 숨겨진 비밀/사명]</strong><br />
+                      {activeSession.sheet.secret}
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
+
+            {/* 🌟 시나리오 정보 및 개요 열람 */}
+            <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
+              <details style={{ cursor: "pointer" }}>
+                <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none" }}>
+                  📜 시나리오 개요 확인
+                </summary>
+                <div style={{ marginTop: "8px", fontSize: "0.73rem", lineHeight: "1.5", color: theme.textMuted, whiteSpace: "pre-wrap", maxHeight: "180px", overflowY: "auto", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
+                  {activeSession.scenarioText || "시나리오 개요가 없습니다."}
+                </div>
+              </details>
+            </div>
+
             <div className="glass-card" style={{ padding: "12px", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
                 <span style={{ fontWeight: "700", color: theme.danger }}>이성 (SAN):</span>
@@ -1684,6 +1719,35 @@ export default function App() {
                   <div key={p.id} onClick={() => handleLoadPreset(p)} style={{ padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", cursor: "pointer", display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
                     <span><strong>{p.title}</strong> ({p.name})</span>
                     <button onClick={(e) => { e.stopPropagation(); setCustomPresets(customPresets.filter(it => it.id !== p.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer" }}>🗑️</button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+{/* 🌟 로비 전체 프리셋 모달 */}
+      {showLobbyPresetModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "20px", borderRadius: "14px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>📂 로비 전체 세팅 목록</h3>
+              <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "240px", overflowY: "auto" }}>
+              {lobbyPresets.length === 0 ? (
+                <div style={{ fontSize: "0.78rem", color: theme.textMuted, textAlign: "center", padding: "20px 0" }}>
+                  저장된 로비 세팅이 없습니다.<br />(상단의 [💾 로비 세팅 저장]을 눌러보세요)
+                </div>
+              ) : (
+                lobbyPresets.map(p => (
+                  <div key={p.id} onClick={() => handleLoadLobbyPreset(p)} style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontWeight: "700", fontSize: "0.82rem" }}>{p.presetTitle}</div>
+                      <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>PC: {p.charName || "미상"} / KPC: {p.kpcList?.length || 0}명 / {p.wizardMode}</div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm("삭제하시겠습니까?")) { const filtered = lobbyPresets.filter(it => it.id !== p.id); setLobbyPresets(filtered); localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(filtered)); } }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px" }}>🗑️</button>
                   </div>
                 ))
               )}
