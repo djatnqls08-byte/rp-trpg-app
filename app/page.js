@@ -10,7 +10,7 @@ const THEME_PALETTES = {
   },
   abyss: {
     name: "심연 어비스",
-    dark: { bg: "#040507", sidebar: "#080a0f", panel: "#0d1118", panelAlt: "#141c2b", border: "rgba(86, 121, 224, 0.2)", text: "#dfe3ee", textMuted: "#6b7488", accent: "#5679e0", accentGlow: "rgba(86, 121, 224, 0.35)", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1a2a4d", bubbleAi: "#0d1118", inputBg: "#080a0f" },
+    dark: { bg: "#040507", sidebar: "#080a0f", panel: "#0d1118", panelAlt: "#131822", border: "rgba(86, 121, 224, 0.2)", text: "#dfe3ee", textMuted: "#6f788e", accent: "#5679e0", accentGlow: "rgba(86, 121, 224, 0.35)", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a0f" },
     light: { bg: "#f3f5f8", sidebar: "#e4e8f0", panel: "#ffffff", panelAlt: "#eaeff6", border: "rgba(52, 82, 168, 0.2)", text: "#12151c", textMuted: "#5c6475", accent: "#3452a8", accentGlow: "rgba(52, 82, 168, 0.25)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   sepia: {
@@ -52,71 +52,6 @@ const RULE_GUIDES = {
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
 const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#오컬트", "#광기"];
 
-// CoC 원형 다이얼 게이지 컴포넌트
-function CircularGauge({ value = 0, max = 100, label, color, size = 56 }) {
-  const radius = 22;
-  const circumference = 2 * Math.PI * radius;
-  const safeVal = Math.min(Math.max(Number(value) || 0, 0), max);
-  const strokeDashoffset = circumference - (safeVal / max) * circumference;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: `${size}px` }}>
-      <div style={{ position: "relative", width: size, height: size }}>
-        <svg width={size} height={size} viewBox="0 0 60 60">
-          <circle cx="30" cy="30" r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth="4.5" fill="none" />
-          <circle
-            cx="30"
-            cy="30"
-            r={radius}
-            stroke={color}
-            strokeWidth="4.5"
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            transform="rotate(-90 30 30)"
-            style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}
-          />
-        </svg>
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "0.82rem" }}>
-          {value}
-        </div>
-      </div>
-      <span style={{ fontSize: "0.68rem", fontWeight: "600", color: "#8e96b3", marginTop: "2px" }}>{label}</span>
-    </div>
-  );
-}
-
-// 언성 듀엣 세그먼트 침식 바 컴포넌트
-function SegmentedErosionBar({ current = 0, max = 6, color = "#b87bd8", label = "이계 침식도" }) {
-  const safeCurrent = Math.min(Math.max(Number(current) || 0, 0), max);
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem" }}>
-        <span style={{ fontWeight: "700", color: color }}>{label}</span>
-        <strong>{safeCurrent} / {max}</strong>
-      </div>
-      <div style={{ display: "flex", gap: "4px" }}>
-        {Array.from({ length: max }).map((_, i) => {
-          const filled = i < safeCurrent;
-          return (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                height: "10px",
-                borderRadius: "2px",
-                backgroundColor: filled ? color : "rgba(255,255,255,0.08)",
-                boxShadow: filled ? `0 0 8px ${color}` : "none",
-                transition: "all 0.3s ease"
-              }}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -124,7 +59,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 모바일 뷰포트 & 사이드바
+  // 모바일 뷰포트 및 사이드바
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -151,7 +86,7 @@ export default function App() {
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 사운드 & 연출
+  // 사운드 및 연출
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
@@ -1105,7 +1040,7 @@ export default function App() {
                       <div>행운: <input type="number" value={cocStats.luck} onChange={(e) => setCocStats({ ...cocStats, luck: e.target.value })} style={{ width: "40px", padding: "2px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", textAlign: "center" }} /></div>
                       <div>체력: <strong>{derivedHp}</strong></div>
                       <div>마력: <strong>{derivedMp}</strong></div>
-                      <div>이성(SAN): <strong>{derivedSan}</strong></div>
+                      <div>이성: <strong>{derivedSan}</strong></div>
                       <div>DB: <strong>{derivedDb}</strong></div>
                     </div>
                   </div>
@@ -1259,7 +1194,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 */}
+      {/* 3. 우측 상태창 (다이얼 대신 안전한 미니멀 슬림 바 적용) */}
       {activeSession && (
         <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "290px" }}>
@@ -1287,7 +1222,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI] */}
+            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI: 가로형 슬림 게이지 바] */}
             {activeSession.ruleMode === "coc" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1307,11 +1242,33 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* CoC 원형 다이얼 게이지 */}
-                <div style={{ display: "flex", justifyContent: "space-around", padding: "8px 0", backgroundColor: theme.panelAlt, borderRadius: "10px", border: `1px solid ${theme.border}` }}>
-                  <CircularGauge 50} ?? color="{theme.danger}" label="이성 (SAN)" max="{99}" value="{activeSession.sheet?.san"/>
-                  <CircularGauge 10} ?? color="{theme.warning}" label="체력 (HP)" max="{activeSession.sheet?.maxHp" value="{activeSession.sheet?.hp"/>
-                  <CircularGauge 50} ?? color="{theme.accent}" label="행운 (LUCK)" max="{99}" value="{activeSession.sheet?.luck"/>
+                {/* 안정적인 가로형 게이지 바 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.panelAlt, padding: "10px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "3px" }}>
+                      <span style={{ color: theme.danger, fontWeight: "700" }}>이성 (SAN)</span>
+                      <strong>{activeSession.sheet?.san ?? 50} / 99</strong>
+                    </div>
+                    <div style={{ height: "6px", width: "100%", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, ((activeSession.sheet?.san ?? 50) / 99) * 100))}%`, backgroundColor: theme.danger, transition: "width 0.3s ease" }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", marginBottom: "3px" }}>
+                      <span style={{ color: theme.warning, fontWeight: "700" }}>체력 (HP)</span>
+                      <strong>{activeSession.sheet?.hp ?? 10} / {activeSession.sheet?.maxHp ?? 10}</strong>
+                    </div>
+                    <div style={{ height: "6px", width: "100%", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min(100, Math.max(0, ((activeSession.sheet?.hp ?? 10) / (activeSession.sheet?.maxHp ?? 10)) * 100))}%`, backgroundColor: theme.warning, transition: "width 0.3s ease" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", paddingTop: "4px", borderTop: `1px dashed ${theme.border}`, color: theme.textMuted }}>
+                    <span>행운: <strong style={{ color: theme.text }}>{activeSession.sheet?.luck ?? 50}</strong></span>
+                    <span>마력: <strong style={{ color: theme.text }}>{activeSession.sheet?.mp ?? 10}</strong></span>
+                    <span>DB: <strong style={{ color: theme.text }}>{activeSession.sheet?.db || "0"}</strong></span>
+                  </div>
                 </div>
               </div>
             )}
@@ -1339,7 +1296,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 3. 언성 듀엣 전용 UI] */}
+            {/* [룰 3. 언성 듀엣 전용 UI: 인라인 세그먼트 침식 바] */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1347,8 +1304,29 @@ export default function App() {
                   <span style={{ fontSize: "0.7rem", color: "#b87bd8", fontWeight: "700" }}>2D6 이계 서사</span>
                 </div>
 
-                <div style={{ marginBottom: "10px" }}>
-                  <SegmentedErosionBar 1} ?? color="#b87bd8" current="{activeSession.sheet?.erosion" label="이계 침식도 (Erosion)" max="{6}"/>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem" }}>
+                    <span style={{ fontWeight: "700", color: "#b87bd8" }}>이계 침식도 (Erosion)</span>
+                    <strong>{activeSession.sheet?.erosion ?? 1} / 6</strong>
+                  </div>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    {[0, 1, 2, 3, 4, 5].map((idx) => {
+                      const filled = idx < (activeSession.sheet?.erosion ?? 1);
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            flex: 1,
+                            height: "10px",
+                            borderRadius: "2px",
+                            backgroundColor: filled ? "#b87bd8" : "rgba(255,255,255,0.08)",
+                            boxShadow: filled ? "0 0 8px #b87bd8" : "none",
+                            transition: "all 0.3s ease"
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", fontSize: "0.74rem" }}>
@@ -1429,7 +1407,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 룰별 상세 가이드 ? 모달 */}
+      {/* 룰별 가이드 모달 */}
       {ruleHelpModalKey && RULE_GUIDES[ruleHelpModalKey] && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "500px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
