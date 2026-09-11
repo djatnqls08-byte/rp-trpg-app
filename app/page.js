@@ -15,7 +15,6 @@ const RULE_GUIDES = {
   freeform: { title: "자유 서사 (공동 집필 역극)", desc: "주사위와 룰의 압박 없이, 아름다운 문장으로 서사를 엮어가는 소설형 롤플레잉.", system: "판정 없음. 온전히 대화와 묘사만으로 진행." }
 };
 
-// 인세인 6x11 매트릭스 데이터
 const INSANE_MATRIX = [
   { category: "폭력", skills: ["소각", "고문", "포박", "협박", "파괴", "구타", "절단", "찌르기", "사격", "전쟁", "매장"] },
   { category: "정서", skills: ["연심", "기쁨", "걱정", "부끄러움", "웃음", "인내", "놀람", "노여움", "원한", "슬픔", "친애"] },
@@ -43,13 +42,19 @@ export default function App() {
   // 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
-  const [ruleHelpModalKey, setRuleHelpModalKey] = useState(null);
-  const [activePortraitTarget, setActivePortraitTarget] = useState(null); // 'pc' 또는 kpc.id
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false);
+  const [activePortraitTarget, setActivePortraitTarget] = useState(null); 
 
   // 설정 상태
   const [currentPalette, setCurrentPalette] = useState("cloud");
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [portraitStyle, setPortraitStyle] = useState("anime");
+  const [soundVolume, setSoundVolume] = useState(0.6);
+  const [animationEnabled, setAnimationEnabled] = useState(true);
+  const [backupFormat, setBackupFormat] = useState("json");
+  const [backupTarget, setBackupTarget] = useState("all");
 
   const [ruleCategory, setRuleCategory] = useState("official");
   const [wizardMode, setWizardMode] = useState("coc");
@@ -63,7 +68,7 @@ export default function App() {
   const [charPortraitUrl, setCharPortraitUrl] = useState("");
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   
-  // KPC(등장인물) 상태
+  // KPC 상태
   const [kpcList, setKpcList] = useState([
     { id: Date.now(), name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
   ]);
@@ -74,14 +79,15 @@ export default function App() {
   const [hiddenTruth, setHiddenTruth] = useState("");
   const [showHiddenTruth, setShowHiddenTruth] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
-
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   // 룰 별 세팅 스탯
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
   const [cocSkills, setCocSkills] = useState("관찰력 60, 자료조사 50, 듣기 40");
   
-  const [insaneSkills, setInsaneSkills] = useState([]); // 선택한 특기 배열
+  const [insaneSkills, setInsaneSkills] = useState([]); 
   const [insaneCuriosity, setInsaneCuriosity] = useState("폭력");
   const [insaneFear, setInsaneFear] = useState("");
 
@@ -98,7 +104,6 @@ export default function App() {
 
   const chatContainerRef = useRef(null);
 
-  // 자동 스크롤
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -121,6 +126,40 @@ export default function App() {
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_palette", pKey);
   }
 
+  function handleSaveVolume(vol) {
+    setSoundVolume(vol);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_sound_vol", vol.toString());
+  }
+
+  function handleSaveAnim(enabled) {
+    setAnimationEnabled(enabled);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_anim", enabled.toString());
+  }
+
+  function playDiceSound() {
+    if (soundVolume <= 0) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      for (let i = 0; i < 5; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        const startTime = now + i * 0.08;
+        osc.frequency.setValueAtTime(160 + Math.random() * 150, startTime);
+        osc.frequency.exponentialRampToValueAtTime(50, startTime + 0.04);
+        gain.gain.setValueAtTime(soundVolume * 0.35, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.05);
+      }
+    } catch (e) {}
+  }
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -140,6 +179,46 @@ export default function App() {
       const currentList = prev.split(/\s+/).filter(Boolean);
       return currentList.includes(tag) ? currentList.filter((t) => t !== tag).join(" ") : [...currentList, tag].join(" ");
     });
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadedFileName(file.name);
+    if (file.name.toLowerCase().endsWith(".pdf")) {
+      setIsPdfLoading(true);
+      try {
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload = resolve; script.onerror = reject; document.head.appendChild(script);
+          });
+        }
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        const arrayBuffer = await file.arrayBuffer(); const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let extractedText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i); const content = await page.getTextContent();
+          extractedText += `[${i}페이지]\n${content.items.map((item) => item.str).join(" ")}\n\n`;
+        }
+        setHiddenTruth(extractedText.trim()); setPublicSynopsis("PDF 파일이 업로드되었습니다. 아래 진상 탭을 확인하세요.");
+      } catch (err) { alert("PDF 읽기 실패: " + err.message); } finally { setIsPdfLoading(false); }
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => setHiddenTruth(event.target.result);
+      reader.readAsText(file, "UTF-8");
+    }
+  };
+
+  const handleAutoReplaceKpcPc = () => {
+    let replacedSyn = publicSynopsis.replace(/\bPC\b/gi, charName || "주인공");
+    let replacedTru = hiddenTruth.replace(/\bPC\b/gi, charName || "주인공");
+    if (kpcList.length > 0) {
+      replacedSyn = replacedSyn.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
+      replacedTru = replacedTru.replace(/\bKPC\b/gi, kpcList[0].name || "파트너");
+    }
+    setPublicSynopsis(replacedSyn); setHiddenTruth(replacedTru);
+    alert(`개요 및 진상의 'PC/KPC' 단어가 치환되었습니다!`);
   };
 
   const handleAiGenerate = async () => {
@@ -200,6 +279,36 @@ export default function App() {
     } catch (e) { alert("생성 실패: " + e.message); } finally { setIsAiGenerating(false); }
   };
 
+  const executeSaveBackup = () => {
+    if (sessions.length === 0) return alert("백업할 시나리오 세션이 없습니다.");
+    const targets = backupTarget === "all" ? sessions : sessions.filter((s) => s.id === Number(backupTarget));
+    if (targets.length === 0) return alert("선택된 시나리오가 없습니다.");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(targets, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.href = url; link.download = `TRPG_전체세이브_${dateStr}.json`; link.click(); URL.revokeObjectURL(url);
+    closeModal(setShowBackupModal);
+  };
+
+  const importSaveFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        let imported = JSON.parse(event.target.result);
+        if (!Array.isArray(imported)) imported = [imported];
+        if (imported.length > 0 && imported[0].title) {
+          setSessions((prev) => {
+            const map = new Map(); prev.forEach((s) => map.set(s.id, s)); imported.forEach((s) => map.set(s.id, s)); return Array.from(map.values());
+          });
+          alert(`${imported.length}개의 세션이 복원되었습니다!`);
+        } else alert("올바른 규격의 JSON 세이브 파일이 아닙니다.");
+      } catch (err) { alert("파일 복원 실패: " + err.message); }
+    };
+    reader.readAsText(file);
+  };
+
   const handleAddKpc = () => { if (kpcList.length >= 10) return; setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "", portraitUrl: "", showSecret: false }]); };
   const handleRemoveKpc = (id) => { setKpcList(kpcList.filter(k => k.id !== id)); };
   const updateKpc = (id, field, value) => { setKpcList(kpcList.map(k => k.id === id ? { ...k, [field]: value } : k)); };
@@ -219,7 +328,6 @@ export default function App() {
         setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, portrait: newUrl } } : s));
       } else setCharPortraitUrl(newUrl);
     } else {
-      // KPC 수정
       if (activeSession) {
         const newNpcs = activeSession.sheet.npcs.map(npc => npc.id === activePortraitTarget ? { ...npc, portrait: newUrl } : npc);
         setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, npcs: newNpcs } } : s));
@@ -273,8 +381,6 @@ export default function App() {
     setActiveSessionId(newId); 
     setIsLoading(true);
 
-    // AI 도입부 작성 요청은 다음 백엔드 연동 턴에서 완성하므로 임시 주석 처리
-    // 프론트엔드 UI/UX 확인에 집중합니다.
     setTimeout(() => {
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `[${wizardMode === 'freeform' ? '자유 서사' : wizardMode === 'insane' ? '인세인' : '크툴루의 부름'}] 방이 세팅되었습니다. 대화나 판정을 시작하세요.` }] } : s));
       setIsLoading(false);
@@ -287,7 +393,6 @@ export default function App() {
     setSessions((prev) => prev.map((s) => (s.id === activeSessionId ? { ...s, messages: updatedMessages, pendingCheck: null } : s)));
     setIsLoading(true);
     
-    // 임시 더미 응답 (백엔드 붙이기 전)
     setTimeout(() => {
       setSessions((prev) => prev.map((s) => s.id === activeSessionId ? { ...s, messages: [...updatedMessages, { role: "model", text: "(AI 응답 대기 중: 백엔드 적용 후 정상 동작합니다)" }] } : s ));
       setIsLoading(false);
@@ -295,6 +400,13 @@ export default function App() {
   };
 
   const sendMessage = () => { if (!input.trim()) return; executeMessage(input); setInput(""); };
+  const deleteSession = (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("이 세션을 삭제하시겠습니까?")) return;
+    const filtered = sessions.filter((s) => s.id !== id);
+    setSessions(filtered);
+    if (activeSessionId === id) setActiveSessionId(null);
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -306,7 +418,6 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
-      {/* 글로벌 폰트 및 스타일 (글래스모피즘, 스크롤바 숨김 등) */}
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap');
@@ -315,16 +426,16 @@ export default function App() {
         .serif-text { font-family: 'Noto Serif KR', serif; line-height: 1.8; letter-spacing: -0.02em; }
         .sans-text { font-family: 'Pretendard', sans-serif; }
         
-        ::-webkit-scrollbar { display: none; } /* 스크롤바 완전 숨김으로 깔끔함 극대화 */
+        ::-webkit-scrollbar { display: none; }
         
-        /* 반투명 유리 질감 (Glassmorphism) */
+        /* Glassmorphism */
         .glass-panel { background: ${theme.panel}; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid ${theme.border}; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
         .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid ${theme.border}; }
         
         input, textarea, button { outline: none; transition: all 0.2s ease; }
         input:focus, textarea:focus { border-color: ${theme.accent}; box-shadow: 0 0 0 2px ${theme.accentGlow}; }
         
-        /* 채팅 메시지 여백 중심 디자인 (말풍선 꼬리 삭제) */
+        /* Chat bubble override for storytelling */
         .msg-box { padding: 16px 20px; border-radius: 12px; font-size: 0.95rem; max-width: 90%; }
         .msg-user { border-left: 3px solid ${theme.accent}; background: ${theme.bubbleUser}; color: ${theme.text}; align-self: flex-end; border-radius: 12px 2px 12px 12px; }
         .msg-ai { border-left: 3px solid ${theme.textMuted}; background: ${theme.bubbleAi}; color: ${theme.text}; align-self: flex-start; border-radius: 2px 12px 12px 12px; }
@@ -357,14 +468,17 @@ export default function App() {
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 {sessions.map(s => (
-                  <div key={s.id} onClick={() => { setActiveSessionId(s.id); setIsSidebarOpen(false); }} className="glass-alt" style={{ padding: "12px", borderRadius: "8px", cursor: "pointer", border: activeSessionId === s.id ? `1px solid ${theme.accent}` : `1px solid transparent` }}>
-                    <div style={{ fontWeight: "700", fontSize: "0.85rem", marginBottom: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</div>
-                    <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>{s.ruleMode === 'freeform' ? '자유 서사' : s.ruleMode === 'insane' ? '인세인' : 'CoC 7판'}</div>
+                  <div key={s.id} onClick={() => { setActiveSessionId(s.id); setIsSidebarOpen(false); }} className="glass-alt" style={{ padding: "12px", borderRadius: "8px", cursor: "pointer", border: activeSessionId === s.id ? `1px solid ${theme.accent}` : `1px solid transparent`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingRight: "6px" }}>
+                      <div style={{ fontWeight: "700", fontSize: "0.85rem", marginBottom: "4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.title}</div>
+                      <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>{s.ruleMode === 'freeform' ? '자유 서사' : s.ruleMode === 'insane' ? '인세인' : 'CoC 7판'}</div>
+                    </div>
+                    <button onClick={(e) => deleteSession(s.id, e)} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px" }}>🗑️</button>
                   </div>
                 ))}
               </div>
               <div style={{ padding: "16px", borderTop: `1px solid ${theme.border}` }}>
-                <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "10px", backgroundColor: "transparent", border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>⚙️ 환경 설정</button>
+                <button onClick={() => { setIsSidebarOpen(false); openModal(setShowSettingsModal); }} style={{ width: "100%", padding: "10px", backgroundColor: "transparent", border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>⚙️ 환경 설정</button>
               </div>
             </div>
           </div>
@@ -460,7 +574,40 @@ export default function App() {
               </div>
             </div>
 
-            {/* 4. 특화 룰 세팅 (CoC, 인세인 한정) */}
+            {/* 4. 시나리오 개요 및 진상 (수동 입력 & 파일 업로드 복구!) */}
+            <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ fontWeight: "700", fontSize: "0.95rem" }}>시나리오 개요 및 진상</div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <label style={{ padding: "6px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "600" }}>
+                    📄 파일 첨부
+                    <input type="file" accept=".txt,.pdf" onChange={handleFileUpload} style={{ display: "none" }} />
+                  </label>
+                  <button type="button" onClick={handleAutoReplaceKpcPc} style={{ padding: "6px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "6px", color: theme.accent, fontSize: "0.75rem", cursor: "pointer", fontWeight: "600" }}>🔄 PC/KPC 치환</button>
+                </div>
+              </div>
+              
+              <input type="text" value={scenarioTitle} onChange={(e) => setScenarioTitle(e.target.value)} placeholder="시나리오 제목" style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.9rem", fontWeight: "700", marginBottom: "12px" }} />
+              
+              <div style={{ marginBottom: "12px" }}>
+                <label style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "6px", display: "block" }}>[공개 시놉시스] 플레이어에게 주어지는 초기 정보</label>
+                <textarea value={publicSynopsis} onChange={(e) => setPublicSynopsis(e.target.value)} placeholder="도입부, 소문, 미스터리 등 스포일러 없는 배경 설명..." style={{ width: "100%", height: "80px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem", resize: "none" }} />
+              </div>
+              
+              <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
+                <button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "10px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "8px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", transition: "all 0.2s" }}>
+                  {showHiddenTruth ? "🔒 키퍼 전용 진상 닫기" : "👀 키퍼 전용 스포일러/진상 수동 입력"}
+                </button>
+                {showHiddenTruth && (
+                  <div style={{ marginTop: "12px", animation: "fadeIn 0.3s ease" }}>
+                    <div style={{ fontSize: "0.75rem", color: theme.danger, marginBottom: "8px" }}>⚠️ 플레이어 열람 주의! 마스터만 참조하는 사건의 흑막과 엔딩 분기입니다.</div>
+                    <textarea value={hiddenTruth} onChange={(e) => setHiddenTruth(e.target.value)} placeholder="흑막의 정체, 특수 기믹, 트루/배드 엔딩 조건을 기입하세요." style={{ width: "100%", height: "120px", padding: "10px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1px solid ${theme.danger}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem", resize: "none", lineHeight: "1.5" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 5. 특화 룰 세팅 (CoC, 인세인 한정) */}
             {wizardMode === "coc" && (
               <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px", border: `1px solid ${theme.danger}` }}>
                  <div style={{ fontWeight: "700", marginBottom: "12px", fontSize: "0.95rem", color: theme.danger }}>CoC 7판 기능치(Skill) 세팅</div>
@@ -556,6 +703,16 @@ export default function App() {
               </div>
               <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "20px" }}>
                 
+                {/* 📜 시나리오 개요 상시 확인 카드 (복구됨!) */}
+                <div className="glass-alt" style={{ fontSize: "0.8rem", padding: "12px", borderRadius: "12px", lineHeight: "1.5", border: `1px solid ${theme.border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <strong style={{ color: theme.warning }}>📜 시나리오 개요</strong>
+                  </div>
+                  <div style={{ color: theme.textMuted, whiteSpace: "pre-wrap" }}>
+                    {activeSession.publicSynopsis || "시나리오 개요가 없습니다."}
+                  </div>
+                </div>
+
                 {/* 프로필 요약 */}
                 <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                   <div style={{ width: "56px", height: "56px", borderRadius: "50%", backgroundColor: theme.panelAlt, border: `2px solid ${theme.accent}`, overflow: "hidden", flexShrink: 0 }}>
@@ -614,18 +771,75 @@ export default function App() {
 
       </div>
 
-      {/* 설정 모달 */}
+      {/* 설정 모달 (완벽 복구됨!) */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div onClick={() => closeModal(setShowSettingsModal)} style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.6)" }} />
-          <div className="glass-panel" style={{ width: "90%", maxWidth: "400px", padding: "24px", borderRadius: "16px", zIndex: 201 }}>
-            <h3 style={{ margin: "0 0 20px 0" }}>테마 설정</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              {Object.entries(THEME_PALETTES).map(([key, pal]) => (
-                <button key={key} onClick={() => handleSelectPalette(key)} style={{ padding: "16px", backgroundColor: currentPalette === key ? theme.panelAlt : "transparent", border: `1px solid ${currentPalette === key ? theme.accent : theme.border}`, borderRadius: "12px", color: theme.text, cursor: "pointer", fontWeight: currentPalette === key ? "700" : "400" }}>
-                  {pal.name}
-                </button>
-              ))}
+          <div className="glass-panel" style={{ width: "90%", maxWidth: "460px", padding: "24px", borderRadius: "16px", zIndex: 201, maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ margin: 0 }}>⚙️ 환경 설정</h3>
+              <button onClick={() => closeModal(setShowSettingsModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* 1. 테마 */}
+              <div>
+                <div style={{ fontSize: "0.9rem", fontWeight: "700", marginBottom: "10px" }}>테마 색상 팔레트</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {Object.entries(THEME_PALETTES).map(([key, pal]) => (
+                    <button key={key} onClick={() => handleSelectPalette(key)} style={{ padding: "12px", backgroundColor: currentPalette === key ? theme.panelAlt : "transparent", border: `1px solid ${currentPalette === key ? theme.accent : theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontWeight: currentPalette === key ? "700" : "400", fontSize: "0.85rem" }}>
+                      {pal.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. 사운드 */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "0.9rem", fontWeight: "700" }}>주사위 효과음 볼륨</label>
+                  <span style={{ fontSize: "0.8rem", color: theme.accent }}>{Math.round(soundVolume * 100)}%</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <input type="range" min="0" max="1" step="0.05" value={soundVolume} onChange={(e) => handleSaveVolume(Number(e.target.value))} style={{ flex: 1, accentColor: theme.accent }} />
+                  <button onClick={playDiceSound} style={{ padding: "6px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", fontSize: "0.8rem", cursor: "pointer" }}>🔊 테스트</button>
+                </div>
+              </div>
+
+              {/* 3. 주사위 애니메이션 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>주사위 굴림 연출 효과</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "2px" }}>3D 회전과 난수 롤링을 표시합니다.</div>
+                </div>
+                <button onClick={() => handleSaveAnim(!animationEnabled)} style={{ padding: "8px 16px", backgroundColor: animationEnabled ? theme.accent : "transparent", color: animationEnabled ? "#fff" : theme.text, border: `1px solid ${animationEnabled ? theme.accent : theme.border}`, borderRadius: "20px", fontWeight: "700", fontSize: "0.8rem", cursor: "pointer" }}>{animationEnabled ? "켜짐" : "꺼짐"}</button>
+              </div>
+
+              {/* 4. 세이브 데이터 관리 (백업/복원) */}
+              <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "0.9rem", fontWeight: "700", color: theme.accent }}>💾 세이브 백업 및 복원</span>
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button onClick={executeSaveBackup} style={{ flex: 1, padding: "10px", backgroundColor: "transparent", border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700" }}>저장 (백업)</button>
+                  <label style={{ flex: 1, padding: "10px", backgroundColor: "transparent", border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", textAlign: "center" }}>
+                    불러오기
+                    <input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} />
+                  </label>
+                </div>
+              </div>
+
+              {/* 5. 초상화 스타일 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.9rem", fontWeight: "700" }}>🎨 초상화 화풍 (스타일)</div>
+                  <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginTop: "2px" }}>생성되는 초상화의 그림체를 지정합니다.</div>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => { setPortraitStyle("anime"); localStorage.setItem("rp_hub_portrait_style", "anime"); }} style={{ padding: "6px 12px", backgroundColor: portraitStyle === "anime" ? theme.accent : "transparent", color: portraitStyle === "anime" ? "#fff" : theme.text, border: `1px solid ${theme.accent}`, borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer", fontWeight: "600" }}>애니풍</button>
+                  <button onClick={() => { setPortraitStyle("realistic"); localStorage.setItem("rp_hub_portrait_style", "realistic"); }} style={{ padding: "6px 12px", backgroundColor: portraitStyle === "realistic" ? theme.accent : "transparent", color: portraitStyle === "realistic" ? "#fff" : theme.text, border: `1px solid ${theme.accent}`, borderRadius: "8px", fontSize: "0.8rem", cursor: "pointer", fontWeight: "600" }}>실사풍</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
