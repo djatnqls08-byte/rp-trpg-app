@@ -910,7 +910,7 @@ export default function App() {
     const partnerName = kpcList[0]?.name || "아델";
 
     const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => ({
-      id: k.id, name: k.name, title: k.job || "조력자", portrait: k.portraitUrl || getPortraitUrl(k.name), affection: 10, secret: k.secret, secretRevealed: false
+      id: k.id, name: k.name, title: k.job || "조력자", detail: k.detail || "", portrait: k.portraitUrl || getPortraitUrl(k.name), affection: 10, secret: k.secret, secretRevealed: false
     }));
 
     let initialHandouts = generatedHandouts.length > 0 ? generatedHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false })) : [
@@ -1040,28 +1040,31 @@ export default function App() {
       const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-      if (parsedData.triggeredMadness) {
-        const mObj = parsedData.triggeredMadness;
-        setShowInsanityFlash(true);
-        setTimeout(() => setShowInsanityFlash(false), 500);
-        setActiveMadnessAlert({ name: mObj.name, desc: mObj.desc });
-        newSheet.madnessStatus = `광기 발현: ${mObj.name}`;
-        
-        const cardExists = (newSheet.madnessCards || []).some(c => c.name.includes(mObj.name) || mObj.name.includes(c.name));
-        if (!cardExists) {
-          newSheet.madnessCards = [...(newSheet.madnessCards || []), { name: mObj.name, desc: mObj.desc, revealed: true, id: Date.now() }];
-        } else {
-          newSheet.madnessCards = (newSheet.madnessCards || []).map(c => c.name.includes(mObj.name) || mObj.name.includes(c.name) ? { ...c, revealed: true } : c);
-        }
-      }
-
-      if (parsedData.revealedHandoutTitles.length > 0) {
-        newSheet.handouts = (newSheet.handouts || []).map(h => {
-          if (parsedData.revealedHandoutTitles.some(t => h.title.includes(t) || t.includes(h.title))) {
-            return { ...h, revealed: true };
+      // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 '완벽 차단'
+      if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
+        const currentNpcs = activeSession.sheet?.npcs || [];
+        const mergedNpcs = currentNpcs.map(cNpc => {
+          const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
+          if (updatedNpc) {
+            return {
+              ...cNpc, // 1차로 원본 데이터를 그대로 깐 뒤
+              // 2차로 AI가 변경해도 되는 '안전한 항목'만 허락합니다.
+              affection: updatedNpc.affection !== undefined ? updatedNpc.affection : cNpc.affection,
+              title: updatedNpc.title || cNpc.title,
+              secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
+              // 🚨 핵심: detail(설정), secret(비밀), portrait(초상화)는 AI가 빈칸을 보내도 무시하고 절대 덮어쓰지 않음!
+            };
           }
-          return h;
+          return cNpc; 
         });
+        
+        // AI가 시나리오 도중 완전히 새로운 KPC를 창조해냈을 경우에만 배열에 새로 추가
+        parsedData.newSheetVars.npcs.forEach(aNpc => {
+          if (!currentNpcs.find(cNpc => cNpc.name === aNpc.name || cNpc.id === aNpc.id)) {
+            mergedNpcs.push({ ...aNpc, id: aNpc.id || Date.now() + Math.random(), portrait: getPortraitUrl(aNpc.name), detail: "", secret: "" });
+          }
+        });
+        newSheet.npcs = mergedNpcs;
       }
 
       if (parsedData.newHandouts.length > 0) {
@@ -1194,11 +1197,12 @@ export default function App() {
       )}
 
       {/* 1. 좌측 사이드바 */}
-      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
-          <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
-          <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
-        </div>
+      <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
+  <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
+  <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
+  {/* 🌟 닫기 버튼 */}
+  <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+</div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
           {sessions.map((s) => (
             <div key={s.id} onClick={() => { setActiveSessionId(s.id); if (isMobile) setIsSidebarOpen(false); }} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "4px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : "transparent", border: activeSessionId === s.id ? `1px solid ${theme.border}` : "1px solid transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
