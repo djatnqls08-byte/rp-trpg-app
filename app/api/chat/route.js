@@ -1,5 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// 1순위 소진 시 순서대로 자동 우회할 모델 체인 (총 1,020+ 회/일)
+const FALLBACK_MODELS = [
+  "gemini-3.1-flash-lite", // 1순위: 일 500회 초고속 경량 모델
+  "gemini-3.5-flash-lite", // 2순위: 일 500회 예비 경량 모델
+  "gemini-2.5-flash",      // 3순위: 일 20회 표준 모델
+];
+
 export async function POST(req) {
   try {
     const { messages, scenarioText, playerSheet, ruleMode, playPreference } = await req.json();
@@ -10,15 +17,14 @@ export async function POST(req) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 4대 룰별 맞춤 키퍼 수칙
+    // 4대 정규 룰별 키퍼 수칙
     let rulePrompt = "";
     if (ruleMode === "coc") {
       rulePrompt = `[크툴루의 부름 7판]
 - 단서 탐색, 은밀 행동 시 다이스 판정(CHECK)을 요구하세요.
 - 끔찍한 진실, 시체, 신화생물 조우 시 이성(SAN) 체크를 지시하세요.
-- SAN이 5점 이상 급감하거나 플레이어의 시트에 광기 상태가 발현되어 있다면 파트너 NPC가 당황해 부축하거나 상황이 극적으로 혼란해지는 모습을 생생하게 묘사하세요.`;
+- SAN이 5점 이상 급감하거나 플레이어 시트에 광기 상태가 발현되어 있다면 파트너 NPC가 당황해 부축하거나 상황이 극적으로 혼란해지는 모습을 생생하게 묘사하세요.`;
     } else if (ruleMode === "insane") {
       rulePrompt = `[멀티 호러 TRPG 인세인]
 - 씬(Scene)을 진행하며 공포 판정과 비밀(Secret) 탐색을 유도하세요.
@@ -57,27 +63,51 @@ ${rulePrompt}
    - 턴을 넘길 때 플레이어가 선택할 만한 흥미로운 행동 2가지를 제안하세요.
    <!-- SUGGESTIONS: ["선택지 1", "선택지 2"] -->`;
 
-    const chatHistory = (messages || []).map((m) => ({
-      role: m.role === "user" ? "user" : "model",
-      parts: [{ text: m.text }],
-    }));
+    const formattedContents = [
+      { role: "user", parts: [{ text: systemInstruction }] },
+      { role: "model", parts: [{ text: "TRPG 마스터로서 정규 룰과 광기 수칙을 완벽하게 이끌겠습니다." }] }
+    ];
 
-    const chat = model.startChat({
-      history: [
-        { role: "user", parts: [{ text: systemInstruction }] },
-        { role: "model", parts: [{ text: "TRPG 마스터로서 정규 룰과 광기 수칙을 완벽하게 이끌겠습니다." }] },
-        ...chatHistory.slice(0, -1),
-      ],
-    });
+    for (const m of messages || []) {
+      const role = m.role === "user" ? "user" : "model";
+      const text = (m.text || "").trim();
+      if (!text) continue;
 
-    const lastMessage = chatHistory[chatHistory.length - 1].parts[0].text;
-    const result = await chat.sendMessage(lastMessage);
-    const responseText = result.response.text();
+      if (formattedContents.length > 0 && formattedContents[formattedContents.length - 1].role === role) {
+        formattedContents[formattedContents.length - 1].parts[0].text += "\n\n" + text;
+      } else {
+        formattedContents.push({ role, parts: [{ text }] });
+      }
+    }
+
+    // 모델 자동 우회(Fallback) 호출 루프
+    let responseText = null;
+    let lastError = null;
+
+    for (const modelName of FALLBACK_MODELS) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent({ contents: formattedContents });
+        responseText = result.response.text();
+
+        if (responseText) {
+          break; // 정상 응답 수신 시 루프 탈출
+        }
+      } catch (err) {
+        console.warn(`[API Fallback] ${modelName} 요청 실패 (${err.message}). 다음 예비 모델로 자동 전환합니다.`);
+        lastError = err;
+      }
+    }
+
+    if (!responseText) {
+      throw lastError || new Error("모든 예비 모델의 한도가 초과되었거나 호출에 실패했습니다.");
+    }
 
     return new Response(JSON.stringify({ text: responseText }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
+    console.error("API Route Error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
