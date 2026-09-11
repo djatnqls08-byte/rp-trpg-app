@@ -1168,9 +1168,66 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
                 <h1 className="serif-text" style={{ margin: "0 0 6px 0", fontSize: "1.65rem", fontWeight: "800", color: theme.text }}>새로운 서사의 시작</h1>
                 <div style={{ fontSize: "0.82rem", color: theme.textMuted }}>룰과 장르를 선택하면 AI 마스터가 세계를 구축합니다.</div>
               </div>
-              <button onClick={handleAiGenerate} disabled={isAiGenerating} style={{ padding: "10px 20px", backgroundColor: "#4a4947", color: "#fff", border: "none", borderRadius: "24px", cursor: "pointer", fontSize: "0.85rem", fontWeight: "700", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", whiteSpace: "nowrap" }}>
-                {isAiGenerating ? "AI 기획 중..." : "✨ AI 즉석 생성"}
-              </button>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
+  <button 
+    type="button" 
+    onClick={handleSaveLobbyPreset} 
+    title="로비 세팅 저장"
+    style={{ 
+      width: "38px", 
+      height: "38px", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      backgroundColor: theme.panelAlt, 
+      border: `1px solid ${theme.border}`, 
+      borderRadius: "50%", 
+      cursor: "pointer", 
+      fontSize: "1.05rem" 
+    }}
+  >
+    💾
+  </button>
+  <button 
+    type="button" 
+    onClick={() => openModal(setShowLobbyPresetModal)} 
+    title="로비 세팅 불러오기"
+    style={{ 
+      width: "38px", 
+      height: "38px", 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      backgroundColor: theme.panelAlt, 
+      border: `1px solid ${theme.border}`, 
+      borderRadius: "50%", 
+      cursor: "pointer", 
+      fontSize: "1.05rem" 
+    }}
+  >
+    📂
+  </button>
+  <button 
+    type="button" 
+    onClick={handleAiGenerate} 
+    disabled={isAiGenerating} 
+    style={{ 
+      padding: "8px 16px", 
+      height: "38px",
+      backgroundColor: "#4a4947", 
+      color: "#fff", 
+      border: "none", 
+      borderRadius: "20px", 
+      cursor: "pointer", 
+      fontSize: "0.82rem", 
+      fontWeight: "700", 
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)", 
+      whiteSpace: "nowrap" 
+    }}
+  >
+    {isAiGenerating ? "기획 중..." : "✨ AI 즉석 생성"}
+  </button>
+</div>
             </div>
 
             {/* 1. 룰 시스템 선택 */}
