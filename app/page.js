@@ -662,7 +662,22 @@ ${hiddenTruth}`;
     const newId = Date.now();
     const newSession = { id: newId, title: sessionTitleName, ruleMode: wizardMode, preference: finalPref, scenarioText: fullScenarioContext, sheet: initialSheet, messages: [], suggestedActions: [], investigationSpots: [], pendingCheck: null };
     setSessions([newSession, ...sessions]); setActiveSessionId(newId); setIsLoading(true);
-
+const newId = Date.now();
+  const newSession = {
+    id: newId,
+    title: sessionTitleName,
+    ruleMode: wizardMode,
+    preference: finalPref,
+    scenarioText: fullScenarioContext,
+    publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.", // ⭐ 이 한 줄을 쏙 넣어주세요!
+    sheet: initialSheet,
+    messages: [],
+    suggestedActions: [],
+    investigationSpots: [],
+    pendingCheck: null,
+  };
+    
+    
     const openingPrompt = `[세션 시작: 첫 서막]
 서막을 열고 상황을 묘사하십시오. (반드시 정중한 ~합니다/였습니다 경어체 고정)
 조사 가능한 구역 2~3곳을 본문 끝에 <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] --> 형식으로 추출하십시오.`;
