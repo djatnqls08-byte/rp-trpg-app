@@ -653,6 +653,59 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     };
     reader.readAsDataURL(file);
   };
+
+// 🌟 세이브 백업 다운로드
+  const executeSaveBackup = () => {
+    if (sessions.length === 0) return alert("백업할 세션이 없습니다.");
+    const targets = backupTarget === "all" ? sessions : sessions.filter((s) => s.id === Number(backupTarget));
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const content = backupFormat === "json" 
+      ? JSON.stringify(targets, null, 2) 
+      : targets.map(s => `[${s.title}]\n` + (s.messages || []).map(m => `${m.role}: ${m.text}`).join("\n\n")).join("\n===\n");
+    const blob = new Blob([content], { type: backupFormat === "json" ? "application/json" : "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `TRPG_세이브_${dateStr}.${backupFormat}`; a.click(); URL.revokeObjectURL(url);
+    closeModal(setShowBackupModal);
+  };
+
+  // 🌟 세이브 복원 파일 읽기
+  const importSaveFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        let imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) imported = [imported];
+        setSessions(prev => {
+          const map = new Map(); 
+          prev.forEach(s => map.set(s.id, s)); 
+          imported.forEach(s => map.set(s.id, s)); 
+          return Array.from(map.values());
+        });
+        alert(`${imported.length}개 세션 복원 완료!`);
+      } catch (err) { alert("복원 실패: " + err.message); }
+    };
+    reader.readAsText(file);
+  };
+
+  // 🌟 대화록 내보내기 다운로드
+  const executeExport = () => {
+    if (!activeSession) return;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    let msgs = activeSession.messages || [];
+    if (exportScope === "storyOnly") {
+      msgs = msgs.filter(m => !m.text.includes("[🎲") && !m.text.includes("[⚠️") && !m.text.includes("[시스템"));
+    }
+    const partnerName = activeSession.sheet?.npcs?.[0]?.name || "파트너";
+    const content = exportFormat === "md"
+      ? `# ${activeSession.title}\n\n` + msgs.map(m => `**${m.role === "user" ? activeSession.sheet.name : partnerName}**:\n${m.text}`).join("\n\n---\n\n")
+      : `[${activeSession.title}]\n\n` + msgs.map(m => `${m.role === "user" ? activeSession.sheet.name : partnerName}: ${m.text}`).join("\n\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `${activeSession.title}_로그_${dateStr}.${exportFormat}`; a.click(); URL.revokeObjectURL(url);
+    closeModal(setShowExportModal);
+  };
   
   // CoC 10종 광기 발작 처리
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
