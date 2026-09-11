@@ -27,6 +27,21 @@ const THEME_PALETTES = {
 
 const COC_STAT_LABELS = { str: "근력", con: "건강", siz: "크기", dex: "민첩", app: "외모", int: "지능", pow: "정신", edu: "교육" };
 
+// CoC 7판 정규 10종 광기표 (1D10 완전 복구)
+const COC_MADNESS_TABLE = [
+  { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
+  { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
+  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
+  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
+  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
+  { roll: 7, name: "신체 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
+  { roll: 8, name: "심인성 기억상실", desc: "직전 목격한 공포스러운 진실에 대한 기억이 완전히 지워집니다." },
+  { roll: 9, name: "파괴 충동", desc: "주변의 사물을 닥치는 대로 부수거나 집어던집니다." },
+  { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
+];
+
+// 인세인 6대 분야 66개 특기표
 const INSANE_MATRIX = [
   { category: "폭력", skills: ["소각", "고문", "포박", "협박", "파괴", "구타", "절단", "찌르기", "사격", "전쟁", "매장"] },
   { category: "정서", skills: ["연심", "기쁨", "걱정", "부끄러움", "웃음", "인내", "놀람", "노여움", "원한", "슬픔", "친애"] },
@@ -43,15 +58,6 @@ const INSANE_MADNESS_TABLE = [
   { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
   { roll: 5, name: "폭력 충동 (Impulse)", desc: "위협을 제거하기 위해 수단 방법을 가리지 않는 공격성을 드러냅니다." },
   { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
-];
-
-const COC_MADNESS_TABLE = [
-  { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
-  { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
-  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
-  { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
-  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
-  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." }
 ];
 
 const INSANE_SCENE_TABLE = [
@@ -98,7 +104,7 @@ export default function App() {
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  const [wizardMode, setWizardMode] = useState("insane");
+  const [wizardMode, setWizardMode] = useState("coc");
 
   // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
@@ -113,7 +119,7 @@ export default function App() {
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [activePortraitTarget, setActivePortraitTarget] = useState("pc");
 
-  // CoC 스탯
+  // CoC 스탯 및 기능치
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
   const [cocSkills, setCocSkills] = useState("관찰력 60, 자료조사 50, 듣기 40, 심리학 50");
   const remainingPoints = 460 - (Number(cocStats.str) + Number(cocStats.con) + Number(cocStats.siz) + Number(cocStats.dex) + Number(cocStats.app) + Number(cocStats.int) + Number(cocStats.pow) + Number(cocStats.edu));
@@ -133,10 +139,10 @@ export default function App() {
 
   // KPC(파트너) 상태
   const [kpcList, setKpcList] = useState([
-    { id: 1, name: "아델", job: "조력자", detail: "다정하고 굳은 눈빛을 지닌 파트너.", secret: "클레어가 혼자 모든 아픔을 짊어지지 않도록 제 불안을 숨긴 채 곁을 지킨다.", portraitUrl: "", showSecret: false }
+    { id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
   ]);
 
-  // 시나리오 폼 상태
+  // 시나리오 폼 상태 (공개/서막/비밀진상 분리)
   const [scenarioTitle, setScenarioTitle] = useState("");
   const [publicSynopsis, setPublicSynopsis] = useState("");
   const [openingScene, setOpeningScene] = useState("");
@@ -148,7 +154,7 @@ export default function App() {
 
   const [customPresets, setCustomPresets] = useState([]);
 
-  // 연출 상태
+  // 주사위 및 연출 상태
   const [isRolling, setIsRolling] = useState(false);
   const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
@@ -276,7 +282,6 @@ export default function App() {
     }));
   };
 
-  // 🌟 광기 카드 드로우 함수
   const drawMadnessCard = (targetSessionId, autoNotify = true) => {
     let drawnCard = null;
     setSessions(prev => prev.map(s => {
@@ -307,7 +312,6 @@ export default function App() {
     return drawnCard;
   };
 
-  // 🌟 광기 카드 즉시 발현 실행 함수
   const manifestMadnessCard = (cardId, targetSessionId) => {
     const session = sessions.find(s => s.id === targetSessionId);
     if (!session) return;
@@ -338,12 +342,10 @@ export default function App() {
     }));
   };
 
-  // 🌟 원클릭 즉시 광기 뽑기 & 발현 (덱에서 1장 뽑아 즉시 발현)
   const triggerMadnessDirectly = (targetSessionId) => {
     const session = sessions.find(s => s.id === targetSessionId);
     if (!session) return;
     
-    // 덱에서 1장 뽑아서 바로 발현
     const deck = [...(session.sheet?.madnessDeck && session.sheet.madnessDeck.length > 0 ? session.sheet.madnessDeck : INSANE_MADNESS_TABLE)];
     const card = deck.shift();
 
@@ -561,6 +563,7 @@ export default function App() {
     closeModal(setShowPortraitEditModal);
   };
 
+  // CoC 10종 광기 발작 처리
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -569,7 +572,7 @@ export default function App() {
 
     let mName = "", mDesc = "", rollNum = 1;
     if (rule === "coc") {
-      rollNum = Math.floor(Math.random() * 6) + 1;
+      rollNum = Math.floor(Math.random() * 10) + 1; // 1D10
       const m = COC_MADNESS_TABLE.find(it => it.roll === rollNum) || COC_MADNESS_TABLE[0];
       mName = m.name; mDesc = m.desc;
     } else {
@@ -607,7 +610,6 @@ export default function App() {
     executeMessage(`[🎲 장면표 1D6 ➔ ${roll + 1}번 결과]: "${desc}"\n(이 분위기를 무대로 다음 행동을 이어갑니다.)`);
   };
 
-  // 🌟 강력한 태그 파서 (TRIGGER_MADNESS 감지 완비)
   const parseTagsSafely = (rawText, partnerName, currentRule) => {
     let cleanText = rawText || "";
     let parsedData = { 
@@ -618,19 +620,16 @@ export default function App() {
     };
 
     try {
-      // 1. 광기 발현 태그 파싱!
       const madnessMatch = cleanText.match(/<!--\s*TRIGGER_MADNESS:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (madnessMatch) {
         try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
       }
 
-      // 2. CHECK 태그
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (checkMatch) {
         try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
       }
 
-      // 3. SUGGESTIONS 태그
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
       if (suggMatch) {
         try {
@@ -639,7 +638,6 @@ export default function App() {
         } catch(e) {}
       }
 
-      // 4. SPOTS 태그
       if (currentRule !== "insane") {
         const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
         if (spotsMatch) {
@@ -647,7 +645,6 @@ export default function App() {
         }
       }
 
-      // 5. 핸드아웃 자동 해금 태그
       const revHandoutRegex = /<!--\s*REVEAL_HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(revHandoutRegex)) {
         try {
@@ -656,18 +653,15 @@ export default function App() {
         } catch (e) {}
       }
 
-      // 6. 씬 전진
       if (cleanText.includes("<!-- ADVANCE_SCENE") || cleanText.includes("<!-- END_SCENE")) {
         parsedData.shouldAdvanceScene = true;
       }
 
-      // 7. 새 핸드아웃
       const handoutRegex = /<!--\s*HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(handoutRegex)) {
         try { parsedData.newHandouts.push(JSON.parse(m[1])); } catch (e) {}
       }
 
-      // 8. STATUS
       const statMatch = cleanText.match(/<!--\s*STATUS:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (statMatch) {
         try { parsedData.newSheetVars = JSON.parse(statMatch[1]); } catch (e) {}
@@ -797,7 +791,6 @@ export default function App() {
       const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-      // 🌟 AI가 발현 태그를 보냈을 때 즉각 발현 처리
       if (parsedData.triggeredMadness) {
         const mObj = parsedData.triggeredMadness;
         setShowInsanityFlash(true);
@@ -805,7 +798,6 @@ export default function App() {
         setActiveMadnessAlert({ name: mObj.name, desc: mObj.desc });
         newSheet.madnessStatus = `광기 발현: ${mObj.name}`;
         
-        // 광기 핸드에 발현 상태로 추가
         const cardExists = (newSheet.madnessCards || []).some(c => c.name.includes(mObj.name) || mObj.name.includes(c.name));
         if (!cardExists) {
           newSheet.madnessCards = [...(newSheet.madnessCards || []), { name: mObj.name, desc: mObj.desc, revealed: true, id: Date.now() }];
@@ -1012,7 +1004,7 @@ export default function App() {
         </div>
 
         {!activeSession ? (
-          /* 로비 화면 */
+          /* 로비 화면 (UI 1:1 완벽 반영) */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 100px 14px" : "28px 24px 80px 24px", maxWidth: "860px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -1030,8 +1022,8 @@ export default function App() {
               <div style={{ fontSize: "0.9rem", fontWeight: "800", marginBottom: "14px" }}>1. 룰 시스템 선택</div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "10px" }}>
                 {[
-                  { key: "insane", name: "인세인 (inSANe)", sub: "비밀과 광기의 보드게임" },
                   { key: "coc", name: "크툴루의 부름 (CoC)", sub: "1D100 기반 탐색과 공포" },
+                  { key: "insane", name: "인세인 (inSANe)", sub: "비밀과 광기의 보드게임" },
                   { key: "freeform", name: "자유 서사 (소설 모드)", sub: "주사위 없는 순수 역극" }
                 ].map((item) => (
                   <div key={item.key} onClick={() => setWizardMode(item.key)} style={{ padding: "16px 14px", borderRadius: "12px", border: `1.5px solid ${wizardMode === item.key ? "#4a4947" : theme.border}`, backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent", cursor: "pointer" }}>
@@ -1124,7 +1116,34 @@ export default function App() {
               </div>
             </div>
 
-            {/* 룰 특화 설정 (인세인 특기표 매트릭스) */}
+            {/* 🌟 1. CoC 특화 설정 블록 (460pt & 기능치 복원) */}
+            {wizardMode === "coc" && (
+              <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.danger}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <span style={{ fontWeight: "800", fontSize: "0.9rem", color: theme.danger }}>CoC 7판 특성치 (460 pt) & 주요 기능치(Skill) 설정</span>
+                  <button onClick={handleRandomCocStats} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.accent, fontSize: "0.74rem", cursor: "pointer", fontWeight: "700" }}>🎲 460pt 자동 분배</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "10px" }}>
+                  {[{ k: "str", l: "근력" }, { k: "con", l: "건강" }, { k: "siz", l: "크기" }, { k: "dex", l: "민첩" }, { k: "app", l: "외모" }, { k: "int", l: "지능" }, { k: "pow", l: "정신" }, { k: "edu", l: "교육" }].map(s => (
+                    <div key={s.k}>
+                      <label style={{ fontSize: "0.7rem", color: theme.textMuted }}>{s.l}</label>
+                      <input type="number" min="15" max="90" value={cocStats[s.k]} onChange={e => setCocStats({ ...cocStats, [s.k]: Number(e.target.value) })} style={{ width: "100%", padding: "5px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", textAlign: "center" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", marginBottom: "12px", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "8px" }}>
+                  <span>잔여 포인트: <strong style={{ color: remainingPoints < 0 ? theme.danger : theme.success }}>{remainingPoints} pt</strong></span>
+                  <span>행운: <input type="number" value={cocStats.luck} onChange={e => setCocStats({ ...cocStats, luck: Number(e.target.value) })} style={{ width: "45px", padding: "2px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", textAlign: "center" }} /></span>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "700", marginBottom: "4px" }}>추가 보유 기능치 (Skill):</label>
+                  <input type="text" value={cocSkills} onChange={e => setCocSkills(e.target.value)} placeholder="예: 관찰력 60, 자료조사 50, 듣기 40, 심리학 50" style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} />
+                  <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "4px" }}>※ 시트에서 이 기능치들을 원클릭 1D100 주사위로 즉시 굴릴 수 있습니다.</div>
+                </div>
+              </div>
+            )}
+
+            {/* 🌟 2. 인세인 특기표 매트릭스 블록 */}
             {wizardMode === "insane" && (
               <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.warning}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1216,7 +1235,6 @@ export default function App() {
                   <button onClick={() => setIsTabletopOpen(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.3rem", cursor: "pointer" }}>✕</button>
                 </div>
 
-                {/* 1. 시나리오 조사 핸드아웃 */}
                 <div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.accent, marginBottom: "10px" }}>📜 시나리오 핸드아웃 (터치하여 앞/뒤 확인)</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
@@ -1235,7 +1253,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 2. 내 광기 카드 핸드 (보유 광기) & 덱 */}
                 <div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>💀 내 광기 핸드 (보유: {activeSession.sheet.madnessCards?.length || 0}장)</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
@@ -1261,7 +1278,6 @@ export default function App() {
                       </div>
                     ))}
 
-                    {/* 덱 드로우 & 즉시 발현 카드 */}
                     <div className="glass-card" style={{ width: "170px", minHeight: "220px", borderRadius: "12px", border: `1.5px dashed ${theme.danger}`, padding: "14px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(214, 56, 87, 0.08)", gap: "6px" }}>
                       <span style={{ fontSize: "1.8rem" }}>🎴</span>
                       <span style={{ fontWeight: "800", fontSize: "0.82rem", color: theme.danger }}>미공개 광기 덱</span>
@@ -1299,7 +1315,6 @@ export default function App() {
             {/* 알림 배너 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
               
-              {/* 🩸 광기 발현 알림 배너 */}
               {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.danger }}>
@@ -1318,7 +1333,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* 판정 요구 배너 */}
               {activeSession?.pendingCheck && !isSanCheckDetected && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.text }}>
@@ -1336,7 +1350,16 @@ export default function App() {
                 </div>
               )}
 
-              {/* 추천 제안 칩 */}
+              {/* 🌟 CoC 전용 조사 칩 (인세인이 아닐 때만 노출) */}
+              {activeSession.ruleMode !== "insane" && (activeSession.investigationSpots || []).length > 0 && (
+                <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "700", alignSelf: "center" }}>🔍 조사:</span>
+                  {activeSession.investigationSpots.map((spot, idx) => (
+                    <button key={idx} onClick={() => setInput(prev => `[조사: ${spot.name}] ` + prev)} style={{ padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.72rem", cursor: "pointer" }}>{spot.name}</button>
+                  ))}
+                </div>
+              )}
+
               {suggestionsEnabled && (activeSession.suggestedActions || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "700", alignSelf: "center" }}>💡 제안:</span>
@@ -1356,7 +1379,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 시트 패널 */}
+      {/* 3. 우측 시트 패널 (CoC 8대 스탯/기능치 주사위 & 인세인 광기 복원) */}
       {activeSession && (
         <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           
@@ -1397,15 +1420,62 @@ export default function App() {
                   <button onClick={() => adjustStat("hp", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
                 </div>
               </div>
+              {activeSession.ruleMode === "coc" && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+                  <span>행운: <strong>{activeSession.sheet.luck}</strong></span>
+                  <span>DB: <strong>{activeSession.sheet.db}</strong></span>
+                </div>
+              )}
             </div>
 
-            {/* 인세인 시트: 사명 + 💥 즉시 광기 발현 버튼 */}
+            {/* 🌟 CoC 특화: 8대 특성치 & 기능치 주사위 굴림 패널 */}
+            {activeSession.ruleMode === "coc" && (
+              <>
+                {activeSession.sheet.cocStats && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.danger }}>📊 8대 특성치 (1D100 🎲)</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                      {Object.keys(COC_STAT_LABELS).map(k => (
+                        <button
+                          key={k}
+                          onClick={() => rollDiceDirectly(activeSession.sheet.cocStats[k], COC_STAT_LABELS[k])}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.text, fontSize: "0.68rem", cursor: "pointer" }}
+                        >
+                          <span>{COC_STAT_LABELS[k]}</span>
+                          <span style={{ fontWeight: "700" }}>{activeSession.sheet.cocStats[k]}% 🎲</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeSession.sheet.cocSkills && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.accent }}>🎯 보유 기능치 (Skill 🎲)</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {parseCocSkills(activeSession.sheet.cocSkills).map((sk, idx) => (
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "4px 8px", borderRadius: "6px", fontSize: "0.72rem" }}>
+                          <span>{sk.name} ({sk.val}%)</span>
+                          <button
+                            onClick={() => rollDiceDirectly(sk.val, sk.name)}
+                            style={{ padding: "2px 6px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "4px", color: theme.accent, fontSize: "0.68rem", cursor: "pointer", fontWeight: "700" }}
+                          >
+                            🎲 판정
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* 🌟 인세인 특화: 사명, 광기 핸드, 특기 2D6 주사위 패널 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <strong style={{ color: theme.warning }}>공개 사명</strong>
-                    {/* 💥 원클릭 즉시 광기 발현 버튼 */}
                     <button onClick={() => triggerMadnessDirectly(activeSessionId)} style={{ padding: "2px 6px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "4px", fontSize: "0.65rem", fontWeight: "800", cursor: "pointer" }}>💥 광기 발현</button>
                   </div>
                   <div>{activeSession.sheet.mission}</div>
@@ -1414,7 +1484,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 보유 광기 목록 */}
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span style={{ fontWeight: "800", fontSize: "0.76rem", color: theme.danger }}>💀 보유 광기 ({activeSession.sheet.madnessCards?.length || 0})</span>
@@ -1581,6 +1650,33 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* 대화록 내보내기 모달 (범위/포맷 선택 복구) */}
+      {showExportModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "400px", padding: "20px", borderRadius: "14px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>📥 대화록 내보내기</h3>
+              <button onClick={() => closeModal(setShowExportModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            
+            <label style={{ fontSize: "0.75rem", color: theme.textMuted, display: "block", marginBottom: "4px" }}>내보내기 범위:</label>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+              <button onClick={() => setExportScope("all")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportScope === "all" ? theme.accent : theme.border}`, backgroundColor: exportScope === "all" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>전체 대화록</button>
+              <button onClick={() => setExportScope("storyOnly")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportScope === "storyOnly" ? theme.accent : theme.border}`, backgroundColor: exportScope === "storyOnly" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>순수 서사만</button>
+            </div>
+
+            <label style={{ fontSize: "0.75rem", color: theme.textMuted, display: "block", marginBottom: "4px" }}>파일 형식:</label>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
+              <button onClick={() => setExportFormat("txt")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>TXT</button>
+              <button onClick={() => setExportFormat("md")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportFormat === "md" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "md" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>MD</button>
+            </div>
+
+            <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem" }}>다운로드</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
