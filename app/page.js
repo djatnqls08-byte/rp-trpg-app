@@ -333,7 +333,6 @@ export default function App() {
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   };
 
-  // 4대 정규 룰 전용 절차적 데이터 풀
   const proceduralData = {
     names: {
       western: ["사반", "로웨나", "세실리아", "비비안", "엘레노어", "카밀라", "발렌티나", "이졸데", "마리안", "키이라", "아리아", "알렉스"],
@@ -1120,7 +1119,7 @@ export default function App() {
                 {/* 인세인 사명 및 비밀 카드 */}
                 {wizardMode === "insane" && (
                   <div className="glass-card" style={{ padding: "16px", borderRadius: "14px", border: `1.5px solid ${theme.warning}`, display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.warning }}>인세인 사명 및 비밀 (HP 6 / SAN 6)</span>
+                    <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.warning }}>인세인 사명 &amp; 비밀 (HP 6 / SAN 6)</span>
                     <div>
                       <label style={{ display: "block", fontSize: "0.72rem", color: theme.textMuted, marginBottom: "2px" }}>겉보기 사명 (공개 정보)</label>
                       <input type="text" value={charMission} onChange={(e) => setCharMission(e.target.value)} style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.8rem" }} />
@@ -1250,7 +1249,7 @@ export default function App() {
             {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && !isLoading && (
               <div style={{ padding: "8px 14px", backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 <span style={{ fontSize: "0.74rem", color: theme.accent, fontWeight: "700", display: "flex", alignItems: "center" }}>💡 제안:</span>
-                {(activeSession?.suggestedActions || []).map((sugg, idx) => (
+                {(activeSession.suggestedActions || []).map((sugg, idx) => (
                   <button key={idx} onClick={() => setInput(sugg)} style={{ padding: "5px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "16px", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>{sugg}</button>
                 ))}
               </div>
@@ -1265,7 +1264,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 */}
+      {/* 3. 우측 상태창 (룰별 다이얼 / 카드 UI) */}
       {activeSession && (
         <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "290px" }}>
@@ -1293,7 +1292,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI: 01. Modern Occult Noir] */}
+            {/* [룰 1. 크툴루의 부름 (CoC) 전용 UI] */}
             {activeSession.ruleMode === "coc" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1322,7 +1321,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 2. 인세인 (inSANe) 전용 UI: 02. Obsidian Glass & Tarot Vault] */}
+            {/* [룰 2. 인세인 (inSANe) 전용 UI] */}
             {activeSession.ruleMode === "insane" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1.5px solid ${theme.warning}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1330,13 +1329,11 @@ export default function App() {
                   <span style={{ fontSize: "0.7rem", color: theme.warning, fontWeight: "700" }}>HP 6 / SAN 6</span>
                 </div>
 
-                {/* 사명 카드 */}
                 <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", marginBottom: "8px", fontSize: "0.74rem" }}>
                   <div style={{ fontWeight: "700", color: theme.accent, marginBottom: "2px" }}>📜 공개 사명:</div>
                   <div>{activeSession.sheet?.mission || "생존하여 진실을 밝힌다."}</div>
                 </div>
 
-                {/* 타로 카드 뒷면 형태의 비밀 보관함 */}
                 <div style={{ backgroundColor: "rgba(224, 83, 108, 0.15)", border: `1.5px dashed ${theme.danger}`, borderRadius: "8px", padding: "10px", fontSize: "0.74rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                     <span style={{ fontWeight: "800", color: theme.danger }}>🔒 나의 비밀 (Secret)</span>
@@ -1347,7 +1344,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 3. 언성 듀엣 전용 UI: 세그먼트 침식 바 및 변이 징후 카드] */}
+            {/* [룰 3. 언성 듀엣 전용 UI] */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1355,12 +1352,10 @@ export default function App() {
                   <span style={{ fontSize: "0.7rem", color: "#b87bd8", fontWeight: "700" }}>2D6 이계 서사</span>
                 </div>
 
-                {/* 세그먼트 LED 침식도 바 */}
                 <div style={{ marginBottom: "10px" }}>
                   <SegmentedErosionBar 1} ?? color="#b87bd8" current="{activeSession.sheet?.erosion" label="이계 침식도 (Erosion)" max="{6}"/>
                 </div>
 
-                {/* 변이 징후 슬롯 */}
                 <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "8px", fontSize: "0.74rem" }}>
                   <div style={{ fontWeight: "700", color: "#b87bd8", marginBottom: "2px" }}>🌀 발현된 변이 징후:</div>
                   <div style={{ color: theme.textMuted }}>{activeSession.sheet?.mutation || "잠재적 침식 진행 중"}</div>
@@ -1368,7 +1363,7 @@ export default function App() {
               </div>
             )}
 
-            {/* [룰 4. 자유 서사 (Freeform) 전용 UI: 03. Editorial Storybook 메모] */}
+            {/* [룰 4. 자유 서사 전용 UI] */}
             {activeSession.ruleMode === "freeform" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -1382,7 +1377,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 소지품 / 인벤토리 */}
+            {/* 소지품 및 인벤토리 */}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                 <h4 style={{ margin: 0, fontSize: "0.84rem", color: theme.accent, fontWeight: "800" }}>🎒 소지품 및 인벤토리</h4>
@@ -1553,4 +1548,127 @@ export default function App() {
 
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <
+                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: theme.accent }}>💾 세이브 백업 &amp; 복원</span>
+                  <button onClick={() => openModal(setShowRestoreHelpModal)} style={{ width: "22px", height: "22px", borderRadius: "50%", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.accent, cursor: "pointer" }}>?</button>
+                </div>
+                <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                  <button onClick={() => openModal(setShowBackupModal)} style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>💾 백업</button>
+                  <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "700", textAlign: "center" }}>📤 복원<input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} /></label>
+                </div>
+              </div>
+
+              {/* 초상화 화풍 선택 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "700" }}>🎨 초상화 화풍 (스타일)</div>
+                  <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>생성되는 초상화의 그림체를 지정합니다.</div>
+                </div>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => { setPortraitStyle("anime"); localStorage.setItem("rp_hub_portrait_style", "anime"); }} style={{ padding: "4px 10px", backgroundColor: portraitStyle === "anime" ? theme.accent : "transparent", color: portraitStyle === "anime" ? "#fff" : theme.text, border: `1px solid ${theme.accent}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer" }}>애니풍</button>
+                  <button onClick={() => { setPortraitStyle("realistic"); localStorage.setItem("rp_hub_portrait_style", "realistic"); }} style={{ padding: "4px 10px", backgroundColor: portraitStyle === "realistic" ? theme.accent : "transparent", color: portraitStyle === "realistic" ? "#fff" : theme.text, border: `1px solid ${theme.accent}`, borderRadius: "6px", fontSize: "0.75rem", cursor: "pointer" }}>실사풍</button>
+                </div>
+              </div>
+            </div>
+
+            <button onClick={() => closeModal(setShowSettingsModal)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>닫기</button>
+          </div>
+        </div>
+      )}
+
+      {/* 프리셋 관리 모달 */}
+      {showPresetModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.05rem" }}>📂 캐릭터 프리셋 관리</h3>
+              <button onClick={() => closeModal(setShowPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}`, marginBottom: "16px" }}>
+              <span style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.accent, display: "block", marginBottom: "6px" }}>💾 현재 작성한 캐릭터를 프리셋으로 저장</span>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input type="text" value={newPresetTitle} onChange={(e) => setNewPresetTitle(e.target.value)} placeholder={charName ? `${charName}의 프리셋` : "프리셋 제목 입력"} style={{ flex: 1, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} />
+                <button onClick={handleSaveCurrentAsPreset} style={{ padding: "7px 12px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "700", fontSize: "0.78rem" }}>저장</button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <span style={{ fontSize: "0.82rem", fontWeight: "700", display: "block", marginBottom: "8px" }}>⭐ 저장된 프리셋 ({customPresets.length}개)</span>
+              {customPresets.length === 0 ? (
+                <div style={{ fontSize: "0.76rem", color: theme.textMuted, padding: "10px", backgroundColor: theme.panelAlt, borderRadius: "8px" }}>저장된 프리셋이 없습니다.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto" }}>
+                  {customPresets.map((p) => (
+                    <div key={p.id} onClick={() => handleLoadPreset(p)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <strong style={{ fontSize: "0.84rem", color: theme.text }}>{p.title}</strong>
+                        <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{p.name} | {p.job} ({p.gender}, {p.age}세)</div>
+                      </div>
+                      <button onClick={(e) => handleDeletePreset(p.id, e)} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px" }}>🗑️</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => closeModal(setShowPresetModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>닫기</button>
+          </div>
+        </div>
+      )}
+
+      {/* 세이브 백업 옵션 모달 */}
+      {showBackupModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "24px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.05rem" }}>💾 세이브 백업 옵션</h3>
+              <button onClick={() => closeModal(setShowBackupModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+              <button onClick={() => setBackupFormat("json")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: `1.5px solid ${backupFormat === "json" ? theme.accent : theme.border}`, backgroundColor: backupFormat === "json" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer" }}>JSON (.json)</button>
+              <button onClick={() => setBackupFormat("txt")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: `1.5px solid ${backupFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: backupFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, cursor: "pointer" }}>텍스트 (.txt)</button>
+            </div>
+            <button onClick={executeSaveBackup} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>다운로드</button>
+          </div>
+        </div>
+      )}
+
+      {/* 복원 도움말 모달 */}
+      {showRestoreHelpModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "450px", padding: "24px", color: theme.text }}>
+            <h3 style={{ margin: "0 0 14px 0", fontSize: "1.05rem", color: theme.accent }}>📖 세이브 백업 및 복원 안내</h3>
+            <div style={{ fontSize: "0.82rem", lineHeight: "1.6", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div>• <strong>JSON (.json):</strong> 시트 수치와 대화가 완벽 보존되는 게임 파일입니다. [복원]을 통해 그대로 다시 불러올 수 있습니다.</div>
+              <div>• <strong>TXT (.txt):</strong> 스마트폰이나 메모장으로 소설처럼 편하게 읽을 수 있는 보관용 문서입니다.</div>
+            </div>
+            <button onClick={() => closeModal(setShowRestoreHelpModal)} style={{ marginTop: "20px", width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700" }}>확인</button>
+          </div>
+        </div>
+      )}
+
+      {/* 초상화 변경 모달 */}
+      {showPortraitEditModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "440px", padding: "22px", color: theme.text }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
+              <h3 style={{ margin: 0, fontSize: "1.05rem" }}>🖼️ 초상화 변경</h3>
+              <button onClick={() => closeModal(setShowPortraitEditModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <span style={{ fontSize: "0.82rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>1. 사진 파일 직접 업로드</span>
+                <input type="file" accept="image/*" onChange={handlePortraitFileUpload} style={{ width: "100%", fontSize: "0.8rem" }} />
+              </div>
+              <div>
+                <span style={{ fontSize: "0.82rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>2. AI 프롬프트 또는 이미지 링크</span>
+                <input type="text" value={customPortraitPrompt} onChange={(e) => setCustomPortraitPrompt(e.target.value)} placeholder="예: silver hair girl / 이미지 URL" style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, boxSizing: "border-box", marginBottom: "8px" }} />
+                <button onClick={applyCustomPortrait} style={{ width: "100%", padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer" }}>적용</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
