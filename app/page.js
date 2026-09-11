@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
+// 테마 팔레트 4종 및 다크/라이트 모드
 const THEME_PALETTES = {
   midnight: {
     name: "미드나잇 블루",
@@ -24,6 +25,7 @@ const THEME_PALETTES = {
   }
 };
 
+// 4대 정규 룰 가이드
 const RULE_GUIDES = {
   coc: { title: "크툴루의 부름 (Call of Cthulhu 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
   insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 비밀이 교차하는 현대 괴담 심리 호러.", system: "2D6 판정. 사이클별 씬 소모 및 비밀(Secret) 조사." },
@@ -124,7 +126,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // 8종 모달 상태
+  // 8종 모달 제어
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -191,6 +193,9 @@ export default function App() {
   const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
+
+  // 🌟 단일 활성 세션 선언 (중복 선언 완전 제거)
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
@@ -287,20 +292,7 @@ export default function App() {
     });
   };
 
-  const handleSelectCategory = (category) => {
-    setRuleCategory(category);
-    if (category === "freeform") setWizardMode("freeform");
-    else if (wizardMode === "freeform") setWizardMode("coc");
-  };
-
-  const getPortraitUrl = (promptText, forceStyle) => {
-    const clean = promptText || "character portrait";
-    const currentStyle = forceStyle || portraitStyle;
-    const styleTag = currentStyle === "anime" ? "anime style, 2d illustration, masterpiece" : "realistic photography, highly detailed, cinematic lighting, 8k";
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
-  };
-
-  // 🎲 무작위 절차 생성 (남녀/동서양/19~52세/직업 풀 확장)
+  // 🎲 무작위 절차 생성
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const newTags = [pick(ORIENT_TAGS), ...[...TROPE_TAGS].sort(() => 0.5 - Math.random()).slice(0, 2)];
@@ -323,7 +315,6 @@ export default function App() {
     setCharGender(gender);
     setCharBackground(`${jobObj.bg}\n소지품: [${jobObj.item}]`);
     
-    // 무작위 생성 시에도 백그라운드 히든 루트 틀 자동 포함
     const proceduralArchitecture = `[배경 및 첫 장면]
 ${scenarioText}
 
@@ -350,7 +341,7 @@ ${scenarioText}
     }
   };
 
-  // ✨ AI 즉석 생성 (진상, 기믹, 3대 엔딩 분기 + 🔒 백그라운드 히든 루트 의무 탑재)
+  // ✨ AI 즉석 생성
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
@@ -671,9 +662,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     closeModal(setShowExportModal);
   };
 
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
-
-  // 광기 트리거 (중복 발작 완벽 차단)
+  // 광기 트리거 (중복 발작 차단)
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -812,7 +801,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     setIsLoading(true);
 
     const openingPrompt = `[세션 시작: 첫 서막]
-서막을 열고 상황을 묘사하십시오. (반드시 ~합니다/였습니다 경어체 고정)
+서막을 열고 상황을 묘사하십시오. (반드시 정중한 ~합니다/였습니다 경어체 고정)
 조사 가능한 구역 2~3곳을 본문 끝에 <!-- SPOTS: [{"name": "오브젝트명", "stat": "관찰력"}] --> 형식으로 추출하십시오.`;
 
     try {
@@ -979,7 +968,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
   const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
   const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
 
@@ -1016,7 +1004,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
       {isMobile && isSheetOpen && <div onClick={() => setIsSheetOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
 
       {/* 1. 좌측 사이드바 */}
-      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px", flexShrink: 0 }}>
           <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>+ 새 시나리오</button>
           <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
@@ -1239,7 +1227,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         ) : (
           /* 플레이 룸 */
           <>
-            {/* 상단 바 (모바일 반응형 최적화) */}
+            {/* 상단 바 */}
             <div style={{
               minHeight: "50px",
               padding: isMobile ? "0 10px" : "0 16px",
@@ -1573,7 +1561,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
               </div>
             )}
 
-            {/* Unsung Duet 전용 UI */}
+            {/* Unsung Duet UI */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
