@@ -126,7 +126,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // 8종 모달 제어
+  // 8종 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -194,12 +194,21 @@ export default function App() {
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
 
-  // 🌟 단일 활성 세션 선언 (중복 선언 완전 제거)
+  // 🌟 단일 활성 세션 선언
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
   const quotaPercentage = Math.min(100, Math.round((apiUsage.dailyRequests / 1500) * 100));
+
+  function getPortraitUrl(promptText, forceStyle) {
+    const clean = promptText || "character portrait";
+    const currentStyle = forceStyle || portraitStyle || "anime";
+    const styleTag = currentStyle === "anime"
+      ? "anime style, 2d illustration, masterpiece"
+      : "realistic photography, highly detailed, cinematic lighting, 8k";
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
+  }
 
   function handleToggleDarkMode() {
     const nextVal = !isDarkMode;
@@ -441,7 +450,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
   const handleAutoReplaceKpcPc = () => {
     if (!scenarioInput.trim()) return alert("치환할 시나리오 본문이 없습니다.");
     const playerName = charName.trim() || "주인공";
-    const partnerName = "파트너";
+    const partnerName = activeSession?.sheet?.npcs?.[0]?.name || "파트너";
     let replaced = scenarioInput.replace(/\bKPC\b/gi, partnerName).replace(/\bPC\b/gi, playerName);
     setScenarioInput(replaced);
     alert(`시나리오 내 'PC' ➔ '${playerName}', 'KPC' ➔ '${partnerName}'(으)로 치환되었습니다!`);
@@ -759,7 +768,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({.*?})\s*-->/is);
       if (checkMatch) parsedData.pendingCheck = JSON.parse(checkMatch[1]);
-    } catch(e) {}
+    } catch (e) {}
 
     cleanText = cleanText
       .replace(/```html|```json|```/gi, "")
@@ -968,6 +977,8 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
+  // 🛡️ 지문 분석 및 산 체크 배너 감지 (변수 정의 복원)
+  const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
   const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
   const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
 
@@ -988,9 +999,6 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(140, 160, 210, 0.4); }
-        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
-        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
         .glass-card {
           background: ${isDarkMode ? "rgba(21, 26, 38, 0.85)" : "rgba(255, 255, 255, 0.9)"};
           backdrop-filter: blur(14px);
@@ -1004,8 +1012,8 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
       {isMobile && isSheetOpen && <div onClick={() => setIsSheetOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
 
       {/* 1. 좌측 사이드바 */}
-      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px", flexShrink: 0 }}>
+      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
           <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>+ 새 시나리오</button>
           <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
         </div>
@@ -1020,7 +1028,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
             </div>
           ))}
         </div>
-        <div style={{ padding: "12px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0, backgroundColor: theme.sidebar }}>
+        <div style={{ padding: "12px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px" }}>
           {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "600" }}>📥 대화록 내보내기</button>}
           <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "700" }}>⚙️ 설정</button>
         </div>
@@ -1561,7 +1569,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
               </div>
             )}
 
-            {/* Unsung Duet UI */}
+            {/* Unsung Duet 전용 UI */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
