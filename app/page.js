@@ -193,12 +193,14 @@ export default function App() {
 
   // 테마 상태
   const [currentPalette, setCurrentPalette] = useState("cloud");
+  const [fontChoice, setFontChoice] = useState("maru");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
   const [portraitStyle, setPortraitStyle] = useState("anime");
   const [exportFormat, setExportFormat] = useState("txt");
+  const [selectedExportSessionIds, setSelectedExportSessionIds] = useState([]);
   const [exportScope, setExportScope] = useState("all");
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
@@ -737,7 +739,30 @@ export default function App() {
     setCustomPortraitPrompt("");
     closeModal(setShowPortraitEditModal);
   };
-
+// 🌟 [추가] 세션 카드 컴퓨터 이미지 파일 업로드 & 자동 압축
+  const handleSessionCardUpload = (sessionId, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxW = 500;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, thumbnail: compressedUrl } : s));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = null;
+  };
+  
   const handlePortraitFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -805,20 +830,52 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const executeExport = () => {
-    if (!activeSession) return;
+ const executeExport = () => {
+    const targets = sessions.filter(s => selectedExportSessionIds.includes(s.id));
+    if (targets.length === 0) return alert("내보낼 세션을 하나 이상 선택해주세요.");
+
     const dateStr = new Date().toISOString().slice(0, 10);
-    let msgs = activeSession.messages || [];
-    if (exportScope === "storyOnly") {
-      msgs = msgs.filter(m => !m.text.includes("[🎲") && !m.text.includes("[⚠️") && !m.text.includes("[시스템"));
+
+    // JSON 완전 백업인 경우
+    if (exportFormat === "json") {
+      const blob = new Blob([JSON.stringify(targets, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `TRPG_세이브백업_${dateStr}.json`; a.click(); URL.revokeObjectURL(url);
+      closeModal(setShowExportModal);
+      return;
     }
-    const partnerName = activeSession.sheet?.npcs?.[0]?.name || "파트너";
-    const content = exportFormat === "md"
-      ? `# ${activeSession.title}\n\n` + msgs.map(m => `**${m.role === "user" ? activeSession.sheet.name : partnerName}**:\n${m.text}`).join("\n\n---\n\n")
-      : `[${activeSession.title}]\n\n` + msgs.map(m => `${m.role === "user" ? activeSession.sheet.name : partnerName}: ${m.text}`).join("\n\n");
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+
+    // PDF 인쇄 모드인 경우
+    if (exportFormat === "pdf") {
+      window.print();
+      closeModal(setShowExportModal);
+      return;
+    }
+
+    // TXT 또는 MD 텍스트 문서 생성
+    let fullOutput = "";
+    targets.forEach(s => {
+      let msgs = s.messages || [];
+      if (exportScope === "storyOnly") {
+        msgs = msgs.filter(m => !m.text.includes("[🎲") && !m.text.includes("[⚠️") && !m.text.includes("[시스템"));
+      }
+      const pName = s.sheet?.name || "주인공";
+      const kName = s.sheet?.npcs?.[0]?.name || "파트너";
+
+      if (exportFormat === "md") {
+        fullOutput += `# 《${s.title}》 (${s.ruleMode?.toUpperCase()})\n\n`;
+        fullOutput += msgs.map(m => `**${m.role === "user" ? pName : kName}**:\n${m.text}`).join("\n\n---\n\n");
+        fullOutput += "\n\n========================================\n\n";
+      } else {
+        fullOutput += `[《${s.title}》 - ${s.ruleMode?.toUpperCase()}]\n\n`;
+        fullOutput += msgs.map(m => `${m.role === "user" ? pName : kName}: ${m.text}`).join("\n\n");
+        fullOutput += "\n\n========================================\n\n";
+      }
+    });
+
+    const blob = new Blob([fullOutput], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `${activeSession.title}_로그_${dateStr}.${exportFormat}`; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = `TRPG_대화기록_${dateStr}.${exportFormat}`; a.click(); URL.revokeObjectURL(url);
     closeModal(setShowExportModal);
   };
   
@@ -1233,12 +1290,32 @@ export default function App() {
   const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
   return (
+    {/* 🌟 [추가] 본문 글씨체 선택 */}
+              <div>
+                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>본문 서사 글씨체</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setFontChoice("maru")} 
+                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "maru" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "maru" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "maru" ? "800" : "400" }}
+                  >
+                    📖 마루 부리 (명조체)
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setFontChoice("gothic")} 
+                    style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "gothic" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "gothic" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "gothic" ? "800" : "400" }}
+                  >
+                    📱 프리텐다드 (고딕체)
+                  </button>
+                </div>
+              </div>
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        .serif-text { font-family: 'MaruBuri', serif; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
+        .serif-text { font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"}; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
         .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
@@ -1276,19 +1353,15 @@ export default function App() {
               >
                 {/* 상단 썸네일 배너 영역 (고정 높이 70px) */}
                 <div style={{ width: "100%", height: "70px", backgroundColor: theme.panelAlt, backgroundImage: s.thumbnail ? `url(${s.thumbnail})` : "linear-gradient(135deg, rgba(150,150,150,0.1), rgba(100,100,100,0.2))", backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const url = prompt("세션 카드 이미지 URL을 입력하세요:", s.thumbnail || "");
-                      if (url !== null) {
-                        setSessions(prev => prev.map(item => item.id === s.id ? { ...item, thumbnail: url } : item));
-                      }
-                    }} 
-                    title="세션 카드 이미지 등록"
-                    style={{ position: "absolute", top: "4px", right: "4px", backgroundColor: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "0.65rem", cursor: "pointer" }}
+                  {/* 🌟 클릭 시 컴퓨터 파일 선택 창 바로 열림 */}
+                  <label 
+                    onClick={(e) => e.stopPropagation()} 
+                    title="내 컴퓨터에서 세션 카드 이미지 선택"
+                    style={{ position: "absolute", top: "4px", right: "4px", backgroundColor: "rgba(0,0,0,0.6)", color: "#fff", borderRadius: "4px", padding: "3px 6px", fontSize: "0.7rem", cursor: "pointer" }}
                   >
                     ✏️
-                  </button>
+                    <input type="file" accept="image/*" onChange={(e) => handleSessionCardUpload(s.id, e)} style={{ display: "none" }} />
+                  </label>
                 </div>
 
                 {/* 하단 정보 영역 */}
@@ -1310,8 +1383,16 @@ export default function App() {
             );
           })}
         </div>
-        <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
-          {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" }}>📥 대화록 내보내기</button>}
+       <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
+          <button 
+            onClick={() => {
+              setSelectedExportSessionIds(activeSessionId ? [activeSessionId] : sessions.map(s => s.id));
+              openModal(setShowExportModal);
+            }} 
+            style={{ width: "100%", padding: "9px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}
+          >
+            💾 데이터 관리 (백업/내보내기)
+          </button>
           <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}>⚙️ 환경 설정</button>
         </div>
       </div>
@@ -2048,10 +2129,42 @@ export default function App() {
             </div>
 
             {/* 파트너 */}
+            {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
               <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>주요 등장인물 (파트너)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {(activeSession.sheet.npcs || []).map(npc => (
+                  <details key={npc.id} style={{ backgroundColor: theme.panelAlt, borderRadius: "6px", border: `1px solid ${theme.border}`, overflow: "hidden" }}>
+                    <summary style={{ display: "flex", gap: "8px", alignItems: "center", padding: "6px 8px", cursor: "pointer", outline: "none" }}>
+                      <div onClick={(e) => { e.stopPropagation(); setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
+                        <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
+                          <span>{npc.name}</span>
+                          <span style={{ color: theme.danger }}>♥ {npc.affection}</span>
+                        </div>
+                        <div style={{ color: theme.textMuted, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{npc.title}</div>
+                      </div>
+                    </summary>
+                    
+                    {/* 드롭다운 펼쳤을 때 나오는 상세 내용 */}
+                    <div style={{ padding: "8px 10px", fontSize: "0.72rem", borderTop: `1px dashed ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div>
+                        <strong style={{ color: theme.accent }}>[외모 및 관계성]</strong>
+                        <div style={{ color: theme.text, marginTop: "2px" }}>{npc.detail || "등록된 상세 설정이 없습니다."}</div>
+                      </div>
+                      <div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
+                        <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
+                        <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
+                          {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
                   <div key={npc.id} style={{ display: "flex", gap: "8px", alignItems: "center", backgroundColor: theme.panelAlt, padding: "6px 8px", borderRadius: "6px" }}>
                     <div onClick={() => { setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
                       <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
@@ -2209,27 +2322,61 @@ export default function App() {
         </div>
       )}
 
+{/* 🌟 [수정] 통합 데이터 관리 모달 */}
       {showExportModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
-          <div className="glass-card" style={{ width: "100%", maxWidth: "400px", padding: "20px", borderRadius: "14px", color: theme.text }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "20px", borderRadius: "14px", color: theme.text }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>📥 대화록 내보내기</h3>
+              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>💾 데이터 관리 (내보내기 & 백업)</h3>
               <button onClick={() => closeModal(setShowExportModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
             
+            {/* 세션 다중 체크박스 목록 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <label style={{ fontSize: "0.75rem", fontWeight: "700" }}>내보낼 세션 선택:</label>
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (selectedExportSessionIds.length === sessions.length) setSelectedExportSessionIds([]);
+                  else setSelectedExportSessionIds(sessions.map(s => s.id));
+                }}
+                style={{ background: "none", border: "none", color: theme.accent, fontSize: "0.72rem", cursor: "pointer" }}
+              >
+                {selectedExportSessionIds.length === sessions.length ? "선택 해제" : "전체 선택"}
+              </button>
+            </div>
+            <div style={{ maxHeight: "110px", overflowY: "auto", border: `1px solid ${theme.border}`, borderRadius: "6px", padding: "6px", marginBottom: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              {sessions.map(s => (
+                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem", cursor: "pointer" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedExportSessionIds.includes(s.id)} 
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedExportSessionIds([...selectedExportSessionIds, s.id]);
+                      else setSelectedExportSessionIds(selectedExportSessionIds.filter(id => id !== s.id));
+                    }} 
+                  />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</span>
+                </label>
+              ))}
+            </div>
+
             <label style={{ fontSize: "0.75rem", color: theme.textMuted, display: "block", marginBottom: "4px" }}>내보내기 범위:</label>
             <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
-              <button onClick={() => setExportScope("all")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportScope === "all" ? theme.accent : theme.border}`, backgroundColor: exportScope === "all" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>전체 대화록</button>
+              <button onClick={() => setExportScope("all")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportScope === "all" ? theme.accent : theme.border}`, backgroundColor: exportScope === "all" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>전체 기록</button>
               <button onClick={() => setExportScope("storyOnly")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportScope === "storyOnly" ? theme.accent : theme.border}`, backgroundColor: exportScope === "storyOnly" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>순수 서사만</button>
             </div>
 
-            <label style={{ fontSize: "0.75rem", color: theme.textMuted, display: "block", marginBottom: "4px" }}>파일 형식:</label>
-            <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-              <button onClick={() => setExportFormat("txt")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>TXT</button>
-              <button onClick={() => setExportFormat("md")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportFormat === "md" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "md" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>MD</button>
-            </div>
+            {/* 드롭다운 파일 형식 */}
+            <label style={{ fontSize: "0.75rem", color: theme.textMuted, display: "block", marginBottom: "4px" }}>파일 형식 (포맷):</label>
+            <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.8rem", marginBottom: "14px" }}>
+              <option value="txt">📄 텍스트 메모장 문서 (.txt)</option>
+              <option value="md">📝 마크다운 서식 문서 (.md)</option>
+              <option value="pdf">🖨️ 전자책 PDF 인쇄 (.pdf)</option>
+              <option value="json">📦 게임 세이브 완전 백업 (.json - 복원 가능)</option>
+            </select>
 
-            <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem" }}>다운로드</button>
+            <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
           </div>
         </div>
       )}
