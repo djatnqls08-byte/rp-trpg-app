@@ -21,26 +21,27 @@ export default function App() {
   const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
-  const [showCareerModal, setShowCareerModal] = useState(false); // 서사 계승 모달
+  const [showCareerModal, setShowCareerModal] = useState(false);
 
-  // 초상화 설정
+  // 초상화 설정 (배경 이미지는 삭제됨)
   const [showPortraits, setShowPortraits] = useState(true);
   const [portraitStyle, setPortraitStyle] = useState("anime"); // 'anime' | 'realistic'
 
-  // 백업
+  // 백업 포맷
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  // 테마
+  // 테마 시스템
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 사운드 및 연출
+  // 사운드, 연출, 제안 칩
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
+  const [suggestedActions, setSuggestedActions] = useState([]);
 
-  // 대화록 내보내기
+  // 대화록 내보내기 포맷
   const [exportFormat, setExportFormat] = useState("txt");
   const [exportScope, setExportScope] = useState("all");
 
@@ -64,7 +65,7 @@ export default function App() {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
-  // 서사 계승(Career Chronicle) 상태
+  // 서사 계승 상태
   const [pastChronicleText, setPastChronicleText] = useState("");
 
   // 프리셋 목록
@@ -75,7 +76,7 @@ export default function App() {
   const [charMission, setCharMission] = useState("");
   const [charSecret, setCharSecret] = useState("");
 
-  // DND & COC
+  // DND & COC 스탯
   const [dndStats, setDndStats] = useState({ str: 15, dex: 14, con: 13, int: 10, wis: 12, cha: 8 });
   const [dndAc, setDndAc] = useState(14);
   const [dndHp, setDndHp] = useState(12);
@@ -106,15 +107,18 @@ export default function App() {
   const [diceResult, setDiceResult] = useState(null);
   const [targetDc, setTargetDc] = useState(5);
   const [targetStat, setTargetStat] = useState(50);
+  const [pendingCheck, setPendingCheck] = useState(null);
 
   // 테마 팔레트 정의
   const themePalettes = {
     midnight: { name: "미드나잇 블루", dark: { bg: "#0d1017", sidebar: "#131722", panel: "#1b2030", panelAlt: "#23293d", border: "#2b334d", text: "#e4e7f5", textMuted: "#8e96b3", accent: "#6c8dfa", danger: "#f76585", warning: "#e0af68", success: "#7bd88f", bubbleUser: "#324b87", bubbleAi: "#1b2030", inputBg: "#121520" }, light: { bg: "#eef2fa", sidebar: "#dfe5f5", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#c5cee8", text: "#1e2638", textMuted: "#606c88", accent: "#3f6cd8", danger: "#d13b5a", warning: "#b87514", success: "#2e8544", bubbleUser: "#4b74cb", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
-    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e6ecf8", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
+    abyss: { name: "심연 어비스", dark: { bg: "#050608", sidebar: "#090c12", panel: "#0e131d", panelAlt: "#141c2b", border: "#1d2638", text: "#dcdfe8", textMuted: "#6f788e", accent: "#5679e0", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1f325c", bubbleAi: "#0e131d", inputBg: "#080a10" }, light: { bg: "#f3f4f7", sidebar: "#e3e6eb", panel: "#ffffff", panelAlt: "#e9edf3", border: "#cbd0d9", text: "#13161c", textMuted: "#5e6473", accent: "#3651a1", danger: "#c2344f", warning: "#a87720", success: "#2d7d42", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" } },
     sepia: { name: "고서적 세피아", dark: { bg: "#241e1a", sidebar: "#1c1714", panel: "#302822", panelAlt: "#3d332b", border: "#4d4036", text: "#ede3d8", textMuted: "#ad9c8f", accent: "#d49b6a", danger: "#d95b5b", warning: "#e3ad5d", success: "#8bb36b", bubbleUser: "#5e4533", bubbleAi: "#302822", inputBg: "#1a1512" }, light: { bg: "#f9f6f0", sidebar: "#efe7dc", panel: "#fffdf9", panelAlt: "#e6dcce", border: "#d6c8b4", text: "#362b22", textMuted: "#7a6a5a", accent: "#a96934", danger: "#b83d3d", warning: "#b0741b", success: "#4e7d34", bubbleUser: "#825d3d", bubbleAi: "#fffdf9", inputBg: "#fffdf9" } },
     classic: { name: "클래식 모던", dark: { bg: "#121316", sidebar: "#181a1f", panel: "#21242b", panelAlt: "#282c34", border: "#333842", text: "#abb2bf", textMuted: "#7f848e", accent: "#61afef", danger: "#e06c75", warning: "#e5c07b", success: "#98c379", bubbleUser: "#3b4860", bubbleAi: "#21242b", inputBg: "#16181d" }, light: { bg: "#f7f8fa", sidebar: "#edf0f4", panel: "#ffffff", panelAlt: "#e4e8ef", border: "#cfd5df", text: "#24272e", textMuted: "#6b7280", accent: "#2563eb", danger: "#dc2626", warning: "#d97706", success: "#16a34a", bubbleUser: "#3b82f6", bubbleAi: "#ffffff", inputBg: "#ffffff" } }
   };
-  const theme = isDarkMode ? themePalettes[currentPalette].dark : themePalettes[currentPalette].light;
+
+  const activePalette = themePalettes[currentPalette] || themePalettes.midnight;
+  const theme = isDarkMode ? (activePalette?.dark || themePalettes.midnight.dark) : (activePalette?.light || themePalettes.midnight.light);
   const quotaPercentage = Math.min(100, Math.round((apiUsage.dailyRequests / 1500) * 100));
 
   function handleToggleDarkMode() {
@@ -127,17 +131,23 @@ export default function App() {
 
   function handleSelectPalette(pKey) {
     setCurrentPalette(pKey);
-    localStorage.setItem("rp_hub_palette", pKey);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_palette", pKey);
+    }
   }
 
   function handleSaveVolume(vol) {
     setSoundVolume(vol);
-    localStorage.setItem("rp_hub_sound_vol", vol.toString());
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_sound_vol", vol.toString());
+    }
   }
 
   function handleSaveAnim(enabled) {
     setAnimationEnabled(enabled);
-    localStorage.setItem("rp_hub_anim", enabled.toString());
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_anim", enabled.toString());
+    }
   }
 
   function recordApiCall(usage) {
@@ -156,7 +166,9 @@ export default function App() {
         lastPromptTokens: promptT,
         lastResponseTokens: respT,
       };
-      localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        localStorage.setItem("rp_hub_api_usage", JSON.stringify(updated));
+      }
       return updated;
     });
   }
@@ -185,6 +197,7 @@ export default function App() {
     } catch (e) {}
   }
 
+  // 모바일 리사이즈
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -210,7 +223,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [isMobile]);
 
-  // 태그 토글 로직
+  // 태그 토글
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const currentList = prev.split(/\s+/).filter(Boolean);
@@ -237,16 +250,6 @@ export default function App() {
       ? "anime style, 2d illustration, masterpiece" 
       : "realistic photography, highly detailed, cinematic lighting, 8k";
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
-  };
-
-  const generateRandomCocStats = () => {
-    const base = [30, 30, 30, 30, 30, 30, 30, 30];
-    let remaining = 220;
-    while (remaining > 0) {
-      const idx = Math.floor(Math.random() * 8);
-      if (base[idx] < 85) { base[idx] += 5; remaining -= 5; }
-    }
-    return { str: base[0], con: base[1], siz: base[2], dex: base[3], app: base[4], int: base[5], pow: base[6], edu: base[7], luck: Math.floor(Math.random() * 50) + 40 };
   };
 
   // 절차적 데이터 풀
@@ -358,7 +361,6 @@ export default function App() {
     }
   };
 
-  // 프리셋 저장
   const handleSaveCurrentAsPreset = () => {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
@@ -379,7 +381,9 @@ export default function App() {
     };
     const updated = [newPreset, ...customPresets];
     setCustomPresets(updated);
-    localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
+    }
     setNewPresetTitle("");
     alert(`'${title}' 프리셋이 저장되었습니다!`);
   };
@@ -398,7 +402,6 @@ export default function App() {
     closeModal(setShowPresetModal);
   };
 
-  // 신규: 이전 세션 서사 계승(이어하기) 로직
   const handleInheritFromSession = (prevSession) => {
     const sheet = prevSession.sheet || {};
     setCharName(sheet.name || "");
@@ -406,7 +409,6 @@ export default function App() {
     setCharAge(sheet.age || "24");
     setCharGender(sheet.gender || "여성");
     
-    // 이전 모험의 흉터, 소지품, 이력 요약 추출
     const itemsSummary = (sheet.items || []).map(it => it.name).join(", ");
     const pastSummary = `[이전 세션 전승: '${prevSession.title}' 생환자]
 - 당시 잔여 수치: HP ${sheet.hp}/${sheet.maxHp}${prevSession.ruleMode === 'coc' ? `, SAN ${sheet.san}/99` : ''}
@@ -427,7 +429,9 @@ export default function App() {
     e.stopPropagation();
     const updated = customPresets.filter(p => p.id !== id);
     setCustomPresets(updated);
-    localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rp_hub_custom_presets", JSON.stringify(updated));
+    }
   };
 
   const handleFileUpload = async (e) => {
@@ -578,7 +582,7 @@ export default function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-  // 세션 전환 시 제안 칩 잔존 버그 해결: 활성 세션의 제안 칩 및 판정 동기화
+  // 세션 전환 시 제안 칩 잔존 버그 해결
   useEffect(() => {
     if (activeSession) {
       setSuggestedActions(activeSession.suggestedActions || []);
@@ -587,7 +591,7 @@ export default function App() {
       setSuggestedActions([]);
       setPendingCheck(null);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, activeSession]);
 
   // 태그 찌꺼기 제거 파서
   const parseTagsSafely = (rawText) => {
@@ -620,6 +624,7 @@ export default function App() {
     return { cleanText, parsedData };
   };
 
+  // 세션 시작
   const startNewSession = async () => {
     const sessionTitle = charName ? `${charName}의 이야기` : "새로운 모험";
     const finalPref = playPreference.trim();
@@ -644,9 +649,9 @@ export default function App() {
     } else if (wizardMode === "coc") {
       initialSheet = { ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, luck: Number(cocStats.luck), db: derivedDb, build: derivedBuild, cocStats: { ...cocStats } };
     } else if (wizardMode === "unsung") {
-      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6 }; // hp: 생명력, san: 이계 침식 저항치
+      initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6 };
     } else if (wizardMode === "blades") {
-      initialSheet = { ...initialSheet, hp: 9, maxHp: 9, san: 0, maxSan: 4 }; // hp: 스트레스 게이지(9칸), san: 트라우마(4칸)
+      initialSheet = { ...initialSheet, hp: 9, maxHp: 9, san: 0, maxSan: 4 };
     }
 
     const newId = Date.now();
@@ -746,7 +751,6 @@ export default function App() {
   const sendMessage = () => { if (!input.trim()) return; const text = input; setInput(""); executeMessage(text); };
   const handleUseItem = (itemName) => { setInput((prev) => `품에서 [${itemName}]을(를) 꺼내어 ` + prev); };
 
-  // 룰별 맞춤 주사위 판정기 (D&D 1D20 / CoC 1D100 / 인세인, 언성듀엣 2D6 / 블레이즈 D6 풀)
   const rollDiceDirectly = (overrideTarget = null, reasonText = "") => {
     if (isRolling || !activeSession) return;
     setIsRolling(true); setDiceResult(null); playDiceSound();
@@ -766,10 +770,9 @@ export default function App() {
         setDiceResult({ roll: `${d1}+${d2}=${sum}`, outcome, target: targetVal, type: "2D6" });
         rollFormatted = `[🎲 시스템 공인 2D6 판정: ${d1}+${d2}=${sum} / 목표: ${targetVal}${reasonText ? ` (${reasonText})` : ""} ➔ 결과: ${outcome}]`;
       } else if (mode === "blades") {
-        // 블레이즈 인 더 다크: D6 풀 (2개 주사위 중 최고 눈금 판독)
         const d1 = Math.floor(Math.random() * 6) + 1; const d2 = Math.floor(Math.random() * 6) + 1;
         const highest = Math.max(d1, d2);
-        let outcome = highest === 6 ? "치명적 성공 (완벽한 결과)" : highest >= 4 ? "부분적 성공 (대가/피해 발생)" : "나쁜 결과 (위기 악화)";
+        let outcome = highest === 6 ? "치명적 성공 (완벽한 결과)" : highest >= 4 ? "부분적 성공 (대가 발생)" : "나쁜 결과 (위기 악화)";
         setDiceResult({ roll: `[${d1}, ${d2}] ➔ 최고치 ${highest}`, outcome, target: 4, type: "블레이즈 D6" });
         rollFormatted = `[🎲 시스템 공인 블레이즈 판정: [${d1}, ${d2}] ➔ 최고눈 ${highest}${reasonText ? ` (${reasonText})` : ""} ➔ 결과: ${outcome}]`;
       } else if (mode === "coc") {
@@ -790,6 +793,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const saved = localStorage.getItem("rp_hub_sessions");
     if (saved) { try { setSessions(JSON.parse(saved)); } catch (e) {} }
     setIsLoaded(true);
@@ -803,6 +807,8 @@ export default function App() {
     if (savedStyle !== null) setPortraitStyle(savedStyle);
     const savedPresets = localStorage.getItem("rp_hub_custom_presets");
     if (savedPresets) { try { setCustomPresets(JSON.parse(savedPresets)); } catch (e) {} }
+    const savedPalette = localStorage.getItem("rp_hub_palette");
+    if (savedPalette && themePalettes[savedPalette]) setCurrentPalette(savedPalette);
   }, []);
 
   return (
@@ -844,9 +850,7 @@ export default function App() {
                 <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "6px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer" }}>{isSidebarOpen ? "◀" : "▶"}</button>
                 <h2 style={{ margin: 0, fontSize: "1.3rem" }}>새로운 세션 구성</h2>
               </div>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button onClick={handleProceduralGenerate} style={{ padding: "7px 11px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, color: theme.accent, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}>🎲 무작위 조합 생성</button>
-              </div>
+              <button onClick={handleProceduralGenerate} style={{ padding: "7px 11px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, color: theme.accent, borderRadius: "6px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "bold" }}>🎲 무작위 조합 생성</button>
             </div>
 
             <div>
@@ -885,7 +889,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 서사 & 관계성 지향 태그 및 텍스트 박스 */}
+            {/* 서사 & 관계성 지향 */}
             <div style={{ backgroundColor: theme.panel, padding: "14px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
               <span style={{ fontWeight: "bold", fontSize: "0.85rem", color: theme.accent }}>{"🎭 서사 및 관계성 지향 (클릭하여 텍스트에 추가/해제)"}</span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -906,7 +910,7 @@ export default function App() {
               />
             </div>
 
-            {/* 기본 캐릭터 정보 + 신규: 서사 계승 버튼 탑재 */}
+            {/* 기본 캐릭터 정보 + 서사 계승 & 프리셋 버튼 */}
             <div style={{ backgroundColor: theme.panel, padding: "16px", borderRadius: "8px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
                 <span style={{ fontWeight: "bold", fontSize: "0.85rem" }}>내 캐릭터 정보</span>
@@ -1091,7 +1095,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 신규: 이전 세션 서사 계승 모달 */}
+      {/* 이전 세션 서사 계승 모달 */}
       {showCareerModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 125, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "10px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1136,6 +1140,64 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label style={{ fontSize: "0.85rem", fontWeight: "bold" }}>테마 색상 팔레트</label>
+                  <span style={{ fontSize: "0.75rem", color: theme.accent }}>{isDarkMode ? "🌙 나이트" : "☀️ 라이트"}</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                  {[
+                    { id: "midnight", label: "미드나잇 블루" },
+                    { id: "abyss", label: "심연 어비스" },
+                    { id: "sepia", label: "고서적 세피아" },
+                    { id: "classic", label: "클래식 모던" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelectPalette(p.id)}
+                      style={{
+                        padding: "8px 10px", borderRadius: "6px",
+                        border: `2px solid ${currentPalette === p.id ? theme.accent : theme.border}`,
+                        backgroundColor: currentPalette === p.id ? theme.panelAlt : "transparent",
+                        color: theme.text, fontSize: "0.8rem", cursor: "pointer", fontWeight: currentPalette === p.id ? "bold" : "normal",
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.85rem", fontWeight: "bold" }}>주사위 효과음 볼륨</label>
+                  <span style={{ fontSize: "0.8rem", color: theme.accent }}>{Math.round(soundVolume * 100)}%</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <input
+                    type="range" min="0" max="1" step="0.05" value={soundVolume}
+                    onChange={(e) => handleSaveVolume(Number(e.target.value))}
+                    style={{ flex: 1, accentColor: theme.accent }}
+                  />
+                  <button onClick={playDiceSound} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", fontSize: "0.75rem", cursor: "pointer" }}>
+                    🔊 테스트
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                <div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>주사위 굴림 연출 효과</div>
+                  <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>주사위 회전 3D 연출과 난수 롤링을 표시합니다.</div>
+                </div>
+                <button
+                  onClick={() => handleSaveAnim(!animationEnabled)}
+                  style={{ padding: "6px 14px", backgroundColor: animationEnabled ? theme.success : theme.border, color: "#fff", border: "none", borderRadius: "20px", fontWeight: "bold", fontSize: "0.8rem", cursor: "pointer" }}
+                >
+                  {animationEnabled ? "켜짐 (ON)" : "꺼짐 (OFF)"}
+                </button>
+              </div>
+
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                   <span style={{ fontSize: "0.85rem", fontWeight: "bold", color: theme.accent }}>{"💾 세이브 데이터 관리 & 백업"}</span>
@@ -1147,7 +1209,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 초상화 화풍 선택 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.panelAlt, padding: "10px 12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ fontSize: "0.85rem", fontWeight: "bold" }}>👤 인물 초상화 (상태창)</div>
