@@ -91,6 +91,62 @@ export default function App() {
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
+  const [showLobbyPresetModal, setShowLobbyPresetModal] = useState(false);
+const [lobbyPresets, setLobbyPresets] = useState([]);
+  useEffect(() => {
+    try {
+      const lp = localStorage.getItem("rp_hub_lobby_presets");
+      if (lp) setLobbyPresets(JSON.parse(lp));
+    } catch(e) {}
+  }, []);
+
+  const handleSaveLobbyPreset = () => {
+    const titlePrompt = prompt("저장할 로비 세팅의 이름을 입력하세요:", scenarioTitle || `${charName}의 캠페인`);
+    if (!titlePrompt) return;
+
+    const newLobbyPreset = {
+      id: Date.now(),
+      presetTitle: titlePrompt,
+      scenarioTitle, publicSynopsis, openingScene, hiddenTruth, playPreference, wizardMode,
+      charName, charJob, charAge, charGender, charBackground, charMission, charSecret, charPortraitUrl,
+      cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, insaneLimit,
+      kpcList
+    };
+
+    const updated = [newLobbyPreset, ...lobbyPresets];
+    setLobbyPresets(updated);
+    localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
+    alert(`'${titlePrompt}' 로비 세팅이 저장되었습니다!`);
+  };
+
+  const handleLoadLobbyPreset = (p) => {
+    setScenarioTitle(p.scenarioTitle || "");
+    setPublicSynopsis(p.publicSynopsis || "");
+    setOpeningScene(p.openingScene || "");
+    setHiddenTruth(p.hiddenTruth || "");
+    setPlayPreference(p.playPreference || "");
+    if (p.wizardMode) setWizardMode(p.wizardMode);
+
+    setCharName(p.charName || "");
+    setCharJob(p.charJob || "");
+    setCharAge(p.charAge || "24");
+    setCharGender(p.charGender || "여성");
+    setCharBackground(p.charBackground || "");
+    setCharMission(p.charMission || "");
+    setCharSecret(p.charSecret || "");
+    setCharPortraitUrl(p.charPortraitUrl || "");
+
+    if (p.cocStats) setCocStats(p.cocStats);
+    if (p.cocSkills) setCocSkills(p.cocSkills);
+    if (p.insaneSkills) setInsaneSkills(p.insaneSkills);
+    if (p.insaneCuriosity) setInsaneCuriosity(p.insaneCuriosity);
+    if (p.insaneFear) setInsaneFear(p.insaneFear);
+    if (p.insaneLimit) setInsaneLimit(p.insaneLimit);
+
+    if (p.kpcList && Array.isArray(p.kpcList)) setKpcList(p.kpcList);
+
+    closeModal(setShowLobbyPresetModal);
+  };
 
   // 테마 상태
   const [currentPalette, setCurrentPalette] = useState("cloud");
