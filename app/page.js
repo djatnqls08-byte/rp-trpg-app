@@ -16,7 +16,7 @@ const THEME_PALETTES = {
   baltic: {
     name: "발틱 씨",
     dark: { bg: "#121417", sidebar: "#181a20", panel: "rgba(33, 36, 44, 0.88)", panelAlt: "rgba(45, 49, 60, 0.9)", border: "rgba(154, 150, 185, 0.22)", text: "#e8e9ec", textMuted: "#7c808f", accent: "#9A96B9", accentGlow: "rgba(154, 150, 185, 0.35)", danger: "#d63857", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(69, 74, 84, 0.75)", bubbleAi: "rgba(33, 36, 44, 0.7)", inputBg: "#0d0f12" },
-    light: { bg: "#f0f2f6", sidebar: "#e2e5ec", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(245, 247, 251, 0.95)", border: "rgba(69, 74, 84, 0.12)", text: "#1f2229", textMuted: "#6b6f7d", accent: "#454A54", accentGlow: "rgba(69, 74, 84, 0.18)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(225, 228, 235, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    light: { bg: "#f0f2f6", sidebar: "#e2e5ec", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(245, 247, 251, 0.95)", border: "rgba(69, 74, 84, 0.12)", text: "#1f2229", textMuted: "#6b6f7d", accent: "#454A54", accentGlow: "rgba(69, 74, 84, 0.2)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(225, 228, 235, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   capri: {
     name: "카프리 블루",
@@ -99,7 +99,7 @@ export default function App() {
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  const [wizardMode, setWizardMode] = useState("coc");
+  const [wizardMode, setWizardMode] = useState("insane");
 
   // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
@@ -125,7 +125,7 @@ export default function App() {
   let derivedDb = "0";
   if (strPlusSiz <= 64) derivedDb = "-2"; else if (strPlusSiz <= 84) derivedDb = "-1"; else if (strPlusSiz <= 124) derivedDb = "0"; else if (strPlusSiz <= 164) derivedDb = "+1D4"; else derivedDb = "+1D6";
 
-  // 인세인 특화 설정 (특기표 매트릭스, 리미트, 호기심, 공포심)
+  // 인세인 특화 설정
   const [insaneLimit, setInsaneLimit] = useState(3);
   const [insaneSkills, setInsaneSkills] = useState(["연심", "소리", "정리"]);
   const [insaneCuriosity, setInsaneCuriosity] = useState("정서");
@@ -137,9 +137,12 @@ export default function App() {
     { id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
   ]);
 
-  // 시나리오 폼 상태
+  // 시나리오 폼 상태 (공개 시놉시스, 서막, 키퍼 진상 분리 복원)
   const [scenarioTitle, setScenarioTitle] = useState("");
-  const [scenarioInput, setScenarioInput] = useState("");
+  const [publicSynopsis, setPublicSynopsis] = useState("");
+  const [openingScene, setOpeningScene] = useState("");
+  const [hiddenTruth, setHiddenTruth] = useState("");
+  const [showHiddenTruth, setShowHiddenTruth] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
@@ -248,11 +251,11 @@ export default function App() {
     setCocStats({ ...stats, luck: Math.floor(Math.random() * 50) + 40 });
   };
 
-  // ✨ AI 시나리오 고밀도 생성
+  // ✨ AI 시나리오 고밀도 생성 (시놉시스, 서막, 진상 분리 저장)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
-선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 맞추어 시나리오와 캐릭터를 설계하십시오.
+선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 부합하는 깊이 있는 시나리오와 캐릭터를 설계하십시오.
 
 [🚨 절대 수칙]
 1. 모든 인물은 무조건 여성(GL)입니다. '너는 내 것' 같은 유치한 소유욕이나 얀데레를 배제하고, 절제되고 성숙한 유대감을 부여하십시오.
@@ -278,13 +281,13 @@ export default function App() {
   "kpcSecret": "파트너가 숨기고 있는 진심이나 비밀",
   "limit": ${Math.floor(Math.random() * 3) + 2},
   "scenarioTitle": "시나리오 제목",
-  "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper 기밀)",
-  "scenarioGimmick": "특수 서사 기믹 및 엔딩 조건",
-  "openingNovel": "플레이어가 마주하는 첫 장소의 분위기와 파트너와의 첫 대사를 담은 풍성한 서막 지문 (반드시 ~합니다/였습니다 경어체)",
+  "publicSynopsis": "스포일러 없는 시나리오 개요 및 소문",
+  "openingScene": "플레이어가 마주하는 첫 장소의 분위기와 날씨, 파트너와의 첫 대사를 담은 풍성한 서막 지문",
+  "hiddenTruth": "사건의 충격적인 배후 진상 및 흑막, 특수 기믹, 엔딩 조건(Keeper 기밀)",
   "initialHandouts": [
     { "title": "하진의 사명과 비밀", "overview": "작업실 한켠에서 기록을 보수하고 있는 하진의 현재 상태입니다.", "secret": "사실은 홀로 남겨지는 것에 극심한 공포를 느끼고 있습니다." },
     { "title": "도윤의 손길", "overview": "비 오는 날 문을 두드려 찾아온 도윤이 가져온 위로와 온기입니다.", "secret": "하진이 무너지지 않도록 제 감정을 숨긴 채 곁을 지키고 있습니다." },
-    { "title": "오래된 화분", "overview": "창가에 놓인 작은 토분. 오랫동안 잊혀 있던 식물이 심겨 있습니다.", "secret": "화분 밑바닥에 작은 열쇠가 묻혀 있습니다." },
+    { "title": "오래된 화분", "overview": "창가에 놓인 작은 토분. 잊혀 있던 식물이 심겨 있습니다.", "secret": "화분 밑바닥에 물에 젖지 않는 재질의 작은 열쇠가 묻혀 있습니다." },
     { "title": "기억의 다이어리", "overview": "서랍 깊은 곳에 간직된 하진의 오래된 기록장입니다.", "secret": "과거 도윤과 처음으로 진심을 터놓았던 밤의 기록이 적혀 있습니다." }
   ]
 }`;
@@ -330,20 +333,9 @@ export default function App() {
       }]);
 
       setScenarioTitle(p.scenarioTitle || "빗소리가 머무는 오후");
-
-      const richScenario = `[시나리오 제목: ${p.scenarioTitle}]
-
-[사건의 배후 진상 (Keeper 기밀)]
-${p.scenarioTruth}
-
-[핵심 서사 기믹]
-${p.scenarioGimmick || "시간이 흐를수록 감정선이 깊어집니다."}
-
---------------------------------------------------
-[첫 장면 도입부 설정]
-${p.openingNovel}`;
-
-      setScenarioInput(richScenario);
+      setPublicSynopsis(p.publicSynopsis || "");
+      setOpeningScene(p.openingScene || "");
+      setHiddenTruth(p.hiddenTruth || "");
       setGeneratedHandouts(p.initialHandouts || []);
 
       if (wizardMode === "coc") handleRandomCocStats();
@@ -355,10 +347,11 @@ ${p.openingNovel}`;
   };
 
   const handleAutoReplaceKpcPc = () => {
-    if (!scenarioInput.trim()) return alert("시나리오 본문이 없습니다.");
     const pName = charName.trim() || "주인공";
     const kName = kpcList[0]?.name || "파트너";
-    setScenarioInput(scenarioInput.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
+    setPublicSynopsis(publicSynopsis.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
+    setOpeningScene(openingScene.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
+    setHiddenTruth(hiddenTruth.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
     alert(`'PC' ➔ '${pName}', 'KPC' ➔ '${kName}' 치환 완료!`);
   };
 
@@ -422,11 +415,12 @@ ${p.openingNovel}`;
           const content = await page.getTextContent();
           text += `[${i}P] ${content.items.map((it) => it.str).join(" ")}\n\n`;
         }
-        setScenarioInput(text.trim());
+        setHiddenTruth(text.trim());
+        setPublicSynopsis("PDF 파일 내용이 진상란에 추출되었습니다.");
       } catch (err) { alert("PDF 오류: " + err.message); } finally { setIsPdfLoading(false); }
     } else {
       const reader = new FileReader();
-      reader.onload = (ev) => setScenarioInput(ev.target.result);
+      reader.onload = (ev) => setHiddenTruth(ev.target.result);
       reader.readAsText(file, "UTF-8");
     }
   };
@@ -519,7 +513,6 @@ ${p.openingNovel}`;
     executeMessage(`[🎲 장면표 1D6 ➔ ${roll + 1}번 결과]: "${desc}"\n(이 분위기를 무대로 다음 행동을 이어갑니다.)`);
   };
 
-  // 강력한 태그 파서 (KPC 실명 치환 & 인세인 SPOTS 차단)
   const parseTagsSafely = (rawText, partnerName, currentRule) => {
     let cleanText = rawText || "";
     let parsedData = { suggActions: [], pendingCheck: null, newSheetVars: {}, revealedSecrets: [], investigationSpots: [], newHandouts: [] };
@@ -571,7 +564,7 @@ ${p.openingNovel}`;
     return { cleanText, parsedData };
   };
 
-  // 서막 열기 (4종 핸드아웃 물리 카드 바인딩)
+  // 서막 열기 (공개 시놉시스, 서막, 진상 조합)
   const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "하진";
@@ -608,10 +601,12 @@ ${p.openingNovel}`;
       };
     }
 
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[초기 배경/서막]\n${openingScene}\n\n[키퍼 전용 기밀/진상]\n${hiddenTruth}`;
+
     const newId = Date.now();
     const newSession = {
       id: newId, title: sessionTitle, ruleMode: wizardMode, preference: playPreference.trim(),
-      scenarioText: scenarioInput, sheet: initialSheet, messages: [], suggestedActions: [],
+      scenarioText: fullScenarioContext, sheet: initialSheet, messages: [], suggestedActions: [],
       investigationSpots: [], pendingCheck: null
     };
 
@@ -620,7 +615,7 @@ ${p.openingNovel}`;
     setIsLoading(true);
 
     const openingPrompt = `[세션 시작: 첫 서막 지문 요청]
-시나리오의 [배후 진상]과 [첫 장면 도입부 설정]을 충실히 반영하여 서막을 여십시오.
+시나리오의 [배후 진상]과 [초기 배경/서막]을 충실히 반영하여 서막을 여십시오.
 반드시 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
 
 [🚨 호칭 준수]
@@ -634,7 +629,7 @@ ${p.openingNovel}`;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: [{ role: "user", text: openingPrompt }],
-          scenarioText: scenarioInput,
+          scenarioText: fullScenarioContext,
           playerSheet: initialSheet,
           ruleMode: wizardMode,
           playPreference
@@ -762,7 +757,6 @@ ${p.openingNovel}`;
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, handouts } } : s));
   };
 
-  // CoC 기능치 문자열 파싱 헬퍼
   const parseCocSkills = (skillsStr) => {
     if (!skillsStr) return [];
     return skillsStr.split(",").map(s => {
@@ -834,17 +828,50 @@ ${p.openingNovel}`;
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         
-        {/* 상단 헤더 바 */}
-        <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: "transparent" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: theme.text }}>☰</button>
-            <span style={{ fontWeight: "700", fontSize: "0.95rem" }}>{activeSession ? activeSession.title : "로비 (세션 생성)"}</span>
+        {/* 상단 단일 헤더 바 (중복 헤더 및 중복 아이콘 제거) */}
+        <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: theme.text, padding: "4px" }}>☰</button>
+            <span style={{ fontWeight: "800", fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: isMobile ? "140px" : "240px" }}>
+              {activeSession ? activeSession.title : "로비 (세션 생성)"}
+            </span>
+            {activeSession && activeSession.ruleMode === "insane" && (
+              <span style={{ padding: "2px 6px", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1px solid ${theme.warning}`, borderRadius: "4px", fontSize: "0.7rem", color: theme.warning, fontWeight: "700" }}>
+                {activeSession.sheet?.cycle || 1}C / {activeSession.sheet?.scene || 1}S (리미트: {activeSession.sheet?.limit || 3})
+              </span>
+            )}
           </div>
-          <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {activeSession && activeSession.ruleMode === "insane" && (
+              <>
+                <button onClick={handleRollSceneTable} style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🎲 장면표</button>
+                <button onClick={() => setIsTabletopOpen(!isTabletopOpen)} style={{ padding: "5px 10px", backgroundColor: isTabletopOpen ? theme.warning : theme.panel, border: `1px solid ${theme.warning}`, color: isTabletopOpen ? "#000" : theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑</button>
+              </>
+            )}
+            {activeSession && activeSession.ruleMode === "coc" && (
+              <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} style={{ padding: "5px 8px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "14px", cursor: "pointer", fontWeight: "800", fontSize: "0.72rem" }}>
+                🧠 산 체크 ({activeSession.sheet?.san ?? 50})
+              </button>
+            )}
+            {activeSession && activeSession.ruleMode !== "freeform" && (
+              <button onClick={() => rollDiceDirectly()} disabled={isRolling || isLoading} style={{ padding: "5px 10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "14px", cursor: "pointer", fontWeight: "700", fontSize: "0.75rem" }}>
+                🎲 주사위
+              </button>
+            )}
+            {activeSession && (
+              <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>
+                {isSheetOpen ? "시트▶" : "◀시트"}
+              </button>
+            )}
+            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+              {isDarkMode ? "☀️" : "🌙"}
+            </button>
+          </div>
         </div>
 
         {!activeSession ? (
-          /* 오너님의 캡처 UI와 100% 동일한 로비 화면 */
+          /* 로비 화면 (오너님 제공 image_bef106.png 완벽 일치) */
           <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "20px 14px 100px 14px" : "28px 24px 80px 24px", maxWidth: "860px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
             
             {/* 타이틀 및 AI 즉석 생성 버튼 (단독) */}
@@ -960,7 +987,7 @@ ${p.openingNovel}`;
               </div>
             </div>
 
-            {/* 🌟 룰별 특화 설정 (기능치 / 인세인 특기표) */}
+            {/* 룰별 특화 설정 블록 */}
             {wizardMode === "coc" && (
               <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.danger}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -982,7 +1009,6 @@ ${p.openingNovel}`;
                 <div>
                   <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "700", marginBottom: "4px" }}>추가 보유 기능치 (Skill):</label>
                   <input type="text" value={cocSkills} onChange={e => setCocSkills(e.target.value)} placeholder="예: 관찰력 60, 자료조사 50, 듣기 40, 심리학 50" style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} />
-                  <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "4px" }}>※ 시트에서 이 기능치들을 원클릭 주사위로 굴릴 수 있습니다.</div>
                 </div>
               </div>
             )}
@@ -1026,8 +1052,8 @@ ${p.openingNovel}`;
               </div>
             )}
 
-            {/* 시나리오 정보 및 서막(Prologue) */}
-            <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            {/* 시나리오 정보 및 서막(Prologue) [비밀 숨기는 기능 복원] */}
+            <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>시나리오 정보 및 서막(Prologue)</span>
                 <div style={{ display: "flex", gap: "6px" }}>
@@ -1038,8 +1064,31 @@ ${p.openingNovel}`;
                   <button onClick={handleAutoReplaceKpcPc} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text }}>🔄 PC/KPC 치환</button>
                 </div>
               </div>
+
               <input type="text" value={scenarioTitle} onChange={e => setScenarioTitle(e.target.value)} placeholder="시나리오 제목" style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem" }} />
-              <textarea value={scenarioInput} onChange={e => setScenarioInput(e.target.value)} placeholder="시나리오 개요 및 배후 진상..." style={{ width: "100%", height: "90px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+              
+              <div>
+                <label style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", display: "block" }}>[공개 시놉시스] 플레이어에게 주어지는 초기 정보</label>
+                <textarea value={publicSynopsis} onChange={e => setPublicSynopsis(e.target.value)} placeholder="도입부, 소문, 미스터리 등 스포일러 없는 배경 설명..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.74rem", color: theme.accent, marginBottom: "4px", display: "block", fontWeight: "700" }}>[서막] 시작되는 시간, 장소, 혹은 상황 묘사</label>
+                <textarea value={openingScene} onChange={e => setOpeningScene(e.target.value)} placeholder="예: 비 내리는 늦은 오후, 서윤의 작업실 문을 두드리는 소리가 들립니다..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+              </div>
+
+              {/* 🔒 비밀 숨기는 기능 (키퍼 전용 스포일러/진상 수동 입력 토글 복구) */}
+              <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
+                <button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "8px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "6px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>
+                  {showHiddenTruth ? "🔒 키퍼 전용 진상 닫기" : "👀 키퍼 전용 스포일러/진상 수동 입력"}
+                </button>
+                {showHiddenTruth && (
+                  <div style={{ marginTop: "10px" }}>
+                    <div style={{ fontSize: "0.72rem", color: theme.danger, marginBottom: "6px" }}>⚠️ 플레이어 열람 주의! 마스터만 참조하는 사건의 흑막과 기믹, 엔딩 분기입니다.</div>
+                    <textarea value={hiddenTruth} onChange={e => setHiddenTruth(e.target.value)} placeholder="흑막의 정체, 특수 기믹, 트루/배드 엔딩 조건을 기입하세요." style={{ width: "100%", height: "85px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+                  </div>
+                )}
+              </div>
             </div>
 
             <button onClick={startNewSession} disabled={isLoading || isPdfLoading} style={{ width: "100%", padding: "16px", backgroundColor: "#52504c", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "800", cursor: "pointer", fontSize: "1rem" }}>
@@ -1049,44 +1098,9 @@ ${p.openingNovel}`;
         ) : (
           /* 플레이 룸 */
           <>
-            {/* 상단 바 (우측에 다크/라이트 토글 포함) */}
-            <div style={{ height: "52px", padding: "0 14px", backgroundColor: theme.sidebar, borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ padding: "4px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>{isSidebarOpen ? "◀" : "▶"}</button>
-                <span style={{ fontWeight: "800", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: isMobile ? "110px" : "200px" }}>{activeSession.title}</span>
-                {activeSession.ruleMode === "insane" && (
-                  <span style={{ padding: "2px 6px", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1px solid ${theme.warning}`, borderRadius: "4px", fontSize: "0.7rem", color: theme.warning, fontWeight: "700" }}>
-                    {activeSession.sheet?.cycle || 1}C / {activeSession.sheet?.scene || 1}S (리미트: {activeSession.sheet?.limit || 3})
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                {activeSession.ruleMode === "insane" && (
-                  <>
-                    <button onClick={handleRollSceneTable} style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🎲 장면표</button>
-                    <button onClick={() => setIsTabletopOpen(!isTabletopOpen)} style={{ padding: "5px 10px", backgroundColor: isTabletopOpen ? theme.warning : theme.panel, border: `1px solid ${theme.warning}`, color: isTabletopOpen ? "#000" : theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑</button>
-                  </>
-                )}
-                {activeSession.ruleMode === "coc" && (
-                  <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} style={{ padding: "5px 8px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "14px", cursor: "pointer", fontWeight: "800", fontSize: "0.72rem" }}>
-                    🧠 산 체크 ({activeSession.sheet?.san ?? 50})
-                  </button>
-                )}
-                {activeSession.ruleMode !== "freeform" && (
-                  <button onClick={() => rollDiceDirectly()} disabled={isRolling || isLoading} style={{ padding: "5px 10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "14px", cursor: "pointer", fontWeight: "700", fontSize: "0.75rem" }}>
-                    🎲 주사위
-                  </button>
-                )}
-                <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>{isSheetOpen ? "시트▶" : "◀시트"}</button>
-                {/* ☀️/🌙 토글 버튼 추가 */}
-                <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", padding: "0 2px" }}>{isDarkMode ? "☀️" : "🌙"}</button>
-              </div>
-            </div>
-
-            {/* 인세인 테이블탑 오버레이 (카드 4종) */}
+            {/* 인세인 테이블탑 오버레이 */}
             {activeSession.ruleMode === "insane" && isTabletopOpen && (
-              <div style={{ position: "absolute", top: "52px", left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)", zIndex: 40, padding: "20px", display: "flex", flexWrap: "wrap", alignContent: "flex-start", gap: "16px", overflowY: "auto" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)", zIndex: 40, padding: "20px", display: "flex", flexWrap: "wrap", alignContent: "flex-start", gap: "16px", overflowY: "auto" }}>
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff" }}>
                   <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>🃏 활성화된 핸드아웃 ({activeSession.sheet.handouts?.length || 0}개)</span>
                   <button onClick={() => setIsTabletopOpen(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
@@ -1134,7 +1148,6 @@ ${p.openingNovel}`;
 
             {/* 판정/조사/행동 제안 칩 바 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-              {/* 판정 요구 배너 */}
               {activeSession?.pendingCheck && !isSanCheckDetected && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.text }}>
@@ -1152,7 +1165,6 @@ ${p.openingNovel}`;
                 </div>
               )}
 
-              {/* CoC 전용 조사 칩 */}
               {activeSession.ruleMode !== "insane" && (activeSession.investigationSpots || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "700", alignSelf: "center" }}>🔍 조사:</span>
@@ -1162,7 +1174,6 @@ ${p.openingNovel}`;
                 </div>
               )}
 
-              {/* 추천 행동 칩 */}
               {suggestionsEnabled && (activeSession.suggestedActions || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "700", alignSelf: "center" }}>💡 제안:</span>
@@ -1182,7 +1193,7 @@ ${p.openingNovel}`;
         )}
       </div>
 
-      {/* 3. 우측 시트 패널 (기능치/스탯 주사위 굴림 복원!) */}
+      {/* 3. 우측 시트 패널 (💾 아이콘 저장 버튼 & 특기/기능치 주사위 완벽 복구) */}
       {activeSession && (
         <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           
@@ -1190,7 +1201,7 @@ ${p.openingNovel}`;
           <div style={{ padding: "12px 14px", borderBottom: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>캐릭터 시트</span>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <button onClick={handleSaveCurrentAsPreset} title="이 캐릭터를 프리셋으로 저장" style={{ background: "none", border: "none", fontSize: "1.05rem", cursor: "pointer", padding: "2px" }}>💾</button>
+              <button onClick={handleSaveCurrentAsPreset} title="이 캐릭터를 프리셋으로 저장" style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", padding: "2px" }}>💾</button>
               <button onClick={() => setIsSheetOpen(false)} style={{ background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", color: theme.text }}>✕</button>
             </div>
           </div>
@@ -1234,13 +1245,12 @@ ${p.openingNovel}`;
               )}
             </div>
 
-            {/* 🌟 CoC 특화: 8대 특성치 & 기능치 주사위 굴림 패널 */}
+            {/* CoC 특화: 8대 특성치 & 기능치 주사위 굴림 패널 */}
             {activeSession.ruleMode === "coc" && (
               <>
-                {/* 8대 특성치 목록 & 🎲 원클릭 굴림 */}
                 {activeSession.sheet.cocStats && (
                   <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
-                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.danger }}>📊 8대 특성치 (클릭하여 1D100 판정)</div>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.danger }}>📊 8대 특성치 (1D100 🎲)</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                       {Object.keys(COC_STAT_LABELS).map(k => (
                         <button
@@ -1256,7 +1266,6 @@ ${p.openingNovel}`;
                   </div>
                 )}
 
-                {/* 보유 기능치 목록 & 🎲 원클릭 굴림 */}
                 {activeSession.sheet.cocSkills && (
                   <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
                     <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.accent }}>🎯 보유 기능치 (Skill 🎲)</div>
@@ -1278,7 +1287,7 @@ ${p.openingNovel}`;
               </>
             )}
 
-            {/* 🌟 inSANe 특화: 특기 목록 & 2D6 주사위 굴림 패널 */}
+            {/* inSANe 특화: 특기 목록 & 2D6 주사위 굴림 패널 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -1288,7 +1297,6 @@ ${p.openingNovel}`;
                   </div>
                 </div>
 
-                {/* 습득 특기 목록 & 🎲 원클릭 굴림 */}
                 {(activeSession.sheet.insaneSkills || []).length > 0 && (
                   <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
                     <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (목표 5 / 2D6 🎲)</div>
