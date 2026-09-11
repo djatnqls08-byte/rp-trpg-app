@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-// 2026 팬톤 트렌드 테마 4종 (한국어 명칭)
+// 2026 팬톤 트렌드 테마 4종 (한국어 표기)
 const THEME_PALETTES = {
   cloud: {
     name: "클라우드 댄서",
@@ -28,25 +28,20 @@ const THEME_PALETTES = {
 const RULE_GUIDES = {
   coc: { title: "크툴루의 부름 (CoC 7판)", desc: "정통 코스믹 호러 추리. 이성치(SAN) 관리 및 심연의 진실 탐색.", system: "1D100 판정. SAN 5점 급감 시 1D10 광기 발작." },
   insane: { title: "멀티 호러 TRPG 인세인 (inSANe)", desc: "의심과 비밀이 교차하는 현대 괴담 심리 호러.", system: "2D6 판정. 사이클별 씬 소모 및 핸드아웃/비밀(Secret) 조사." },
-  unsung: { title: "언성 듀엣 (Unsung Duet)", desc: "이계 '시프터'에 갇힌 2인 탈출 서사.", system: "2D6 판정. 위기 시 침식도(0~6) 상승 및 신체 변이 발현." },
   freeform: { title: "자유 서사 (공동 집필 역극)", desc: "주사위 판정 없이 대사와 묘사로만 깊은 서사를 엮어가는 소설형 롤플레잉.", system: "판정 없음. 온전히 대화와 지문으로 전개." }
 };
 
 const COC_MADNESS_TABLE = [
   { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
-  { roll: 3, name: "급성 공포증", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 3, name: "급성 공포증", desc: "특정 사물이나 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
   { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
   { roll: 5, name: "맹목적 도주", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
-  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
-  { roll: 7, name: "신체 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
-  { roll: 8, name: "심인성 기억상실", desc: "직전 목격한 공포스러운 진실에 대한 기억이 완전히 지워집니다." },
-  { roll: 9, name: "파괴 충동", desc: "주변의 사물을 닥치는 대로 부수거나 집어던집니다." },
-  { roll: 10, name: "긴장증", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
+  { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." }
 ];
 
 const INSANE_MADNESS_TABLE = [
-  { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
+  { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 말을 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
   { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." },
   { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
@@ -73,17 +68,15 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 반응형 및 오버레이
+  // 반응형 및 모달 제어
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isTabletopOpen, setIsTabletopOpen] = useState(false);
 
-  // 모달 상태
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [showRestoreHelpModal, setShowRestoreHelpModal] = useState(false);
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showCareerModal, setShowCareerModal] = useState(false);
@@ -101,7 +94,6 @@ export default function App() {
   const [backupFormat, setBackupFormat] = useState("json");
   const [backupTarget, setBackupTarget] = useState("all");
 
-  const [ruleCategory, setRuleCategory] = useState("official");
   const [wizardMode, setWizardMode] = useState("insane");
 
   // 캐릭터 폼 상태
@@ -117,22 +109,24 @@ export default function App() {
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [activePortraitTarget, setActivePortraitTarget] = useState("pc");
 
-  // 인세인 동적 리미트 상태
+  // 인세인 동적 리미트 & 핸드아웃 임시 풀
   const [insaneLimit, setInsaneLimit] = useState(3);
+  const [generatedHandouts, setGeneratedHandouts] = useState([]);
 
   // KPC 상태
   const [kpcList, setKpcList] = useState([
-    { id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
+    { id: 1, name: "은하", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
   ]);
 
   // 시나리오 폼 상태
   const [scenarioTitle, setScenarioTitle] = useState("");
   const [scenarioInput, setScenarioInput] = useState("");
+  const [openingNovelText, setOpeningNovelText] = useState("");
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
 
-  // 프리셋 및 다중 계승 상태
+  // 프리셋 및 다중 계승
   const [customPresets, setCustomPresets] = useState([]);
   const [newPresetTitle, setNewPresetTitle] = useState("");
   const [selectedCareerIds, setSelectedCareerIds] = useState([]);
@@ -148,7 +142,7 @@ export default function App() {
   let derivedDb = "0";
   if (strPlusSiz <= 64) derivedDb = "-2"; else if (strPlusSiz <= 84) derivedDb = "-1"; else if (strPlusSiz <= 124) derivedDb = "0"; else if (strPlusSiz <= 164) derivedDb = "+1D4"; else derivedDb = "+1D6";
 
-  // 주사위 및 연출
+  // 연출 상태
   const [isRolling, setIsRolling] = useState(false);
   const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
@@ -227,17 +221,6 @@ export default function App() {
   const openModal = (setModalFn) => { window.history.pushState({ modalOpen: true }, ""); setModalFn(true); };
   const closeModal = (setModalFn) => { setModalFn(false); if (window.history.state?.modalOpen) window.history.back(); };
 
-  useEffect(() => {
-    const handlePopState = () => {
-      setShowSettingsModal(false); setShowExportModal(false); setShowBackupModal(false);
-      setShowRestoreHelpModal(false); setShowPortraitEditModal(false);
-      setShowPresetModal(false); setShowCareerModal(false); setRuleHelpModalKey(null);
-      if (isMobile) { setIsSidebarOpen(false); setIsSheetOpen(false); }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [isMobile]);
-
   const toggleTag = (tag) => {
     setPlayPreference((prev) => {
       const list = prev.split(/\s+/).filter(Boolean);
@@ -260,28 +243,44 @@ export default function App() {
     setCocStats({ ...stats, luck: Math.floor(Math.random() * 50) + 40 });
   };
 
+  // 🔥 AI 시나리오 고밀도 즉석 생성 (핸드아웃 4종 및 실명 강제)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
-선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 부합하는 캐릭터와 시나리오를 설계하십시오.
-반드시 마크다운 없이 순수 JSON 포맷으로만 응답하십시오:
+선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 맞추어, 단순한 요약이 아닌 깊이 있는 인물 서사와 사건의 진상, 그리고 4개의 완벽한 핸드아웃을 설계하십시오.
+
+[🚨 절대 수칙]
+1. 모든 인물은 무조건 여성(GL)입니다. '너는 내 것' 같은 유치한 소유욕이나 얀데레 묘사는 엄격히 배제하고, 절제되고 성숙한 유대감을 부여하십시오.
+2. 지문과 설정에서 'PC', 'KPC'라는 단어를 절대 쓰지 마십시오! 무조건 주인공 이름과 파트너 이름을 직접 지어서 사용하십시오.
+3. initialHandouts에는 반드시 4개의 카드가 포함되어야 합니다:
+   - 1번: 주인공(PC) 카드 (사명 및 비밀)
+   - 2번: 파트너(KPC) 카드 (표면상 관계 및 숨겨진 진심/비밀)
+   - 3번: 현장 중요한 사물/장소 핸드아웃 (개요 및 조사 시 밝혀지는 비밀)
+   - 4번: 결정적 과거/사건 단서 핸드아웃 (개요 및 조사 시 밝혀지는 비밀)
+
+반드시 마크다운 코드블럭(\`\`\`json) 없이 순수한 JSON 규격으로만 응답하십시오:
 {
-  "name": "주인공 이름",
+  "name": "주인공 이름 (예: 서윤)",
   "gender": "여성",
   "age": "24",
   "job": "역할/직업",
-  "background": "인물의 성격과 배경 묘사",
-  "mission": "인세인 공개 사명",
-  "secret": "인세인 개인 비밀",
+  "background": "인물의 과거 상처, 성격, 소지품 3가지 상세 묘사",
+  "mission": "주인공의 공개 사명",
+  "secret": "주인공의 숨겨진 개인적 비밀",
+  "kpcName": "파트너 이름 (예: 은하)",
+  "kpcJob": "파트너의 역할/직업",
+  "kpcDetail": "파트너의 성격, 외모, 주인공과의 관계성 상세",
+  "kpcSecret": "파트너가 숨기고 있는 충격적인 진심이나 비밀",
   "limit": ${Math.floor(Math.random() * 3) + 2},
   "scenarioTitle": "시나리오 제목",
-  "scenarioTruth": "배후 진상 및 기믹",
-  "openingNovel": "첫 장면 도입부 지문 (~합니다/였습니다 경어체)",
+  "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper Only 기밀)",
+  "scenarioGimmick": "해당 룰 특유의 특수 기믹 및 엔딩 조건",
+  "openingNovel": "플레이어가 마주하는 첫 장소의 감각적 분위기와 날씨, 파트너와의 첫 대사를 담은 4~5문장의 풍성한 서막 지문 (반드시 ~합니다/였습니다 경어체, 파트너 실제 이름 명시)",
   "initialHandouts": [
-    { "title": "현장 단서", "overview": "발견된 쪽지", "secret": "이면에 적힌 진실" }
-  ],
-  "kpcs": [
-    { "name": "파트너", "job": "조력자", "detail": "성격 및 관계", "secret": "숨겨진 진심" }
+    { "title": "서윤의 사명", "overview": "마감에 쫓기며 방에 틀어박혀 있다.", "secret": "자신이 상처받을까 두려워 스스로를 고립시키고 있다." },
+    { "title": "은하의 손길", "overview": "눈길을 뚫고 따뜻한 수프를 들고 찾아온 이웃.", "secret": "서윤이 무너질까 두려워 자신의 불안을 숨긴 채 곁을 지키고 있다." },
+    { "title": "낡은 스케치북", "overview": "작업대 한구석에 펼쳐진 오래된 그림들.", "secret": "두 사람이 처음 만났던 날의 미완성 풍경화가 숨겨져 있다." },
+    { "title": "현관문 앞의 온기", "overview": "차가운 바깥바람과 대조되는 은하의 보온병.", "secret": "보온병 바닥에 떨리는 글씨로 적힌 작은 쪽지가 들어있다." }
   ]
 }`;
 
@@ -301,27 +300,51 @@ export default function App() {
       const cleanJson = (data.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
       const p = JSON.parse(cleanJson);
 
-      setCharName(p.name || "주인공");
+      const pName = p.name || "주인공";
+      const kName = p.kpcName || "파트너";
+
+      setCharName(pName);
       setCharJob(p.job || "조사원");
       setCharAge(p.age || "24");
       setCharGender(p.gender || "여성");
       setCharBackground(p.background || "");
-      setCharPortraitUrl(getPortraitUrl(`${p.name}, ${p.job}`));
+      setCharPortraitUrl(getPortraitUrl(`${pName}, ${p.job}`));
 
       if (p.mission) setCharMission(p.mission);
       if (p.secret) setCharSecret(p.secret);
       if (p.limit) setInsaneLimit(Number(p.limit));
 
-      setScenarioTitle(p.scenarioTitle || "미상의 밤");
-      const richScenario = `[시나리오 제목: ${p.scenarioTitle}]\n\n[배후 진상]\n${p.scenarioTruth}\n\n[첫 장면]\n${p.openingNovel}`;
-      setScenarioInput(richScenario);
+      setKpcList([{
+        id: 1,
+        name: kName,
+        job: p.kpcJob || "조력자",
+        detail: p.kpcDetail || "",
+        secret: p.kpcSecret || "",
+        portraitUrl: getPortraitUrl(`${kName}, portrait`),
+        showSecret: false
+      }]);
 
-      if (p.kpcs && p.kpcs.length > 0) {
-        setKpcList(p.kpcs.map((k, i) => ({ id: Date.now() + i, name: k.name, job: k.job, detail: k.detail, secret: k.secret, portraitUrl: "", showSecret: false })));
-      }
+      setScenarioTitle(p.scenarioTitle || "미상의 밤");
+      setOpeningNovelText(p.openingNovel || "");
+
+      const richScenario = `[시나리오 제목: ${p.scenarioTitle}]
+
+[사건의 배후 진상 (Keeper 기밀)]
+${p.scenarioTruth}
+
+[핵심 서사 기믹]
+${p.scenarioGimmick || "시간이 흐를수록 감정적 긴장이 고조됩니다."}
+
+--------------------------------------------------
+[첫 장면 도입부 설정]
+${p.openingNovel}`;
+
+      setScenarioInput(richScenario);
+      setGeneratedHandouts(p.initialHandouts || []);
+
       if (wizardMode === "coc") handleRandomCocStats();
     } catch (e) {
-      alert("AI 생성 실패: " + e.message);
+      alert("AI 시나리오 생성 실패: " + e.message);
     } finally {
       setIsAiGenerating(false);
     }
@@ -487,7 +510,7 @@ export default function App() {
 
     let mName = "", mDesc = "", rollNum = 1;
     if (rule === "coc") {
-      rollNum = Math.floor(Math.random() * 10) + 1;
+      rollNum = Math.floor(Math.random() * 6) + 1;
       const m = COC_MADNESS_TABLE.find(it => it.roll === rollNum) || COC_MADNESS_TABLE[0];
       mName = m.name; mDesc = m.desc;
     } else {
@@ -512,7 +535,6 @@ export default function App() {
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, [statName]: newVal } } : s));
   };
 
-  // 인세인 장면표 굴림
   const handleRollSceneTable = () => {
     if (!activeSession) return;
     playDiceSound();
@@ -521,72 +543,81 @@ export default function App() {
     executeMessage(`[🎲 장면표 1D6 ➔ ${roll + 1}번 결과]: "${desc}"\n(이 분위기를 무대로 다음 행동을 이어갑니다.)`);
   };
 
-  // 강력한 태그 파서 (AI 오탈자 -, --, ---> 완벽 지원 및 텍스트 청소)
-  const parseTagsSafely = (rawText) => {
+  // 강력한 태그 파서 (오탈자 및 KPC 실명 치환 필터)
+  const parseTagsSafely = (rawText, partnerName) => {
     let cleanText = rawText || "";
     let parsedData = { suggActions: [], pendingCheck: null, newSheetVars: {}, revealedSecrets: [], investigationSpots: [], newHandouts: [] };
 
     try {
-      // 1. CHECK 태그 파싱 (-{1,3}> 허용)
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (checkMatch) {
         try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
       }
 
-      // 2. SUGGESTIONS 태그 파싱
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
       if (suggMatch) {
-        try { parsedData.suggActions = JSON.parse(suggMatch[1]); } catch(e) {}
+        try {
+          const rawSuggs = JSON.parse(suggMatch[1]);
+          // 제안 칩에서도 'KPC' 단어 박멸! 파트너 실명으로 치환
+          parsedData.suggActions = rawSuggs.map(s => s.replace(/\bKPC\b/g, partnerName || "파트너"));
+        } catch(e) {}
       }
 
-      // 3. SPOTS 태그 파싱
       const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
       if (spotsMatch) {
         try { parsedData.investigationSpots = JSON.parse(spotsMatch[1]); } catch(e) {}
       }
 
-      // 4. HANDOUT 태그 파싱
       const handoutRegex = /<!--\s*HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(handoutRegex)) {
         try { parsedData.newHandouts.push(JSON.parse(m[1])); } catch (e) {}
       }
 
-      // 5. REVEAL_SECRET 태그 파싱
       const secRegex = /<!--\s*REVEAL_SECRET:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(secRegex)) {
         try { parsedData.revealedSecrets.push(JSON.parse(m[1])); } catch (e) {}
       }
 
-      // 6. STATUS 태그 파싱
       const statMatch = cleanText.match(/<!--\s*STATUS:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (statMatch) {
         try { parsedData.newSheetVars = JSON.parse(statMatch[1]); } catch (e) {}
       }
     } catch (e) {}
 
-    // 말풍선 본문에서 태그 찌꺼기 및 마크다운 완벽 박멸
+    // 말풍선 본문에서 태그 제거 및 'KPC' 단어 실명 치환
     cleanText = cleanText
       .replace(/```html|```json|```/gi, "")
       .replace(/<!--[\s\S]*?-{1,3}>/g, "")
       .replace(/<!--[\s\S]*?$/g, "")
+      .replace(/\bKPC\b/g, partnerName || "파트너")
       .trim();
 
     return { cleanText, parsedData };
   };
 
+  // 🔥 서막 열기 (설정과 핸드아웃 4종 100% 반영)
   const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
+    const pName = charName.trim() || "주인공";
+    const partnerName = kpcList[0]?.name || "은하";
+
     const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => ({
       id: k.id, name: k.name, title: k.job || "조력자", portrait: k.portraitUrl || getPortraitUrl(k.name), affection: 10, secret: k.secret, secretRevealed: false
     }));
 
+    // AI가 생성해 둔 4종 핸드아웃이 있다면 우선 로드, 없으면 기본 4종 덱 세팅
+    let initialHandouts = generatedHandouts.length > 0 ? generatedHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false })) : [
+      { id: 1, title: `${pName}의 사명`, overview: charMission || "사건의 진상을 파악하고 무사히 생환한다.", secret: charSecret || "밝혀지지 않은 과거의 상처가 있다.", revealed: false },
+      { id: 2, title: `${partnerName}의 사명`, overview: `${partnerName}와 함께 이 위기를 헤쳐나간다.`, secret: npcs[0]?.secret || "말하지 못한 애틋한 진심이 있다.", revealed: false },
+      { id: 3, title: "주변의 단서", overview: "방 안 어딘가에 놓여있는 오래된 기록물.", secret: "두 사람의 운명이 얽히게 된 계기가 기록되어 있다.", revealed: false },
+      { id: 4, title: "현장의 소지품", overview: "테이블 위에 놓인 온기 어린 물건.", secret: "소중한 사람을 지키기 위한 결의가 담겨있다.", revealed: false }
+    ];
+
     let initialSheet = {
-      name: charName || "주인공", job: charJob || "조사원", age: charAge, gender: charGender,
-      portrait: charPortraitUrl || getPortraitUrl(charName), hp: 20, maxHp: 20,
+      name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
+      portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
       npcs, items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩과 만년필", desc: "기록 도구" }],
-      madnessStatus: null, handouts: [
-        { id: 1, title: "주요 사명", overview: charMission || "사건의 진상을 파악하고 무사히 생환한다.", secret: charSecret || "과거의 감추어진 상처가 있다.", revealed: false }
-      ]
+      madnessStatus: null, handouts: initialHandouts
     };
 
     if (wizardMode === "insane") {
@@ -606,29 +637,40 @@ export default function App() {
     setActiveSessionId(newId);
     setIsLoading(true);
 
-    const openingPrompt = `[세션 시작: 첫 서막]
-서막을 열고 상황을 묘사하십시오. (반드시 경어체 고정)
-${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"title": "이름", "overview": "겉보기 정보", "secret": "이면의 비밀"} --> 형식으로 출력하십시오.' : '조사 가능한 구역은 <!-- SPOTS: [{"name": "오브젝트", "stat": "관찰력"}] --> 형식으로 출력하십시오.'}`;
+    // 고밀도 서막 요청문 (KPC 실명 사용 강제)
+    const openingPrompt = `[세션 시작: 첫 서막 지문 요청]
+시나리오의 [배후 진상]과 [첫 장면 도입부 설정]을 100% 반영하여, 플레이어가 현장 분위기에 완전히 몰입할 수 있도록 감각적이고 밀도 높은 서막을 여십시오.
+반드시 키퍼의 정중한 경어체(~합니다/였습니다)를 유지하십시오.
+
+[🚨 절대 준수]
+- 'KPC'라는 단어를 절대 쓰지 마십시오! 반드시 동행자의 실제 이름인 '${partnerName}'(으)로만 호칭하십시오.
+- 탐사자 이름 '${pName}'과 '${partnerName}'의 관계성 텐션을 살려 첫 대사와 함께 분위기를 여십시오.
+- 지문 끝에 씬 주도권 액션을 위한 <!-- SUGGESTIONS: ["${partnerName}에게 말을 건다", "주변 단서를 살펴본다", "장면표 굴림"] --> 태그를 출력하십시오.`;
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", text: openingPrompt }], scenarioText: scenarioInput, playerSheet: initialSheet, ruleMode: wizardMode, playPreference })
+        body: JSON.stringify({
+          messages: [{ role: "user", text: openingPrompt }],
+          scenarioText: scenarioInput,
+          playerSheet: initialSheet,
+          ruleMode: wizardMode,
+          playPreference
+        })
       });
       const data = await res.json();
-      const { cleanText, parsedData } = parseTagsSafely(data.text);
-      const combinedHandouts = [...initialSheet.handouts, ...(parsedData.newHandouts || []).map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }))];
+      const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName);
 
       setSessions(prev => prev.map(s => s.id === newId ? {
-        ...s, sheet: { ...initialSheet, ...parsedData.newSheetVars, handouts: combinedHandouts },
+        ...s, sheet: { ...initialSheet, ...parsedData.newSheetVars },
         messages: [{ role: "model", text: cleanText }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
       } : s));
     } catch (err) {
-      setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: "서막을 시작합니다. 행동을 입력해 주세요." }] } : s));
+      setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}). 잠시 후 다시 시도해 주세요.` }] } : s));
     } finally {
       setIsLoading(false);
     }
@@ -636,6 +678,7 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
 
   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
+    const partnerName = activeSession.sheet?.npcs?.[0]?.name || "파트너";
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
     setIsLoading(true);
@@ -653,7 +696,7 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
         })
       });
       const data = await res.json();
-      const { cleanText, parsedData } = parseTagsSafely(data.text || "");
+      const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
       if (parsedData.revealedSecrets.length > 0) {
@@ -690,7 +733,6 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
 
   const sendMessage = () => { if (!input.trim()) return; const t = input; setInput(""); executeMessage(t); };
 
-  // 제안 칩 클릭 시 "장면표 굴림" 등 특수 액션 자동 인터셉트
   const handleSuggestionClick = (sugg) => {
     if (sugg.includes("장면표")) {
       handleRollSceneTable();
@@ -712,7 +754,7 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
     setTimeout(() => {
       clearInterval(rollInterval);
       let rollFormatted = "";
-      if (mode === "insane" || mode === "unsung") {
+      if (mode === "insane") {
         const d1 = Math.floor(Math.random() * 6) + 1;
         const d2 = Math.floor(Math.random() * 6) + 1;
         const sum = d1 + d2;
@@ -812,17 +854,16 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
               </button>
             </div>
 
-            {/* 룰 선택 */}
+            {/* 룰 선택 바 */}
             <div className="glass-card" style={{ padding: "16px", borderRadius: "14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px", fontSize: "0.85rem", fontWeight: "800" }}>
                 <span>1. TRPG 룰 시스템</span>
                 <button onClick={() => setRuleHelpModalKey(wizardMode)} style={{ background: "none", border: "none", color: theme.accent, cursor: "pointer", textDecoration: "underline", fontSize: "0.75rem" }}>룰북 가이드 열람 ?</button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "8px" }}>
                 {[
                   { key: "insane", name: "인세인 (inSANe)", sub: "2D6 / 비밀 & 핸드아웃", color: theme.warning },
                   { key: "coc", name: "크툴루의 부름 (CoC)", sub: "1D100 / 460pt & 광기", color: theme.danger },
-                  { key: "unsung", name: "언성 듀엣", sub: "2D6 / 이계 침식", color: "#b87bd8" },
                   { key: "freeform", name: "자유 서사 (소설)", sub: "주사위 없는 역극", color: theme.accent }
                 ].map((item) => (
                   <div key={item.key} onClick={() => setWizardMode(item.key)} style={{ padding: "12px", borderRadius: "10px", border: `1.5px solid ${wizardMode === item.key ? item.color : theme.border}`, backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent", cursor: "pointer" }}>
@@ -964,16 +1005,16 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
               </div>
             </div>
 
-            {/* 인세인 테이블탑 오버레이 */}
+            {/* 인세인 테이블탑 오버레이 (카드 4종 이상 깔끔 노출) */}
             {activeSession.ruleMode === "insane" && isTabletopOpen && (
               <div style={{ position: "absolute", top: "52px", left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(10px)", zIndex: 40, padding: "20px", display: "flex", flexWrap: "wrap", alignContent: "flex-start", gap: "16px", overflowY: "auto" }}>
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>🃏 활성화된 핸드아웃 & 광기 덱 (클릭 시 비밀 확인)</span>
+                  <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>🃏 활성화된 핸드아웃 ({activeSession.sheet.handouts?.length || 0}개)</span>
                   <button onClick={() => setIsTabletopOpen(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
                 </div>
                 
                 {(activeSession.sheet.handouts || []).map(card => (
-                  <div key={card.id} onClick={() => toggleHandoutReveal(card.id)} className="glass-card" style={{ width: "160px", minHeight: "220px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : theme.border}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", transition: "all 0.2s" }}>
+                  <div key={card.id} onClick={() => toggleHandoutReveal(card.id)} className="glass-card" style={{ width: "170px", minHeight: "230px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : theme.border}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between", transition: "all 0.2s" }}>
                     <div>
                       <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.accent, fontWeight: "800" }}>{card.revealed ? "💀 비밀 해금됨" : "📜 공개 핸드아웃"}</div>
                       <div style={{ fontWeight: "800", fontSize: "0.9rem", margin: "6px 0", color: theme.text }}>{card.title}</div>
@@ -985,10 +1026,10 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
                   </div>
                 ))}
 
-                <div className="glass-card" onClick={() => triggerMadnessCheck("insane", 1, activeSessionId)} style={{ width: "160px", minHeight: "220px", borderRadius: "12px", border: `1.5px solid ${theme.danger}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(214, 56, 87, 0.1)" }}>
+                <div className="glass-card" onClick={() => triggerMadnessCheck("insane", 1, activeSessionId)} style={{ width: "170px", minHeight: "230px", borderRadius: "12px", border: `1.5px solid ${theme.danger}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(214, 56, 87, 0.1)" }}>
                   <span style={{ fontSize: "2.2rem" }}>💀</span>
-                  <span style={{ fontWeight: "800", marginTop: "10px", fontSize: "0.9rem", color: theme.danger }}>미공개 광기</span>
-                  <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>터치하여 광기 유발</span>
+                  <span style={{ fontWeight: "800", marginTop: "10px", fontSize: "0.9rem", color: theme.danger }}>미공개 광기 덱</span>
+                  <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>터치하여 광기 발현</span>
                 </div>
               </div>
             )}
@@ -1018,7 +1059,7 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
             {/* 판정/조사/행동 제안 칩 바 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
               
-              {/* 🌟 1. 키퍼 판정 요구 (CHECK) 배너 복구! */}
+              {/* 판정 요구 배너 */}
               {activeSession?.pendingCheck && !isSanCheckDetected && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.text }}>
@@ -1054,7 +1095,7 @@ ${wizardMode === 'insane' ? '초기 핸드아웃이 있다면 <!-- HANDOUT: {"ti
                 </div>
               )}
 
-              {/* 🌟 2. 추천 행동 칩 (장면표 등 지능형 클릭 처리) */}
+              {/* 추천 행동 칩 */}
               {suggestionsEnabled && (activeSession.suggestedActions || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "700", alignSelf: "center" }}>💡 제안:</span>
