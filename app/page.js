@@ -1076,8 +1076,9 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
-        @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
-        @import url('[https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap](https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap)');
+  
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
         .serif-text { font-family: 'Noto Serif KR', serif; line-height: 1.85; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
