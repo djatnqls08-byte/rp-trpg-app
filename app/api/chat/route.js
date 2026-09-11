@@ -29,11 +29,11 @@ export async function POST(req) {
         { role: "user", parts: [{ text: lastMessageText }] }
       ];
     } else {
-      const partnerName = playerSheet?.npcs?.[0]?.name || "도윤";
-      const pName = playerSheet?.name || "하진";
+      const partnerName = playerSheet?.npcs?.[0]?.name || "아델";
+      const pName = playerSheet?.name || "클레어";
       const currentCycle = playerSheet?.cycle || 1;
       const currentScene = playerSheet?.scene || 1;
-      const limitCycle = playerSheet?.limit || 3;
+      const limitCycle = playerSheet?.limit || 4;
 
       let rulePrompt = "";
       if (ruleMode === "coc") {
@@ -42,18 +42,20 @@ export async function POST(req) {
 - 물리적 구역은 <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] --> 형식으로 출력하십시오.
 - 🚨 이성(SAN) 차감 완급 조절: 경미한 조우는 성공 0 / 실패 1점(최대 2점)으로 제한하십시오.`;
       } else if (ruleMode === "insane") {
-        rulePrompt = `[멀티 호러 TRPG 인세인 진행 및 사이클/핸드아웃 수칙]
+        rulePrompt = `[멀티 호러 TRPG 인세인 진행 및 사이클/핸드아웃/광기 수칙]
 현재 진행 상태: ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
-- 🚨 **[SPOTS 절대 금지]**: 인세인은 씬(Scene) 게임입니다. SPOTS 태그를 절대 출력하지 마십시오!
-- 🚨 **[핸드아웃 조사 판정 및 발화 중단]**:
-  플레이어가 핸드아웃/사물의 조사를 선언하면, 결과를 먼저 적지 말고 어울리는 특기를 지정해:
-  <!-- CHECK: {"skill": "특기명", "target": 5, "reason": "조사 이유"} -->
-  태그를 출력하고 즉시 서술을 멈추십시오(HALT).
-- 🚨 **[판정 성공 후: 핸드아웃 비밀 해금 & 씬 종료 선언]**:
-  플레이어가 주사위 판정에 성공했다는 메시지가 오면:
-  1) 핸드아웃의 뒷면(비밀) 정보를 서사적으로 생생하게 풀어내십시오.
-  2) 답변 맨 끝에 반드시 <!-- REVEAL_HANDOUT: {"title": "조사한_핸드아웃_제목"} --> 태그를 출력하여 카드를 해금하십시오.
-  3) 주요 행동이 끝났으므로 씬을 마무리하고 <!-- ADVANCE_SCENE --> 태그를 출력하여 다음 씬으로 넘기십시오.
+- 🚨 [SPOTS 절대 금지]: 인세인은 씬(Scene) 게임입니다. <!-- SPOTS: ... --> 태그를 절대로 출력하지 마십시오!
+- 🚨 [조사 판정 태그]: 플레이어가 조사를 선언하면 특기를 지정해 <!-- CHECK: {"skill": "특기명", "target": 5, "reason": "이유"} --> 출력 후 즉시 서술을 멈추십시오(HALT).
+- 🚨 [판정 성공 후: 핸드아웃 비밀 해금 & 씬 종료]:
+  판정 성공 시 핸드아웃 뒷면을 서술하고, 답변 끝에 반드시:
+  <!-- REVEAL_HANDOUT: {"title": "조사한_핸드아웃_제목"} -->
+  <!-- ADVANCE_SCENE -->
+  태그를 출력하십시오.
+- 🚨 **[광기 발현(Trigger) 필수 태그]**:
+  플레이어가 "광기 발동", "발현시켜줘", "공포에 질림"을 요청하거나 서사적으로 광기가 발현되는 상황이 되면,
+  절대 말로만 서술하지 말고 반드시 본문 맨 끝에 아래 시스템 태그를 출력하십시오:
+  <!-- TRIGGER_MADNESS: {"name": "의혹", "desc": "동행자의 사명과 말을 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다."} -->
+  (광기 6종 중 택1: 의혹, 망상, 강박증, 패닉, 폭력 충동, 쇼크)
 - 행동 추천 제안은 <!-- SUGGESTIONS: ["${partnerName}와 대화 나누기", "주변 단서 살펴보기", "장면표 굴림"] --> 형식으로 출력하십시오.`;
       } else {
         rulePrompt = `[자유 서사 모드]
@@ -83,7 +85,7 @@ ${scenarioText || "미상의 시나리오"}
 2. 판정 요구 시 태그를 출력하고 즉시 서술을 멈추십시오. 태그 끝은 반드시 "-->" 로 닫으십시오.`;
 
       formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-      formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 판정 요구 시 즉시 발화를 멈추겠습니다. 인세인 판정 성공 시 핸드아웃 해금 및 씬 종료 태그를 정확히 출력하겠습니다." }] });
+      formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 판정 요구 시 즉시 발화를 멈추겠습니다. 광기 발현 시 TRIGGER_MADNESS 태그를 빠짐없이 출력하겠습니다." }] });
 
       for (const m of messages || []) {
         const role = m.role === "user" ? "user" : "model";
