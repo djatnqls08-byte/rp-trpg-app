@@ -10,7 +10,7 @@ const THEME_PALETTES = {
   },
   abyss: {
     name: "심연 어비스",
-    dark: { bg: "#040507", sidebar: "#080a0f", panel: "#0d1118", panelAlt: "#131822", border: "rgba(86, 121, 224, 0.2)", text: "#dfe3ee", textMuted: "#6b7488", accent: "#5679e0", accentGlow: "rgba(86, 121, 224, 0.35)", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1a2a4d", bubbleAi: "#0d1118", inputBg: "#080a0f" },
+    dark: { bg: "#040507", sidebar: "#080a0f", panel: "#0d1118", panelAlt: "#141c2b", border: "rgba(86, 121, 224, 0.2)", text: "#dfe3ee", textMuted: "#6b7488", accent: "#5679e0", accentGlow: "rgba(86, 121, 224, 0.35)", danger: "#e0536c", warning: "#cfa14c", success: "#5eb871", bubbleUser: "#1a2a4d", bubbleAi: "#0d1118", inputBg: "#080a0f" },
     light: { bg: "#f3f5f8", sidebar: "#e4e8f0", panel: "#ffffff", panelAlt: "#eaeff6", border: "rgba(52, 82, 168, 0.2)", text: "#12151c", textMuted: "#5c6475", accent: "#3452a8", accentGlow: "rgba(52, 82, 168, 0.25)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "#435994", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   sepia: {
@@ -124,7 +124,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 모바일 뷰포트 및 사이드바
+  // 모바일 뷰포트 & 사이드바
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -151,7 +151,7 @@ export default function App() {
   const [currentPalette, setCurrentPalette] = useState("midnight");
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // 사운드 및 연출
+  // 사운드 & 연출
   const [soundVolume, setSoundVolume] = useState(0.6);
   const [animationEnabled, setAnimationEnabled] = useState(true);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
@@ -379,7 +379,6 @@ export default function App() {
     ]
   };
 
-  // 무작위 조합 생성
   const handleProceduralGenerate = () => {
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
     const newTags = [pick(ORIENT_TAGS), ...[...TROPE_TAGS].sort(() => 0.5 - Math.random()).slice(0, 2)];
@@ -423,7 +422,6 @@ export default function App() {
     }
   };
 
-  // AI 즉석 생성
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const prompt = `당신은 노련한 TRPG 기획자입니다.
@@ -483,7 +481,6 @@ export default function App() {
     }
   };
 
-  // 시나리오 내 KPC / PC 자동 치환
   const handleAutoReplaceKpcPc = () => {
     if (!scenarioInput.trim()) return alert("치환할 시나리오 본문이 없습니다.");
     const playerName = charName.trim() || "주인공";
@@ -497,7 +494,6 @@ export default function App() {
     alert(`시나리오 내 'PC' ➔ '${playerName}', 'KPC' ➔ '${partnerName}'(으)로 치환되었습니다!`);
   };
 
-  // 프리셋 저장
   const handleSaveCurrentAsPreset = () => {
     if (!charName.trim()) return alert("프리셋으로 저장할 캐릭터 이름을 먼저 입력해 주세요.");
     const title = newPresetTitle.trim() || `${charName} (${charJob || "설정"})`;
@@ -537,7 +533,6 @@ export default function App() {
     closeModal(setShowPresetModal);
   };
 
-  // 서사 계승 다중 선택
   const toggleCareerSelection = (id) => {
     setSelectedCareerIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -1110,7 +1105,7 @@ export default function App() {
                       <div>행운: <input type="number" value={cocStats.luck} onChange={(e) => setCocStats({ ...cocStats, luck: e.target.value })} style={{ width: "40px", padding: "2px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "4px", textAlign: "center" }} /></div>
                       <div>체력: <strong>{derivedHp}</strong></div>
                       <div>마력: <strong>{derivedMp}</strong></div>
-                      <div>이성: <strong>{derivedSan}</strong></div>
+                      <div>이성(SAN): <strong>{derivedSan}</strong></div>
                       <div>DB: <strong>{derivedDb}</strong></div>
                     </div>
                   </div>
@@ -1119,7 +1114,7 @@ export default function App() {
                 {/* 인세인 사명 및 비밀 카드 */}
                 {wizardMode === "insane" && (
                   <div className="glass-card" style={{ padding: "16px", borderRadius: "14px", border: `1.5px solid ${theme.warning}`, display: "flex", flexDirection: "column", gap: "10px" }}>
-                    <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.warning }}>인세인 사명 &amp; 비밀 (HP 6 / SAN 6)</span>
+                    <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.warning }}>인세인 사명 및 비밀 (HP 6 / SAN 6)</span>
                     <div>
                       <label style={{ display: "block", fontSize: "0.72rem", color: theme.textMuted, marginBottom: "2px" }}>겉보기 사명 (공개 정보)</label>
                       <input type="text" value={charMission} onChange={(e) => setCharMission(e.target.value)} style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.8rem" }} />
@@ -1249,7 +1244,7 @@ export default function App() {
             {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && !isLoading && (
               <div style={{ padding: "8px 14px", backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 <span style={{ fontSize: "0.74rem", color: theme.accent, fontWeight: "700", display: "flex", alignItems: "center" }}>💡 제안:</span>
-                {(activeSession.suggestedActions || []).map((sugg, idx) => (
+                {(activeSession?.suggestedActions || []).map((sugg, idx) => (
                   <button key={idx} onClick={() => setInput(sugg)} style={{ padding: "5px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "16px", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>{sugg}</button>
                 ))}
               </div>
@@ -1264,7 +1259,7 @@ export default function App() {
         )}
       </div>
 
-      {/* 3. 우측 상태창 (룰별 다이얼 / 카드 UI) */}
+      {/* 3. 우측 상태창 */}
       {activeSession && (
         <div style={{ position: isMobile ? "absolute" : "relative", zIndex: isMobile ? 50 : 1, right: 0, top: 0, bottom: 0, width: isSheetOpen ? "290px" : "0px", minWidth: isSheetOpen ? "290px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderLeft: isSheetOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", width: "290px" }}>
@@ -1312,7 +1307,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* CoC 원형 다이얼 게이지 3연 배치 */}
+                {/* CoC 원형 다이얼 게이지 */}
                 <div style={{ display: "flex", justifyContent: "space-around", padding: "8px 0", backgroundColor: theme.panelAlt, borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                   <CircularGauge 50} ?? color="{theme.danger}" label="이성 (SAN)" max="{99}" value="{activeSession.sheet?.san"/>
                   <CircularGauge 10} ?? color="{theme.warning}" label="체력 (HP)" max="{activeSession.sheet?.maxHp" value="{activeSession.sheet?.hp"/>
@@ -1548,7 +1543,7 @@ export default function App() {
 
               <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: theme.accent }}>💾 세이브 백업 &amp; 복원</span>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: theme.accent }}>{"💾 세이브 백업 및 복원"}</span>
                   <button onClick={() => openModal(setShowRestoreHelpModal)} style={{ width: "22px", height: "22px", borderRadius: "50%", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.accent, cursor: "pointer" }}>?</button>
                 </div>
                 <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
