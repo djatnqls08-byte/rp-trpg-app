@@ -652,16 +652,32 @@ export default function App() {
       initialSheet = { ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, erosion: 1, mutation: unsungMutation || "미확인 징후" };
     }
 
-    const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]
+const fullScenarioContext = `[시나리오 제목: ${sessionTitleName}]
 [공개 시놉시스]
 ${publicSynopsis}
 
 [키퍼 전용 기밀/진상/기믹/엔딩조건]
 ${hiddenTruth}`;
 
-    const newId = Date.now();
-    const newSession = { id: newId, title: sessionTitleName, ruleMode: wizardMode, preference: finalPref, scenarioText: fullScenarioContext, sheet: initialSheet, messages: [], suggestedActions: [], investigationSpots: [], pendingCheck: null };
-    setSessions([newSession, ...sessions]); setActiveSessionId(newId); setIsLoading(true);
+  const newId = Date.now();
+  const newSession = {
+    id: newId,
+    title: sessionTitleName,
+    ruleMode: wizardMode,
+    preference: finalPref,
+    scenarioText: fullScenarioContext,
+    publicSynopsis: publicSynopsis || "시나리오 개요가 없습니다.",
+    sheet: initialSheet,
+    messages: [],
+    suggestedActions: [],
+    investigationSpots: [],
+    pendingCheck: null,
+  };
+
+  setSessions([newSession, ...sessions]);
+  setActiveSessionId(newId);
+  setIsLoading(true);
+    
 const newId = Date.now();
   const newSession = {
     id: newId,
