@@ -78,6 +78,9 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // 🌟 AI 답변 강제 취소 컨트롤러
+  const [abortController, setAbortController] = useState(null);
 
   // 반응형 및 오버레이
   const [isMobile, setIsMobile] = useState(false);
@@ -92,7 +95,8 @@ export default function App() {
   const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLobbyPresetModal, setShowLobbyPresetModal] = useState(false);
-const [lobbyPresets, setLobbyPresets] = useState([]);
+  const [lobbyPresets, setLobbyPresets] = useState([]);
+
   useEffect(() => {
     try {
       const lp = localStorage.getItem("rp_hub_lobby_presets");
@@ -148,6 +152,16 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     closeModal(setShowLobbyPresetModal);
   };
 
+  // 🌟 AI 답변 강제 취소 함수
+  const handleCancelResponse = () => {
+    if (abortController) {
+      abortController.abort(); // 통신 강제 절단
+      setAbortController(null);
+      setIsLoading(false);
+      setIsAiGenerating(false);
+    }
+  };
+
   // 테마 상태
   const [currentPalette, setCurrentPalette] = useState("cloud");
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -198,7 +212,7 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     { id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }
   ]);
 
-  // 시나리오 폼 상태 (공개/서막/비밀진상 분리)
+  // 시나리오 폼 상태
   const [scenarioTitle, setScenarioTitle] = useState("");
   const [publicSynopsis, setPublicSynopsis] = useState("");
   const [openingScene, setOpeningScene] = useState("");
@@ -430,6 +444,9 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
 
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
+    const controller = new AbortController();
+    setAbortController(controller);
+
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
 선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 부합하는 시나리오와 캐릭터를 설계하십시오.
 
@@ -472,6 +489,7 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [{ role: "user", text: systemPrompt }],
           scenarioText: "",
@@ -480,6 +498,12 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
           playPreference
         })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
+      }
+
       const data = await response.json();
       const cleanJson = (data.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
       const p = JSON.parse(cleanJson);
@@ -516,9 +540,11 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
 
       if (wizardMode === "coc") handleRandomCocStats();
     } catch (e) {
+      if (e.name === "AbortError") return;
       alert("AI 생성 실패: " + e.message);
     } finally {
       setIsAiGenerating(false);
+      setAbortController(null);
     }
   };
 
@@ -619,7 +645,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     closeModal(setShowPortraitEditModal);
   };
 
-// 🌟 내 컴퓨터에서 이미지 파일 직접 업로드 처리 (자동 경량화 압축)
   const handlePortraitFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -628,12 +653,12 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const size = 200; // 시트 및 초상화에 최적화된 해상도
+        const size = 200;
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, size, size);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.8); // 15KB 내외로 대폭 압축
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
 
         if (activePortraitTarget === "pc") {
           if (activeSession) {
@@ -654,7 +679,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     reader.readAsDataURL(file);
   };
 
-// 🌟 세이브 백업 다운로드
   const executeSaveBackup = () => {
     if (sessions.length === 0) return alert("백업할 세션이 없습니다.");
     const targets = backupTarget === "all" ? sessions : sessions.filter((s) => s.id === Number(backupTarget));
@@ -668,7 +692,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     closeModal(setShowBackupModal);
   };
 
-  // 🌟 세이브 복원 파일 읽기
   const importSaveFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -689,7 +712,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     reader.readAsText(file);
   };
 
-  // 🌟 대화록 내보내기 다운로드
   const executeExport = () => {
     if (!activeSession) return;
     const dateStr = new Date().toISOString().slice(0, 10);
@@ -707,7 +729,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     closeModal(setShowExportModal);
   };
   
-  // CoC 10종 광기 발작 처리
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -822,7 +843,6 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     return { cleanText, parsedData };
   };
 
-// AI 통신 시 불필요한 대용량 이미지 데이터를 제거하여 전송 오류 방지
   const cleanSheetForAi = (sheet) => {
     if (!sheet) return {};
     const { portrait, ...rest } = sheet;
@@ -848,10 +868,9 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
       { id: 4, title: "책상 서랍의 다이어리", overview: "서랍 안쪽에 숨겨진 묘한 이질감의 책입니다.", secret: "말하지 못했던 진실의 마지막 페이지가 담겨 있습니다.", revealed: false }
     ];
 
-    // 🟢 수정 코드
     let initialSheet = {
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
-      background: charBackground, secret: charSecret, mission: charMission, // 👈 추가
+      background: charBackground, secret: charSecret, mission: charMission,
       portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
       npcs, items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩과 만년필", desc: "기록 도구" }],
       madnessStatus: null, 
@@ -895,10 +914,14 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
 - '${pName}'과 '${partnerName}'의 온기를 살려 4~5문장으로 서술하십시오.
 - 지문 끝에 씬 행동을 위한 <!-- SUGGESTIONS: ["${partnerName}에게 말을 건다", "주변 단서를 살펴본다", "장면표 굴림"] --> 태그를 출력하십시오.`;
 
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [{ role: "user", text: openingPrompt }],
           scenarioText: fullScenarioContext,
@@ -907,6 +930,12 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
           playPreference
         })
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
+      }
+
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
@@ -918,9 +947,11 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
         pendingCheck: parsedData.pendingCheck
       } : s));
     } catch (err) {
+      if (err.name === "AbortError") return;
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}).` }] } : s));
     } finally {
       setIsLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -931,10 +962,14 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
     setIsLoading(true);
 
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: updatedMessages,
           scenarioText: activeSession.scenarioText,
@@ -943,6 +978,12 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
           playPreference: activeSession.preference
         })
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
+      }
+
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
@@ -989,9 +1030,11 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
       }
 
     } catch (err) {
+      if (err.name === "AbortError") return;
       alert("통신 에러: " + err.message);
     } finally {
       setIsLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -1076,9 +1119,8 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
-  
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap');
+        @import url('[https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css](https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css)');
+        @import url('[https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap](https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap)');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
         .serif-text { font-family: 'Noto Serif KR', serif; line-height: 1.85; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -1211,7 +1253,7 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
   <button 
     type="button" 
     onClick={handleAiGenerate} 
-    disabled={isAiGenerating} 
+    disabled={isAiGenerating || isLoading} 
     style={{ 
       padding: "8px 16px", 
       height: "38px",
@@ -1226,7 +1268,7 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
       whiteSpace: "nowrap" 
     }}
   >
-    {isAiGenerating ? "기획 중..." : "✨ AI 즉석 생성"}
+    {isAiGenerating || isLoading ? "기획 중..." : "✨ AI 즉석 생성"}
   </button>
 </div>
             </div>
@@ -1587,7 +1629,22 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
             {/* 입력창 */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="행동이나 대사를 입력하세요..." style={{ flex: 1, minHeight: "48px", maxHeight: "120px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "0.9rem", resize: "none" }} />
-              <button onClick={sendMessage} disabled={isLoading || !input.trim()} style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>전송</button>
+              {abortController || isLoading ? (
+                <button 
+                  onClick={handleCancelResponse} 
+                  style={{ height: "48px", padding: "0 18px", backgroundColor: theme.danger || "#dc3545", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", whiteSpace: "nowrap" }}
+                >
+                  ⏹️ 취소
+                </button>
+              ) : (
+                <button 
+                  onClick={sendMessage} 
+                  disabled={isLoading || !input.trim()} 
+                  style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
+                >
+                  전송
+                </button>
+              )}
             </div>
           </>
         )}
@@ -1894,7 +1951,7 @@ const [lobbyPresets, setLobbyPresets] = useState([]);
         </div>
       )}
 
-{/* 🌟 로비 전체 프리셋 모달 */}
+      {/* 🌟 로비 전체 프리셋 모달 */}
       {showLobbyPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "20px", borderRadius: "14px", color: theme.text }}>
