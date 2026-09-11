@@ -272,10 +272,10 @@ export default function App() {
     if (chatContainerRef.current) chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
   }, [activeSession?.messages, isLoading]);
 
-  function getPortraitUrl(promptText) {
+ function getPortraitUrl(promptText) {
     const clean = promptText || "character portrait";
     const styleTag = portraitStyle === "anime" ? "anime style, 2d illustration, masterpiece" : "realistic photography, cinematic lighting, 8k";
-    return `[https://image.pollinations.ai/prompt/$](https://image.pollinations.ai/prompt/$){encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(clean + ", " + styleTag)}?width=300&height=300&nologo=true`;
   }
 
   function handleToggleDarkMode() {
@@ -701,7 +701,7 @@ export default function App() {
       try {
         if (!window.pdfjsLib) {
           await new Promise((res, rej) => {
-            const script = document.createElement("script"); script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
+            const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
             script.onload = res; script.onerror = rej; document.head.appendChild(script);
           });
         }
@@ -1289,9 +1289,9 @@ export default function App() {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
+ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
-return (
+  return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
@@ -1304,19 +1304,7 @@ return (
         .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid ${theme.border}; }
         @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
         .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
-      `}</style><style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
-        *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        .serif-text { font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"}; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
-        .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
-        .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid ${theme.border}; }
-        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
-        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
       `}</style>
-
       {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.35)", pointerEvents: "none" }} />}
 
       {/* 🌟 모바일 사이드바 닫기용 터치 영역 */}
@@ -1440,11 +1428,6 @@ return (
             {activeSession && (
               <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="캐릭터 시트" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
                 📋
-              </button>
-            )}
-            {activeSession && (
-              <button onClick={() => setIsSheetOpen(!isSheetOpen)} style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "6px", cursor: "pointer", fontSize: "0.75rem" }}>
-                {isSheetOpen ? "시트▶" : "◀시트"}
               </button>
             )}
             <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
@@ -2148,7 +2131,7 @@ return (
             </div>
 
             {/* 파트너 */}
-            {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
+      {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 (잘림 없이 완벽한 코드) */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
               <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>주요 등장인물 (파트너)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2184,25 +2167,11 @@ return (
                 ))}
               </div>
             </div>
-                  <div key={npc.id} style={{ display: "flex", gap: "8px", alignItems: "center", backgroundColor: theme.panelAlt, padding: "6px 8px", borderRadius: "6px" }}>
-                    <div onClick={() => { setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
-                      <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
-                        <span>{npc.name}</span>
-                        <span style={{ color: theme.danger }}>♥ {npc.affection}</span>
-                      </div>
-                      <div style={{ color: theme.textMuted, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{npc.title}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
           </div>
         </div>
       )}
+          
 
       {/* 설정 모달 */}
 {/* 🌟 완벽하게 정돈된 환경 설정 모달 */}
