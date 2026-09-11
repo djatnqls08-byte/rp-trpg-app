@@ -476,44 +476,43 @@ export default function App() {
     const controller = new AbortController();
     setAbortController(controller);
 
-    const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
-선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 부합하는 시나리오와 캐릭터를 설계하십시오.
+    const randomSeeds = ["비밀 결사", "폭설로 고립된 저택", "안개 낀 호숫가", "금지된 오컬트 서점", "시간이 멈춘 시계탑", "가면무도회"];
+    const pickedSeed = randomSeeds[Math.floor(Math.random() * randomSeeds.length)];
+
+    const systemPrompt = `당신은 탁월한 창작력을 지닌 정통 TRPG 마스터입니다.
+룰 [${wizardMode}]과 성향 [${playPreference}]에 맞춰 [모티프: ${pickedSeed}]를 살려 매번 완전히 새로운 시나리오를 창작하십시오.
 
 [🚨 절대 수칙]
-1. 모든 인물은 무조건 여성(GL)입니다. 얀데레나 유치한 소유욕을 배제하고 깊은 유대감을 부여하십시오.
-2. 지문과 설정에서 'PC', 'KPC'라는 단어를 쓰지 마십시오! 실제 이름을 직접 지어 사용하십시오.
-3. initialHandouts에는 인세인을 위한 4개의 완전한 카드가 포함되어야 합니다:
-   - 1번: 주인공 카드 (사명 및 비밀)
-   - 2번: 파트너 카드 (관계 및 숨겨진 진심/비밀)
-   - 3번: 현장 사물/장소 핸드아웃
-   - 4번: 결정적 사건 단서 핸드아웃
+1. 모든 인물은 무조건 매력적인 여성(GL)입니다. 맹목적인 집착은 배제하고 섬세한 유대감을 부여하십시오.
+2. 'PC', 'KPC'라는 단어를 일절 쓰지 말고 어울리는 고유한 이름을 직접 지어 사용하십시오.
+3. 핸드아웃의 secret(비밀)란을 절대로 빈칸으로 두지 마십시오.
 
-반드시 마크다운 없이 순수 JSON 포맷으로만 응답하십시오:
+반드시 마크다운 없이 순수 JSON으로만 응답하십시오:
 {
-  "name": "주인공 이름 (예: 클레어)",
+  "name": "주인공 이름",
   "gender": "여성",
-  "age": "24",
+  "age": "20대 나이",
   "job": "역할/직업",
-  "background": "인물의 과거 상처, 성격, 소지품 3가지 상세",
-  "mission": "주인공의 공개 사명",
-  "secret": "주인공의 숨겨진 개인적 비밀",
-  "kpcName": "파트너 이름 (예: 아델)",
+  "background": "상처와 성격, 소지품 3가지 상세",
+  "mission": "주인공의 표면상 사명",
+  "secret": "주인공이 숨긴 진짜 목적이나 비밀",
+  "kpcName": "파트너 여성 이름",
   "kpcJob": "파트너 직업",
-  "kpcDetail": "파트너의 성격, 외모, 주인공과의 관계성 상세",
-  "kpcSecret": "파트너가 숨기고 있는 진심이나 비밀",
+  "kpcDetail": "파트너 성격, 외모, 주인공과의 미묘한 관계성",
+  "kpcSecret": "파트너가 숨겨둔 치명적인 비밀이나 진심",
   "limit": ${Math.floor(Math.random() * 2) + 3},
-  "scenarioTitle": "녹비(綠碑)의 안식처",
-  "publicSynopsis": "스포일러 없는 시나리오 개요",
-  "openingScene": "비 내리는 작업실의 분위기와 첫 대사를 담은 풍성한 서막 지문",
-  "hiddenTruth": "사건의 배후 진상 및 흑막(Keeper 기밀)",
+  "scenarioTitle": "독창적이고 매력적인 시나리오 제목",
+  "publicSynopsis": "스포일러 없는 시놉시스 3~4줄",
+  "openingScene": "서막의 공감각적 묘사와 첫 대사를 담은 풍성한 지문",
+  "hiddenTruth": "배후 진상 및 흑막(Keeper 기밀)",
   "initialHandouts": [
-    { "title": "클레어의 사명과 비밀", "overview": "작업실 한켠에서 기록을 보수하고 있는 클레어의 현재 상태입니다.", "secret": "자신이 모든 아픔을 짊어지려다 무너질까 두려워하고 있습니다." },
-    { "title": "아델의 따뜻한 시선", "overview": "굳은비 속을 뚫고 찾아온 아델이 가져온 위로와 온기입니다.", "secret": "클레어가 홀로 고통받지 않도록 제 모든 것을 바쳐 지키려 합니다." },
-    { "title": "오래된 가죽 노트", "overview": "작업대 구석에 놓인 손때 묻은 낡은 기록장입니다.", "secret": "과거 두 사람이 함께했던 약속의 문구가 적혀 있습니다." },
-    { "title": "책상 서랍의 다이어리", "overview": "서랍 안쪽에 숨겨진 채 묘한 이질감을 풍기는 책입니다.", "secret": "서로에게 말하지 못했던 진실의 마지막 페이지가 뜯겨져 있습니다." }
+    { "title": "주인공의 사명과 비밀", "overview": "현재 상황 개요", "secret": "뒤집었을 때의 진실" },
+    { "title": "파트너의 태도와 시선", "overview": "겉으로 보이는 태도", "secret": "뒤집었을 때의 진짜 속마음" },
+    { "title": "현장 단서 1", "overview": "사물/장소 묘사", "secret": "조사 성공 시 밝혀지는 비밀" },
+    { "title": "현장 단서 2", "overview": "핵심 기록물 묘사", "secret": "해금되었을 때의 진실" }
   ]
 }`;
-
+    
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -1237,9 +1236,9 @@ export default function App() {
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&display=swap');
+        @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
         *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        .serif-text { font-family: 'Noto Serif KR', serif; line-height: 1.85; }
+        .serif-text { font-family: 'MaruBuri', serif; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
         .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
@@ -1262,21 +1261,54 @@ export default function App() {
       <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
           <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
-          <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
           )}
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px" }}>
-          {sessions.map((s) => (
-            <div key={s.id} onClick={() => { setActiveSessionId(s.id); if (isMobile) setIsSidebarOpen(false); }} style={{ padding: "10px 12px", borderRadius: "8px", cursor: "pointer", marginBottom: "4px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : "transparent", border: activeSessionId === s.id ? `1px solid ${theme.border}` : "1px solid transparent", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "6px" }}>
-                <div style={{ fontWeight: "700", fontSize: "0.84rem" }}>{s.title}</div>
-                <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>{s.ruleMode}</div>
+          {sessions.map((s) => {
+            const dateDisplay = s.id ? new Date(s.id).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+            return (
+              <div 
+                key={s.id} 
+                onClick={() => { setActiveSessionId(s.id); if (isMobile) setIsSidebarOpen(false); }} 
+                style={{ borderRadius: "10px", cursor: "pointer", marginBottom: "8px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : theme.panel, border: `1px solid ${activeSessionId === s.id ? theme.accent : theme.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}
+              >
+                {/* 상단 썸네일 배너 영역 (고정 높이 70px) */}
+                <div style={{ width: "100%", height: "70px", backgroundColor: theme.panelAlt, backgroundImage: s.thumbnail ? `url(${s.thumbnail})` : "linear-gradient(135deg, rgba(150,150,150,0.1), rgba(100,100,100,0.2))", backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const url = prompt("세션 카드 이미지 URL을 입력하세요:", s.thumbnail || "");
+                      if (url !== null) {
+                        setSessions(prev => prev.map(item => item.id === s.id ? { ...item, thumbnail: url } : item));
+                      }
+                    }} 
+                    title="세션 카드 이미지 등록"
+                    style={{ position: "absolute", top: "4px", right: "4px", backgroundColor: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: "4px", padding: "2px 6px", fontSize: "0.65rem", cursor: "pointer" }}
+                  >
+                    ✏️
+                  </button>
+                </div>
+
+                {/* 하단 정보 영역 */}
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "4px" }}>
+                      <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
+                      <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
+                  </div>
+                  {dateDisplay && (
+                    <div style={{ fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+                      🕒 {dateDisplay}
+                    </div>
+                  )}
+                </div>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); if (confirm("삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px" }}>🗑️</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
           {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" }}>📥 대화록 내보내기</button>}
@@ -1310,13 +1342,13 @@ export default function App() {
               </>
             )}
             {activeSession && activeSession.ruleMode === "coc" && (
-              <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} style={{ padding: "5px 8px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "14px", cursor: "pointer", fontWeight: "800", fontSize: "0.72rem" }}>
-                🧠 산 체크 ({activeSession.sheet?.san ?? 50})
+              <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} title="1D100 이성 체크" style={{ padding: "6px 10px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1.5px solid ${theme.danger}`, color: theme.danger, borderRadius: "16px", cursor: "pointer", fontWeight: "800", fontSize: "0.78rem" }}>
+                🧠 {activeSession.sheet?.san ?? 50}
               </button>
             )}
-            {activeSession && activeSession.ruleMode !== "freeform" && (
-              <button onClick={() => rollDiceDirectly()} disabled={isRolling || isLoading} style={{ padding: "5px 10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "14px", cursor: "pointer", fontWeight: "700", fontSize: "0.75rem" }}>
-                🎲 주사위
+            {activeSession && (
+              <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="캐릭터 시트" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
+                📋
               </button>
             )}
             {activeSession && (
@@ -1686,36 +1718,35 @@ export default function App() {
                 </div>
               )}
 
-              {(activeSession.messages || []).map((m, i) => (
-                <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: isMobile ? "90%" : "82%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div className={m.role === "user" ? "" : "serif-text"} style={{ backgroundColor: m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi, color: theme.text, border: m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`, padding: "14px 18px", borderRadius: "12px", lineHeight: "1.8", whiteSpace: "pre-wrap", fontSize: "0.92rem" }}>
-                    {m.text}
+              {(activeSession.messages || []).map((m, i) => {
+                const isLastUser = m.role === "user" && i === (activeSession.messages || []).map(x => x.role).lastIndexOf("user");
+                return (
+                  <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: isMobile ? "90%" : "82%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+                    <div className={m.role === "user" ? "" : "serif-text"} style={{ backgroundColor: m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi, color: theme.text, border: m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`, padding: "14px 18px", borderRadius: "12px", lineHeight: "1.9", whiteSpace: "pre-wrap", fontSize: "0.92rem" }}>
+                      {m.text}
+                    </div>
+                    {/* 내 마지막 말풍선 아래에만 취소 링크 표시 */}
+                    {isLastUser && !isLoading && (
+                      <button
+                        onClick={() => {
+                          if (confirm("마지막 대화를 취소하고 다시 입력하시겠습니까?")) {
+                            setInput(m.text); // 방금 보냈던 글을 입력창에 자동 복구!
+                            setSessions(prev => prev.map(s => {
+                              if (s.id !== activeSessionId) return s;
+                              const newMsgs = s.messages.slice(0, i);
+                              return { ...s, messages: newMsgs, suggestedActions: [], pendingCheck: null };
+                            }));
+                          }
+                        }}
+                        style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "0.72rem", cursor: "pointer", marginTop: "4px", padding: "2px 4px", textDecoration: "underline" }}
+                      >
+                        ⎌ 이 대화 취소 및 다시 쓰기
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>마스터가 서사를 집필하는 중...</div>}
-              
-              {/* 🌟 추가: 마지막 대화 취소(되돌리기) 버튼 */}
-              {!isLoading && (activeSession.messages || []).length > 0 && (
-                <div style={{ display: "flex", justifyContent: "center", margin: "10px 0" }}>
-                  <button
-                    onClick={() => {
-                      if (confirm("마지막 대화(내 채팅 + 마스터 답변)를 취소하시겠습니까?")) {
-                        setSessions(prev => prev.map(s => {
-                          if (s.id !== activeSessionId) return s;
-                          const newMsgs = [...s.messages];
-                          newMsgs.pop();
-                          if (newMsgs.length > 0 && newMsgs[newMsgs.length - 1].role === "user") newMsgs.pop();
-                          return { ...s, messages: newMsgs, suggestedActions: [], pendingCheck: null };
-                        }));
-                      }
-                    }}
-                    style={{ padding: "6px 16px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "20px", fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}
-                  >
-                    ⎌ 마지막 대화 취소
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* 알림 배너 */}
@@ -1855,6 +1886,28 @@ export default function App() {
                 </summary>
                 <div style={{ marginTop: "8px", fontSize: "0.73rem", lineHeight: "1.5", color: theme.textMuted, whiteSpace: "pre-wrap", maxHeight: "180px", overflowY: "auto", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
                   {activeSession.scenarioText || "시나리오 개요가 없습니다."}
+                </div>
+              </details>
+            </div>
+
+                  {/* 🌟 [추가] 접이식 증거 수첩 */}
+            <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
+              <details open style={{ cursor: "pointer" }}>
+                <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>📋 증거 수첩</span>
+                  <span style={{ fontSize: "0.7rem", color: theme.textMuted }}>{(activeSession.sheet.clues || []).length}개</span>
+                </summary>
+                <div style={{ marginTop: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {(!activeSession.sheet.clues || activeSession.sheet.clues.length === 0) ? (
+                    <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 0" }}>아직 발견된 결정적 단서가 없습니다.</div>
+                  ) : (
+                    activeSession.sheet.clues.map((clue, cIdx) => (
+                      <div key={cIdx} onClick={() => setInput(prev => `[증거 제시: ${clue.name}] ` + prev)} style={{ padding: "6px 8px", backgroundColor: theme.panelAlt, borderRadius: "6px", fontSize: "0.72rem", border: `1px solid ${theme.border}` }}>
+                        <strong style={{ color: theme.accent }}>🔎 {clue.name}</strong>
+                        <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "2px" }}>{clue.desc}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </details>
             </div>
