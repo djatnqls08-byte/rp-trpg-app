@@ -194,7 +194,6 @@ export default function App() {
   const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
   const [showInsanityFlash, setShowInsanityFlash] = useState(false);
 
-  // 🌟 단일 활성 세션 선언
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
 
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.midnight;
@@ -323,15 +322,7 @@ export default function App() {
     setCharAge(age);
     setCharGender(gender);
     setCharBackground(`${jobObj.bg}\n소지품: [${jobObj.item}]`);
-    
-    const proceduralArchitecture = `[배경 및 첫 장면]
-${scenarioText}
-
-[🔒 키퍼 전용 히든 루트 (Keeper's Secret Route)]
-• 해금 조건: 서재 모퉁이나 벽면 틈새를 은밀히 2회 이상 정밀 조사하고, 파트너의 거짓말을 눈치챘을 때 개방.
-• 히든 전개: 사건의 흑막이 외부인이 아닌 동행자의 무의식적 주술 폭주임을 규명하고 둘만의 특수 영구 결속 엔딩으로 도달.`;
-
-    setScenarioInput(proceduralArchitecture);
+    setScenarioInput(scenarioText);
     setCharPortraitUrl(getPortraitUrl(`${name}, ${jobObj.job}`));
 
     if (wizardMode === "coc") {
@@ -350,12 +341,11 @@ ${scenarioText}
     }
   };
 
-  // ✨ AI 즉석 생성
+  // ✨ AI 즉석 생성 (진상, 기믹, 3대 엔딩 분기)
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
 선택된 룰 [${wizardMode}]과 서사 성향 [${playPreference}]에 완벽히 부합하는 캐릭터와 고밀도 시나리오를 설계하십시오.
-플레이어가 쉽게 짐작할 수 없는 **[백그라운드 히든 루트]**를 반드시 창의적으로 고안하여 포함하십시오.
 반드시 아래 JSON 포맷으로만 응답하십시오:
 {
   "name": "이름 (한국식 또는 서양식)",
@@ -366,7 +356,6 @@ ${scenarioText}
   "scenarioTitle": "시나리오 제목",
   "scenarioTruth": "사건의 충격적인 배후 진상 및 흑막(Keeper Only 기밀)",
   "scenarioGimmick": "해당 룰 특유의 특수 기믹 (예: CoC 고서 해독 제약 / inSANe 사이클 공포 기믹 / 언성듀엣 시프터 왜곡 법칙)",
-  "hiddenRoute": "플레이어가 모르는 백그라운드 히든 루트와 구체적인 특수 해금 조건(특정 이상 행동/복선 조합/특정 질문 시 개방되는 진실과 반전)",
   "mission": "인세인 전용 공개 사명 (인세인이 아니면 공백)",
   "secret": "인세인 전용 충격적인 개인 비밀 (인세인이 아니면 공백)",
   "mutation": "언성듀엣 전용 변이 징후 (언성듀엣이 아니면 공백)",
@@ -413,9 +402,6 @@ ${p.scenarioTruth || "금기된 의식과 봉인이 서서히 풀려나고 있�
 
 [핵심 서사 기믹 & 특수 룰]
 ${p.scenarioGimmick || "시간이 흐를수록 안전 구역이 침식됩니다."}
-
-[🔒 백그라운드 히든 루트 & 해금 조건 (Keeper Only Hidden Route)]
-${p.hiddenRoute || "플레이어가 사소한 복선 오브젝트를 연결해 특수 질문을 던질 경우 심연의 진엔딩 루트 개방."}
 
 [엔딩 분기 가이드 (Ending Branches)]
 • 트루/베스트 엔딩: ${p.endingTrue || "진실을 밝혀내고 동행자와 함께 온전히 생환."}
@@ -671,7 +657,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     closeModal(setShowExportModal);
   };
 
-  // 광기 트리거 (중복 발작 차단)
+  // 광기 트리거
   const triggerMadnessCheck = (rule, lossAmount, targetSessionId) => {
     const session = sessions.find((s) => s.id === targetSessionId);
     if (session?.sheet?.madnessStatus) return;
@@ -768,7 +754,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({.*?})\s*-->/is);
       if (checkMatch) parsedData.pendingCheck = JSON.parse(checkMatch[1]);
-    } catch (e) {}
+    } catch(e) {}
 
     cleanText = cleanText
       .replace(/```html|```json|```/gi, "")
@@ -977,7 +963,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
-  // 🛡️ 지문 분석 및 산 체크 배너 감지 (변수 정의 복원)
+  // 🛡️ 지문 분석 및 산 체크 배너 감지 (lastMsgText 변수 완전 복원)
   const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
   const lastUserMsg = (activeSession?.messages || []).slice().reverse().find((m) => m.role === "user")?.text || "";
   const justRolledSan = lastUserMsg.includes("이성(SAN) 판정");
@@ -999,6 +985,9 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(140, 160, 210, 0.4); }
+        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
         .glass-card {
           background: ${isDarkMode ? "rgba(21, 26, 38, 0.85)" : "rgba(255, 255, 255, 0.9)"};
           backdrop-filter: blur(14px);
@@ -1012,8 +1001,8 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
       {isMobile && isSheetOpen && <div onClick={() => setIsSheetOpen(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 45, backdropFilter: "blur(4px)" }} />}
 
       {/* 1. 좌측 사이드바 */}
-      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s ease", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
+      <div style={{ position: isMobile ? "fixed" : "relative", zIndex: isMobile ? 50 : 1, left: 0, top: 0, bottom: 0, height: isMobile ? "100dvh" : "100%", width: isSidebarOpen ? "260px" : "0px", minWidth: isSidebarOpen ? "260px" : "0px", transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", overflow: "hidden", backgroundColor: theme.sidebar, borderRight: isSidebarOpen ? `1px solid ${theme.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px", flexShrink: 0 }}>
           <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", boxShadow: `0 2px 8px ${theme.accentGlow}` }}>+ 새 시나리오</button>
           <button onClick={handleToggleDarkMode} style={{ padding: "8px 12px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer" }}>{isDarkMode ? "☀️" : "🌙"}</button>
         </div>
@@ -1028,7 +1017,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
             </div>
           ))}
         </div>
-        <div style={{ padding: "12px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ padding: "12px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0, backgroundColor: theme.sidebar }}>
           {activeSession && <button onClick={() => openModal(setShowExportModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "600" }}>📥 대화록 내보내기</button>}
           <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "10px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.82rem", fontWeight: "700" }}>⚙️ 설정</button>
         </div>
@@ -1214,7 +1203,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
 
                 <div className="glass-card" style={{ padding: "18px", borderRadius: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                    <span style={{ fontWeight: "800", fontSize: "0.88rem" }}>4. 시나리오 문서 및 배경 (기믹/히든루트)</span>
+                    <span style={{ fontWeight: "800", fontSize: "0.88rem" }}>4. 시나리오 문서 및 배경 (기믹/엔딩 설계)</span>
                     <button type="button" onClick={handleAutoReplaceKpcPc} style={{ padding: "5px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.accent}`, borderRadius: "6px", color: theme.accent, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}>
                       🔄 시나리오 내 KPC/PC 자동 치환
                     </button>
@@ -1223,7 +1212,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
                   <input type="file" accept=".pdf,.txt,.md" onChange={handleFileUpload} style={{ display: "block", width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }} />
                   {isPdfLoading && <div style={{ fontSize: "0.75rem", color: theme.warning }}>⏳ PDF 본문 텍스트를 추출하는 중입니다...</div>}
 
-                  <textarea value={scenarioInput} onChange={(e) => setScenarioInput(e.target.value)} placeholder="시나리오를 직접 입력하거나, 상단 [✨ AI 즉석 생성]을 누르면 진상, 특수 기믹, 🔒 백그라운드 히든 루트 및 엔딩 분기가 완비된 시나리오가 자동으로 채워집니다." style={{ width: "100%", minWidth: 0, height: "130px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, resize: "vertical", fontSize: "0.8rem", lineHeight: "1.6" }} />
+                  <textarea value={scenarioInput} onChange={(e) => setScenarioInput(e.target.value)} placeholder="시나리오를 직접 입력하거나, 상단 [✨ AI 즉석 생성]을 누르면 진상, 특수 기믹, 엔딩 분기가 완비된 시나리오가 자동으로 채워집니다." style={{ width: "100%", minWidth: 0, height: "130px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, resize: "vertical", fontSize: "0.8rem", lineHeight: "1.6" }} />
                 </div>
               </div>
             </div>
@@ -1569,7 +1558,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
               </div>
             )}
 
-            {/* Unsung Duet 전용 UI */}
+            {/* Unsung Duet UI */}
             {activeSession.ruleMode === "unsung" && (
               <div className="glass-card" style={{ padding: "14px", borderRadius: "12px", border: "1.5px solid #b87bd8" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1822,7 +1811,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         </div>
       )}
 
-      {/* 4. 프리셋 관리 모달 */}
+      {/* 4. 프리셋 모달 */}
       {showPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "480px", maxHeight: "85vh", overflowY: "auto", padding: "24px", color: theme.text }}>
@@ -1880,7 +1869,7 @@ ${p.openingNovel || "차가운 겨울 안개 속에서 공방의 문이 조용�
         </div>
       )}
 
-      {/* 6. 복원 도움말 모달 */}
+      {/* 6. 복원 안내 모달 */}
       {showRestoreHelpModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "20px" }}>
           <div style={{ backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "14px", width: "100%", maxWidth: "450px", padding: "24px", color: theme.text }}>
