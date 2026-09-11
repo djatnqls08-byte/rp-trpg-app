@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-// 2026 팬톤 트렌드 테마 4종 (한국어 명칭)
+// 2026 팬톤 트렌드 테마 4종
 const THEME_PALETTES = {
   cloud: {
     name: "클라우드 댄서",
@@ -16,7 +16,7 @@ const THEME_PALETTES = {
   baltic: {
     name: "발틱 씨",
     dark: { bg: "#121417", sidebar: "#181a20", panel: "rgba(33, 36, 44, 0.88)", panelAlt: "rgba(45, 49, 60, 0.9)", border: "rgba(154, 150, 185, 0.22)", text: "#e8e9ec", textMuted: "#7c808f", accent: "#9A96B9", accentGlow: "rgba(154, 150, 185, 0.35)", danger: "#d63857", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(69, 74, 84, 0.75)", bubbleAi: "rgba(33, 36, 44, 0.7)", inputBg: "#0d0f12" },
-    light: { bg: "#f0f2f6", sidebar: "#e2e5ec", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(245, 247, 251, 0.95)", border: "rgba(69, 74, 84, 0.12)", text: "#1f2229", textMuted: "#6b6f7d", accent: "#454A54", accentGlow: "rgba(69, 74, 84, 0.2)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(225, 228, 235, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    light: { bg: "#f0f2f6", sidebar: "#e2e5ec", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(245, 247, 251, 0.95)", border: "rgba(69, 74, 84, 0.12)", text: "#1f2229", textMuted: "#6b6f7d", accent: "#454A54", accentGlow: "rgba(69, 74, 84, 0.18)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(225, 228, 235, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
   },
   capri: {
     name: "카프리 블루",
@@ -249,7 +249,6 @@ export default function App() {
     setCocStats({ ...stats, luck: Math.floor(Math.random() * 50) + 40 });
   };
 
-  // 인세인 씬 및 사이클 자동 전진 함수
   const advanceInsaneScene = (sessionId) => {
     setSessions(prev => prev.map(s => {
       if (s.id !== sessionId || s.ruleMode !== "insane") return s;
@@ -257,7 +256,6 @@ export default function App() {
       let currCycle = s.sheet?.cycle || 1;
       const limit = s.sheet?.limit || 4;
 
-      // 1사이클당 2개 씬(PC 씬 1개 + 파트너 씬 1개) 소모 후 사이클 전진
       if (currScene >= 2) {
         currCycle += 1;
         currScene = 1;
@@ -278,7 +276,71 @@ export default function App() {
     }));
   };
 
-  // AI 시나리오 생성
+  // 🌟 광기 카드 드로우 (인세인 덱 ➔ 핸드)
+  const drawMadnessCard = (targetSessionId, autoNotify = true) => {
+    let drawnCardName = "";
+    setSessions(prev => prev.map(s => {
+      if (s.id !== targetSessionId || s.ruleMode !== "insane") return s;
+      const deck = [...(s.sheet?.madnessDeck || INSANE_MADNESS_TABLE)];
+      if (deck.length === 0) {
+        return s;
+      }
+      const drawn = deck.shift();
+      drawnCardName = drawn.name;
+      const newHand = [...(s.sheet?.madnessCards || []), { ...drawn, id: Date.now() + Math.random(), revealed: false }];
+      
+      const newMessages = autoNotify ? [
+        ...(s.messages || []),
+        { role: "user", text: `[🎲 시스템: 이성 감소로 인해 광기 덱에서 카드 1장을 핸드로 뽑았습니다 (미발현 상태)]` }
+      ] : (s.messages || []);
+
+      return {
+        ...s,
+        messages: newMessages,
+        sheet: {
+          ...s.sheet,
+          madnessDeck: deck,
+          madnessCards: newHand
+        }
+      };
+    }));
+
+    if (drawnCardName) {
+      playDiceSound();
+    }
+  };
+
+  // 🌟 광기 발현 (Manifest) 실행 함수
+  const manifestMadnessCard = (cardId, targetSessionId) => {
+    const session = sessions.find(s => s.id === targetSessionId);
+    if (!session) return;
+    const card = (session.sheet?.madnessCards || []).find(c => c.id === cardId);
+    if (!card) return;
+
+    setShowInsanityFlash(true);
+    setTimeout(() => setShowInsanityFlash(false), 500);
+
+    setActiveMadnessAlert({ name: card.name, desc: card.desc });
+    setInput(prev => `[광기 발현: ${card.name}] ` + prev);
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== targetSessionId) return s;
+      const updatedCards = (s.sheet?.madnessCards || []).map(c => c.id === cardId ? { ...c, revealed: true } : c);
+      return {
+        ...s,
+        sheet: {
+          ...s.sheet,
+          madnessStatus: `광기 발현: ${card.name}`,
+          madnessCards: updatedCards
+        },
+        messages: [
+          ...(s.messages || []),
+          { role: "user", text: `[⚠️ 광기 발현 선언: 《${card.name}》]\n"${card.desc}"\n(이 충동과 공포가 캐릭터의 행동을 잠식합니다.)` }
+        ]
+      };
+    }));
+  };
+
   const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const systemPrompt = `당신은 최고 권위의 정통 TRPG 시나리오 라이터 겸 키퍼입니다.
@@ -492,14 +554,21 @@ export default function App() {
     setSessions(prev => prev.map(s => s.id === targetSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: madnessStatusStr } } : s));
   };
 
+  // 🌟 스탯 증감 시 인세인 광기 드로우 연동
   const adjustStat = (statName, delta) => {
     if (!activeSession) return;
     const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
     const newVal = Math.max(0, currentVal + delta);
-    if (statName === "san" && !activeSession.sheet?.madnessStatus) {
-      if (activeSession.ruleMode === "coc" && delta <= -5) triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
-      else if (activeSession.ruleMode === "insane" && delta < 0) triggerMadnessCheck("insane", Math.abs(delta), activeSessionId);
+
+    if (statName === "san" && delta < 0) {
+      if (activeSession.ruleMode === "insane") {
+        // 인세인은 이성이 1 감소할 때마다 광기 카드를 핸드로 드로우!
+        drawMadnessCard(activeSessionId, true);
+      } else if (activeSession.ruleMode === "coc" && delta <= -5) {
+        triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
+      }
     }
+
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, [statName]: newVal } } : s));
   };
 
@@ -511,7 +580,6 @@ export default function App() {
     executeMessage(`[🎲 장면표 1D6 ➔ ${roll + 1}번 결과]: "${desc}"\n(이 분위기를 무대로 다음 행동을 이어갑니다.)`);
   };
 
-  // 강력한 태그 파서 (핸드아웃 해금 및 씬 전진 처리)
   const parseTagsSafely = (rawText, partnerName, currentRule) => {
     let cleanText = rawText || "";
     let parsedData = { 
@@ -521,13 +589,11 @@ export default function App() {
     };
 
     try {
-      // 1. CHECK 태그
       const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (checkMatch) {
         try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
       }
 
-      // 2. SUGGESTIONS 태그
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
       if (suggMatch) {
         try {
@@ -536,7 +602,6 @@ export default function App() {
         } catch(e) {}
       }
 
-      // 3. SPOTS 태그 (인세인은 차단)
       if (currentRule !== "insane") {
         const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
         if (spotsMatch) {
@@ -544,7 +609,6 @@ export default function App() {
         }
       }
 
-      // 4. 핸드아웃 자동 해금 태그
       const revHandoutRegex = /<!--\s*REVEAL_HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(revHandoutRegex)) {
         try {
@@ -553,18 +617,15 @@ export default function App() {
         } catch (e) {}
       }
 
-      // 5. 씬 자동 전진 태그
       if (cleanText.includes("<!-- ADVANCE_SCENE") || cleanText.includes("<!-- END_SCENE")) {
         parsedData.shouldAdvanceScene = true;
       }
 
-      // 6. 새 핸드아웃 생성
       const handoutRegex = /<!--\s*HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(handoutRegex)) {
         try { parsedData.newHandouts.push(JSON.parse(m[1])); } catch (e) {}
       }
 
-      // 7. STATUS
       const statMatch = cleanText.match(/<!--\s*STATUS:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (statMatch) {
         try { parsedData.newSheetVars = JSON.parse(statMatch[1]); } catch (e) {}
@@ -581,7 +642,6 @@ export default function App() {
     return { cleanText, parsedData };
   };
 
-  // 서막 열기
   const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "클레어";
@@ -602,7 +662,10 @@ export default function App() {
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
       portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
       npcs, items: [{ name: "황동 돋보기", desc: "확대경" }, { name: "수첩과 만년필", desc: "기록 도구" }],
-      madnessStatus: null, handouts: initialHandouts
+      madnessStatus: null, 
+      handouts: initialHandouts,
+      madnessCards: [], // 🌟 보유 광기 핸드
+      madnessDeck: [...INSANE_MADNESS_TABLE].sort(() => 0.5 - Math.random()) // 🌟 셔플된 광기 덱
     };
 
     if (wizardMode === "insane") {
@@ -692,7 +755,6 @@ export default function App() {
       const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-      // 🌟 핸드아웃 자동 해금 (뒤집기)
       if (parsedData.revealedHandoutTitles.length > 0) {
         newSheet.handouts = (newSheet.handouts || []).map(h => {
           if (parsedData.revealedHandoutTitles.some(t => h.title.includes(t) || t.includes(h.title))) {
@@ -702,18 +764,25 @@ export default function App() {
         });
       }
 
-      // 새 핸드아웃 추가
       if (parsedData.newHandouts.length > 0) {
         const added = parsedData.newHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
         newSheet.handouts = [...(newSheet.handouts || []), ...added];
       }
 
-      // 이성 감소 및 광기
+      // AI에 의해 이성치가 감소했을 때도 자동 드로우 연동
       const prevSan = Number(activeSession.sheet?.san ?? 50);
       const newSan = parsedData.newSheetVars?.san !== undefined ? Number(parsedData.newSheetVars.san) : prevSan;
-      if (!activeSession.sheet?.madnessStatus) {
-        if (activeSession.ruleMode === "coc" && prevSan - newSan >= 5) triggerMadnessCheck("coc", prevSan - newSan, activeSessionId);
-        else if (activeSession.ruleMode === "insane" && prevSan > newSan) triggerMadnessCheck("insane", prevSan - newSan, activeSessionId);
+      if (newSan < prevSan) {
+        if (activeSession.ruleMode === "insane") {
+          const deck = [...(newSheet.madnessDeck || INSANE_MADNESS_TABLE)];
+          if (deck.length > 0) {
+            const drawn = deck.shift();
+            newSheet.madnessDeck = deck;
+            newSheet.madnessCards = [...(newSheet.madnessCards || []), { ...drawn, id: Date.now() + Math.random(), revealed: false }];
+          }
+        } else if (activeSession.ruleMode === "coc" && prevSan - newSan >= 5) {
+          triggerMadnessCheck("coc", prevSan - newSan, activeSessionId);
+        }
       }
 
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
@@ -724,7 +793,6 @@ export default function App() {
         pendingCheck: parsedData.pendingCheck
       } : s));
 
-      // 🌟 AI가 씬 종료를 선언했거나 판정이 해결되었을 때 씬 전진
       if (parsedData.shouldAdvanceScene && activeSession.ruleMode === "insane") {
         advanceInsaneScene(activeSessionId);
       }
@@ -857,7 +925,7 @@ export default function App() {
       {/* 2. 중앙 메인 뷰 */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
         
-        {/* 상단 단일 헤더 (중복 헤더 및 중복 아이콘 완벽 제거) */}
+        {/* 상단 단일 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: theme.text, padding: "4px" }}>☰</button>
@@ -1013,7 +1081,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 룰 특화 설정 (인세인 특기표 매트릭스) */}
+            {/* 룰 특화 설정 */}
             {wizardMode === "insane" && (
               <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.warning}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
@@ -1052,7 +1120,7 @@ export default function App() {
               </div>
             )}
 
-            {/* 시나리오 정보 및 서막 (비밀 숨기는 기능 완벽 복구) */}
+            {/* 시나리오 정보 및 서막 */}
             <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>시나리오 정보 및 서막(Prologue)</span>
@@ -1077,7 +1145,6 @@ export default function App() {
                 <textarea value={openingScene} onChange={e => setOpeningScene(e.target.value)} placeholder="예: 비 내리는 늦은 오후, 작업실 문을 두드리는 소리가 들립니다..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
               </div>
 
-              {/* 🔒 비밀 숨기는 기능 */}
               <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
                 <button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "8px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "6px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>
                   {showHiddenTruth ? "🔒 키퍼 전용 진상 닫기" : "👀 키퍼 전용 스포일러/진상 수동 입력"}
@@ -1098,32 +1165,70 @@ export default function App() {
         ) : (
           /* 플레이 룸 */
           <>
-            {/* 테이블탑 오버레이 */}
+            {/* 🌟 테이블탑 오버레이 (조사 핸드아웃 + 광기 핸드 + 미공개 광기 덱 완벽 지원) */}
             {activeSession.ruleMode === "insane" && isTabletopOpen && (
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.78)", backdropFilter: "blur(10px)", zIndex: 40, padding: "20px", display: "flex", flexWrap: "wrap", alignContent: "flex-start", gap: "16px", overflowY: "auto" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", zIndex: 40, padding: "20px", display: "flex", flexDirection: "column", gap: "20px", overflowY: "auto" }}>
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>🃏 활성화된 핸드아웃 ({activeSession.sheet.handouts?.length || 0}개)</span>
-                  <button onClick={() => setIsTabletopOpen(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+                  <span style={{ fontWeight: "800", fontSize: "1.05rem" }}>🃏 테이블탑 핸드아웃 & 광기 현황</span>
+                  <button onClick={() => setIsTabletopOpen(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.3rem", cursor: "pointer" }}>✕</button>
                 </div>
-                
-                {(activeSession.sheet.handouts || []).map(card => (
-                  <div key={card.id} onClick={() => toggleHandoutReveal(card.id)} className="glass-card" style={{ width: "170px", minHeight: "230px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : theme.border}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.accent, fontWeight: "800" }}>{card.revealed ? "💀 비밀 해금됨" : "📜 공개 핸드아웃"}</div>
-                      <div style={{ fontWeight: "800", fontSize: "0.9rem", margin: "6px 0", color: theme.text }}>{card.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: card.revealed ? theme.danger : theme.textMuted, lineHeight: "1.4", whiteSpace: "pre-wrap" }}>
-                        {card.revealed ? card.secret : card.overview}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: "0.65rem", textAlign: "center", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>터치하여 앞/뒤 뒤집기</div>
-                  </div>
-                ))}
 
-                <div className="glass-card" onClick={() => triggerMadnessCheck("insane", 1, activeSessionId)} style={{ width: "170px", minHeight: "230px", borderRadius: "12px", border: `1.5px solid ${theme.danger}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(214, 56, 87, 0.1)" }}>
-                  <span style={{ fontSize: "2.2rem" }}>💀</span>
-                  <span style={{ fontWeight: "800", marginTop: "10px", fontSize: "0.9rem", color: theme.danger }}>미공개 광기 덱</span>
-                  <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>터치하여 광기 발현</span>
+                {/* 1. 시나리오 조사 핸드아웃 */}
+                <div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.accent, marginBottom: "10px" }}>📜 시나리오 핸드아웃 (터치하여 앞/뒤 확인)</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+                    {(activeSession.sheet.handouts || []).map(card => (
+                      <div key={card.id} onClick={() => toggleHandoutReveal(card.id)} className="glass-card" style={{ width: "170px", minHeight: "220px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : theme.border}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.accent, fontWeight: "800" }}>{card.revealed ? "💀 비밀 해금됨" : "📜 공개 핸드아웃"}</div>
+                          <div style={{ fontWeight: "800", fontSize: "0.88rem", margin: "6px 0", color: theme.text }}>{card.title}</div>
+                          <div style={{ fontSize: "0.74rem", color: card.revealed ? theme.danger : theme.textMuted, lineHeight: "1.4", whiteSpace: "pre-wrap" }}>
+                            {card.revealed ? card.secret : card.overview}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "0.65rem", textAlign: "center", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>터치하여 앞/뒤 뒤집기</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {/* 2. 내 광기 카드 핸드 (보유 광기) & 미공개 광기 덱 */}
+                <div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>💀 내 광기 핸드 (보유 장수: {activeSession.sheet.madnessCards?.length || 0}장)</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
+                    {/* 보유한 광기 카드 목록 */}
+                    {(activeSession.sheet.madnessCards || []).map(card => (
+                      <div key={card.id} className="glass-card" style={{ width: "170px", minHeight: "220px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : "rgba(247, 101, 133, 0.4)"}`, padding: "14px", display: "flex", flexDirection: "column", justifyContent: "space-between", backgroundColor: card.revealed ? "rgba(214, 56, 87, 0.15)" : theme.panelAlt }}>
+                        <div>
+                          <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.warning, fontWeight: "800" }}>{card.revealed ? "🩸 발현된 광기" : "🔒 미발현 광기"}</div>
+                          <div style={{ fontWeight: "800", fontSize: "0.88rem", margin: "6px 0", color: theme.text }}>{card.name}</div>
+                          <div style={{ fontSize: "0.74rem", color: theme.textMuted, lineHeight: "1.4" }}>
+                            {card.desc}
+                          </div>
+                        </div>
+                        {!card.revealed ? (
+                          <button
+                            onClick={() => manifestMadnessCard(card.id, activeSessionId)}
+                            style={{ width: "100%", padding: "6px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "800", cursor: "pointer" }}
+                          >
+                            발현하기 ➔
+                          </button>
+                        ) : (
+                          <div style={{ fontSize: "0.68rem", color: theme.danger, textAlign: "center", fontWeight: "700" }}>발현 완료</div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* 미공개 광기 덱 (클릭 시 1장 드로우) */}
+                    <div className="glass-card" onClick={() => drawMadnessCard(activeSessionId, false)} style={{ width: "170px", minHeight: "220px", borderRadius: "12px", border: `1.5px dashed ${theme.danger}`, padding: "14px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(214, 56, 87, 0.08)" }}>
+                      <span style={{ fontSize: "2.2rem" }}>🎴</span>
+                      <span style={{ fontWeight: "800", marginTop: "8px", fontSize: "0.85rem", color: theme.danger }}>미공개 광기 덱</span>
+                      <span style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "4px" }}>남은 장수: {activeSession.sheet.madnessDeck?.length || 0}장</span>
+                      <span style={{ fontSize: "0.65rem", color: theme.accent, marginTop: "8px", fontWeight: "700" }}>+ 1장 뽑기</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -1138,7 +1243,7 @@ export default function App() {
 
               {(activeSession.messages || []).map((m, i) => (
                 <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: isMobile ? "90%" : "82%", display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div className={m.role === "user" ? "" : "serif-text"} style={{ backgroundColor: m.text.includes("[🎲") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi, color: theme.text, border: m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`, padding: "14px 18px", borderRadius: "12px", lineHeight: "1.8", whiteSpace: "pre-wrap", fontSize: "0.92rem" }}>
+                  <div className={m.role === "user" ? "" : "serif-text"} style={{ backgroundColor: m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi, color: theme.text, border: m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`, padding: "14px 18px", borderRadius: "12px", lineHeight: "1.8", whiteSpace: "pre-wrap", fontSize: "0.92rem" }}>
                     {m.text}
                   </div>
                 </div>
@@ -1146,8 +1251,29 @@ export default function App() {
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>마스터가 서사를 집필하는 중...</div>}
             </div>
 
-            {/* 판정 요구 배너 */}
+            {/* 🌟 알림 배너 (판정 요구 / 광기 발현 알림) */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              
+              {/* 🩸 광기 발현 알림 배너 복원! */}
+              {activeMadnessAlert && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
+                  <div style={{ fontSize: "0.78rem", color: theme.danger }}>
+                    🩸 <strong>[광기 발현: {activeMadnessAlert.name}]</strong>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>{activeMadnessAlert.desc}</div>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <button
+                      onClick={() => { setInput(prev => `[광기 발현: ${activeMadnessAlert.name}] ` + prev); setActiveMadnessAlert(null); }}
+                      style={{ padding: "4px 10px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", fontSize: "0.72rem", cursor: "pointer", whiteSpace: "nowrap" }}
+                    >
+                      대사에 반영
+                    </button>
+                    <button onClick={() => setActiveMadnessAlert(null)} style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "0.8rem", cursor: "pointer" }}>✕</button>
+                  </div>
+                </div>
+              )}
+
+              {/* 판정 요구 배너 */}
               {activeSession?.pendingCheck && !isSanCheckDetected && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.text }}>
@@ -1228,7 +1354,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* 인세인 특기 패널 */}
+            {/* 인세인 특기 및 보유 광기 핸드 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -1236,6 +1362,28 @@ export default function App() {
                   <div style={{ color: theme.danger, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
                     <strong>🔒 비밀:</strong> {activeSession.sheet.secret}
                   </div>
+                </div>
+
+                {/* 🌟 시트 내 보유 광기 핸드 섹션 */}
+                <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ fontWeight: "800", fontSize: "0.76rem", color: theme.danger }}>💀 보유 광기 ({activeSession.sheet.madnessCards?.length || 0})</span>
+                    <button onClick={() => drawMadnessCard(activeSessionId, false)} style={{ padding: "1px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.danger}`, borderRadius: "4px", color: theme.danger, fontSize: "0.65rem", cursor: "pointer" }}>+ 드로우</button>
+                  </div>
+                  {(!activeSession.sheet.madnessCards || activeSession.sheet.madnessCards.length === 0) ? (
+                    <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>보유한 광기가 없습니다 (이성 감소 시 획득).</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      {activeSession.sheet.madnessCards.map(c => (
+                        <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: c.revealed ? "rgba(214, 56, 87, 0.15)" : theme.panelAlt, border: `1px solid ${c.revealed ? theme.danger : theme.border}`, borderRadius: "4px", padding: "4px 6px", fontSize: "0.7rem" }}>
+                          <span style={{ color: c.revealed ? theme.danger : theme.text }}>{c.revealed ? `🩸 ${c.name}` : `🔒 ${c.name}`}</span>
+                          {!c.revealed && (
+                            <button onClick={() => manifestMadnessCard(c.id, activeSessionId)} style={{ padding: "1px 6px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "3px", fontSize: "0.65rem", cursor: "pointer", fontWeight: "700" }}>발현</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {(activeSession.sheet.insaneSkills || []).length > 0 && (
@@ -1306,7 +1454,10 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
-                <label style={{ fontSize: "0.8rem", fontWeight: "700", display: "block", marginBottom: "6px" }}>2026 팬톤 테마 팔레트</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "0.8rem", fontWeight: "700" }}>2026 팬톤 테마 팔레트</label>
+                  <span style={{ fontSize: "0.75rem", color: theme.accent }}>{isDarkMode ? "🌙 나이트" : "☀️ 라이트"}</span>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                   {Object.entries(THEME_PALETTES).map(([k, p]) => (
                     <button key={k} onClick={() => handleSelectPalette(k)} style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${currentPalette === k ? theme.accent : theme.border}`, backgroundColor: currentPalette === k ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: currentPalette === k ? "700" : "400" }}>{p.name}</button>
@@ -1374,12 +1525,26 @@ export default function App() {
             <h3 style={{ margin: "0 0 12px 0", fontSize: "0.95rem" }}>💾 세이브 백업</h3>
             <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
               <button onClick={() => setBackupFormat("json")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1.5px solid ${backupFormat === "json" ? theme.accent : theme.border}`, backgroundColor: backupFormat === "json" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>JSON</button>
-              <button onClick={() => setBackupFormat("txt")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${backupFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: backupFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>TXT</button>
+              <button onClick={() => setBackupFormat("txt")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1.5px solid ${backupFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: backupFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>TXT</button>
             </div>
             <button onClick={executeSaveBackup} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem" }}>다운로드</button>
           </div>
         </div>
       )}
+
+      {showExportModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "400px", padding: "20px", borderRadius: "14px", color: theme.text }}>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: "0.95rem" }}>📥 대화록 내보내기</h3>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+              <button onClick={() => setExportFormat("txt")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1px solid ${exportFormat === "txt" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "txt" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>TXT</button>
+              <button onClick={() => setExportFormat("md")} style={{ flex: 1, padding: "6px", borderRadius: "6px", border: `1.5px solid ${exportFormat === "md" ? theme.accent : theme.border}`, backgroundColor: exportFormat === "md" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer" }}>MD</button>
+            </div>
+            <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem" }}>다운로드</button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
