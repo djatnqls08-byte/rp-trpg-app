@@ -2869,7 +2869,7 @@ if (wizardMode === "dating_msg") {
                   )}
                 </div>
 
-             {(activeSession.sheet.insaneSkills || []).length > 0 && (
+{(activeSession.sheet.insaneSkills || []).length > 0 && (
           <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
             {/* ✅ 1줄만 유지 */}
             <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
