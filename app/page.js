@@ -1160,7 +1160,8 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
         try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
       }
 
-      const checkMatch = cleanText.match(/<!--\s*CHECK:\s*({[\s\S]*?})\s*-{1,3}>/i);
+      // 🌟 <!-- CHECK: ... --> 와 [CHECK: ... ] 둘 다 감지하도록 확장
+      const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>|\])/i);
       if (checkMatch) {
         try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
       }
@@ -1204,12 +1205,13 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     } catch (e) {}
 
     cleanText = cleanText
-  .replace(/```html|```json|```/gi, "")
-  .replace(/<!--[\s\S]*?-{1,3}>/g, "")
-  .replace(/<!--[\s\S]*?$/g, "")
-  .replace(/<[^>]+>/g, "") // 🌟 이 줄이 있어야 <b>세리아</b> 같은 잔여 태그가 사라집니다!
-  .replace(/\bKPC\b/g, partnerName || "파트너")
-  .trim();
+      .replace(/```html|```json|```/gi, "")
+      .replace(/(?:<!--|\[)\s*CHECK:\s*{[\s\S]*?}\s*(?:-{1,3}>|\])/gi, "")
+      .replace(/<!--[\s\S]*?-{1,3}>/g, "")
+      .replace(/<!--[\s\S]*?$/g, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\bKPC\b/g, partnerName || "파트너")
+      .trim();
 
     return { cleanText, parsedData };
   };
