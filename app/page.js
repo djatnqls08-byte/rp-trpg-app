@@ -2830,8 +2830,8 @@ if (wizardMode === "dating_msg") {
 
                 {(activeSession.sheet.insaneSkills || []).length > 0 && (
                   <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
-                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
-                   <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
+/* ✅ 1줄만 유지 */
+<div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                       {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
                         <button
@@ -2847,8 +2847,6 @@ if (wizardMode === "dating_msg") {
                 )}
               </>
             )}
-
-      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
             {/* 소지품 */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
