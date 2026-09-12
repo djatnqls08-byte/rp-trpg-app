@@ -1107,7 +1107,7 @@ export default function App() {
     }
   };
 
-  const executeMessage = async (textToSend) => {
+    const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const partnerName = activeSession.sheet?.npcs?.[0]?.name || "아델";
     const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
@@ -1117,6 +1117,38 @@ export default function App() {
     const controller = new AbortController();
     setAbortController(controller);
 
+    // 1. R19 및 자유 서사 모드 감지
+    const fullContext = `${activeSession.title || ""} ${activeSession.scenarioText || ""} ${activeSession.preference || ""}`.toLowerCase();
+    const isR19 = fullContext.includes("r19") || fullContext.includes("19금") || fullContext.includes("성인") || fullContext.includes("r-19");
+    const isFreeform = activeSession.ruleMode === "freeform";
+
+    // 2. 동적 시스템 수칙 주입 (아이템, 단서, 호감도 관리, R19 묘사, 마감 수칙)
+    let dynamicRules = `\n\n[키퍼 시스템 연동 절대 수칙]
+1. 탐사자가 새로운 물건이나 소지품을 획득하면 지문 맨 끝에 반드시 <!-- ITEM: {"name": "아이템 이름", "desc": "간략한 설명"} --> 태그를 출력하십시오.
+2. 사건의 결정적 단서나 비밀 기록을 조사해 알아내면 지문 맨 끝에 반드시 <!-- CLUE: {"name": "단서명", "desc": "발견한 진실 내용 요약"} --> 태그를 출력하십시오.
+3. [NPC 호감도 및 인격 관리 절대 수칙]
+- 호감도 범위는 0~100이며, 일반적인 호감 행동은 +1~3, 결정적 유대 형성은 최대 +5 내외로 소폭 반영하십시오.
+- PC가 기만, 무례함, 상대의 신념/자존심 훼손 등 비호감 행동을 보이면 단호하게 호감도를 차감하십시오. (-3~-10 등)
+- 호감도가 100에 도달하더라도 NPC는 맹목적인 추종이나 얀데레가 되지 않으며 고유의 신념과 독립적 자아를 유지합니다.
+- [채팅창 노출 절대 금지] 소설 지문 본문에 "호감도가 상승했다", "[호감도 +2]" 같은 시스템 문구를 직접 적지 마십시오. 오직 수치 변동이 있을 때만 지문 맨 끝에 숨은 태그 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후최종수치} --> 형태로만 출력하십시오.`;
+
+    if (isR19) {
+      dynamicRules += `\n\n[R19 성인 서사 특화 수칙]
+- 정사, 스킨십, 배덕감 상호작용 상황에서는 점잖은 태도를 버리고 관능적인 소설 작가로 전환하십시오.
+- NPC는 수동적인 태도에 머물지 않습니다. PC의 행동에 맞춰 상대를 밀쳐 눕히거나 옷을 벗기며 주도권을 쥐십시오.
+- 입맞춤이나 날씨 묘사에서 쳇바퀴를 돌지 말고, 신체적 접촉, 은밀한 부위의 마찰, 애무, 절정(오르가즘)의 신체 반응을 암전 없이 끝까지 직접 서술하십시오.
+- BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
+    }
+
+    if (isFreeform) {
+      dynamicRules += `\n\n[문체 마감 수칙 (자유 서사 전용)]
+- 지문 말미에 "다음으로 어떤 행동을 취하시겠습니까?" 같은 기계적 질문을 절대 출력하지 마십시오.
+- 문장의 끝은 항상 인물의 가쁜 호흡, 대사, 혹은 감각적인 신체 묘사의 여운으로 자연스럽게 매듭지으십시오.`;
+    } else {
+      dynamicRules += `\n\n[TRPG 진행 수칙]
+- 지문 끝에 상황에 맞는 탐사자의 다음 행동이나 판정 선언을 자연스럽게 유도하십시오.`;
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -1124,8 +1156,8 @@ export default function App() {
         signal: controller.signal,
         body: JSON.stringify({
           messages: updatedMessages,
-          scenarioText: activeSession.scenarioText,
-          playerSheet: cleanSheetForAi(activeSession.sheet),
+          scenarioText: (activeSession.scenarioText || "") + dynamicRules,
+          playerSheet: typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet,
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference
         })
@@ -1137,32 +1169,91 @@ export default function App() {
       }
 
       const data = await res.json();
-      const { cleanText, parsedData } = parseTagsSafely(data.text || "", partnerName, activeSession.ruleMode);
+      let rawText = data.text || "";
+
+      // [아이템 자동 추출 및 시트 추가]
+      let newItems = [];
+      const itemRegex = /<!--\s*ITEM:\s*(\{.*?\})\s*-->/gs;
+      let itemMatch;
+      while ((itemMatch = itemRegex.exec(rawText)) !== null) {
+        try {
+          const itemObj = JSON.parse(itemMatch[1]);
+          if (itemObj.name) newItems.push({ id: Date.now() + Math.random(), name: itemObj.name, desc: itemObj.desc || "" });
+        } catch (e) {}
+      }
+      rawText = rawText.replace(itemRegex, "");
+
+      // [단서 자동 추출 및 수첩 추가]
+      let newClues = [];
+      const clueRegex = /<!--\s*CLUE:\s*(\{.*?\})\s*-->/gs;
+      let clueMatch;
+      while ((clueMatch = clueRegex.exec(rawText)) !== null) {
+        try {
+          const clueObj = JSON.parse(clueMatch[1]);
+          if (clueObj.name) newClues.push({ id: Date.now() + Math.random(), name: clueObj.name, desc: clueObj.desc || "" });
+        } catch (e) {}
+      }
+      rawText = rawText.replace(clueRegex, "");
+
+      // [호감도 변화 자동 추출]
+      let affChanges = [];
+      const affRegex = /<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/gs;
+      let affMatch;
+      while ((affMatch = affRegex.exec(rawText)) !== null) {
+        try {
+          const affObj = JSON.parse(affMatch[1]);
+          const val = affObj.value !== undefined ? affObj.value : affObj.affection;
+          if (affObj.name && val !== undefined) affChanges.push({ name: affObj.name, value: Number(val) });
+        } catch (e) {}
+      }
+      rawText = rawText.replace(affRegex, "");
+
+      const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
+      // 아이템 및 단서 반영
+      if (newItems.length > 0) newSheet.items = [...(newSheet.items || []), ...newItems];
+      if (newClues.length > 0) newSheet.clues = [...(newSheet.clues || []), ...newClues];
+
       // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 완벽 방어
-      if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
-        const currentNpcs = activeSession.sheet?.npcs || [];
-        const mergedNpcs = currentNpcs.map(cNpc => {
+      const currentNpcs = activeSession.sheet?.npcs || [];
+      let mergedNpcs = currentNpcs.map(cNpc => {
+        // 1) AFFECTION 태그로 호감도가 변경된 경우
+        const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
+        let affVal = affTarget ? Math.max(0, Math.min(100, affTarget.value)) : cNpc.affection;
+
+        // 2) 기존 SHEET 태그로 데이터가 온 경우
+        if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
           const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
           if (updatedNpc) {
             return {
               ...cNpc,
-              affection: updatedNpc.affection !== undefined ? updatedNpc.affection : cNpc.affection,
+              affection: updatedNpc.affection !== undefined ? updatedNpc.affection : affVal,
               title: updatedNpc.title || cNpc.title,
               secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
             };
           }
-          return cNpc;
-        });
+        }
+        return { ...cNpc, affection: affVal };
+      });
+
+      // 새로운 NPC가 추가된 경우에만 안전하게 밀어넣기 (기존 데이터 파괴 방지)
+      if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
         parsedData.newSheetVars.npcs.forEach(aNpc => {
           if (!currentNpcs.find(cNpc => cNpc.name === aNpc.name || cNpc.id === aNpc.id)) {
-            mergedNpcs.push({ ...aNpc, id: aNpc.id || Date.now() + Math.random(), portrait: getPortraitUrl(aNpc.name), detail: "", secret: "" });
+            mergedNpcs.push({ 
+              ...aNpc, 
+              id: aNpc.id || Date.now() + Math.random(), 
+              portrait: typeof getPortraitUrl === "function" ? getPortraitUrl(aNpc.name) : "", 
+              detail: "", 
+              secret: "" 
+            });
           }
         });
-        newSheet.npcs = mergedNpcs;
       }
+      newSheet.npcs = mergedNpcs;
 
+      // 광기 및 핸드아웃 처리
       if (parsedData.triggeredMadness) {
         const mObj = parsedData.triggeredMadness;
         setShowInsanityFlash(true);
@@ -1187,7 +1278,7 @@ export default function App() {
         });
       }
 
-      if (parsedData.newHandouts.length > 0) {
+      if (parsedData.newHandouts && parsedData.newHandouts.length > 0) {
         const added = parsedData.newHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
         newSheet.handouts = [...(newSheet.handouts || []), ...added];
       }
