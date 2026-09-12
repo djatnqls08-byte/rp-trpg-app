@@ -2974,44 +2974,26 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               </div>
             </div>
 
-    {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 + [톡하기] 연락처 전환 통합 */}
+ {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
       <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
         <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>
-          {activeSession.ruleMode?.startsWith("dating") ? "연락처 목록 (등장인물)" : "주요 등장인물 (파트너)"}
+          주요 등장인물 (파트너)
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {(activeSession.sheet.npcs || []).map(npc => {
-            const isCurrentContact = (activeSession.activeContactId || activeSession.sheet.npcs[0]?.id) === npc.id;
-            return (
-              <details key={npc.id} style={{ backgroundColor: isCurrentContact && activeSession.ruleMode?.startsWith("dating") ? "rgba(247, 101, 133, 0.08)" : theme.panelAlt, borderRadius: "6px", border: `1px solid ${isCurrentContact && activeSession.ruleMode?.startsWith("dating") ? theme.danger : theme.border}`, overflow: "hidden" }}>
-                <summary style={{ display: "flex", gap: "8px", alignItems: "center", padding: "6px 8px", cursor: "pointer", outline: "none" }}>
-                  <div onClick={(e) => { e.stopPropagation(); setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
-                    <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
+          {(activeSession.sheet.npcs || []).map(npc => (
+            <details key={npc.id} style={{ backgroundColor: theme.panelAlt, borderRadius: "6px", border: `1px solid ${theme.border}`, overflow: "hidden" }}>
+              <summary style={{ display: "flex", gap: "8px", alignItems: "center", padding: "6px 8px", cursor: "pointer", outline: "none" }}>
+                <div onClick={(e) => { e.stopPropagation(); setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
+                  <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
+                    <span>{npc.name}</span>
+                    <span style={{ color: theme.danger }}>♥ {npc.affection}</span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
-                      <span>{npc.name}</span>
-                      <span style={{ color: theme.danger }}>♥ {npc.affection}</span>
-                    </div>
-                    <div style={{ color: theme.textMuted, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{npc.title}</div>
-                  </div>
-
-                  {/* 🌟 미연시 모드일 때만 연락 전환 버튼 출력 (클릭 시 아코디언이 열리지 않도록 차단) */}
-                  {activeSession.ruleMode?.startsWith("dating") && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, activeContactId: npc.id } : s));
-                        alert(`'${npc.name}' 님과의 대화창으로 전환되었습니다.`);
-                      }}
-                      disabled={isCurrentContact}
-                      style={{ padding: "3px 8px", backgroundColor: isCurrentContact ? theme.danger : theme.panel, color: isCurrentContact ? "#fff" : theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.65rem", fontWeight: "700", cursor: isCurrentContact ? "default" : "pointer", whiteSpace: "nowrap", marginLeft: "4px" }}
-                    >
-                      {isCurrentContact ? "대화 중" : "💬 톡하기"}
-                    </button>
-                  )}
-                </summary>
+                  <div style={{ color: theme.textMuted, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{npc.title}</div>
+                </div>
+              </summary>
                 
                 {/* 드롭다운 펼쳤을 때 나오는 상세 내용 (외모/관계성 & 비밀 완벽 보존) */}
                 <div style={{ padding: "8px 10px", fontSize: "0.72rem", borderTop: `1px dashed ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px" }}>
