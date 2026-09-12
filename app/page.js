@@ -70,7 +70,7 @@ const INSANE_SCENE_TABLE = [
 ];
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
-const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트"];
+const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트", "이능력"];
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
@@ -2837,10 +2837,11 @@ if (wizardMode === "dating_msg") {
                           onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
                           style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
                         >
+                         /* ✅ 이렇게 온전하게 채워주세요 */
                           <span>{sk}</span>
-                          <span style={{ fontSize: "0.65rem", color: theme.warning }}>🎲</span>
-                       </button>
-              )}
+                          <span style={{ fontSize: "0.65rem", color: theme.accent }}>{val}</span>
+                        </button>
+                      ))}
             </div>
           </>
         )}
