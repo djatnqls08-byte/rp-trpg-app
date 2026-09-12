@@ -1316,17 +1316,15 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     setIsLoading(true);
 
    let openingPrompt = "";
-if (wizardMode === "dating_msg") {
-      // 1. 미연시 (문자형) - 절대 소설 지문 금지
-      openingPrompt = `[🚨 절대 경고: 스마트폰 1:1 메신저 톡 화면입니다!]
-소설 지문, 3인칭 서술, 날짜/시간 헤더(**[1일 차 ...]**), 상황 묘사를 단 한 줄도 쓰지 마십시오! (출력 시 즉시 오류 처리됨)
-당신은 오직 메신저(카카오톡)를 켠 '${partnerName}' 본인입니다.
-상대방 '${pName}'에게 방금 카톡을 보내듯 아주 자연스럽고 일상적인 톡 1~3줄만 보내십시오.
-(예: "${pName}, 집 잘 들어갔어?", "아직 안 자지? 잠깐 생각나서 톡해봤어.")
-
-말미에 주인공 '${pName}'이 보낼 답장 3개를 아래 형식으로만 출력하십시오:
-<!-- SUGGESTIONS: ["답장 1", "답장 2", "답장 3"] -->
-- '${pName}'의 성격/말투 설정: [${charBackground || "자연스러운 성향"}] 준수`;
+    if (wizardMode === "dating") {
+      // 🌸 통합 미연시: 소설형 비주얼 노벨 서막 프롬프트
+      openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
+시나리오의 [초기 배경/서막]과 [공개 시놉시스]를 바탕으로 두 사람의 첫 만남 혹은 사건의 순간을 감각적으로 열어주십시오.
+- 3인칭 소설 문체로 현장 분위기, 인물 간의 시선과 공기의 온도를 담아 4~5문장으로 서술하십시오.
+- 주사위 판정이나 시스템 용어를 배제하고 감정선에 집중하십시오.
+- 'PC', 'KPC'라는 단어를 일절 쓰지 말고 '${pName}'과 '${partnerName}'(으)로만 지칭하십시오.
+- 지문 끝에 주인공 '${pName}'(성향: [${charBackground || "자연스러운 성향"}])이 취할 만한 선택지 3개를 반드시 출력하십시오:
+<!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
     } else {
       openingPrompt = `[세션 시작: 첫 서막 지문 요청]
 시나리오의 [배후 진상]과 [초기 배경/서막]을 충실히 반영하여 서막을 여십시오.
@@ -2028,19 +2026,19 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     ]
                   }
                 ].map((item) => {
-                  const isDating = wizardMode === "dating_novel" || wizardMode === "dating_msg";
-                  const isSelected = item.key === "dating" ? isDating : wizardMode === item.key;
+                  const isSelected = wizardMode === item.key;
+
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={() => setWizardMode(item.key)}
 
                   return (
                     <div
                       key={item.key}
                       onClick={() => {
-                        if (item.key === "dating") {
-                          if (!isDating) setWizardMode("dating_novel");
-                        } else {
-                          setWizardMode(item.key);
-                        }
-                      }}
+                      setWizardMode("dating"); // 또는 프로젝트의 룰 상태 변수명 (예: setRuleMode("dating"))
+                    }}
                       style={{
                         padding: "16px 14px",
                         borderRadius: "12px",
@@ -2090,57 +2088,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   );
                 })}
               </div>
-
-              {/* 미연시 선택 시 바로 아래에 열리는 2차 세부 모드 선택 패널 */}
-              {(wizardMode === "dating_novel" || wizardMode === "dating_msg") && (
-                <div style={{ marginTop: "14px", padding: "16px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1.5px dashed rgba(247, 101, 133, 0.4)`, borderRadius: "12px" }}>
-                  <div style={{ fontSize: "0.8rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>
-                    🌸 모드 선택
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
-                    
-                    {/* 정통 미연시 */}
-                    <div
-                      onClick={() => setWizardMode("dating_novel")}
-                      style={{
-                        padding: "14px",
-                        borderRadius: "10px",
-                        border: `1.5px solid ${wizardMode === "dating_novel" ? theme.danger : theme.border}`,
-                        backgroundColor: wizardMode === "dating_novel" ? "rgba(247, 101, 133, 0.12)" : theme.panel,
-                        cursor: "pointer",
-                        textAlign: "center",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      <div style={{ fontSize: "1.4rem", marginBottom: "6px" }}>📖</div>
-                      <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>비주얼 노벨 (소설형)</div>
-                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>풍부한 지문 묘사와 3지선다 선택지 카드</div>
-                    </div>
-
-                    {/* 문자형 (메신저) */}
-                    <div
-                      onClick={() => setWizardMode("dating_msg")}
-                      style={{
-                        padding: "14px",
-                        borderRadius: "10px",
-                        border: `1.5px solid ${wizardMode === "dating_msg" ? theme.danger : theme.border}`,
-                        backgroundColor: wizardMode === "dating_msg" ? "rgba(247, 101, 133, 0.12)" : theme.panel,
-                        cursor: "pointer",
-                        textAlign: "center",
-                        transition: "all 0.2s"
-                      }}
-                    >
-                      <div style={{ fontSize: "1.4rem", marginBottom: "6px" }}>📱</div>
-                      <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>메신저 톡 (문자형)</div>
-                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>스마트폰 메신저 형태의 빠르고 가벼운 티키타카</div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* 내 프로필 & 등장인물 */}
+
 {/* 2. 장르 톤 */}
             <div className="glass-card" style={{ padding: "20px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
