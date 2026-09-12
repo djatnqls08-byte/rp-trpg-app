@@ -1377,13 +1377,21 @@ if (wizardMode === "dating_msg") {
     }
   };
 
-    const executeMessage = async (textToSend) => {
+   const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
-    const partnerName = activeSession.sheet?.npcs?.[0]?.name || "아델";
 
-    // 🌟 [추가] 대화 전 시트(호감도, 단서, 아이템) 원본 스냅샷 복사
+    // 🌟 현재 톡 중인 연락처의 인물을 정확히 찾아오기
+    const isDatingMsg = activeSession.ruleMode === "dating_msg";
+    const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
+    const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
+    const partnerName = currentContact?.name || "상대방";
+
+    // 🌟 메시지에 누구와의 대화인지(contactId) 이름표를 달아줌!
     const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
-    const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend, prevSheet: snapshotSheet }];
+    const updatedMessages = [
+      ...(activeSession.messages || []), 
+      { role: "user", text: textToSend, contactId: currentContactId, prevSheet: snapshotSheet }
+    ];
 
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
     setIsLoading(true);
@@ -1405,10 +1413,12 @@ if (wizardMode === "dating_msg") {
 1. 탐사자가 새로운 물건이나 소지품을 획득하면 지문 맨 끝에 반드시 <!-- ITEM: {"name": "아이템 이름", "desc": "간략한 설명"} --> 태그를 출력하십시오.
 2. 사건의 결정적 단서나 비밀 기록을 조사해 알아내면 지문 맨 끝에 반드시 <!-- CLUE: {"name": "단서명", "desc": "발견한 진실 내용 요약"} --> 태그를 출력하십시오.
 3. [NPC 호감도 및 인격 관리 절대 수칙]
-- 호감도 범위는 0~100이며, 일반적인 호감 행동은 +1~3, 결정적 유대 형성은 최대 +5 내외로 소폭 반영하십시오.
-- PC가 기만, 무례함, 상대의 신념/자존심 훼손 등 비호감 행동을 보이면 단호하게 호감도를 차감하십시오. (-3~-10 등)
-- 호감도가 100에 도달하더라도 NPC는 맹목적인 추종이나 얀데레가 되지 않으며 고유의 신념과 독립적 자아를 유지합니다.
-- [채팅창 노출 절대 금지] 본문에 호감도 증감 문구를 적지 마시고 오직 지문 맨 끝에 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후수치} --> 태그로만 출력하십시오.`;
+- 호감도 범위는 0~100입니다. 
+- [🚨 절대 경고: 급격한 변동 및 착각 금지] 
+  * 질투, 쌀쌀맞음, 다른 사람 이름 부르기, 실수, 선 넘는 무례함은 절대 호감 행동이 아닙니다! 로맨스 텐션으로 착각하지 말고 반드시 단호하게 감점(-2~-5)하십시오.
+  * 호감도는 한 턴에 절대로 5점 이상 크게 뛸 수 없습니다! (일반 호감 행동은 +1~2, 매우 깊은 공감일 때만 최대 +3)
+  * 반드시 현재 NPC의 시트에 적힌 [기존 호감도]를 확인한 후, 거기서 1~3점 단위로 더하거나 뺀 '정확한 최종 계산 결과'만 value에 넣으십시오.
+- [채팅창 노출 절대 금지] 본문에 호감도 증감 문구를 적지 마시고 오직 지문 맨 끝에 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후수치} --> 태그로만 출력하십시오.
 
     // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
     if (isDating) {
@@ -1435,14 +1445,31 @@ if (wizardMode === "dating_msg") {
 - 지문 끝에 상황에 맞는 탐사자의 다음 행동이나 판정 선언을 자연스럽게 유도하십시오.`;
     }
 
+
+     
+ // 🌟 메신저 모드일 때는 현재 톡 중인 상대와의 대화 내역만 추려서 AI에게 전달
+    const messagesForAi = isDatingMsg
+      ? updatedMessages.filter(m => (m.contactId ? m.contactId === currentContactId : true))
+      : updatedMessages;
+
+    // 🌟 AI에게 현재 선택된 인물의 성격과 비밀을 확실하게 주입
+    let currentNpcPrompt = "";
+    if (isDatingMsg && currentContact) {
+      currentNpcPrompt = `\n\n[🚨 현재 메신저 톡 상대방 전환 알림]
+당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact.title || currentContact.job || "인물"})
+- 인물 외모 및 성격/관계: [${currentContact.detail || "설정 없음"}]
+- 감춰둔 비밀/진심: [${currentContact.secret || "비밀 없음"}]
+절대 다른 사람의 입장에서 말하지 마십시오! 오직 '${partnerName}' 본인의 말투와 감정선으로만 톡 답장을 1~3줄 보내십시오.`;
+    }
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: updatedMessages,
-          scenarioText: (activeSession.scenarioText || "") + dynamicRules,
+          messages: messagesForAi,
+          scenarioText: (activeSession.scenarioText || "") + dynamicRules + currentNpcPrompt,
           playerSheet: typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet,
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference
@@ -1571,7 +1598,7 @@ if (wizardMode === "dating_msg") {
 
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, sheet: newSheet,
-        messages: [...updatedMessages, { role: "model", text: cleanText }],
+        messages: [...updatedMessages, { role: "modelmessages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],", text: cleanText }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
@@ -1666,8 +1693,16 @@ if (wizardMode === "dating_msg") {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
- const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
+const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
+// 🌟 [엔딩 감지 로직] 히든 / 배드 / 일반 엔딩 형태와 분위기 판별
+  const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
+  const isScenarioEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[:：]|완결\]/i.test(lastMsgText);
+  const isHiddenEnding = isScenarioEnded && /Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText);
+  const isBadEnding = isScenarioEnded && !isHiddenEnding && /Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText);
+
+  return (
+    <div style={{ display: "flex", height: "100dvh", width: "100vw", ...
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
@@ -2554,8 +2589,69 @@ if (wizardMode === "dating_msg") {
               {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>답장을 입력하는 중...</div>}
             </div>
 
-            {/* 알림 배너 */}
+              {/* 알림 배너 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              
+{/* 🌟 엔딩 전용 맞춤형 배너 & 에필로그 버튼 (히든 / 배드 / 트루 3단 분기) */}
+              {isScenarioEnded && (
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  backgroundColor: isHiddenEnding 
+                    ? "rgba(154, 100, 255, 0.15)" 
+                    : isBadEnding 
+                    ? "rgba(214, 56, 87, 0.15)" 
+                    : "rgba(98, 214, 129, 0.15)", 
+                  border: `1.5px solid ${isHiddenEnding ? "#9d4edd" : isBadEnding ? theme.danger : theme.success}`, 
+                  borderRadius: "8px", 
+                  padding: "8px 12px" 
+                }}>
+                  <div style={{ fontSize: "0.8rem", color: theme.text }}>
+                    <strong>
+                      {isHiddenEnding 
+                        ? "🗝️ 숨겨진 진실(히든 엔딩)에 도달했습니다" 
+                        : isBadEnding 
+                        ? "🥀 비극적 결말에 도달했습니다" 
+                        : "✨ 시나리오가 완결되었습니다"}
+                    </strong>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
+                      우측 시트에서 감춰졌던 모든 진상과 인물들의 비밀이 해금되었습니다.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      let promptText = "";
+                      if (isHiddenEnding) {
+                        promptText = `[에필로그 요청: 숨겨진 진실의 후일담]\n본 시나리오의 히든 엔딩(Hidden End)에 도달했습니다. 표면상 드러나지 않았던 배후의 진실, 두 사람만이 공유하게 된 은밀한 운명, 혹은 세계관의 숨겨진 비하인드를 담은 신비롭고 깊은 여운의 후일담을 3~4문단으로 서술해 주십시오.`;
+                      } else if (isBadEnding) {
+                        promptText = `[에필로그 요청: 비극의 후일담]\n본 시나리오가 비극적인 결말(Bad End)로 막을 내렸습니다. 사건이 끝난 후 남겨진 세계, 혹은 홀로 남거나 스러져간 두 인물의 쓸쓸하고 애틋한 여운을 담은 후일담을 3~4문단으로 서술해 주십시오.`;
+                      } else {
+                        promptText = `[에필로그 요청: 평온의 후일담]\n본 시나리오가 성공적으로 완결되었습니다. 시련을 넘어선 두 사람이 계절이 바뀐 뒤 평온한 일상 속에서 서로의 온기를 나누며 살아가는 감성적인 후일담을 3~4문단으로 서술해 주십시오.`;
+                      }
+                      executeMessage(promptText);
+                    }}
+                    style={{ 
+                      padding: "6px 12px", 
+                      backgroundColor: isHiddenEnding ? "#7b2cbf" : isBadEnding ? theme.danger : theme.accent, 
+                      color: "#fff", 
+                      border: "none", 
+                      borderRadius: "6px", 
+                      fontWeight: "700", 
+                      fontSize: "0.75rem", 
+                      cursor: "pointer", 
+                      whiteSpace: "nowrap" 
+                    }}
+                  >
+                    {isHiddenEnding 
+                      ? "🗝️ 숨겨진 후일담 보기" 
+                      : isBadEnding 
+                      ? "📜 비극의 후일담 보기" 
+                      : "📜 에필로그(후일담) 보기"}
+                  </button>
+                </div>
+              )}
+
               {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.danger }}>
@@ -2706,14 +2802,38 @@ if (wizardMode === "dating_msg") {
               </details>
             </div>
 
-            {/* 🌟 시나리오 정보 및 개요 열람 */}
+           {/* 🌟 시나리오 정보 및 개요 열람 */}
             <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
               <details style={{ cursor: "pointer" }}>
                 <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none" }}>
                   📜 시나리오 개요 확인
                 </summary>
-                <div style={{ marginTop: "8px", fontSize: "0.73rem", lineHeight: "1.5", color: theme.textMuted, whiteSpace: "pre-wrap", maxHeight: "180px", overflowY: "auto", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
-                  {activeSession.scenarioText || "시나리오 개요가 없습니다."}
+                <div style={{ marginTop: "8px", fontSize: "0.73rem", lineHeight: "1.5", color: theme.textMuted, whiteSpace: "pre-wrap", maxHeight: "220px", overflowY: "auto", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
+                  {(() => {
+                    const fullText = activeSession.scenarioText || "";
+                    // 🌟 기밀/진상 앞부분(공개 시놉시스, 서막)만 쏙 잘라내기
+                    const parts = fullText.split(/\[키퍼\s*전용\s*(?:기밀|진상|스포일러)[^\]]*\]/i);
+                    const publicPart = parts[0]?.trim() || "시나리오 개요가 없습니다.";
+                    const secretPart = parts[1]?.trim();
+
+                    return (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <div>{publicPart}</div>
+                        
+                        {/* 🌟 진상/엔딩 분기는 기본적으로 접혀서 가려진 채로 유지됨 */}
+                        {secretPart && (
+                          <details style={{ marginTop: "6px", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
+                            <summary style={{ color: theme.danger, fontWeight: "700", cursor: "pointer" }}>
+                              🔒 키퍼 전용 진상/엔딩 분기 (스포일러 주의)
+                            </summary>
+                            <div style={{ marginTop: "6px", color: theme.danger, whiteSpace: "pre-wrap", opacity: 0.9 }}>
+                              {secretPart}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </details>
             </div>
