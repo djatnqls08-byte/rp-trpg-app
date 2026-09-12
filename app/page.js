@@ -2647,12 +2647,11 @@ if (wizardMode === "dating_msg") {
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
                 >
                   전송
-                </button>
+             </button>
               )}
             </div>
-          </>
+          </div>
         )}
-      </div>
 
  {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
