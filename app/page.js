@@ -1763,7 +1763,7 @@ if (wizardMode === "dating_msg") {
         />
       )}
 
-      {/* 2. 중앙 메인 뷰 (◀ 왼쪽으로 밀면 시트 열림) */}
+    {/* 2. 중앙 메인 뷰 (◀ 왼쪽으로 밀면 시트 열림) */}
       <div 
         onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
         onTouchEnd={(e) => {
@@ -1775,7 +1775,7 @@ if (wizardMode === "dating_msg") {
         }}
         style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
       >
-       {/* 상단 단일 헤더 바 */}
+        {/* 상단 단일 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
           
           {/* 좌측: 메신저 톡일 때는 카톡 프로필 헤더 / 일반 룰일 때는 시나리오 제목 */}
