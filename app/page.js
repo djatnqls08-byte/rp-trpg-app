@@ -2834,7 +2834,7 @@ if (wizardMode === "dating_msg") {
               </>
             )}
 
-           {/* 🌟 인세인 특화: 사명, 광기 핸드, 특기 2D6 주사위 패널 */}
+  {/* 🌟 인세인 특화: 사명, 광기 핸드, 특기 2D6 주사위 패널 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2869,23 +2869,24 @@ if (wizardMode === "dating_msg") {
                   )}
                 </div>
 
-{(activeSession.sheet.insaneSkills || []).length > 0 && (
-          <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
-            {/* ✅ 1줄만 유지 */}
-            <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-              {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
-                  style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
-                >
-                  <span>{sk}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+                {(activeSession.sheet.insaneSkills || []).length > 0 && (
+                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+                    <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                      {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
+                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
+                        >
+                          <span>{sk}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
            {/* 🌟 미연시 모드일 때는 [선물함], TRPG일 때는 [소지품] */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
@@ -2913,7 +2914,6 @@ if (wizardMode === "dating_msg") {
               </div>
             </div>
 
-            {/* 파트너 */}
     {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 + [톡하기] 연락처 전환 통합 */}
       <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
         <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>
@@ -2967,14 +2967,13 @@ if (wizardMode === "dating_msg") {
                   </div>
                 </div>
               </details>
-          );
+            );
           })}
         </div>
       </div>
-          
-        </div>
-      </div>
-    )}
+    </div>
+  </div>
+)}
 
       {/* 설정 모달 */}
       {showSettingsModal && (
