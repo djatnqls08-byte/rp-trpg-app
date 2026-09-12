@@ -2606,7 +2606,7 @@ if (wizardMode === "dating_msg") {
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
                 >
                   전송
-   </button>
+  </button>
               )}
             </div>
           </>
@@ -2837,15 +2837,14 @@ if (wizardMode === "dating_msg") {
                           onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
                           style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
                         >
-                         /* ✅ 이렇게 온전하게 채워주세요 */
-                          <span>{sk}</span>
+                        <span>{sk}</span>
                           <span style={{ fontSize: "0.65rem", color: theme.accent }}>{val}</span>
                         </button>
                       ))}
-            </div>
-          </>
-        )}
-      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
