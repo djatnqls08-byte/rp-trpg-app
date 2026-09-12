@@ -852,6 +852,30 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
       if (parsedNpcList.length > 0) {
         setKpcList(parsedNpcList);
       }
+      // ── [5. 핸드아웃 (조사 구역 및 단서) 자동 추출] ──
+      let extractedHandouts = [];
+      // V3 프롬프트 양식: "- [조사 구역 이름]" 와 "* 획득 단서 내용:"
+      const handoutBlocks = rawText.split("- [");
+      
+      handoutBlocks.slice(1).forEach((block) => {
+        const titleMatch = block.match(/^(.*?)\]/);
+        const secretMatch = block.match(/획득\s*단서\s*내용\s*[:：]\s*([^\n]+)/);
+
+        if (titleMatch && secretMatch) {
+          extractedHandouts.push({
+            title: titleMatch[1].trim(), // 예: 제3 생물표본 격리실
+            overview: `[조사 구역: ${titleMatch[1].trim()}] 탐색 시 발견할 수 있는 단서입니다.`,
+            secret: secretMatch[1].trim() // 예: 미확인 유기체 '테티스'의...
+          });
+        }
+      });
+
+      if (extractedHandouts.length > 0) {
+        setGeneratedHandouts(extractedHandouts);
+      } else {
+        setGeneratedHandouts([]); // 단서가 없으면 더미 데이터 방지를 위해 초기화
+      }
+      // 👆👆👆 여기까지 👆👆👆
 
       const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사" };
       alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
