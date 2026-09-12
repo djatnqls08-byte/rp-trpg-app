@@ -2974,7 +2974,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               </div>
             </div>
 
- {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
+{/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
       <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
         <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>
           주요 등장인물 (파트너)
@@ -2995,21 +2995,23 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               </summary>
                 
-                {/* 드롭다운 펼쳤을 때 나오는 상세 내용 (외모/관계성 & 비밀 완벽 보존) */}
-                <div style={{ padding: "8px 10px", fontSize: "0.72rem", borderTop: `1px dashed ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div>
-                    <strong style={{ color: theme.accent }}>[외모 및 관계성]</strong>
-                    <div style={{ color: theme.text, marginTop: "2px" }}>{npc.detail || "등록된 상세 설정이 없습니다."}</div>
+              {/* 드롭다운 펼쳤을 때 나오는 상세 내용 */}
+              <div style={{ padding: "8px 10px", fontSize: "0.72rem", borderTop: `1px dashed ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div>
+                  <strong style={{ color: theme.accent }}>[외모 및 관계성]</strong>
+                  <div style={{ color: theme.text, marginTop: "2px" }}>{npc.detail || "등록된 상세 설정이 없습니다."}</div>
+                </div>
+                <div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
+                  <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
+                  <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
+                    {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
                   </div>
-                  <div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
-                    <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
-                    <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
-                      {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
-                   </div>
-                  </details>
-                ))}
-            </div>
-          </div>
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 )}
