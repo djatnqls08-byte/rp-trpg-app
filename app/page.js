@@ -2592,7 +2592,7 @@ if (wizardMode === "dating_msg") {
             {/* 입력창 */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="대사나 메시지를 입력하세요..." style={{ flex: 1, minHeight: "48px", maxHeight: "120px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "0.9rem", resize: "none" }} />
-              {abortController || isLoading ? (
+             {abortController || isLoading ? (
                 <button 
                   onClick={handleCancelResponse} 
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.danger || "#dc3545", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", whiteSpace: "nowrap" }}
@@ -2606,11 +2606,15 @@ if (wizardMode === "dating_msg") {
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
                 >
                   전송
-  </button>
+                </button>
               )}
             </div>
           </>
         )}
+      </div>
+
+      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
+      {activeSession && (
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
@@ -2830,23 +2834,22 @@ if (wizardMode === "dating_msg") {
                 {(activeSession.sheet.insaneSkills || []).length > 0 && (
                   <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
                     <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
+                   <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                      {activeSession.sheet.insaneSkills.map((sk, idx) => (
-                       {/* 입력창 끝부분 */}
-                <button 
-                  onClick={sendMessage} 
-                  disabled={isLoading || !input.trim()} 
-                  style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
-                >
-                  전송
-                </button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
+                      {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
+                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
+                        >
+                          <span>{sk}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
