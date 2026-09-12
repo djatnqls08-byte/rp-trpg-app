@@ -2792,7 +2792,7 @@ if (wizardMode === "dating_msg") {
               </>
             )}
 
-            {/* 🌟 인세인 특화: 사명, 광기 핸드, 특기 2D6 주사위 패널 */}
+           {/* 🌟 인세인 특화: 사명, 광기 핸드, 특기 2D6 주사위 패널 */}
             {activeSession.ruleMode === "insane" && (
               <>
                 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px", fontSize: "0.72rem", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -2832,19 +2832,21 @@ if (wizardMode === "dating_msg") {
                     <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                       {activeSession.sheet.insaneSkills.map((sk, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
-                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
-                        >
-                        <span>{sk}</span>
-                          <span style={{ fontSize: "0.65rem", color: theme.accent }}>{val}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
+                       {/* 입력창 끝부분 */}
+                <button 
+                  onClick={sendMessage} 
+                  disabled={isLoading || !input.trim()} 
+                  style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
+                >
+                  전송
+                </button>
               )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
