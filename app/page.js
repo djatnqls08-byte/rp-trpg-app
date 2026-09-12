@@ -2600,7 +2600,7 @@ if (wizardMode === "dating_msg") {
                   ⏹️ 취소
                 </button>
               ) : (
-                <button 
+              <button 
                   onClick={sendMessage} 
                   disabled={isLoading || !input.trim()} 
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
@@ -2612,9 +2612,6 @@ if (wizardMode === "dating_msg") {
           </>
         )}
       </div>
-
-      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
-      {activeSession && (
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
