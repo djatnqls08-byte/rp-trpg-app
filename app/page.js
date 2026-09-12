@@ -78,6 +78,31 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // 🌟 [추가] 버전 관리 및 공지사항/가이드 상태
+  const APP_VERSION = "v1.0.0";
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [activeNoticeTab, setActiveNoticeTab] = useState("guide"); // 'guide' 또는 'update'
+  const [hideNoticeCheckbox, setHideNoticeCheckbox] = useState(false);
+
+  // 🌟 [추가] 처음 접속 시 7일 체크 확인 로직
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hideUntil = localStorage.getItem("rp_hub_hide_notice");
+    // 기록이 없거나, 저장된 날짜(7일 뒤)가 현재 시간보다 과거라면 팝업 열기
+    if (!hideUntil || Date.now() > Number(hideUntil)) {
+      setShowNoticeModal(true);
+    }
+  }, []);
+
+  const handleCloseNotice = () => {
+    if (hideNoticeCheckbox) {
+      // 7일(밀리초) = 7 * 24 * 60 * 60 * 1000 = 604,800,000
+      const sevenDaysLater = Date.now() + 604800000; 
+      localStorage.setItem("rp_hub_hide_notice", sevenDaysLater.toString());
+    }
+    setShowNoticeModal(false);
+  };
   
   // 🌟 AI 답변 강제 취소 컨트롤러
   const [abortController, setAbortController] = useState(null);
@@ -753,7 +778,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
       const pcBgMatch = pcText.match(/(?:백스토리(?:\s*및\s*성격)?|성격(?:\s*및\s*백스토리)?)\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:-?\s*\[?내\s*캐릭터|###|\[|-?\s*사명|$))/i);
       if (pcBgMatch) setCharBackground(pcBgMatch[1].trim());
 
-      const pcSecMatch = rawText.match(/(?:\[내\s*캐릭터의\s*숨겨진\s*비밀[^\]]*\]|PC\s*숨겨진\s*비밀|PC\s*비밀)\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:###|\[|\n\n-|$))/i);
+      const pcSecMatch = rawText.match(/(?:\[내\s*캐릭터의\s*숨겨진\s*비밀[^\]]*\]|PC\s*숨겨진\s*비밀|PC\s*비밀)\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:###|\[|\n\n-|(?:리미트|호기심|공포심|습득\s*특기)\s*[:：]|$))/i);
       if (pcSecMatch) setCharSecret(cleanVal(pcSecMatch[1]));
 
       // ── [3. 룰별 특화 스탯 분기] ──
@@ -1207,12 +1232,49 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
       id: k.id, name: k.name, title: k.job || "조력자", detail: k.detail || "", portrait: k.portraitUrl || getPortraitUrl(k.name), affection: 10, secret: k.secret, secretRevealed: false
     }));
 
-    let initialHandouts = generatedHandouts.length > 0 ? generatedHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false })) : [
-      { id: 1, title: `${pName}의 사명과 비밀`, overview: `${pName}의 표면상 상태와 사명입니다.`, secret: charSecret || "모든 짐을 혼자 짊어지려다 무너질까 두려워하고 있다.", revealed: false },
-      { id: 2, title: `${partnerName}의 따뜻한 시선`, overview: `${partnerName}가 건네온 따스한 위로와 온기입니다.`, secret: npcs[0]?.secret || "상대방이 고통받지 않도록 제 모든 것을 바쳐 지키려 한다.", revealed: false },
-      { id: 3, title: "오래된 가죽 노트", overview: "작업대 구석에 놓인 낡은 기록장입니다.", secret: "과거 두 사람이 나누었던 약속이 적혀 있습니다.", revealed: false },
-      { id: 4, title: "책상 서랍의 다이어리", overview: "서랍 안쪽에 숨겨진 묘한 이질감의 책입니다.", secret: "말하지 못했던 진실의 마지막 페이지가 담겨 있습니다.", revealed: false }
+    // 🌟 완벽한 핸드아웃 세팅 로직 (다수 NPC 지원 및 사명 명시)
+    let initialHandouts = [];
+    
+    // 1. 내 캐릭터(PC)의 사명과 비밀 카드
+    const baseCards = [
+      { 
+        id: "pc_base", 
+        title: `${pName}의 사명과 비밀`, 
+        overview: `[공개 사명]\n${charMission || "당신의 표면적인 목적과 상태입니다."}`, 
+        secret: charSecret || "감춰진 사명이나 비밀이 없습니다.", 
+        revealed: false 
+      }
     ];
+
+    // 2. 파트너(KPC)를 포함한 모든 서브 NPC들의 카드를 반복문으로 자동 생성!
+    if (npcs && npcs.length > 0) {
+      npcs.forEach((npc, idx) => {
+        baseCards.push({
+          id: `npc_base_${idx}`,
+          title: `${npc.name}의 상태와 사명`,
+          // 앞면에는 직업(역할)과 표면적 상태를 명시
+          overview: `[표면상 상태/사명]\n역할: ${npc.title || "조연"}\n이 인물이 겉으로 보여주는 목적과 태도입니다.`, 
+          // 뒷면에는 우리가 적어둔 진짜 비밀을 은닉
+          secret: npc.secret || "이 인물에게는 감춰진 비밀이 없습니다.",
+          revealed: false
+        });
+      });
+    }
+
+    if (generatedHandouts && generatedHandouts.length > 0) {
+      // AI 즉석 생성으로 만들어진 카드인지 확인 (사명 등이 포함되어 있는지)
+      const hasBase = generatedHandouts.some(h => h.title.includes("사명") || h.title.includes(pName) || h.title.includes(partnerName));
+      const parsedCards = generatedHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
+      
+      if (hasBase) {
+        initialHandouts = parsedCards; // AI 즉석생성이면 통째로 적용
+      } else {
+        initialHandouts = [...baseCards, ...parsedCards]; // 파일 첨부 시: [PC + 모든 NPC 카드] + [파일에서 뽑아낸 조사구역 단서들] 합치기
+      }
+    } else {
+      // 단서가 아무것도 없다면 생성한 인물들의 기본 사명/비밀 카드들만 깔아둠
+      initialHandouts = baseCards;
+    }
 
     let initialSheet = {
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
@@ -1719,7 +1781,17 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                 📋
               </button>
             )}
-            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+
+            <button 
+              onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} 
+              title="이용 가이드 및 패치 노트" 
+              style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}
+            >
+              📢
+            </button>
+            {/* --------------------------- */}
+
+           <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
               {isDarkMode ? "☀️" : "🌙"}
             </button>
           </div>
@@ -1796,11 +1868,25 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
               </div>
             </div>
 
-         {/* 1. 룰 시스템 선택 */}
+{/* 1. 룰 시스템 선택 */}
             <div className="glass-card" style={{ padding: "20px" }}>
               <div style={{ fontSize: "0.9rem", fontWeight: "800", marginBottom: "14px" }}>1. 룰 시스템 선택</div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "10px" }}>
+              
+              {/* 메인 4개 룰 카드: 자유 서사 ➔ CoC ➔ inSANe ➔ 미연시 */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "10px" }}>
                 {[
+                  {
+                    key: "freeform",
+                    name: "자유 서사",
+                    sub: "주사위 없이 즐기는 서사",
+                    badge: "순수 텍스트",
+                    icon: "✍️",
+                    points: [
+                      { title: "핵심 판정", desc: "주사위 판정과 스탯 계산이 배제된 순수 텍스트 인터랙티브 소설 모드입니다." },
+                      { title: "자유로운 진행", desc: "기계적인 행동 지시문 없이 인물의 호흡과 대사, 감각적인 묘사의 여운으로 이어집니다." },
+                      { title: "추천 분위기", desc: "주사위 실패 스트레스 없이 두 사람의 감정선, 달달한 일상, 자유로운 티키타카에 적합합니다." }
+                    ]
+                  },
                   {
                     key: "coc",
                     name: "크툴루의 부름 (CoC)",
@@ -1826,86 +1912,128 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                     ]
                   },
                   {
-                    key: "freeform",
-                    name: "자유 서사 (소설 모드)",
-                    sub: "주사위 없는 순수 역극",
-                    badge: "순수 텍스트",
-                    icon: "✍️",
+                    key: "dating",
+                    name: "미연시",
+                    sub: "선택지와 관계성 중심 서사",
+                    badge: "호감도 & 심리",
+                    icon: "🌸",
                     points: [
-                      { title: "핵심 판정", desc: "주사위 판정과 스탯 계산이 배제된 순수 텍스트 인터랙티브 소설 모드입니다." },
-                      { title: "자유로운 진행", desc: "기계적인 행동 지시문 없이 인물의 호흡과 대사, 감각적인 묘사의 여운으로 이어집니다." },
-                      { title: "추천 분위기", desc: "주사위 실패 스트레스 없이 두 사람의 감정선, 달달한 일상, 자유로운 티키타카에 적합합니다." }
+                      { title: "핵심 판정", desc: "주사위 판정 대신 감정선에 따른 선택지와 대화의 맥락으로 서사가 전개됩니다." },
+                      { title: "관계와 심리", desc: "물리적 능력치 대신 인물의 실시간 심리 상태와 단계별 호감도(Affection)가 중심이 됩니다." },
+                      { title: "2가지 서브 모드", desc: "3지선다 선택지가 주어지는 '소설형(비주얼 노벨)'과 빠른 티키타카의 '문자형(메신저)'을 지원합니다." }
                     ]
                   }
-                ].map((item) => (
-                  <div
-                    key={item.key}
-                    onClick={() => setWizardMode(item.key)}
-                    style={{
-                      padding: "16px 14px",
-                      borderRadius: "12px",
-                      border: `1.5px solid ${wizardMode === item.key ? "#4a4947" : theme.border}`,
-                      backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent",
-                      cursor: "pointer",
-                      position: "relative"
-                    }}
-                  >
-                    {/* ? 도움말 팝업 열기 버튼 */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRuleHelpModal(item);
+                ].map((item) => {
+                  const isDating = wizardMode === "dating_novel" || wizardMode === "dating_msg";
+                  const isSelected = item.key === "dating" ? isDating : wizardMode === item.key;
+
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={() => {
+                        if (item.key === "dating") {
+                          if (!isDating) setWizardMode("dating_novel");
+                        } else {
+                          setWizardMode(item.key);
+                        }
                       }}
-                      title={`${item.name} 상세 규칙 보기`}
                       style={{
-                        position: "absolute",
-                        top: "10px",
-                        right: "10px",
-                        width: "22px",
-                        height: "22px",
-                        borderRadius: "50%",
-                        border: `1px solid ${theme.border}`,
-                        backgroundColor: theme.panel,
-                        color: theme.textMuted,
-                        fontSize: "0.72rem",
-                        fontWeight: "800",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        padding: "16px 14px",
+                        borderRadius: "12px",
+                        border: `1.5px solid ${isSelected ? "#4a4947" : theme.border}`,
+                        backgroundColor: isSelected ? theme.panelAlt : "transparent",
                         cursor: "pointer",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+                        position: "relative"
                       }}
                     >
-                      ?
-                    </button>
+                      {/* ? 상세 도움말 버튼 */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRuleHelpModal(item);
+                        }}
+                        title={`${item.name} 상세 규칙 보기`}
+                        style={{
+                          position: "absolute",
+                          top: "10px",
+                          right: "10px",
+                          width: "22px",
+                          height: "22px",
+                          borderRadius: "50%",
+                          border: `1px solid ${theme.border}`,
+                          backgroundColor: theme.panel,
+                          color: theme.textMuted,
+                          fontSize: "0.72rem",
+                          fontWeight: "800",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+                        }}
+                      >
+                        ?
+                      </button>
 
-                    <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text, paddingRight: "24px" }}>
-                      {item.name}
+                      <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text, paddingRight: "24px", wordBreak: "keep-all" }}>
+                        {item.name}
+                      </div>
+                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px", wordBreak: "keep-all" }}>
+                        {item.sub}
+                      </div>
                     </div>
-                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>
-                      {item.sub}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. 장르 톤 */}
-            <div className="glass-card" style={{ padding: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: "800" }}>2. 장르 톤 (서사 지향 태그)</span>
-                <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>태그가 룰의 분위기를 완전히 지배합니다.</span>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "14px" }}>
-                {[...ORIENT_TAGS, ...TROPE_TAGS].map(tag => {
-                  const active = playPreference.includes(tag);
-                  return (
-                    <button key={tag} onClick={() => toggleTag(tag)} style={{ padding: "5px 12px", borderRadius: "16px", fontSize: "0.76rem", fontWeight: active ? "700" : "500", backgroundColor: active ? "#52504c" : "transparent", color: active ? "#fff" : theme.text, border: `1px solid ${active ? "#52504c" : theme.border}`, cursor: "pointer" }}>{tag}</button>
                   );
                 })}
               </div>
-              <textarea value={playPreference} onChange={e => setPlayPreference(e.target.value)} placeholder="#GL #쌍방구원 #달달" style={{ width: "100%", height: "55px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+
+              {/* 미연시 선택 시 바로 아래에 열리는 2차 세부 모드 선택 패널 */}
+              {(wizardMode === "dating_novel" || wizardMode === "dating_msg") && (
+                <div style={{ marginTop: "14px", padding: "16px", backgroundColor: "rgba(247, 101, 133, 0.05)", border: `1.5px dashed rgba(247, 101, 133, 0.4)`, borderRadius: "12px" }}>
+                  <div style={{ fontSize: "0.8rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>
+                    🌸 모드 선택
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+                    
+                    {/* 정통 미연시 */}
+                    <div
+                      onClick={() => setWizardMode("dating_novel")}
+                      style={{
+                        padding: "14px",
+                        borderRadius: "10px",
+                        border: `1.5px solid ${wizardMode === "dating_novel" ? theme.danger : theme.border}`,
+                        backgroundColor: wizardMode === "dating_novel" ? "rgba(247, 101, 133, 0.12)" : theme.panel,
+                        cursor: "pointer",
+                        textAlign: "center",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      <div style={{ fontSize: "1.4rem", marginBottom: "6px" }}>📖</div>
+                      <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>비주얼 노벨 (소설형)</div>
+                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>풍부한 지문 묘사와 3지선다 선택지 카드</div>
+                    </div>
+
+                    {/* 문자형 (메신저) */}
+                    <div
+                      onClick={() => setWizardMode("dating_msg")}
+                      style={{
+                        padding: "14px",
+                        borderRadius: "10px",
+                        border: `1.5px solid ${wizardMode === "dating_msg" ? theme.danger : theme.border}`,
+                        backgroundColor: wizardMode === "dating_msg" ? "rgba(247, 101, 133, 0.12)" : theme.panel,
+                        cursor: "pointer",
+                        textAlign: "center",
+                        transition: "all 0.2s"
+                      }}
+                    >
+                      <div style={{ fontSize: "1.4rem", marginBottom: "6px" }}>📱</div>
+                      <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>메신저 톡 (문자형)</div>
+                      <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>스마트폰 메신저 형태의 빠르고 가벼운 티키타카</div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 내 프로필 & 등장인물 */}
@@ -2104,12 +2232,16 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                             {card.revealed ? card.secret : card.overview}
                           </div>
                         </div>
-                        <div style={{ fontSize: "0.65rem", textAlign: "center", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>터치하여 앞/뒤 뒤집기</div>
+                      <div style={{ fontSize: "0.65rem", textAlign: "center", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {card.revealed && <strong style={{ color: theme.danger, fontSize: "0.7rem" }}>✋ 이 비밀은 스스로 밝힐 수 없다.</strong>}
+                          <span>터치하여 앞/뒤 뒤집기</span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
+            
                 <div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>💀 내 광기 핸드 (보유: {activeSession.sheet.madnessCards?.length || 0}장)</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
@@ -2866,6 +2998,112 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
             </select>
 
             <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
+          </div>
+        </div>
+      )}
+
+{/* 🌟 공지사항 및 시작 가이드 모달 (구문 완벽 복원) */}
+      {showNoticeModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "500px", borderRadius: "14px", color: theme.text, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "85vh" }}>
+            
+            {/* 상단 탭 버튼 */}
+            <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar }}>
+              <button onClick={() => setActiveNoticeTab("guide")} style={{ flex: 1, padding: "14px", background: activeNoticeTab === "guide" ? theme.panelAlt : "transparent", border: "none", color: activeNoticeTab === "guide" ? theme.accent : theme.textMuted, fontWeight: activeNoticeTab === "guide" ? "800" : "500", fontSize: "0.9rem", cursor: "pointer", borderBottom: activeNoticeTab === "guide" ? `2px solid ${theme.accent}` : "none" }}>
+                📖 시작 가이드
+              </button>
+              <button onClick={() => setActiveNoticeTab("update")} style={{ flex: 1, padding: "14px", background: activeNoticeTab === "update" ? theme.panelAlt : "transparent", border: "none", color: activeNoticeTab === "update" ? theme.accent : theme.textMuted, fontWeight: activeNoticeTab === "update" ? "800" : "500", fontSize: "0.9rem", cursor: "pointer", borderBottom: activeNoticeTab === "update" ? `2px solid ${theme.accent}` : "none" }}>
+                🚀 업데이트 노트 ({APP_VERSION})
+              </button>
+            </div>
+
+            {/* 본문 영역 */}
+            <div style={{ padding: "20px", overflowY: "auto", flex: 1, fontSize: "0.82rem", lineHeight: "1.7" }}>
+              {activeNoticeTab === "guide" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 4px 0", color: theme.text, fontSize: "1.05rem", fontWeight: "800" }}>
+                      LyrisTable (LT) 시스템 가이드
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "0.76rem", color: theme.textMuted }}>
+                      1:1 타이만 세션과 관계성 서사를 위한 플랫폼 핵심 기능 안내입니다.
+                    </p>
+                  </div>
+
+                  {/* 1. 시나리오 연동 방법 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.accent, fontSize: "0.82rem", marginBottom: "6px" }}>
+                      📄 1. 시나리오 연동 (파일 첨부 & AI 생성)
+                    </div>
+                    <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
+                      • <strong>파일 첨부 (.txt / .pdf):</strong> 로비의 [📄 파일 첨부]로 시나리오 문서를 올리면 룰 시스템, 시놉시스, 서막, KPC 명단, 조사 구역 및 단서 핸드아웃이 자동으로 파싱되어 입력란에 배치됩니다.<br/>
+                      • <strong>AI 즉석 생성:</strong> 원하는 분위기 태그(#GL, #쌍방구원, #오컬트 등)를 선택하고 [✨ AI 즉석 생성]을 누르면 세계관과 핸드아웃이 포함된 단편 시나리오가 자동으로 기획됩니다.<br/>
+                      • <strong>PC/KPC 자동 치환:</strong> 시나리오 본문에 'PC', 'KPC'로 적힌 단어는 [🔄 PC/KPC 치환] 버튼으로 캐릭터의 실제 고유 이름으로 일괄 변경할 수 있습니다.
+                    </div>
+                  </div>
+
+                  {/* 2. 캐릭터 시트 및 로비 저장 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.accent, fontSize: "0.82rem", marginBottom: "6px" }}>
+                      💾 2. 시트 & 로비 세팅 저장 (프리셋/백업)
+                    </div>
+                    <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
+                      • <strong>로비 전체 저장 (상단 💾 / 📂):</strong> PC와 KPC 프로필, 시나리오 본문, 스탯까지 포함된 '로비 풀 세팅'을 저장해 두고 원클릭으로 다시 불러올 수 있습니다. (JSON 파일 다운로드/복원 지원)<br/>
+                      • <strong>PC만 단독 저장 (우측 시트 💾 PC만):</strong> 세션 진행 도중 우측 시트 상단의 [💾 PC만]을 누르면 내 캐릭터 설정과 스탯만 별도 저장되어 다른 시나리오에서도 재활용할 수 있습니다.<br/>
+                      • <strong>전체 데이터 관리:</strong> 좌측 사이드바 하단의 [💾 데이터 관리]에서 진행 중인 세션을 텍스트(.txt), 마크다운(.md), PDF 인쇄본, 혹은 복원용 세이브(.json)로 안전하게 백업할 수 있습니다.
+                    </div>
+                  </div>
+
+                  {/* 3. 인세인 & CoC 조사/핸드아웃 기믹 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.warning, fontSize: "0.82rem", marginBottom: "6px" }}>
+                      🔍 3. 조사 단서 및 테이블탑 핸드아웃
+                    </div>
+                    <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
+                      • <strong>사명과 비밀 (인세인):</strong> 모든 등장인물의 공개 사명(앞면)과 비밀(뒷면) 카드가 헤더의 [🃏 테이블탑]에 배치됩니다. 카드를 터치해 앞뒤로 뒤집을 수 있습니다.<br/>
+                      • <strong>단서 조사:</strong> 시나리오 파일 내에 배치된 조사 구역은 탐색 성공 시 핸드아웃으로 해금되며, 발견한 결정적 증거는 시트 내 [📋 증거 수첩]에 자동 보관됩니다.
+                    </div>
+                  </div>
+
+                  {/* 4. 플레이 편의 기능 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.danger, fontSize: "0.82rem", marginBottom: "6px" }}>
+                      ⎌ 4. 편의 기능 및 되돌리기 (롤백)
+                    </div>
+                    <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
+                      • <strong>대화 취소 및 다시 쓰기:</strong> 내 마지막 말풍선 아래의 [⎌ 이 대화 취소 및 다시 쓰기]를 누르면 직전 상태로 메시지가 복구되며 호감도, 단서, 소지품 상태가 이전 턴으로 완전 롤백됩니다.<br/>
+                      • <strong>답변 강제 중단:</strong> AI 응답 도중 [⏹️ 취소] 버튼을 누르면 실시간 통신을 즉시 중단하고 재입력할 수 있습니다.
+                    </div>
+                  </div>
+
+                  <p style={{ margin: "4px 0 0 0", color: theme.textMuted, fontSize: "0.72rem" }}>
+                    * 본 플랫폼은 GL, BL, HL부터 논로맨스까지, 플레이어가 원하는 모든 관계성과 서사를 폭넓게 지원합니다.
+                  </p>
+                </div>
+              ) : (
+                /* 업데이트 노트 탭 */
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <h3 style={{ margin: "0 0 4px 0", color: theme.text, fontSize: "1.1rem" }}>{APP_VERSION} 패치 노트</h3>
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                    <strong style={{ color: theme.success, display: "block", marginBottom: "6px" }}>✨ 정식 배포 주요 변경 사항</strong>
+                    • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드가 추가되었습니다.<br/>
+                    • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 모든 서브 NPC의 사명/비밀 분리 생성 및 '스스로 밝힐 수 없다' 핸드아웃 카드가 완성되었습니다.<br/>
+                    • <strong>온보딩 가이드 & 세이브 백업:</strong> 신규 사용자를 위한 가이드 모달과 JSON 풀세팅 백업/복원 기능이 탑재되었습니다.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 하단 닫기 및 7일 체크 영역 */}
+            <div style={{ padding: "12px 20px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.75rem", cursor: "pointer", color: theme.textMuted }}>
+                <input type="checkbox" checked={hideNoticeCheckbox} onChange={(e) => setHideNoticeCheckbox(e.target.checked)} />
+                7일간 다시 보지 않기
+              </label>
+              <button onClick={handleCloseNotice} style={{ padding: "6px 16px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer", fontSize: "0.8rem" }}>
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}
