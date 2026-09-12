@@ -94,7 +94,8 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
-  const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
+const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
+  const [isEditingPortrait, setIsEditingPortrait] = useState(false); // 🌟 [추가] 크게 보기 / 수정 모드 토글용
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [showLobbyPresetModal, setShowLobbyPresetModal] = useState(false);
   const [lobbyPresets, setLobbyPresets] = useState([]);
@@ -693,16 +694,178 @@ export default function App() {
     closeModal(setShowPresetModal);
   };
 
+// 🌟 [CoC / 인세인 / 자유 서사 통합 파서] 룰 감지 및 전 룰 완벽 자동 배분
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const processScenarioText = (rawText) => {
+      const cleanVal = (str) => {
+        if (!str) return "";
+        return str
+          .replace(/^\|\||\|\|$/g, "")
+          .replace(/```[a-z]*\n?/gi, "")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .trim();
+      };
+
+      // ── [0. 룰 시스템 자동 감지 및 전환] ──
+      let detectedMode = wizardMode;
+      if (/인세인|insane/i.test(rawText)) {
+        detectedMode = "insane";
+        setWizardMode("insane");
+      } else if (/자유\s*서사|소설\s*모드|freeform/i.test(rawText)) {
+        detectedMode = "freeform";
+        setWizardMode("freeform");
+      } else if (/크툴루|coc/i.test(rawText)) {
+        detectedMode = "coc";
+        setWizardMode("coc");
+      }
+
+      // 태그 자동 추출 (있을 경우)
+      const tagMatch = rawText.match(/(?:서사\s*지향\s*태그|장르\s*톤|태그)\s*[:：]\s*([^\n\r]+)/i);
+      if (tagMatch) setPlayPreference(tagMatch[1].trim());
+
+      // ── [1. 시나리오 본문 & 진상] ──
+      const titleMatch = rawText.match(/(?:시나리오\s*제목|제목)\s*[:：]\s*([^\n\r]+)/i);
+      if (titleMatch) setScenarioTitle(titleMatch[1].trim());
+
+      const synMatch = rawText.match(/(?:\[공개\s*시놉시스\][^\n]*|공개\s*시놉시스\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[서막\]|서막\s*[:：]|###|\n\n\[|$))/i);
+      if (synMatch) setPublicSynopsis(synMatch[1].trim());
+
+      const opMatch = rawText.match(/(?:\[서막\][^\n]*|서막\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[키퍼|키퍼\s*전용|###|\n\n\[|$))/i);
+      if (opMatch) setOpeningScene(opMatch[1].trim());
+
+      const trMatch = rawText.match(/(?:\[키퍼\s*전용[^\n]*\]|키퍼\s*전용\s*(?:스포일러|진상|기밀)[^:：\n]*[:：]?|사건의\s*진상)\s*([\s\S]*?)(?=\n\s*(?:###\s*\d|\[내 프로필|\[등장인물|$))/i);
+      if (trMatch) setHiddenTruth(cleanVal(trMatch[1]));
+
+      // ── [2. 내 프로필 (PC 공통)] ──
+      const pcSectionMatch = rawText.match(/(?:###\s*1\.\s*내\s*프로필|\[PC\s*프로필\])([\s\S]*?)(?=\n\s*(?:###\s*2\.|\[등장인물|\[CoC|\[인세인))/i);
+      const pcText = pcSectionMatch ? pcSectionMatch[1] : rawText;
+
+      const pcNameMatch = pcText.match(/이름\s*[:：]\s*([^\n\r]+)/i);
+      if (pcNameMatch) setCharName(pcNameMatch[1].trim());
+
+      const pcJobMatch = pcText.match(/(?:직업|역할|직업\/역할)\s*[:：]\s*([^\n\r]+)/i);
+      if (pcJobMatch) setCharJob(pcJobMatch[1].trim());
+
+      const pcBgMatch = pcText.match(/(?:백스토리(?:\s*및\s*성격)?|성격(?:\s*및\s*백스토리)?)\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:-?\s*\[?내\s*캐릭터|###|\[|-?\s*사명|$))/i);
+      if (pcBgMatch) setCharBackground(pcBgMatch[1].trim());
+
+      const pcSecMatch = rawText.match(/(?:\[내\s*캐릭터의\s*숨겨진\s*비밀[^\]]*\]|PC\s*숨겨진\s*비밀|PC\s*비밀)\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:###|\[|\n\n-|$))/i);
+      if (pcSecMatch) setCharSecret(cleanVal(pcSecMatch[1]));
+
+      // ── [3. 룰별 특화 스탯 분기] ──
+      if (detectedMode === "coc") {
+        const parseStat = (label) => {
+          const m = rawText.match(new RegExp(`${label}\\s*[:：]\\s*(\\d+)`, "i"));
+          return m ? Number(m[1]) : null;
+        };
+
+        setCocStats({
+          str: parseStat("근력") ?? 40,
+          con: parseStat("건강") ?? 50,
+          siz: parseStat("크기") ?? 50,
+          dex: parseStat("민첩") ?? 60,
+          app: parseStat("외모") ?? 70,
+          int: parseStat("지능") ?? 75,
+          pow: parseStat("정신") ?? 75,
+          edu: parseStat("교육") ?? 40,
+          luck: parseStat("행운") ?? 55
+        });
+
+        const skillsMatch = rawText.match(/(?:추가\s*보유\s*기능치|주요\s*기능치|보유\s*기능치)\s*[:：]\s*([^\n\r]+)/i);
+        if (skillsMatch) setCocSkills(skillsMatch[1].trim());
+
+      } else if (detectedMode === "insane") {
+        const missionMatch = rawText.match(/(?:사명|공개\s*사명)\s*[:：]\s*([^\n\r]+)/i);
+        if (missionMatch) setCharMission(missionMatch[1].trim());
+
+        const limitMatch = rawText.match(/리미트\s*[:：]\s*(\d+)/i);
+        if (limitMatch) setInsaneLimit(Number(limitMatch[1]));
+
+        const curioMatch = rawText.match(/호기심(?:\s*분야)?\s*[:：]\s*([^\n\r]+)/i);
+        if (curioMatch) setInsaneCuriosity(curioMatch[1].trim());
+
+        const fearMatch = rawText.match(/공포심(?:\s*특기)?\s*[:：]\s*([^\n\r]+)/i);
+        if (fearMatch) setInsaneFear(fearMatch[1].trim());
+
+        const skillsMatch = rawText.match(/(?:습득\s*특기|특기)\s*[:：]\s*([^\n\r]+)/i);
+        if (skillsMatch) {
+          const list = skillsMatch[1].split(/[,/]\s*/).map(s => s.trim()).filter(Boolean);
+          if (list.length > 0) setInsaneSkills(list);
+        }
+      }
+
+      // ── [4. 등장인물 (KPC 및 서브 NPC)] ──
+      let parsedNpcList = [];
+
+      // 파트너 KPC
+      const kpcSection = rawText.match(/(?:\[파트너\s*KPC\]|파트너\s*KPC)([\s\S]*?)(?=\n\s*(?:\[서브\s*NPC|서브\s*NPC|###\s*3\.|\[시나리오))/i);
+      if (kpcSection) {
+        const kText = kpcSection[1];
+        const kName = (kText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "파트너";
+        const kJob = (kText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
+        const kDetail = (kText.match(/(?:외모[,\s]*성격[^\n:]*|관계성?)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        
+        const kSecMatch = rawText.match(/(?:\[(?:파트너\s*)?KPC\s*비밀[^\]]*\]|\[이\s*인물의\s*비밀\])\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[서브|서브\s*NPC|###|\[|\n\n-|$))/i);
+        const kSecret = kSecMatch ? cleanVal(kSecMatch[1]) : "";
+
+        parsedNpcList.push({
+          id: 1,
+          name: kName.trim(),
+          job: kJob.trim(),
+          detail: kDetail.trim(),
+          secret: kSecret,
+          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(kName.trim()) : "",
+          showSecret: false
+        });
+      }
+
+      // 서브 NPC (1~9명)
+      const subNpcRegex = /(?:\(서브\s*NPC\s*(\d+)\)|\[서브\s*NPC\s*(\d+)\])([\s\S]*?)(?=\n\s*(?:\(서브\s*NPC|\[서브\s*NPC|###\s*3\.|\[시나리오|$))/gi;
+      let match;
+      while ((match = subNpcRegex.exec(rawText)) !== null) {
+        const idx = Number(match[1] || match[2] || parsedNpcList.length + 1);
+        const sText = match[3];
+
+        const sName = (sText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || `NPC ${idx}`;
+        const sJob = (sText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
+        const sDetail = (sText.match(/(?:외모[,\s]*성격[^\n:]*|관계성?)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+
+        const sSecReg = new RegExp(`(?:\\[서브\\s*NPC\\s*${idx}\\s*비밀[^\\]]*\\]|\\[이\\s*인물의\\s*비밀\\])\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\[서브|\\(서브|###|\\[|\\n\\n-|$))`, "i");
+        const sSecMatch = rawText.match(sSecReg);
+        const sSecret = sSecMatch ? cleanVal(sSecMatch[1]) : "";
+
+        parsedNpcList.push({
+          id: Date.now() + idx,
+          name: sName.trim(),
+          job: sJob.trim(),
+          detail: sDetail.trim(),
+          secret: sSecret,
+          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(sName.trim()) : "",
+          showSecret: false
+        });
+      }
+
+      if (parsedNpcList.length > 0) {
+        setKpcList(parsedNpcList);
+      }
+
+      const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사" };
+      alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
+    };
+
     if (file.name.toLowerCase().endsWith(".pdf")) {
       setIsPdfLoading(true);
       try {
         if (!window.pdfjsLib) {
           await new Promise((res, rej) => {
-            const script = document.createElement("script"); script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            script.onload = res; script.onerror = rej; document.head.appendChild(script);
+            const script = document.createElement("script");
+            script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
+            script.onload = res;
+            script.onerror = rej;
+            document.head.appendChild(script);
           });
         }
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)";
@@ -713,14 +876,18 @@ export default function App() {
           const content = await page.getTextContent();
           text += `[${i}P] ${content.items.map((it) => it.str).join(" ")}\n\n`;
         }
-        setHiddenTruth(text.trim());
-        setPublicSynopsis("PDF 파일 내용이 진상란에 추출되었습니다.");
-      } catch (err) { alert("PDF 오류: " + err.message); } finally { setIsPdfLoading(false); }
+        processScenarioText(text);
+      } catch (err) {
+        alert("PDF 오류: " + err.message);
+      } finally {
+        setIsPdfLoading(false);
+      }
     } else {
       const reader = new FileReader();
-      reader.onload = (ev) => setHiddenTruth(ev.target.result);
+      reader.onload = (ev) => processScenarioText(ev.target.result);
       reader.readAsText(file, "UTF-8");
     }
+    e.target.value = null;
   };
 
   const applyCustomPortrait = () => {
@@ -741,6 +908,7 @@ export default function App() {
     setCustomPortraitPrompt("");
     closeModal(setShowPortraitEditModal);
   };
+  
 // 🌟 [추가] 세션 카드 컴퓨터 이미지 파일 업로드 & 자동 압축
   const handleSessionCardUpload = (sessionId, e) => {
     const file = e.target.files[0];
@@ -986,11 +1154,12 @@ export default function App() {
     } catch (e) {}
 
     cleanText = cleanText
-      .replace(/```html|```json|```/gi, "")
-      .replace(/<!--[\s\S]*?-{1,3}>/g, "")
-      .replace(/<!--[\s\S]*?$/g, "")
-      .replace(/\bKPC\b/g, partnerName || "파트너")
-      .trim();
+  .replace(/```html|```json|```/gi, "")
+  .replace(/<!--[\s\S]*?-{1,3}>/g, "")
+  .replace(/<!--[\s\S]*?$/g, "")
+  .replace(/<[^>]+>/g, "") // 🌟 이 줄이 있어야 <b>세리아</b> 같은 잔여 태그가 사라집니다!
+  .replace(/\bKPC\b/g, partnerName || "파트너")
+  .trim();
 
     return { cleanText, parsedData };
   };
@@ -1110,7 +1279,11 @@ export default function App() {
     const executeMessage = async (textToSend) => {
     if (!textToSend.trim() || !activeSession) return;
     const partnerName = activeSession.sheet?.npcs?.[0]?.name || "아델";
-    const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend }];
+
+    // 🌟 [추가] 대화 전 시트(호감도, 단서, 아이템) 원본 스냅샷 복사
+    const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
+    const updatedMessages = [...(activeSession.messages || []), { role: "user", text: textToSend, prevSheet: snapshotSheet }];
+
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
     setIsLoading(true);
 
@@ -1598,18 +1771,78 @@ export default function App() {
               </div>
             </div>
 
-            {/* 1. 룰 시스템 선택 */}
+           {/* 1. 룰 시스템 선택 */}
             <div className="glass-card" style={{ padding: "20px" }}>
               <div style={{ fontSize: "0.9rem", fontWeight: "800", marginBottom: "14px" }}>1. 룰 시스템 선택</div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "10px" }}>
                 {[
-                  { key: "coc", name: "크툴루의 부름 (CoC)", sub: "1D100 기반 탐색과 공포" },
-                  { key: "insane", name: "인세인 (inSANe)", sub: "비밀과 광기의 보드게임" },
-                  { key: "freeform", name: "자유 서사 (소설 모드)", sub: "주사위 없는 순수 역극" }
+                  {
+                    key: "coc",
+                    name: "크툴루의 부름 (CoC)",
+                    sub: "1D100 기반 탐색과 공포",
+                    help: "📖 [크툴루의 부름 (CoC 7판)]\n\n• 특징: 1D100 퍼센트 다이스 기반의 정통 TRPG 시스템입니다.\n• 주요 시스템: 근력/지능 등 8대 특성치, 이성(SAN) 체크, 광기 발현, 단서 조사.\n• 추천: 오컬트 미스터리, 수사물, 진실을 파헤치는 스릴과 긴장감을 즐기고 싶을 때 적합합니다."
+                  },
+                  {
+                    key: "insane",
+                    name: "인세인 (inSANe)",
+                    sub: "비밀과 광기의 보드게임",
+                    help: "🎲 [인세인 (inSANe)]\n\n• 특징: 2D6 주사위와 사이클/씬 구조를 채택한 멀티 장르 호러 TRPG입니다.\n• 주요 시스템: 6대 분야 66개 특기표 매트릭스, 캐릭터별 '비밀'과 '사명', 광기 카드 덱 운용.\n• 추천: 서로의 비밀을 캐내고 의심하는 서스펜스, 영화 같은 드라마틱한 전개를 원할 때 적합합니다."
+                  },
+                  {
+                    key: "freeform",
+                    name: "자유 서사 (소설 모드)",
+                    sub: "주사위 없는 순수 역극",
+                    help: "✍️ [자유 서사 (소설 모드)]\n\n• 특징: 복잡한 주사위 판정이나 수치 계산이 완전히 배제된 순수 텍스트 역극 모드입니다.\n• 주요 시스템: 캐릭터 프로필과 관계성에 기반한 AI 마스터와의 인터랙티브 소설 진행.\n• 추천: 주사위 실패의 스트레스 없이 인물 간의 감정선, 달달한 일상, 자유로운 티키타카에 집중하고 싶을 때 적합합니다."
+                  }
                 ].map((item) => (
-                  <div key={item.key} onClick={() => setWizardMode(item.key)} style={{ padding: "16px 14px", borderRadius: "12px", border: `1.5px solid ${wizardMode === item.key ? "#4a4947" : theme.border}`, backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent", cursor: "pointer" }}>
-                    <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text }}>{item.name}</div>
-                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>{item.sub}</div>
+                  <div
+                    key={item.key}
+                    onClick={() => setWizardMode(item.key)}
+                    style={{
+                      padding: "16px 14px",
+                      borderRadius: "12px",
+                      border: `1.5px solid ${wizardMode === item.key ? "#4a4947" : theme.border}`,
+                      backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent",
+                      cursor: "pointer",
+                      position: "relative" // 🌟 ? 아이콘 배치를 위한 기준점
+                    }}
+                  >
+                    {/* 🌟 우측 상단 ? 도움말 버튼 */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation(); // 룰이 강제로 바뀌지 않도록 클릭 전파 방지
+                        alert(item.help);
+                      }}
+                      title={`${item.name} 룰 설명 보기`}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        right: "10px",
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        border: `1px solid ${theme.border}`,
+                        backgroundColor: theme.panel,
+                        color: theme.textMuted,
+                        fontSize: "0.72rem",
+                        fontWeight: "800",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.08)"
+                      }}
+                    >
+                      ?
+                    </button>
+
+                    <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text, paddingRight: "24px" }}>
+                      {item.name}
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "4px" }}>
+                      {item.sub}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1890,7 +2123,7 @@ export default function App() {
                     <div className={m.role === "user" ? "" : "serif-text"} style={{ backgroundColor: m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi, color: theme.text, border: m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`, padding: "14px 18px", borderRadius: "12px", lineHeight: "1.9", whiteSpace: "pre-wrap", fontSize: "0.92rem" }}>
                       {m.text}
                     </div>
-                    {/* 내 마지막 말풍선 아래에만 취소 링크 표시 */}
+           {/* 내 마지막 말풍선 아래에만 취소 링크 표시 */}
                     {isLastUser && !isLoading && (
                       <button
                         onClick={() => {
@@ -1899,7 +2132,13 @@ export default function App() {
                             setSessions(prev => prev.map(s => {
                               if (s.id !== activeSessionId) return s;
                               const newMsgs = s.messages.slice(0, i);
-                              return { ...s, messages: newMsgs, suggestedActions: [], pendingCheck: null };
+                              return { 
+                                ...s, 
+                                sheet: m.prevSheet ? m.prevSheet : s.sheet, // 🌟 [핵심] 직전 시트(호감도·단서·소지품)로 완벽 롤백!
+                                messages: newMsgs, 
+                                suggestedActions: [], 
+                                pendingCheck: null 
+                              };
                             }));
                           }
                         }}
@@ -2333,26 +2572,124 @@ export default function App() {
         </div>
       )}
                 
-      {showPortraitEditModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
-          <div className="glass-card" style={{ width: "100%", maxWidth: "400px", padding: "20px", borderRadius: "14px", color: theme.text }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>초상화 변경 ({activePortraitTarget === "pc" ? "내 캐릭터" : "파트너"})</h3>
-              <button onClick={() => closeModal(setShowPortraitEditModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+     {/* 🌟 [개선] 초상화 대형 뷰어 & 인라인 수정 모달 */}
+      {showPortraitEditModal && (() => {
+        // 현재 선택된 대상의 이름, 직업, 현재 초상화 이미지 주소 추출
+        let targetName = "내 캐릭터";
+        let targetJob = "";
+        let targetUrl = "";
+
+        if (activeSession) {
+          if (activePortraitTarget === "pc") {
+            targetName = activeSession.sheet?.name || "내 캐릭터";
+            targetJob = activeSession.sheet?.job || "";
+            targetUrl = activeSession.sheet?.portrait || "";
+          } else {
+            const npc = (activeSession.sheet?.npcs || []).find(n => n.id === activePortraitTarget);
+            targetName = npc?.name || "파트너";
+            targetJob = npc?.title || "";
+            targetUrl = npc?.portrait || "";
+          }
+        } else {
+          if (activePortraitTarget === "pc") {
+            targetName = charName || "내 캐릭터";
+            targetJob = charJob || "";
+            targetUrl = charPortraitUrl || "";
+          } else {
+            const kpc = kpcList.find(k => k.id === activePortraitTarget);
+            targetName = kpc?.name || "파트너";
+            targetJob = kpc?.job || "";
+            targetUrl = kpc?.portraitUrl || "";
+          }
+        }
+
+        return (
+          <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: "16px" }}>
+            <div className="glass-card" style={{ width: "100%", maxWidth: "380px", padding: "20px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", gap: "14px", maxHeight: "90vh", overflowY: "auto" }}>
+              
+              {/* 상단 타이틀 바 */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: "800" }}>{targetName}</h3>
+                  {targetJob && <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{targetJob}</div>}
+                </div>
+                <button 
+                  onClick={() => { 
+                    setIsEditingPortrait(false); 
+                    closeModal(setShowPortraitEditModal); 
+                  }} 
+                  style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* 🌟 1. 대형 초상화 뷰어 영역 */}
+              <div style={{ width: "100%", aspectRatio: "1/1", borderRadius: "14px", overflow: "hidden", border: `1.5px solid ${theme.border}`, backgroundColor: theme.panelAlt, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 16px rgba(0,0,0,0.15)" }}>
+                {targetUrl ? (
+                  <img src={targetUrl} alt={targetName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ fontSize: "0.85rem", color: theme.textMuted, textAlign: "center" }}>등록된 이미지가 없습니다.</div>
+                )}
+              </div>
+
+              {/* 🌟 2. 하단 컨트롤러: 수정하기 버튼 또는 수정 입력 폼 */}
+              {!isEditingPortrait ? (
+                <button
+                  onClick={() => setIsEditingPortrait(true)}
+                  style={{ width: "100%", padding: "11px", backgroundColor: theme.panelAlt, border: `1.5px solid ${theme.accent}`, color: theme.accent, borderRadius: "10px", fontWeight: "800", fontSize: "0.82rem", cursor: "pointer", transition: "all 0.2s ease" }}
+                >
+                  ✏️ 초상화 이미지 변경하기
+                </button>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
+                  <label style={{ display: "block", width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px dashed ${theme.accent}`, borderRadius: "8px", textAlign: "center", cursor: "pointer", fontSize: "0.8rem", fontWeight: "700", color: theme.accent }}>
+                    📁 컴퓨터에서 새 파일 업로드
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => {
+                        handlePortraitFileUpload(e);
+                        setIsEditingPortrait(false);
+                      }} 
+                      style={{ display: "none" }} 
+                    />
+                  </label>
+
+                  <div style={{ textAlign: "center", fontSize: "0.7rem", color: theme.textMuted }}>또는 AI 프롬프트 / 새 이미지 URL</div>
+
+                  <input 
+                    type="text" 
+                    value={customPortraitPrompt} 
+                    onChange={e => setCustomPortraitPrompt(e.target.value)} 
+                    placeholder="예: silver hair girl / https://..." 
+                    style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                  />
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button 
+                      onClick={() => setIsEditingPortrait(false)} 
+                      style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.textMuted, borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem" }}
+                    >
+                      취소
+                    </button>
+                    <button 
+                      onClick={() => {
+                        applyCustomPortrait();
+                        setIsEditingPortrait(false);
+                      }} 
+                      style={{ flex: 2, padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.78rem" }}
+                    >
+                      변경 적용
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
-
-            <label style={{ display: "block", width: "100%", padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px dashed ${theme.accent}`, borderRadius: "8px", textAlign: "center", cursor: "pointer", fontSize: "0.82rem", fontWeight: "700", color: theme.accent, marginBottom: "12px" }}>
-              📁 내 컴퓨터에서 이미지 파일 선택
-              <input type="file" accept="image/*" onChange={handlePortraitFileUpload} style={{ display: "none" }} />
-            </label>
-
-            <div style={{ textAlign: "center", fontSize: "0.72rem", color: theme.textMuted, marginBottom: "8px" }}>또는 AI 프롬프트 / 이미지 URL 입력</div>
-
-            <input type="text" value={customPortraitPrompt} onChange={e => setCustomPortraitPrompt(e.target.value)} placeholder="예: silver hair girl / 이미지 URL" style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem", marginBottom: "12px" }} />
-            <button onClick={applyCustomPortrait} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.8rem" }}>적용</button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {showPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
