@@ -2039,10 +2039,30 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
             </div>
 
             {/* 내 프로필 & 등장인물 */}
+{/* 2. 장르 톤 */}
+            <div className="glass-card" style={{ padding: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <span style={{ fontSize: "0.9rem", fontWeight: "800" }}>2. 장르 톤 (서사 지향 태그)</span>
+                <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>태그가 룰의 분위기를 완전히 지배합니다.</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "14px" }}>
+                {[...ORIENT_TAGS, ...TROPE_TAGS].map(tag => {
+                  const active = playPreference.includes(tag);
+                  return (
+                    <button key={tag} onClick={() => toggleTag(tag)} style={{ padding: "5px 12px", borderRadius: "16px", fontSize: "0.76rem", fontWeight: active ? "700" : "500", backgroundColor: active ? "#52504c" : "transparent", color: active ? "#fff" : theme.text, border: `1px solid ${active ? "#52504c" : theme.border}`, cursor: "pointer" }}>{tag}</button>
+                  );
+                })}
+              </div>
+              <textarea value={playPreference} onChange={e => setPlayPreference(e.target.value)} placeholder="#GL #쌍방구원 #달달" style={{ width: "100%", height: "55px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+              
+              {/* 내 프로필 (PC) */}
               <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>내 프로필 (PC)</span>
+                  <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>
+                    {wizardMode.startsWith("dating") ? "내 프로필 (주인공)" : "내 프로필 (PC)"}
+                  </span>
                   <button onClick={() => openModal(setShowPresetModal)} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text }}>📁 프리셋 불러오기</button>
                 </div>
 
@@ -2052,25 +2072,46 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                   </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
                     <input type="text" value={charName} onChange={e => setCharName(e.target.value)} placeholder="이름" style={{ padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} />
-                    <input type="text" value={charJob} onChange={e => setCharJob(e.target.value)} placeholder="직업/역할" style={{ padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} />
+                    <input 
+                      type="text" 
+                      value={charJob} 
+                      onChange={e => setCharJob(e.target.value)} 
+                      placeholder={wizardMode.startsWith("dating") ? "매력 키워드 / 포지션 (예: 다정함, 연하)" : "직업/역할"} 
+                      style={{ padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+                    />
                   </div>
                 </div>
 
-                <textarea value={charBackground} onChange={e => setCharBackground(e.target.value)} placeholder="백스토리 및 성격..." style={{ width: "100%", height: "70px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+                <textarea 
+                  value={charBackground} 
+                  onChange={e => setCharBackground(e.target.value)} 
+                  placeholder={wizardMode.startsWith("dating") ? "성격, 취향, 평소 태도 및 분위기..." : "백스토리 및 성격..."} 
+                  style={{ width: "100%", height: "70px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", resize: "none" }} 
+                />
 
                 <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
                   <button type="button" onClick={() => setShowCharSecret(!showCharSecret)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "600" }}>
-                    {showCharSecret ? "🔒 내 비밀 닫기" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)"}
+                    {showCharSecret 
+                      ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 내 비밀 닫기") 
+                      : (wizardMode.startsWith("dating") ? "👀 상대에게 숨긴 진짜 진심/고민 (Secret)" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)")}
                   </button>
                   {showCharSecret && (
-                    <textarea value={charSecret} onChange={e => setCharSecret(e.target.value)} placeholder="숨겨진 진짜 목적이나 과거" style={{ width: "100%", height: "55px", marginTop: "6px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", resize: "none" }} />
+                    <textarea 
+                      value={charSecret} 
+                      onChange={e => setCharSecret(e.target.value)} 
+                      placeholder={wizardMode.startsWith("dating") ? "상대에게 털어놓지 못했던 남모를 상처나 숨겨둔 진심..." : "숨겨진 진짜 목적이나 과거"} 
+                      style={{ width: "100%", height: "55px", marginTop: "6px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", resize: "none" }} 
+                    />
                   )}
                 </div>
               </div>
 
+              {/* 등장인물 (KPC / 히로인) */}
               <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>등장인물 (KPC)</span>
+                  <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>
+                    {wizardMode.startsWith("dating") ? "히로인 / 공략 상대" : "등장인물 (KPC)"}
+                  </span>
                   <button onClick={() => setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "", portraitUrl: "", showSecret: false }])} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text }}>+ 추가</button>
                 </div>
 
@@ -2085,17 +2126,42 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                           {kpc.portraitUrl ? <img src={kpc.portraitUrl} alt="KPC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: "0.68rem", color: theme.textMuted }}>사진</span>}
                         </div>
                         <div style={{ flex: 1, display: "flex", gap: "6px" }}>
-                          <input type="text" value={kpc.name} onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} placeholder="파트너" style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} />
-                          <input type="text" value={kpc.job} onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, job: e.target.value } : k))} placeholder="조력자" style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} />
+                          <input 
+                            type="text" 
+                            value={kpc.name} 
+                            onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
+                            placeholder={wizardMode.startsWith("dating") ? "상대 이름" : "파트너"} 
+                            style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                          />
+                          <input 
+                            type="text" 
+                            value={kpc.job} 
+                            onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, job: e.target.value } : k))} 
+                            placeholder={wizardMode.startsWith("dating") ? "관계 / 신분 (예: 소꿉친구)" : "조력자"} 
+                            style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                          />
                         </div>
                       </div>
-                      <input type="text" value={kpc.detail} onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, detail: e.target.value } : k))} placeholder="외모, 성격, PC와의 관계" style={{ width: "100%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} />
+                      <input 
+                        type="text" 
+                        value={kpc.detail} 
+                        onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, detail: e.target.value } : k))} 
+                        placeholder={wizardMode.startsWith("dating") ? "외모, 매력적인 특징, 나와의 미묘한 관계성..." : "외모, 성격, PC와의 관계"} 
+                        style={{ width: "100%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                      />
                       
                       <button type="button" onClick={() => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, showSecret: !k.showSecret } : k))} style={{ width: "100%", padding: "6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.72rem", fontWeight: "600" }}>
-                        {kpc.showSecret ? "🔒 비밀 닫기" : "👀 이 인물의 비밀 열람 및 수정"}
+                        {kpc.showSecret 
+                          ? (wizardMode.startsWith("dating") ? "🔒 진심 닫기" : "🔒 비밀 닫기") 
+                          : (wizardMode.startsWith("dating") ? "👀 이 인물의 숨겨진 진심 열람 및 수정" : "👀 이 인물의 비밀 열람 및 수정")}
                       </button>
                       {kpc.showSecret && (
-                        <textarea value={kpc.secret} onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, secret: e.target.value } : k))} placeholder="숨겨진 진심이나 비밀" style={{ width: "100%", height: "50px", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.78rem", resize: "none" }} />
+                        <textarea 
+                          value={kpc.secret} 
+                          onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, secret: e.target.value } : k))} 
+                          placeholder={wizardMode.startsWith("dating") ? "당신에게 쉽게 드러내지 않는 진짜 속마음이나 약점..." : "숨겨진 진심이나 비밀"} 
+                          style={{ width: "100%", height: "50px", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.78rem", resize: "none" }} 
+                        />
                       )}
                     </div>
                   ))}
@@ -2170,9 +2236,12 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
             )}
 
             {/* 시나리오 정보 및 서막 */}
+{/* 시나리오 정보 및 서막 */}
             <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>시나리오 정보 및 서막(Prologue)</span>
+                <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>
+                  {wizardMode.startsWith("dating") ? "스토리 설정 및 첫 만남 (Prologue)" : "시나리오 정보 및 서막(Prologue)"}
+                </span>
                 <div style={{ display: "flex", gap: "6px" }}>
                   <label style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text }}>
                     📄 파일 첨부
@@ -2182,33 +2251,65 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                 </div>
               </div>
 
-              <input type="text" value={scenarioTitle} onChange={e => setScenarioTitle(e.target.value)} placeholder="시나리오 제목" style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem" }} />
+              <input 
+                type="text" 
+                value={scenarioTitle} 
+                onChange={e => setScenarioTitle(e.target.value)} 
+                placeholder={wizardMode.startsWith("dating") ? "에피소드 / 시나리오 제목" : "시나리오 제목"} 
+                style={{ width: "100%", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.85rem" }} 
+              />
               
               <div>
-                <label style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", display: "block" }}>[공개 시놉시스] 플레이어에게 주어지는 초기 정보</label>
-                <textarea value={publicSynopsis} onChange={e => setPublicSynopsis(e.target.value)} placeholder="도입부, 소문 등 스포일러 없는 배경 설명..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+                <label style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", display: "block" }}>
+                  {wizardMode.startsWith("dating") ? "[공개 시놉시스] 두 사람을 둘러싼 배경 및 현재 상황" : "[공개 시놉시스] 플레이어에게 주어지는 초기 정보"}
+                </label>
+                <textarea 
+                  value={publicSynopsis} 
+                  onChange={e => setPublicSynopsis(e.target.value)} 
+                  placeholder={wizardMode.startsWith("dating") ? "계절, 분위기, 두 사람이 얽히게 된 계기 등..." : "도입부, 소문 등 스포일러 없는 배경 설명..."} 
+                  style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} 
+                />
               </div>
 
               <div>
-                <label style={{ fontSize: "0.74rem", color: theme.accent, marginBottom: "4px", display: "block", fontWeight: "700" }}>[서막] 시작되는 시간, 장소, 혹은 상황 묘사</label>
-                <textarea value={openingScene} onChange={e => setOpeningScene(e.target.value)} placeholder="예: 비 내리는 늦은 오후, 작업실 문을 두드리는 소리가 들립니다..." style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+                <label style={{ fontSize: "0.74rem", color: theme.accent, marginBottom: "4px", display: "block", fontWeight: "700" }}>
+                  {wizardMode.startsWith("dating") ? "[오프닝] 이야기가 시작되는 첫 만남 혹은 사건의 순간" : "[서막] 시작되는 시간, 장소, 혹은 상황 묘사"}
+                </label>
+                <textarea 
+                  value={openingScene} 
+                  onChange={e => setOpeningScene(e.target.value)} 
+                  placeholder={wizardMode.startsWith("dating") ? "예: 비 내리는 늦은 오후, 조용한 온실 구석에서 그녀와 눈이 마주칩니다..." : "예: 비 내리는 늦은 오후, 작업실 문을 두드리는 소리가 들립니다..."} 
+                  style={{ width: "100%", height: "60px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} 
+                />
               </div>
 
               <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
                 <button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "8px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "6px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>
-                  {showHiddenTruth ? "🔒 키퍼 전용 진상 닫기" : "👀 키퍼 전용 스포일러/진상 수동 입력"}
+                  {showHiddenTruth 
+                    ? (wizardMode.startsWith("dating") ? "🔒 엔딩 분기 닫기" : "🔒 키퍼 전용 진상 닫기") 
+                    : (wizardMode.startsWith("dating") ? "👀 히든 엔딩 분기 & 둘만의 숨겨진 과거" : "👀 키퍼 전용 스포일러/진상 수동 입력")}
                 </button>
                 {showHiddenTruth && (
                   <div style={{ marginTop: "10px" }}>
-                    <div style={{ fontSize: "0.72rem", color: theme.danger, marginBottom: "6px" }}>⚠️ 플레이어 열람 주의! 마스터만 참조하는 사건의 흑막과 기믹, 엔딩 분기입니다.</div>
-                    <textarea value={hiddenTruth} onChange={e => setHiddenTruth(e.target.value)} placeholder="흑막의 정체, 특수 기믹, 트루/배드 엔딩 조건을 기입하세요." style={{ width: "100%", height: "85px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
+                    <div style={{ fontSize: "0.72rem", color: theme.danger, marginBottom: "6px" }}>
+                      {wizardMode.startsWith("dating") ? "⚠️ 스토리 기밀! 호감도 달성 시의 트루 엔딩이나 배드/특수 엔딩 조건을 기입하세요." : "⚠️ 플레이어 열람 주의! 마스터만 참조하는 사건의 흑막과 기믹, 엔딩 분기입니다."}
+                    </div>
+                    <textarea 
+                      value={hiddenTruth} 
+                      onChange={e => setHiddenTruth(e.target.value)} 
+                      placeholder={wizardMode.startsWith("dating") ? "트루 엔딩 해금 조건, 과거의 엇갈린 인연, 밝혀지지 않은 진실 등..." : "흑막의 정체, 특수 기믹, 트루/배드 엔딩 조건을 기입하세요."} 
+                      style={{ width: "100%", height: "85px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "8px", color: theme.text, fontSize: "0.82rem", resize: "none" }} 
+                    />
                   </div>
                 )}
               </div>
             </div>
 
+            {/* 시작 버튼 */}
             <button onClick={startNewSession} disabled={isLoading || isPdfLoading} style={{ width: "100%", padding: "16px", backgroundColor: "#52504c", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "800", cursor: "pointer", fontSize: "1rem" }}>
-              {isLoading ? "키퍼가 세계를 여는 중..." : "서막 열기"}
+              {isLoading 
+                ? (wizardMode.startsWith("dating") ? "새로운 인연을 맺는 중..." : "키퍼가 세계를 여는 중...") 
+                : (wizardMode.startsWith("dating") ? "이야기 시작하기" : "서막 열기")}
             </button>
           </div>
         ) : (
