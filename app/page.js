@@ -3012,9 +3012,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
           ))}
         </div>
       </div>
-    </div>
-  </div>
-)}
 
       {/* 설정 모달 */}
       {showSettingsModal && (
