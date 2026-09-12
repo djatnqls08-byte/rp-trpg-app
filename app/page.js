@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 
-// 2026 팬톤 트렌드 테마 4종
+// 팬톤 테마 4종
 const THEME_PALETTES = {
   cloud: {
     name: "클라우드 댄서",
@@ -912,13 +912,13 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
         if (!window.pdfjsLib) {
           await new Promise((res, rej) => {
             const script = document.createElement("script");
-            script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
             script.onload = res;
             script.onerror = rej;
             document.head.appendChild(script);
           });
         }
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)";
+       window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
         const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
         let text = "";
         for (let i = 1; i <= pdf.numPages; i++) {
@@ -2870,8 +2870,7 @@ if (wizardMode === "dating_msg") {
                 </div>
 
                 {(activeSession.sheet.insaneSkills || []).length > 0 && (
-                  <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
-/* ✅ 1줄만 유지 */
+
 <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                       {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
@@ -2969,14 +2968,16 @@ if (wizardMode === "dating_msg") {
                   </div>
                 </div>
               </details>
-            );
+          );
           })}
         </div>
       </div>
           
+        </div>
+      </div>
+    )}
 
       {/* 설정 모달 */}
-{/* 🌟 완벽하게 정돈된 환경 설정 모달 */}
       {showSettingsModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "22px", borderRadius: "14px", color: theme.text }}>
