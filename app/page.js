@@ -2474,7 +2474,7 @@ if (wizardMode === "dating_msg") {
               </div>
             )}
 
-            {/* 대화 로그 */}
+      {/* 대화 로그 */}
             <div ref={chatContainerRef} style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
               {isRolling && animationEnabled && (
                 <div style={{ position: "absolute", top: "15px", left: "50%", transform: "translateX(-50%)", zIndex: 50, backgroundColor: theme.panel, border: `2px solid ${theme.accent}`, borderRadius: "14px", padding: "10px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -2515,7 +2515,7 @@ if (wizardMode === "dating_msg") {
                       )}
 
                       <div style={{ display: "flex", alignItems: "flex-end", gap: "5px", flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
-                        {/* 말풍선 본체 (유저는 노란색 카톡, 상대는 하얀색/패널) */}
+                        {/* 말풍선 본체 (유저는 노란 카톡, 상대방은 패널색) */}
                         <div 
                           className={isDatingMsg ? "" : (m.role === "user" ? "" : "serif-text")} 
                           style={{ 
@@ -2570,12 +2570,11 @@ if (wizardMode === "dating_msg") {
                 );
               })}
 
-              {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>마스터가 서사를 집필하는 중...</div>}
+              {isLoading && <div style={{ color: theme.accent, fontSize: "0.8rem", padding: "4px" }}>답장을 입력하는 중...</div>}
             </div>
 
             {/* 알림 배너 */}
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px" }}>
-              
               {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.danger }}>
@@ -2611,8 +2610,8 @@ if (wizardMode === "dating_msg") {
                 </div>
               )}
 
-              {/* 🌟 CoC 전용 조사 칩 */}
-              {activeSession.ruleMode !== "insane" && (activeSession.investigationSpots || []).length > 0 && (
+              {/* CoC 전용 조사 칩 */}
+              {activeSession?.ruleMode !== "insane" && !activeSession?.ruleMode?.startsWith("dating") && (activeSession?.investigationSpots || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "700", alignSelf: "center" }}>🔍 조사:</span>
                   {activeSession.investigationSpots.map((spot, idx) => (
@@ -2621,7 +2620,7 @@ if (wizardMode === "dating_msg") {
                 </div>
               )}
 
-              {suggestionsEnabled && (activeSession.suggestedActions || []).length > 0 && (
+              {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "700", alignSelf: "center" }}>💡 제안:</span>
                   {activeSession.suggestedActions.map((sugg, idx) => (
@@ -2633,7 +2632,7 @@ if (wizardMode === "dating_msg") {
 
             {/* 입력창 */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
-              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="행동이나 대사를 입력하세요..." style={{ flex: 1, minHeight: "48px", maxHeight: "120px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "0.9rem", resize: "none" }} />
+              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="대사나 메시지를 입력하세요..." style={{ flex: 1, minHeight: "48px", maxHeight: "120px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "0.9rem", resize: "none" }} />
               {abortController || isLoading ? (
                 <button 
                   onClick={handleCancelResponse} 
