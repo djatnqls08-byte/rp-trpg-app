@@ -1,8 +1,11 @@
 export const metadata = {
-  title: "TRPG 시나리오 룸",
+  title: "LyrisTable | 1:1 TRPG",
   description: "텍스트 TRPG",
+  icons: {
+    icon: "/icon.png", // 🌟 [추가됨] 브라우저 탭 아이콘 연결!
+  },
   openGraph: {
-    title: "TRPG 시나리오 룸",
+    title: "LyrisTable | 1:1 TRPG",
     description: "텍스트 TRPG",
     images: [
       {
@@ -15,7 +18,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TRPG 시나리오 룸",
+    title: "LyrisTable | 1:1 TRPG",
     description: "텍스트 TRPG",
     images: ["https://i.pinimg.com/1200x/d8/2a/97/d82a97e86b15f52758d8cca34c51ffc1.jpg"],
   },
