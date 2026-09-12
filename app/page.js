@@ -1866,11 +1866,13 @@ if (wizardMode === "dating_msg") {
                 {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
               </button>
             )}
-{/* 🌟 플레이 화면에서는 공지 버튼 숨기고 로비에서만 표시 */}
-<button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+{/* 🌟 플레이 중에는 숨기고, 로비 화면일 때만 공지 버튼 표시 */}
+            {!activeSession && (
+              <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
                 📢
               </button>
             )}
+
             <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
               {isDarkMode ? "☀️" : "🌙"}
             </button>
