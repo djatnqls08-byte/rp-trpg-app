@@ -2869,24 +2869,23 @@ if (wizardMode === "dating_msg") {
                   )}
                 </div>
 
-                {(activeSession.sheet.insaneSkills || []).length > 0 && (
-
-<div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                      {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
-                          style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
-                        >
-                          <span>{sk}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+             {(activeSession.sheet.insaneSkills || []).length > 0 && (
+          <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+            {/* ✅ 1줄만 유지 */}
+            <div style={{ fontWeight: "800", fontSize: "0.76rem", marginBottom: "6px", color: theme.warning }}>⚔️ 습득 특기 (2D6 🎲)</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+              {(activeSession.sheet.insaneSkills || []).map((sk, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => rollDiceDirectly(5, `특기: ${sk}`)}
+                  style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.text, fontSize: "0.7rem", cursor: "pointer" }}
+                >
+                  <span>{sk}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
            {/* 🌟 미연시 모드일 때는 [선물함], TRPG일 때는 [소지품] */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
