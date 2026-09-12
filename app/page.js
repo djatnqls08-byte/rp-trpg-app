@@ -95,8 +95,9 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
 const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
-  const [isEditingPortrait, setIsEditingPortrait] = useState(false); // 🌟 [추가] 크게 보기 / 수정 모드 토글용
+  const [isEditingPortrait, setIsEditingPortrait] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
+  const [ruleHelpModal, setRuleHelpModal] = useState(null); // 🌟 [추가] 룰 설명 전용 팝업 상태
   const [showLobbyPresetModal, setShowLobbyPresetModal] = useState(false);
   const [lobbyPresets, setLobbyPresets] = useState([]);
 
@@ -1771,7 +1772,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
               </div>
             </div>
 
-           {/* 1. 룰 시스템 선택 */}
+         {/* 1. 룰 시스템 선택 */}
             <div className="glass-card" style={{ padding: "20px" }}>
               <div style={{ fontSize: "0.9rem", fontWeight: "800", marginBottom: "14px" }}>1. 룰 시스템 선택</div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "10px" }}>
@@ -1780,19 +1781,37 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                     key: "coc",
                     name: "크툴루의 부름 (CoC)",
                     sub: "1D100 기반 탐색과 공포",
-                    help: "📖 [크툴루의 부름 (CoC 7판)]\n\n• 특징: 1D100 퍼센트 다이스 기반의 정통 TRPG 시스템입니다.\n• 주요 시스템: 근력/지능 등 8대 특성치, 이성(SAN) 체크, 광기 발현, 단서 조사.\n• 추천: 오컬트 미스터리, 수사물, 진실을 파헤치는 스릴과 긴장감을 즐기고 싶을 때 적합합니다."
+                    badge: "1D100 다이스",
+                    icon: "🐙",
+                    points: [
+                      { title: "핵심 판정", desc: "1D100(백분율) 다이스를 굴려 수치 이하가 나오면 성공하는 직관적 시스템입니다." },
+                      { title: "이성 & 광기", desc: "괴이한 진실을 목격하면 이성(SAN)을 상실하며, 수치 급감 시 1D10 일시적 광기가 발현됩니다." },
+                      { title: "추천 분위기", desc: "단서를 추적하는 수사물, 진실을 파헤치는 스릴과 긴장감 넘치는 상호 구원에 적합합니다." }
+                    ]
                   },
                   {
                     key: "insane",
                     name: "인세인 (inSANe)",
                     sub: "비밀과 광기의 보드게임",
-                    help: "🎲 [인세인 (inSANe)]\n\n• 특징: 2D6 주사위와 사이클/씬 구조를 채택한 멀티 장르 호러 TRPG입니다.\n• 주요 시스템: 6대 분야 66개 특기표 매트릭스, 캐릭터별 '비밀'과 '사명', 광기 카드 덱 운용.\n• 추천: 서로의 비밀을 캐내고 의심하는 서스펜스, 영화 같은 드라마틱한 전개를 원할 때 적합합니다."
+                    badge: "2D6 사이클",
+                    icon: "🎲",
+                    points: [
+                      { title: "핵심 판정", desc: "2D6 주사위와 6대 분야 66개 특기표 매트릭스를 기반으로 판정을 진행합니다." },
+                      { title: "비밀과 사명", desc: "모든 인물이 겉으로 드러난 '사명'과 숨겨둔 '비밀'을 가지고 서로를 탐색합니다." },
+                      { title: "추천 분위기", desc: "서로를 향한 복잡한 의혹과 집착, 영화적이고 극적인 서스펜스 호러에 적합합니다." }
+                    ]
                   },
                   {
                     key: "freeform",
                     name: "자유 서사 (소설 모드)",
                     sub: "주사위 없는 순수 역극",
-                    help: "✍️ [자유 서사 (소설 모드)]\n\n• 특징: 복잡한 주사위 판정이나 수치 계산이 완전히 배제된 순수 텍스트 역극 모드입니다.\n• 주요 시스템: 캐릭터 프로필과 관계성에 기반한 AI 마스터와의 인터랙티브 소설 진행.\n• 추천: 주사위 실패의 스트레스 없이 인물 간의 감정선, 달달한 일상, 자유로운 티키타카에 집중하고 싶을 때 적합합니다."
+                    badge: "순수 텍스트",
+                    icon: "✍️",
+                    points: [
+                      { title: "핵심 판정", desc: "주사위 판정과 스탯 계산이 배제된 순수 텍스트 인터랙티브 소설 모드입니다." },
+                      { title: "자유로운 진행", desc: "기계적인 행동 지시문 없이 인물의 호흡과 대사, 감각적인 묘사의 여운으로 이어집니다." },
+                      { title: "추천 분위기", desc: "주사위 실패 스트레스 없이 두 사람의 감정선, 달달한 일상, 자유로운 티키타카에 적합합니다." }
+                    ]
                   }
                 ].map((item) => (
                   <div
@@ -1804,17 +1823,17 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                       border: `1.5px solid ${wizardMode === item.key ? "#4a4947" : theme.border}`,
                       backgroundColor: wizardMode === item.key ? theme.panelAlt : "transparent",
                       cursor: "pointer",
-                      position: "relative" // 🌟 ? 아이콘 배치를 위한 기준점
+                      position: "relative"
                     }}
                   >
-                    {/* 🌟 우측 상단 ? 도움말 버튼 */}
+                    {/* ? 도움말 팝업 열기 버튼 */}
                     <button
                       type="button"
                       onClick={(e) => {
-                        e.stopPropagation(); // 룰이 강제로 바뀌지 않도록 클릭 전파 방지
-                        alert(item.help);
+                        e.stopPropagation();
+                        setRuleHelpModal(item);
                       }}
-                      title={`${item.name} 룰 설명 보기`}
+                      title={`${item.name} 상세 규칙 보기`}
                       style={{
                         position: "absolute",
                         top: "10px",
@@ -2826,6 +2845,108 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
           </div>
         </div>
       )}
+
+        <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 [추가] 스타일 매칭 룰 설명 전용 팝업 모달 */}
+      {ruleHelpModal && (
+        <div
+          onClick={() => setRuleHelpModal(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 140,
+            padding: "16px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-card"
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              padding: "22px",
+              borderRadius: "16px",
+              color: theme.text,
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.25)"
+            }}
+          >
+            {/* 팝업 헤더 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "1.6rem" }}>{ruleHelpModal.icon}</span>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "800" }}>{ruleHelpModal.name}</h3>
+                    <span style={{ fontSize: "0.68rem", padding: "2px 6px", borderRadius: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.accent, fontWeight: "700" }}>
+                      {ruleHelpModal.badge}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.74rem", color: theme.textMuted, marginTop: "2px" }}>
+                    {ruleHelpModal.sub}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setRuleHelpModal(null)}
+                style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.2rem", cursor: "pointer", padding: "2px 6px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 항목별 상세 카드 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
+              {ruleHelpModal.points.map((pt, idx) => (
+                <div key={idx} style={{ padding: "10px 12px", backgroundColor: theme.panelAlt, borderRadius: "8px", border: `1px solid ${theme.border}` }}>
+                  <div style={{ fontSize: "0.76rem", fontWeight: "800", color: theme.accent, marginBottom: "3px" }}>
+                    • {pt.title}
+                  </div>
+                  <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.5" }}>
+                    {pt.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 하단 버튼 */}
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              <button
+                type="button"
+                onClick={() => setRuleHelpModal(null)}
+                style={{ flex: 1, padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setWizardMode(ruleHelpModal.key);
+                  setRuleHelpModal(null);
+                }}
+                style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                이 룰로 시작하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
 
     </div>
   );
