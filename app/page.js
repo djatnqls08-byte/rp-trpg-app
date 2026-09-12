@@ -3005,14 +3005,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
                     <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
                       {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
-                    </div>
-                  </div>
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      </div>
+                   </div>
+                  </details>
+                ))}
+            </div>
+          </div>
     </div>
   </div>
 )}
