@@ -522,7 +522,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
 {
   "name": "주인공 이름",
   "gender": "여성",
-  "age": "20대 나이",
+  "age": "나이",
   "job": "역할/직업",
   "background": "상처와 성격, 소지품 3가지 상세",
   "mission": "주인공의 표면상 사명",
@@ -567,13 +567,13 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
       const cleanJson = (data.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
       const p = JSON.parse(cleanJson);
 
-      const pName = p.name || "클레어";
-      const kName = p.kpcName || "아델";
+      const pName = p.name || "";
+      const kName = p.kpcName || "";
 
       setCharName(pName);
-      setCharJob(p.job || "복원가");
-      setCharAge(p.age || "24");
-      setCharGender("여성");
+      setCharJob(p.job || "");
+      setCharAge(p.age || "");
+      setCharGender("");
       setCharBackground(p.background || "");
       setCharPortraitUrl(getPortraitUrl(`${pName}, ${p.job}`));
 
@@ -584,14 +584,14 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
       setKpcList([{
         id: 1,
         name: kName,
-        job: p.kpcJob || "조력자",
+        job: p.kpcJob || "",
         detail: p.kpcDetail || "",
         secret: p.kpcSecret || "",
         portraitUrl: getPortraitUrl(`${kName}, portrait`),
         showSecret: false
       }]);
 
-      setScenarioTitle(p.scenarioTitle || "녹비의 안식처");
+      setScenarioTitle(p.scenarioTitle || "");
       setPublicSynopsis(p.publicSynopsis || "");
       setOpeningScene(p.openingScene || "");
       setHiddenTruth(p.hiddenTruth || "");
@@ -1790,62 +1790,51 @@ if (wizardMode === "dating_msg") {
         }}
         style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
       >
-        {/* 상단 단일 헤더 바 */}
+{/* 상단 단일 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
           
-          {/* 좌측: 메신저 톡일 때는 카톡 프로필 헤더 / 일반 룰일 때는 시나리오 제목 */}
+          {/* 좌측: 메신저 톡일 때는 선택된 인물 헤더 / 일반 룰일 때는 시나리오 제목 */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: theme.text, padding: "4px" }}>☰</button>
             
             {activeSession && activeSession.ruleMode === "dating_msg" ? (
-              /* 🌟 [메신저 전용 헤더] 상대방 프사 + 이름 + 온라인 상태 */
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                 <div style={{ width: "34px", height: "34px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${theme.border}`, flexShrink: 0 }}>
-                  <img src={activeSession.sheet?.npcs?.[0]?.portrait} alt="상대" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img 
+                    src={(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.portrait || activeSession.sheet?.npcs?.[0]?.portrait} 
+                    alt="상대" 
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                  />
                 </div>
                 <div>
                   <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text, display: "flex", alignItems: "center", gap: "5px" }}>
-{activeSession && activeSession.ruleMode === "dating_msg" ? (
-            /* 🌟 [메신저 전용 헤더] 선택된 인물 프사 + 이름 + 온라인 상태 */
-            <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-              <div style={{ width: "34px", height: "34px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${theme.border}`, flexShrink: 0 }}>
-                <img 
-                  src={(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.portrait || activeSession.sheet?.npcs?.[0]?.portrait} 
-                  alt="상대" 
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-                />
-              </div>
-              <div>
-                <div style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text, display: "flex", alignItems: "center", gap: "5px" }}>
-                  {(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.name || activeSession.sheet?.npcs?.[0]?.name || "상대방"}
-                  <span style={{ fontSize: "0.62rem", color: "#62d681", fontWeight: "700" }}>● 대화 중</span>
-                </div>
-                <div style={{ fontSize: "0.65rem", color: theme.textMuted }}>
-                  {(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.title || activeSession.sheet?.npcs?.[0]?.title || "1:1 대화"}
+                    {(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.name || activeSession.sheet?.npcs?.[0]?.name || "상대방"}
+                    <span style={{ fontSize: "0.62rem", color: "#62d681", fontWeight: "700" }}>● 대화 중</span>
+                  </div>
+                  <div style={{ fontSize: "0.65rem", color: theme.textMuted }}>
+                    {(activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId)?.title || activeSession.sheet?.npcs?.[0]?.title || "1:1 대화"}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            /* 기존 TRPG 헤더 */
-            <>
-              <span style={{ fontWeight: "800", fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: isMobile ? "140px" : "240px" }}>
-                {activeSession ? activeSession.title : "로비 (세션 생성)"}
-              </span>
-              {activeSession && activeSession.ruleMode === "insane" && (
-                <span style={{ padding: "2px 6px", backgroundColor: activeSession.sheet?.phase === "클라이맥스" ? "rgba(214, 56, 87, 0.2)" : "rgba(229, 169, 60, 0.2)", border: `1px solid ${activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning}`, borderRadius: "4px", fontSize: "0.7rem", color: activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning, fontWeight: "700" }}>
-                  {activeSession.sheet?.phase === "클라이맥스" ? "⚠️ 클라이맥스" : `${activeSession.sheet?.cycle || 1}C / ${activeSession.sheet?.scene || 1}S (리미트: ${activeSession.sheet?.limit || 4})`}
+            ) : (
+              <>
+                <span style={{ fontWeight: "800", fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: isMobile ? "140px" : "240px" }}>
+                  {activeSession ? activeSession.title : "로비 (세션 생성)"}
                 </span>
-              )}
-            </>
-          )}
+                {activeSession && activeSession.ruleMode === "insane" && (
+                  <span style={{ padding: "2px 6px", backgroundColor: activeSession.sheet?.phase === "클라이맥스" ? "rgba(214, 56, 87, 0.2)" : "rgba(229, 169, 60, 0.2)", border: `1px solid ${activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning}`, borderRadius: "4px", fontSize: "0.7rem", color: activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning, fontWeight: "700" }}>
+                    {activeSession.sheet?.phase === "클라이맥스" ? "⚠️ 클라이맥스" : `${activeSession.sheet?.cycle || 1}C / ${activeSession.sheet?.scene || 1}S (리미트: ${activeSession.sheet?.limit || 4})`}
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
-          {/* 우측 아이콘 및 수치 영역 */}
+          {/* 우측: 수치 및 버튼 */}
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            {/* 미연시일 때는 상단에 하트 호감도 배지 출력 */}
             {activeSession && activeSession.ruleMode?.startsWith("dating") && (
               <span style={{ padding: "4px 10px", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1px solid ${theme.danger}`, borderRadius: "14px", fontSize: "0.78rem", color: theme.danger, fontWeight: "800" }}>
-                ♥ {activeSession.sheet?.npcs?.[0]?.affection ?? 10}
+                ♥ {((activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId) || activeSession.sheet?.npcs?.[0])?.affection ?? 10}
               </span>
             )}
 
@@ -1861,6 +1850,25 @@ if (wizardMode === "dating_msg") {
                 🧠 {activeSession.sheet?.san ?? 50}
               </button>
             )}
+            {activeSession && (
+              <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="프로필 및 설정" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
+                {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
+              </button>
+            )}
+
+            {/* 🌟 플레이 중에는 숨기고, 로비 화면일 때만 공지 버튼 표시 */}
+            {!activeSession && (
+              <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+                📢
+              </button>
+            )}
+            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+              {isDarkMode ? "☀️" : "🌙"}
+            </button>
+          </div>
+        </div>
+
+        {!activeSession ? (
             {activeSession && (
               <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="프로필 및 설정" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
                 {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
@@ -2315,7 +2323,7 @@ if (wizardMode === "dating_msg") {
               </div>
             )}
 
-            {/* 시나리오 정보 및 서막 */}
+          
 {/* 시나리오 정보 및 서막 */}
             <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2632,7 +2640,7 @@ if (wizardMode === "dating_msg") {
                   ⏹️ 취소
                 </button>
               ) : (
-              <button 
+             <button 
                   onClick={sendMessage} 
                   disabled={isLoading || !input.trim()} 
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
