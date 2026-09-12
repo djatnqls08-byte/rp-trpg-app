@@ -1315,15 +1315,26 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     setActiveSessionId(newId);
     setIsLoading(true);
 
-    const openingPrompt = `[세션 시작: 첫 서막 지문 요청]
+   let openingPrompt = "";
+if (wizardMode === "dating_msg") {
+      openingPrompt = `[메신저 톡 첫 메시지 요청]
+당신은 '${partnerName}' 본인입니다.
+소설 지문, 3인칭 해설, 시스템 용어를 일절 배제하고 오직 스마트폰 메신저 톡 1~3줄로 상대방 '${pName}'에게 선톡을 보내십시오.
+상황: [오프닝] ${openingScene}
+
+[🚨 중요: 답장 후보 3개 생성 수칙]
+지문 맨 끝에 <!-- SUGGESTIONS: ["선택지1", "선택지 2", "선택지 3"] --> 태그를 반드시 출력하십시오.
+- 이 후보들은 **주인공 '${pName}'이 전송할 답장**입니다.
+- **'${pName}'의 프로필(성격 및 설정: ${charBackground || "자연스러운 성향"})**과 두 사람의 관계성을 철저히 반영하여, '${pName}'의 고유한 어조(존댓말/반말, 차분함/털털함/냉정함 등)와 100% 일치하는 대사로만 3개를 구성하십시오.`;
+    } else {
+      openingPrompt = `[세션 시작: 첫 서막 지문 요청]
 시나리오의 [배후 진상]과 [초기 배경/서막]을 충실히 반영하여 서막을 여십시오.
 반드시 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
-
-[🚨 호칭 준수]
 - 'KPC'라는 단어를 일절 쓰지 말고, 파트너의 실제 이름 '${partnerName}'(으)로만 지칭하십시오.
 - '${pName}'과 '${partnerName}'의 온기를 살려 4~5문장으로 서술하십시오.
 - 지문 끝에 씬 행동을 위한 <!-- SUGGESTIONS: ["${partnerName}에게 말을 건다", "주변 단서를 살펴본다", "장면표 굴림"] --> 태그를 출력하십시오.`;
-
+    }
+    
     const controller = new AbortController();
     setAbortController(controller);
 
@@ -1385,6 +1396,10 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     const isFreeform = activeSession.ruleMode === "freeform";
 
     // 2. 동적 시스템 수칙 주입 (아이템, 단서, 호감도 관리, R19 묘사, 마감 수칙)
+  // 2. 동적 시스템 수칙 주입
+    const isDating = activeSession.ruleMode?.startsWith("dating");
+    const pcTone = activeSession.sheet?.background || "자연스러운 성격";
+
     let dynamicRules = `\n\n[키퍼 시스템 연동 절대 수칙]
 1. 탐사자가 새로운 물건이나 소지품을 획득하면 지문 맨 끝에 반드시 <!-- ITEM: {"name": "아이템 이름", "desc": "간략한 설명"} --> 태그를 출력하십시오.
 2. 사건의 결정적 단서나 비밀 기록을 조사해 알아내면 지문 맨 끝에 반드시 <!-- CLUE: {"name": "단서명", "desc": "발견한 진실 내용 요약"} --> 태그를 출력하십시오.
@@ -1392,8 +1407,16 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
 - 호감도 범위는 0~100이며, 일반적인 호감 행동은 +1~3, 결정적 유대 형성은 최대 +5 내외로 소폭 반영하십시오.
 - PC가 기만, 무례함, 상대의 신념/자존심 훼손 등 비호감 행동을 보이면 단호하게 호감도를 차감하십시오. (-3~-10 등)
 - 호감도가 100에 도달하더라도 NPC는 맹목적인 추종이나 얀데레가 되지 않으며 고유의 신념과 독립적 자아를 유지합니다.
-- [채팅창 노출 절대 금지] 소설 지문 본문에 "호감도가 상승했다", "[호감도 +2]" 같은 시스템 문구를 직접 적지 마십시오. 오직 수치 변동이 있을 때만 지문 맨 끝에 숨은 태그 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후최종수치} --> 형태로만 출력하십시오.`;
+- [채팅창 노출 절대 금지] 본문에 호감도 증감 문구를 적지 마시고 오직 지문 맨 끝에 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후수치} --> 태그로만 출력하십시오.`;
 
+    // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
+    if (isDating) {
+      dynamicRules += `\n\n[미연시 대화 분기 수칙]
+- 지문 말미에 반드시 주인공이 보낼 수 있는 다음 답장/선택지 3개를 <!-- SUGGESTIONS: ["대사 1", "대사 2", "대사 3"] --> 태그로 출력하십시오.
+- **주인공 '${activeSession.sheet?.name}'의 성격/말투 설정: [${pcTone}]**
+- 주인공의 어조(존댓말 여부, 억양, 성격적 거리감)를 엄격히 준수하여 주인공이 직접 입 밖으로 낼 법한 대사로만 3가지 선택지를 제공하십시오.`;
+    }
+      
     if (isR19) {
       dynamicRules += `\n\n[R19 성인 서사 특화 수칙]
 - 정사, 스킨십, 배덕감 상호작용 상황에서는 점잖은 태도를 버리고 관능적인 소설 작가로 전환하십시오.
