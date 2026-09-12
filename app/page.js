@@ -1775,8 +1775,7 @@ if (wizardMode === "dating_msg") {
         }}
         style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}
       >
-        {/* 상단 단일 헤더 바 */}
-        {/* 상단 단일 헤더 바 */}
+       {/* 상단 단일 헤더 바 */}
         <div style={{ height: "54px", padding: "0 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, flexShrink: 0 }}>
           
           {/* 좌측: 메신저 톡일 때는 카톡 프로필 헤더 / 일반 룰일 때는 시나리오 제목 */}
@@ -1833,46 +1832,6 @@ if (wizardMode === "dating_msg") {
                 🧠 {activeSession.sheet?.san ?? 50}
               </button>
             )}
-            {activeSession && (
-              <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="프로필 및 설정" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
-                {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
-              </button>
-            )}
-
-            <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
-              📢
-            </button>
-            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
-              {isDarkMode ? "☀️" : "🌙"}
-            </button>
-          </div>
-        </div>
-
-          {/* 우측 아이콘 및 수치 영역 */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            {/* 🌟 미연시일 때는 상단에 하트 호감도 배지 출력 */}
-            {activeSession && activeSession.ruleMode?.startsWith("dating") && (
-              <span style={{ padding: "4px 10px", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1px solid ${theme.danger}`, borderRadius: "14px", fontSize: "0.78rem", color: theme.danger, fontWeight: "800" }}>
-                ♥ {activeSession.sheet?.npcs?.[0]?.affection ?? 10}
-              </span>
-            )}
-
-            {/* inSANe 버튼들 */}
-            {activeSession && activeSession.ruleMode === "insane" && (
-              <>
-                <button onClick={() => advanceInsaneScene(activeSessionId)} title="수동으로 씬을 넘깁니다" style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "12px", fontSize: "0.72rem", cursor: "pointer" }}>씬 종료 ➔</button>
-                <button onClick={handleRollSceneTable} style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🎲 장면표</button>
-                <button onClick={() => setIsTabletopOpen(!isTabletopOpen)} style={{ padding: "5px 10px", backgroundColor: isTabletopOpen ? theme.warning : theme.panel, border: `1px solid ${theme.warning}`, color: isTabletopOpen ? "#000" : theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑</button>
-              </>
-            )}
-
-            {/* CoC 버튼들 */}
-            {activeSession && activeSession.ruleMode === "coc" && (
-              <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} title="1D100 이성 체크" style={{ padding: "6px 10px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1.5px solid ${theme.danger}`, color: theme.danger, borderRadius: "16px", cursor: "pointer", fontWeight: "800", fontSize: "0.78rem" }}>
-                🧠 {activeSession.sheet?.san ?? 50}
-              </button>
-            )}
-
             {activeSession && (
               <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="프로필 및 설정" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
                 {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
@@ -2880,13 +2839,14 @@ if (wizardMode === "dating_msg") {
                         >
                           <span>{sk}</span>
                           <span style={{ fontSize: "0.65rem", color: theme.warning }}>🎲</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+                       </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
 
             {/* 소지품 */}
             <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
