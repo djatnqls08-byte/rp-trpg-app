@@ -1409,16 +1409,15 @@ if (wizardMode === "dating_msg") {
     const isDating = activeSession.ruleMode?.startsWith("dating");
     const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
-    let dynamicRules = `\n\n[키퍼 시스템 연동 절대 수칙]
-1. 탐사자가 새로운 물건이나 소지품을 획득하면 지문 맨 끝에 반드시 <!-- ITEM: {"name": "아이템 이름", "desc": "간략한 설명"} --> 태그를 출력하십시오.
-2. 사건의 결정적 단서나 비밀 기록을 조사해 알아내면 지문 맨 끝에 반드시 <!-- CLUE: {"name": "단서명", "desc": "발견한 진실 내용 요약"} --> 태그를 출력하십시오.
-3. [NPC 호감도 및 인격 관리 절대 수칙]
-- 호감도 범위는 0~100입니다. 
-- [🚨 절대 경고: 급격한 변동 및 착각 금지] 
-  * 질투, 쌀쌀맞음, 다른 사람 이름 부르기, 실수, 선 넘는 무례함은 절대 호감 행동이 아닙니다! 로맨스 텐션으로 착각하지 말고 반드시 단호하게 감점(-2~-5)하십시오.
-  * 호감도는 한 턴에 절대로 5점 이상 크게 뛸 수 없습니다! (일반 호감 행동은 +1~2, 매우 깊은 공감일 때만 최대 +3)
-  * 반드시 현재 NPC의 시트에 적힌 [기존 호감도]를 확인한 후, 거기서 1~3점 단위로 더하거나 뺀 '정확한 최종 계산 결과'만 value에 넣으십시오.
-- [채팅창 노출 절대 금지] 본문에 호감도 증감 문구를 적지 마시고 오직 지문 맨 끝에 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후수치} --> 태그로만 출력하십시오.
+- [채팅창 노출 절대 금지] 본문에 호감도 증감 문구를 적지 마시고 오직 지문 맨 끝에 <!-- AFFECTION: {"name": "NPC이름", "value": 변경후수치} --> 태그로만 출력하십시오.`;
+
+    // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
+    if (isDating) {
+      dynamicRules += `\n\n[미연시 대화 분기 수칙]
+- 지문 말미에 반드시 주인공이 보낼 수 있는 다음 답장/선택지 3개를 <!-- SUGGESTIONS: ["대사 1", "대사 2", "대사 3"] --> 태그로 출력하십시오.
+- **주인공 '${activeSession?.sheet?.name || "주인공"}'의 성격/말투 설정: [${pcTone}]**
+- 주인공의 어조(존댓말 여부, 억양, 성격적 거리감)를 엄격히 준수하여 주인공이 직접 입 밖으로 낼 법한 대사로만 3가지 선택지를 제공하십시오.`;
+    }
 
   // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
     if (isDating) {
@@ -1600,7 +1599,7 @@ if (wizardMode === "dating_msg") {
 
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, sheet: newSheet,
-        messages: [...updatedMessages, { role: "modelmessages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],", text: cleanText }],
+       messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
@@ -1703,8 +1702,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   const isHiddenEnding = isScenarioEnded && /Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText);
   const isBadEnding = isScenarioEnded && !isHiddenEnding && /Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText);
 
-  return (
-    <div style={{ display: "flex", height: "100dvh", width: "100vw", ...
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
