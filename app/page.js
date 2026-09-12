@@ -2804,7 +2804,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
                 onClick={() => {
                   if (selectedExportSessionIds.length === sessions.length) setSelectedExportSessionIds([]);
                   else setSelectedExportSessionIds(sessions.map(s => s.id));
-                }}
+                }} 
                 style={{ background: "none", border: "none", color: theme.accent, fontSize: "0.72rem", cursor: "pointer" }}
               >
                 {selectedExportSessionIds.length === sessions.length ? "선택 해제" : "전체 선택"}
@@ -2842,11 +2842,6 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
             </select>
 
             <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
-          </div>
-        </div>
-      )}
-
-        <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
           </div>
         </div>
       )}
@@ -2943,10 +2938,6 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
           </div>
         </div>
       )}
-
-    </div>
-  );
-}
 
     </div>
   );
