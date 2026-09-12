@@ -9,7 +9,16 @@ const FALLBACK_MODELS = [
 
 export async function POST(req) {
   try {
-    const { messages, scenarioText, playerSheet, ruleMode, playPreference } = await req.json();
+    const {
+      messages,
+      scenarioText,
+      playerSheet,
+      ruleMode,
+      playPreference,
+      isPhoneChat,
+      targetNpc,
+    } = await req.json();
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -29,56 +38,73 @@ export async function POST(req) {
         { role: "user", parts: [{ text: lastMessageText }] }
       ];
     } else {
-      const partnerName = playerSheet?.npcs?.[0]?.name || "아델";
-      const pName = playerSheet?.name || "클레어";
+      const pName = playerSheet?.name || "주인공";
       const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
-      const isDatingMsg = ruleMode === "dating_msg";
-      const isDatingNovel = ruleMode === "dating_novel";
+      
+      // 대화 상대 NPC 지정 (스마트폰 서랍에서 넘겨준 대상 우선)
+      const activePartner = targetNpc || playerSheet?.npcs?.[0] || { name: "상대", job: "조력자" };
+      const partnerName = activePartner.name || "상대";
 
       let systemInstruction = "";
 
- // ── [1. 미연시: 메신저 톡(문자/서신형) 전용 프롬프트] ──
-      if (isDatingMsg) {
-        systemInstruction = `[1:1 서신 및 실시간 연락 모드]
-당신은 '${pName}'과 1:1로 연락을 주고받고 있는 '${partnerName}' 본인입니다!
+      // ── [1. 통합 미연시 모드: "dating"] ──
+      if (ruleMode === "dating") {
+        if (isPhoneChat) {
+          // 📱 [하단 스마트폰 서랍: 1:1 비대면 메신저 톡]
+          systemInstruction = `[1:1 개인 연락 및 메신저 모드]
+당신은 '${pName}'과 1:1로 개인 연락(스마트폰 톡/서신)을 주고받고 있는 '${partnerName}' 본인입니다!
+[인물 정보] 역할: ${activePartner.job || "인물"}, 성격 및 설정: ${activePartner.detail || "자연스러운 태도"}
 
 [🚨 시대 배경 및 세계관 몰입 수칙]
-1. 시나리오의 시대 배경(중세, 근대, 판타지, 오컬트, 현대 등)에 어울리는 어조를 구사하십시오!
-2. 시나리오 배경이 근대나 판타지, 아날로그 서사라면 '카톡', '톡', '문자', '스마트폰' 같은 현대식 신조어나 은어를 절대로 쓰지 마십시오! 
-   (상대방이 만년필, 편지, 마법 전서구 등을 언급하면 그 분위기에 맞춰 대답하십시오.)
-3. 3인칭 나레이션이나 상황 묘사 지문, **[1일 차...]** 헤더를 절대 쓰지 말고 오직 '${partnerName}'이 상대에게 건네는 직접적인 대사만 출력하십시오.
+1. 장르 및 키워드 [${playPreference || "현대 일상"}]에 어울리는 어조를 구사하십시오.
+2. 근대/판타지 서사라면 '카톡', '스마트폰' 같은 현대 은어를 금지하고 편지, 전갈, 통신 마도구에 맞게 대답하십시오.
+3. 3인칭 소설 지문, 상황 묘사, **[N일 차...]** 헤더를 절대 쓰지 마십시오.
+4. 오직 '${partnerName}'이 실제 전송할 법한 생생한 대사(1~3문장)만 출력하십시오.
 
-[🚨 호감도(Affection) 관리 - 널뛰기 엄벌 수칙]
-- 현재 호감도 기준치에서 시작합니다. (0~100 범위)
-- 평범한 일상 대화나 안부는 호감도를 절대 올리지 마십시오! (변동 없음)
-- 진심으로 설레거나 깊은 유대가 느껴지는 순간에만 +1~2점 내외로 아주 소폭만 올리십시오. (한 번에 5점 이상 폭등 절대 금지!)
-- 상대에게 서운하거나 무례한 말을 들으면 -2~-5점 차감하십시오.
-- 호감도 변동 시 지문 맨 끝에만 태그 출력: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
+[🚨 호감도(Affection) 관리 수칙]
+- 현재 호감도 범위는 0~100입니다.
+- 일상적 안부로는 호감도를 올리지 마십시오 (변동 없음).
+- 진심으로 설레거나 깊은 유대가 느껴질 때만 소폭(+1~2점) 올리십시오. (5점 이상 폭등 절대 금지)
+- 무례하거나 선을 넘는 발언에는 단호하게 -2~-5점 감점하십시오.
+- 호감도 변동 시 본문 끝에만 태그 출력: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
 
 [상대방의 취향 발견 수칙]
-- 대화 중 '${partnerName}'의 취향(좋아하는 음식, 취미, 선물 취향 등)이 드러났다면 본문 맨 끝에:
+- 대화 중 좋아하는 취향이나 단서가 드러나면 본문 끝에 태그를 출력하십시오:
   <!-- CLUE: {"name": "${partnerName}의 취향: OOO", "desc": "상세 취향 설명"} -->
-  태그를 출력하십시오. (플레이어의 취향 노트에 보관됩니다.)
 
 [대화 선택지]
-- 지문 맨 끝에는 주인공 '${pName}'(성격: [${pcTone}])이 보낼 만한 답장 3개를 출력하십시오:
+- 답변 끝에 주인공 '${pName}'(성향: [${pcTone}])이 보낼 만한 답장 3개를 출력하십시오:
   <!-- SUGGESTIONS: ["답장 1", "답장 2", "답장 3"] -->`;
 
-        formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-        formattedContents.push({ role: "model", parts: [{ text: `네, 3인칭 소설 지문이나 상황 묘사를 일절 쓰지 않고, 오직 ${partnerName}으로서 메신저 톡만 자연스럽게 답장하겠습니다.` }] });
+          formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+          formattedContents.push({ role: "model", parts: [{ text: `네, 3인칭 묘사를 배제하고 오직 ${partnerName}으로서 메신저 답장만 자연스럽게 출력하겠습니다.` }] });
 
-      // ── [2. 미연시: 비주얼 노벨(소설형) 전용 프롬프트] ──
-      } else if (isDatingNovel) {
-        systemInstruction = `[비주얼 노벨 / 인터랙티브 로맨스 모드]
-당신은 두 사람의 섬세한 감정선과 미묘한 긴장감을 그리는 감성 소설 작가입니다.
-- 주사위 판정, 스탯 계산, 시스템 용어를 배제하고 인물의 눈빛, 숨소리, 대사에 집중하십시오.
-- 지문 끝에 주인공 '${pName}'의 선택지 3개를 <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] --> 형식으로 출력하십시오. (주인공 성향: [${pcTone}])
-- 호감도 변동 시 본문 끝에 <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} --> 태그를 출력하십시오.`;
+        } else {
+          // 📖 [메인 화면: 비주얼 노벨 소설 서사 + 선톡 연동]
+          const npcListStr = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
 
-        formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-        formattedContents.push({ role: "model", parts: [{ text: "서정적인 비주얼 노벨 문체로 두 사람의 관계를 그리겠습니다." }] });
+          systemInstruction = `[비주얼 노벨 / 인터랙티브 로맨스 모드]
+당신은 인물들의 섬세한 감정선과 미묘한 긴장감을 그리는 감성 소설 작가입니다.
+- 주사위 판정, 시스템 용어를 배제하고 인물의 눈빛, 숨결, 공간의 분위기를 담은 감각적인 소설 지문(4~5문장)을 서술하십시오.
+- 장르 톤: [${playPreference || "로맨스"}]
+- 맹목적인 집착이나 유치한 소유욕 표현을 배제하고 인물 고유의 독립적 인격과 입체성을 지키십시오.
 
-      // ── [3. 기존 정통 TRPG 모드 (CoC, inSANe, 자유 서사)] ──
+[선택지 및 호감도 수칙]
+- 지문 끝에 주인공 '${pName}'(성향: [${pcTone}])의 선택지 3개를 출력하십시오:
+  <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->
+- 호감도 변동 시 지문 맨 끝에 태그를 출력하십시오:
+  <!-- AFFECTION: {"name": "대상인물명", "value": 변경후수치} -->
+
+[비대면 선톡(PHONE_MSG) 발생 수칙]
+- 현재 시나리오 등장인물 명단: [${npcListStr}]
+- 장면 전환 직후, 사건 일단락 후, 밤 시간대 등 비대면으로 연락이 올 법한 자연스러운 타이밍에만 지문 맨 끝에 아래 태그를 출력하십시오 (개연성이 있을 때만 가끔 출력):
+  <!-- PHONE_MSG: {"from": "인물명단 중 정확한 이름", "text": "1~2줄의 짤막한 메시지"} -->`;
+
+          formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+          formattedContents.push({ role: "model", parts: [{ text: "서정적인 비주얼 노벨 문체로 서사를 진행하며, 타이밍에 맞춰 자연스럽게 개별 연락을 연동하겠습니다." }] });
+        }
+
+      // ── [2. 정통 TRPG 모드 (CoC, inSANe, 자유 서사)] ──
       } else {
         const currentCycle = playerSheet?.cycle || 1;
         const currentScene = playerSheet?.scene || 1;
