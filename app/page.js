@@ -2032,13 +2032,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     <div
                       key={item.key}
                       onClick={() => setWizardMode(item.key)}
-
-                  return (
-                    <div
-                      key={item.key}
-                      onClick={() => {
-                      setWizardMode("dating"); // 또는 프로젝트의 룰 상태 변수명 (예: setRuleMode("dating"))
-                    }}
                       style={{
                         padding: "16px 14px",
                         borderRadius: "12px",
