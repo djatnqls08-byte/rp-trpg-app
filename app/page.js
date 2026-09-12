@@ -1830,8 +1830,9 @@ if (wizardMode === "dating_msg") {
             )}
           </div>
 
-          {/* 우측: 수치 및 버튼 */}
+{/* 우측 아이콘 및 수치 영역 */}
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {/* 미연시일 때는 상단에 하트 호감도 배지 출력 */}
             {activeSession && activeSession.ruleMode?.startsWith("dating") && (
               <span style={{ padding: "4px 10px", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1px solid ${theme.danger}`, borderRadius: "14px", fontSize: "0.78rem", color: theme.danger, fontWeight: "800" }}>
                 ♥ {((activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId) || activeSession.sheet?.npcs?.[0])?.affection ?? 10}
@@ -1862,25 +1863,6 @@ if (wizardMode === "dating_msg") {
                 📢
               </button>
             )}
-            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
-              {isDarkMode ? "☀️" : "🌙"}
-            </button>
-          </div>
-        </div>
-
-        {!activeSession ? (
-            {activeSession && (
-              <button onClick={() => setIsSheetOpen(!isSheetOpen)} title="프로필 및 설정" style={{ padding: "6px 10px", backgroundColor: isSheetOpen ? theme.accent : theme.panel, border: `1px solid ${theme.border}`, color: isSheetOpen ? "#fff" : theme.text, borderRadius: "8px", cursor: "pointer", fontSize: "0.85rem" }}>
-                {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
-              </button>
-            )}
-{/* 🌟 플레이 중에는 숨기고, 로비 화면일 때만 공지 버튼 표시 */}
-            {!activeSession && (
-              <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
-                📢
-              </button>
-            )}
-
             <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
               {isDarkMode ? "☀️" : "🌙"}
             </button>
