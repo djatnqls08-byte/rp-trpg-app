@@ -24,25 +24,65 @@ export async function POST(req) {
 
     if (isScenarioGen) {
       formattedContents = [
-        { role: "user", parts: [{ text: "당신은 전문 TRPG 시나리오 라이터입니다. 요청에 따라 마크다운 없이 순수한 JSON 객체({...})만 반환하십시오." }] },
+        { role: "user", parts: [{ text: "당신은 전문 시나리오 라이터입니다. 요청에 따라 마크다운 없이 순수한 JSON 객체({...})만 반환하십시오." }] },
         { role: "model", parts: [{ text: "{}" }] },
         { role: "user", parts: [{ text: lastMessageText }] }
       ];
     } else {
       const partnerName = playerSheet?.npcs?.[0]?.name || "아델";
       const pName = playerSheet?.name || "클레어";
-      const currentCycle = playerSheet?.cycle || 1;
-      const currentScene = playerSheet?.scene || 1;
-      const limitCycle = playerSheet?.limit || 4;
+      const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
+      const isDatingMsg = ruleMode === "dating_msg";
+      const isDatingNovel = ruleMode === "dating_novel";
 
-      let rulePrompt = "";
-      if (ruleMode === "coc") {
-        rulePrompt = `[크툴루의 부름 7판 CoC 진행 및 광기 수칙]
+      let systemInstruction = "";
+
+      // ── [1. 미연시: 메신저 톡(문자형) 전용 프롬프트] ──
+      if (isDatingMsg) {
+        systemInstruction = `[스마트폰 1:1 메신저 톡 모드]
+당신은 '${pName}'과 실시간으로 문자(카카오톡)를 주고받고 있는 메신저 상대방 '${partnerName}' 본인입니다!
+
+[🚨 절대 금지 수칙 - 위반 시 에러]
+1. 3인칭 소설 지문, 상황 묘사, 배경 설명, 독백을 절대 작성하지 마십시오.
+2. **[1일 차 / 요일 / 시간 / 장소]** 같은 헤더나 날짜 태그를 절대로 출력하지 마십시오.
+3. 당신은 '키퍼'나 '해설자'가 아닙니다. 오직 '${partnerName}'이 스마트폰 키보드로 직접 치는 카톡 메시지만 출력하십시오.
+
+[대화 및 전송 규칙]
+- 실제 메신저처럼 자연스러운 일상 구어체로 1~3줄 내외의 짧은 톡을 전송하십시오.
+- '${pName}'의 말에 기쁘거나, 쑥스럽거나, 서운해하는 감정을 이모티콘이나 말투로 생생하게 표현하십시오.
+- 상대방과의 대화에 따라 호감도에 변화가 생기면 지문 맨 끝에 <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} --> 태그를 붙이십시오. (호감도 범위: 0~100)
+- 지문 맨 끝에는 반드시 주인공 '${pName}'이 보낼 수 있는 다음 답장 후보 3개를 출력하십시오:
+  <!-- SUGGESTIONS: ["답장 1", "답장 2", "답장 3"] -->
+  * '${pName}'의 성격과 말투 설정: [${pcTone}]을 철저히 반영하여, '${pName}'이 직접 보낼 법한 말투로만 작성하십시오.`;
+
+        formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+        formattedContents.push({ role: "model", parts: [{ text: `네, 3인칭 소설 지문이나 상황 묘사를 일절 쓰지 않고, 오직 ${partnerName}으로서 메신저 톡만 자연스럽게 답장하겠습니다.` }] });
+
+      // ── [2. 미연시: 비주얼 노벨(소설형) 전용 프롬프트] ──
+      } else if (isDatingNovel) {
+        systemInstruction = `[비주얼 노벨 / 인터랙티브 로맨스 모드]
+당신은 두 사람의 섬세한 감정선과 미묘한 긴장감을 그리는 감성 소설 작가입니다.
+- 주사위 판정, 스탯 계산, 시스템 용어를 배제하고 인물의 눈빛, 숨소리, 대사에 집중하십시오.
+- 지문 끝에 주인공 '${pName}'의 선택지 3개를 <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] --> 형식으로 출력하십시오. (주인공 성향: [${pcTone}])
+- 호감도 변동 시 본문 끝에 <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} --> 태그를 출력하십시오.`;
+
+        formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+        formattedContents.push({ role: "model", parts: [{ text: "서정적인 비주얼 노벨 문체로 두 사람의 관계를 그리겠습니다." }] });
+
+      // ── [3. 기존 정통 TRPG 모드 (CoC, inSANe, 자유 서사)] ──
+      } else {
+        const currentCycle = playerSheet?.cycle || 1;
+        const currentScene = playerSheet?.scene || 1;
+        const limitCycle = playerSheet?.limit || 4;
+
+        let rulePrompt = "";
+        if (ruleMode === "coc") {
+          rulePrompt = `[크툴루의 부름 7판 CoC 진행 및 광기 수칙]
 - 단서 탐색, 조사 선언 시 결과를 미리 서술하지 말고 <!-- CHECK: {"skill": "기능명", "target": 수치, "reason": "이유"} --> 출력 후 발화를 즉시 멈추십시오.
 - 물리적 구역은 <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] --> 형식으로 출력하십시오.
 - 🚨 이성(SAN) 차감 완급 조절: 경미한 조우는 성공 0 / 실패 1점(최대 2점)으로 제한하십시오.`;
-      } else if (ruleMode === "insane") {
-        rulePrompt = `[멀티 호러 TRPG 인세인 진행 및 사이클/핸드아웃/광기 수칙]
+        } else if (ruleMode === "insane") {
+          rulePrompt = `[멀티 호러 TRPG 인세인 진행 및 사이클/핸드아웃/광기 수칙]
 현재 진행 상태: ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
 - 🚨 [SPOTS 절대 금지]: 인세인은 씬(Scene) 게임입니다. <!-- SPOTS: ... --> 태그를 절대로 출력하지 마십시오!
 - 🚨 [조사 판정 태그]: 플레이어가 조사를 선언하면 특기를 지정해 <!-- CHECK: {"skill": "특기명", "target": 5, "reason": "이유"} --> 출력 후 즉시 서술을 멈추십시오(HALT).
@@ -51,25 +91,21 @@ export async function POST(req) {
   <!-- REVEAL_HANDOUT: {"title": "조사한_핸드아웃_제목"} -->
   <!-- ADVANCE_SCENE -->
   태그를 출력하십시오.
-- 🚨 **[광기 발현(Trigger) 필수 태그]**:
-  플레이어가 "광기 발동", "발현시켜줘", "공포에 질림"을 요청하거나 서사적으로 광기가 발현되는 상황이 되면,
-  절대 말로만 서술하지 말고 반드시 본문 맨 끝에 아래 시스템 태그를 출력하십시오:
-  <!-- TRIGGER_MADNESS: {"name": "의혹", "desc": "동행자의 사명과 말을 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다."} -->
-  (광기 6종 중 택1: 의혹, 망상, 강박증, 패닉, 폭력 충동, 쇼크)
+- 🚨 [광기 발현]: 본문 맨 끝에 <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "설명"} --> 태그를 출력하십시오.
 - 행동 추천 제안은 <!-- SUGGESTIONS: ["${partnerName}와 대화 나누기", "주변 단서 살펴보기", "장면표 굴림"] --> 형식으로 출력하십시오.`;
-      } else {
-        rulePrompt = `[자유 서사 모드]
+        } else {
+          rulePrompt = `[자유 서사 모드]
 - 주사위 판정 없이 대사와 감정선에 집중하십시오.
 - 장소 변경 시 지문 최상단에 **[N일 차 / 요일 / 시간 / 장소]** 헤더를 출력하십시오.`;
-      }
+        }
 
-      const relationshipPrompt = `[🚨 캐릭터 호칭 및 관계성 절대 수칙 - 위반 금지]
-1. 🚨 서술과 대사에서 'PC', 'KPC'라는 단어를 절대 쓰지 마십시오! 탐사자는 '${pName}', 동행 파트너는 '${partnerName}'(으)로만 지칭하십시오.
-2. 맹목적 추종, 얀데레, 강압(납치, 감금), 유치한 소유욕 묘사를 엄격히 금지합니다.
-3. 호감도가 높더라도 절제되고 성숙한 미학과 거리감을 유지하십시오.
-${(playPreference || "").includes("#달달") || (playPreference || "").includes("#일상") ? "5. 태그에 #달달 혹은 #일상이 포함되어 있습니다. 고어, 유혈 묘사를 일절 배제하고 서사를 따뜻하고 애틋하게 재해석하십시오." : ""}`;
+        const relationshipPrompt = `[🚨 캐릭터 호칭 및 관계성 절대 수칙]
+1. 'PC', 'KPC'라는 단어를 절대 쓰지 마십시오! 탐사자는 '${pName}', 동행 파트너는 '${partnerName}'(으)로만 지칭하십시오.
+2. 맹목적 추종, 얀데레, 강압(납치, 감금), 소유욕 묘사를 엄격히 금지합니다.
+3. 호감도가 높더라도 절제되고 성숙한 유대감을 유지하십시오.
+${(playPreference || "").includes("#달달") || (playPreference || "").includes("#일상") ? "4. 태그에 #달달 혹은 #일상이 포함되어 있습니다. 고어, 유혈 묘사를 배제하고 서사를 따뜻하게 재해석하십시오." : ""}`;
 
-      const systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
+        systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
 
 ${rulePrompt}
 ${relationshipPrompt}
@@ -82,24 +118,13 @@ ${scenarioText || "미상의 시나리오"}
 [🚨 서술 문체 및 규칙]
 1. 모든 지문 서술은 정중한 키퍼의 경어체(~합니다/했습니다)로 100% 일관되게 고정하십시오.
 2. 판정 요구 시 태그를 출력하고 즉시 서술을 멈추십시오. 태그 끝은 반드시 "-->" 로 닫으십시오.
+3. 시간 스킵을 금지하며 1턴 1행동 원칙으로 진행하십시오. 플레이어의 대사나 행동을 대신 결정하지 마십시오.`;
 
-[🚨 서사 속도 및 진행 호흡 절대 수칙 (스킵 방지 / Pacing Control)]
-1. 시간 스킵(타임스킵) 절대 금지:
-   - 플레이어가 "시간을 보낸다"고 직접 선언하지 않는 한, "몇 시간이 지나", "그렇게 다음 날이 되고", "잠시 후", "밤이 깊어지며" 처럼 마스터가 임의로 시간을 건너뛰지 마십시오.
-   - 항상 '지금 이 순간(실시간)' 1~2분 안에서 일어나는 일만 서술하십시오.
-2. 1턴 1행동·1호흡 원칙 (슬로우번):
-   - 한 번의 답변에서 사건을 완결짓거나 여러 사건을 연쇄적으로 전개하지 마십시오.
-   - 플레이어의 행동에 대한 반응(NPC의 눈빛, 작은 몸짓, 짧은 대사) 1회 + 주변 환경의 미세한 묘사 1개만 제시하고 턴을 즉시 넘기십시오.
-3. 플레이어 캐릭터(PC) 조종 금지 (자율권 보장):
-   - ${pName}의 속마음, 감정, 대사, 발걸음을 마스터가 대신 서술(대필)하지 마십시오. 마스터는 오직 세상과 NPC(${partnerName})만을 움직여야 합니다.
-4. 단서와 진상의 단계적 누출:
-   - 조사 한 번에 서랍 속 편지의 전문을 다 털어놓지 마십시오. "서랍 안쪽에 낡은 편지 한 통이 보입니다"처럼 단서의 겉모습만 보여주고, 플레이어가 열어보겠다고 할 때 내용을 보여주십시오.
-5. 턴 종료 시 행동 촉구:
-   - 지문 끝은 항상 플레이어가 당장 다음에 무엇을 할지 반응할 수 있는 '열린 상태'로 끝마치십시오.`;
+        formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+        formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 한 턴에 한 호흡씩 천천히 진행하겠습니다." }] });
+      }
 
-      formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-      formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 시간을 임의로 스킵하지 않고 한 턴에 한 호흡씩 천천히 진행하겠습니다. 탐사자의 행동을 대신 결정하지 않겠습니다." }] });
-
+      // 대화 히스토리 구성
       for (const m of messages || []) {
         const role = m.role === "user" ? "user" : "model";
         const text = (m.text || "").trim();
