@@ -249,51 +249,6 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     setPhoneTheme(thKey);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_phone_theme", thKey);
   };
-
-  // 🌟 톡 전용 스킨 팔레트 프리셋
-  const PHONE_SKINS = {
-    default: {
-      name: "시스템",
-      icon: "✨",
-      userBg: theme.accent,
-      userText: "#ffffff",
-      npcBg: theme.panelAlt,
-      npcText: theme.text,
-      npcBorder: theme.border,
-      chatBg: theme.panel
-    },
-    kakao: {
-      name: "옐로우",
-      icon: "💬",
-      userBg: "#fee500",
-      userText: "#191919",
-      npcBg: "#ffffff",
-      npcText: "#191919",
-      npcBorder: "rgba(0,0,0,0.08)",
-      chatBg: "#b2c7d9"
-    },
-    parchment: {
-      name: "양피지",
-      icon: "📜",
-      userBg: "#d8c29d",
-      userText: "#3c2a1e",
-      npcBg: "#f5ece1",
-      npcText: "#3c2a1e",
-      npcBorder: "rgba(120, 80, 40, 0.2)",
-      chatBg: "#ece2d0"
-    },
-    cyber: {
-      name: "네온",
-      icon: "🔮",
-      userBg: "#00d2d3",
-      userText: "#011627",
-      npcBg: "#1e272e",
-      npcText: "#00f5d4",
-      npcBorder: "rgba(0, 245, 212, 0.3)",
-      chatBg: "#0b0c10"
-    }
-  };
-  const activePhoneSkin = PHONE_SKINS[phoneTheme] || PHONE_SKINS.default;
   
   // 🌟 햅틱 진동 실행 엔진
   const triggerVibration = (level = vibrationLevel) => {
@@ -378,6 +333,52 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
+
+  // ⭕ [여기에 붙여넣기!] theme가 먼저 선언되었으므로 완벽하게 작동합니다
+  const PHONE_SKINS = {
+    default: {
+      name: "시스템",
+      icon: "✨",
+      userBg: theme.accent,
+      userText: "#ffffff",
+      npcBg: theme.panelAlt,
+      npcText: theme.text,
+      npcBorder: theme.border,
+      chatBg: theme.panel
+    },
+    kakao: {
+      name: "옐로우",
+      icon: "💬",
+      userBg: "#fee500",
+      userText: "#191919",
+      npcBg: "#ffffff",
+      npcText: "#191919",
+      npcBorder: "rgba(0,0,0,0.08)",
+      chatBg: "#b2c7d9"
+    },
+    parchment: {
+      name: "양피지",
+      icon: "📜",
+      userBg: "#d8c29d",
+      userText: "#3c2a1e",
+      npcBg: "#f5ece1",
+      npcText: "#3c2a1e",
+      npcBorder: "rgba(120, 80, 40, 0.2)",
+      chatBg: "#ece2d0"
+    },
+    cyber: {
+      name: "네온",
+      icon: "🔮",
+      userBg: "#00d2d3",
+      userText: "#011627",
+      npcBg: "#1e272e",
+      npcText: "#00f5d4",
+      npcBorder: "rgba(0, 245, 212, 0.3)",
+      chatBg: "#0b0c10"
+    }
+  };
+  const activePhoneSkin = PHONE_SKINS[phoneTheme] || PHONE_SKINS.default;
+  
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
