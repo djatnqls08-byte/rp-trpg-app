@@ -158,18 +158,20 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     }
   ]);
 
-  // 🌟 public/presets.json 파일이 깃허브에 올라가 있으면 자동으로 불러오는 엔진
+  // 🌟 public/presets.json 자동 로드 (단일 객체/배열 자동 처리 및 캐시 방지)
   useEffect(() => {
-    fetch("/presets.json")
+    fetch(`/presets.json?t=${Date.now()}`, { cache: "no-store" })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data && Array.isArray(data) && data.length > 0) {
-          setOfficialPresets(data);
+        if (!data) return;
+        // 💡 대괄호([ ])가 없어도 자동으로 목록으로 변환하여 모두 띄워줍니다!
+        const list = Array.isArray(data) ? data : [data];
+        if (list.length > 0) {
+          setOfficialPresets(list);
         }
       })
-      .catch(() => {});
+      .catch(err => console.log("프리셋 로드 에러:", err));
   }, []);
-
   // 🌟 낱개(1개) 세팅만 깔끔하게 단독 JSON으로 다운로드
   const exportSingleLobbyPreset = (p) => {
     const fileName = `${(p.presetTitle || p.scenarioTitle || "시나리오").replace(/[\/\\:*?"<>|]/g, "_")}.json`;
