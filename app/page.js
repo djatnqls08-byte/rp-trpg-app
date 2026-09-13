@@ -183,7 +183,65 @@ export default function App() {
     }, animationEnabled ? 600 : 100);
   };
 
+// 2. 3대 주요 행동 - 조사 완료 처리 (범용 ID 및 동적 명칭 매칭)
+  const handleExecuteInvestigation = (targetType, targetObj, skillName) => {
+    setInvestigationModal(null);
+    setIsActionDrawerOpen(false);
 
+    const learned = activeSession.sheet?.insaneSkills || [];
+    const curiosity = activeSession.sheet?.insaneCuriosity || "정서";
+    const targetVal = calculateInsaneTargetNumber(skillName, learned, curiosity);
+
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const isSuccess = sum === 12 || (sum >= targetVal && sum !== 2);
+
+    const targetDisplayName = targetObj.name || targetObj.title || "조사 대상";
+    let resultDetail = "";
+
+    if (isSuccess) {
+      if (targetType === "secret") {
+        resultDetail = `\n[조사 성공: 비밀 해금] 《${targetDisplayName}》의 숨겨진 진실이 해금되었습니다. 테이블탑 핸드아웃에서 내용을 확인하세요.`;
+
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+
+          const hList = (s.sheet?.handouts || []).map(h => {
+            const isMatch = (targetObj.id && (h.id === targetObj.id || h.npcId === targetObj.id))
+              || (targetObj.name && h.title?.includes(targetObj.name))
+              || (targetObj.title && h.title === targetObj.title);
+            return isMatch ? { ...h, revealed: true, isFlipped: true } : h;
+          });
+
+          const nList = (s.sheet?.npcs || []).map(n => {
+            const isMatch = n.id === targetObj.id || (targetObj.name && n.name === targetObj.name);
+            return isMatch ? { ...n, secretRevealed: true } : n;
+          });
+
+          return { ...s, sheet: { ...s.sheet, handouts: hList, npcs: nList, actionUsed: true } };
+        }));
+      } else if (targetType === "location") {
+        resultDetail = `\n[조사 성공: 거처 확보] 《${targetDisplayName}》의 거처와 활동 경로를 확보했습니다! (메인 페이즈 전투 신청 가능)`;
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+          const nList = (s.sheet?.npcs || []).map(n => (n.id === targetObj.id || n.name === targetObj.name) ? { ...n, hasLocation: true } : n);
+          return { ...s, sheet: { ...s.sheet, npcs: nList, actionUsed: true } };
+        }));
+      } else if (targetType === "mental") {
+        const mCount = targetObj.madnessCards?.length || 0;
+        resultDetail = `\n[조사 성공: 정신상태 파악] 《${targetDisplayName}》의 내면을 관찰했습니다. (현재 보유 미공개 광기: ${mCount}장)`;
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
+      }
+    } else {
+      resultDetail = `\n[조사 실패] 경계가 삼엄하여 핵심 정보를 알아내지 못했습니다.`;
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
+    }
+
+    const logText = `[주요 행동: 조사 선언 (대상: ${targetDisplayName} / 특기: ${skillName})]\n2D6 결과: ${d1}+${d2}=${sum} (목표치: ${targetVal}) ➔ ${isSuccess ? "성공" : "실패"}${resultDetail}`;
+
+    executeMessage(logText);
+  };
 
   // 3. 3대 주요 행동 - 감정 결정 처리
   const handleSelectEmotion = (npc, selectedEmotionName) => {
@@ -2357,17 +2415,21 @@ actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed 
     }, animationEnabled ? 600 : 100);
   };
 
-  // 🌟 인세인 핸드아웃 뒤집기 (미해금 비밀 스포 완벽 차단)
+// 🌟 인세인 핸드아웃 뒤집기 (완전 범용 ID & 상태 기반)
   const toggleHandoutReveal = (hId) => {
     if (!activeSession) return;
     const card = (activeSession.sheet?.handouts || []).find(h => h.id === hId);
     if (!card) return;
 
-    // 내 캐릭터(PC)의 본인 사명/비밀 카드인지 확인
-    const isPcCard = card.id === "pc_base" || card.title.includes(activeSession.sheet?.name || "주인공");
+    // 내 캐릭터 카드인지 판별 (PC 이름 동적 참조)
+    const isPcCard = card.id === "pc_base" || (activeSession.sheet?.name && card.title.includes(activeSession.sheet.name));
 
-    // 이미 조사로 해금되었거나, 내 캐릭터 카드일 때만 앞/뒤 뒤집기 허용!
-    if (card.revealed || isPcCard) {
+    // 연결된 NPC의 비밀이 해금되었는지 판별 (ID 또는 동적 이름 매칭)
+    const isLinkedNpcRevealed = (activeSession.sheet?.npcs || []).some(n => 
+      (card.npcId === n.id || (n.name && card.title.includes(n.name))) && n.secretRevealed
+    );
+
+    if (card.revealed || isPcCard || isLinkedNpcRevealed) {
       const handouts = (activeSession.sheet.handouts || []).map(h => h.id === hId ? { ...h, isFlipped: !h.isFlipped } : h);
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, handouts } } : s));
     } else {
