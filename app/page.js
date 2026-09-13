@@ -2996,15 +2996,15 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               </summary>
                 
               {/* 드롭다운 펼쳤을 때 나오는 상세 내용 */}
-              <div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
-                  <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
-                  <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
-                    {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
+<div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
+                    <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
+                    <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
+                      {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </details>
-          ))}
+              </details>
+            ))}
         </div>
       </div>
     </div>
