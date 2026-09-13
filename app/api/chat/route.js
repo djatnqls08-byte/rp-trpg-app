@@ -18,6 +18,7 @@ export async function POST(req) {
       playPreference = "",
       isPhoneChat = false,
       targetNpc = null,
+      lastStoryContext = "",
     } = body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -50,17 +51,28 @@ export async function POST(req) {
 
       // ── [1. 통합 미연시 모드: "dating"] ──
       if (ruleMode === "dating") {
-        if (isPhoneChat) {
-          // 📱 1:1 스마트폰 서랍 메신저
+       if (isPhoneChat) {
+          // 📱 1:1 스마트폰 서랍 메신저 (현장 상황 반응형)
           systemInstruction = `[1:1 개인 연락 및 메신저 모드]
-당신은 '${pName}'과 1:1로 개인 연락(스마트폰 톡/서신)을 주고받고 있는 '${partnerName}' 본인입니다!
+당신은 '${pName}'과 1:1로 개인 연락(스마트폰 톡/서신/마도구)을 주고받고 있는 '${partnerName}' 본인입니다!
 [인물 정보] 역할: ${activePartner.job || "인물"}, 설정: ${activePartner.detail || "자연스러운 태도"}
 
-[🚨 시대 배경 및 세계관 몰입 수칙]
-1. 장르 및 키워드 [${playPreference || "현대 일상"}]에 어울리는 어조를 구사하십시오.
-2. 근대/판타지 서사라면 '카톡', '스마트폰' 같은 현대 은어를 금지하고 편지, 전갈, 통신 마도구에 맞게 대답하십시오.
-3. 3인칭 소설 지문, 상황 묘사, **[N일 차...]** 헤더를 절대 쓰지 마십시오.
-4. 오직 '${partnerName}'이 실제 전송할 법한 생생한 문자 대사(1~3문장)만 간결히 출력하십시오.
+[🚨 현재 메인 서사 직전 현장 상황]
+"""
+${lastStoryContext || "현재 두 사람은 떨어져 있는 상태입니다."}
+"""
+
+[🚨 대면(거리감) 실시간 인식 수칙]
+1. **눈앞에 있거나 같은 공간에 대면 중인 경우:**
+   - 위 [메인 서사 직전 현장 상황]에서 '${partnerName}'이 '${pName}'의 눈앞에 서 있거나, 함께 걷고 있거나, 마주 보고 있는 상황이라면 딴 곳에서 일하고 있는 척 거짓말을 하지 마십시오!
+   - 주머니 속 진동을 느끼고 화면을 확인한 뒤, 주인공을 의아하게 쳐다보거나 빤히 응시하는 태도를 담아 답장하십시오.
+   - 예시 반응:
+     * "...바로 눈앞에 서 있으면서 왜 문자를 보내는 겁니까?"
+     * "고개 들어요, 서은하 연구원. 할 말이 있으면 직접 하든가."
+     * (조용히 해야 하거나 은밀한 분위기라면) "...쉿, 들키면 어쩌려고 그럽니까. 폰 집어넣고 내 뒤로 붙어요."
+2. **물리적으로 떨어져 있거나 혼자 있는 경우 (퇴근 후, 각자의 방, 밤 등):**
+   - 자연스럽게 일상적인 문자나 업무 답장을 보내십시오.
+3. 3인칭 소설 지문이나 상황 묘사는 쓰지 말고, 오직 '${partnerName}'이 전송할 생생한 문자 대사(1~3문장)만 출력하십시오.
 
 [🚨 호감도(Affection) 관리 수칙]
 - 현재 호감도 범위는 0~100입니다.
@@ -78,8 +90,7 @@ export async function POST(req) {
   <!-- SUGGESTIONS: ["답장 1", "답장 2", "답장 3"] -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: `네, 3인칭 묘사를 배제하고 오직 ${partnerName}으로서 메신저 답장만 자연스럽게 출력하겠습니다.` }] });
-
+          formattedContents.push({ role: "model", parts: [{ text: `네, 현재 메인 서사에서 마주 보고 있는지 떨어져 있는지 거리를 정확히 파악하여 반응하겠습니다.` }] });
         } else {
           // 📖 비주얼 노벨 소설 서사 (메신저 대화 유기적 연동)
           const npcListStr = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
