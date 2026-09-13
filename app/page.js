@@ -3972,275 +3972,259 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     </svg>
                   </button>
 
-                  {/* 위로 열리는 액션 서랍 팝오버 (방 룰에 맞게 100% 동적 분기) */}
+{/* 위로 열리는 액션 서랍 팝오버 (방 룰에 맞게 100% 동적 분기) */}
                   {isActionDrawerOpen && (
-  <>
-    {/* 🌟 바깥 대지를 누르면 서랍이 닫히는 투명 터치막 */}
-    <div 
-      onClick={() => setIsActionDrawerOpen(false)} 
-      style={{ position: "fixed", inset: 0, zIndex: 90 }} 
-    />
+                    <>
+                      {/* 🌟 바깥 대지를 누르면 서랍이 닫히는 투명 터치막 */}
+                      <div
+                        onClick={() => setIsActionDrawerOpen(false)}
+                        style={{ position: "fixed", inset: 0, zIndex: 90 }}
+                      />
 
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{
-        position: "absolute",
-        bottom: "48px",
-        left: "0",
-        // ... (기존 서랍 스타일 유지)
-        zIndex: 100 // 터치막보다 위에 떠야 하므로 zIndex 100 확인
-      }}
-    >
-      ...
-    </div>
-  </>
-)}
-                   
-                    <div
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        position: "absolute",
-                        bottom: "48px",
-                        left: "0",
-                        width: "240px",
-                        backgroundColor: theme.panel,
-                        backdropFilter: "blur(14px)",
-                        WebkitBackdropFilter: "blur(14px)",
-                        border: `1.5px solid ${theme.border}`,
-                        borderRadius: "16px",
-                        padding: "8px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                        boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
-                        zIndex: 100
-                      }}
-                    >
-                      <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 8px", fontWeight: "800", borderBottom: `1px dashed ${theme.border}` }}>
-                        {activeSession?.ruleMode === "insane" 
-                          ? (activeSession?.sheet?.actionUsed ? "행동 완료 (장면 정리 단계)" : "인세인 주요 행동") 
-                          : activeSession?.ruleMode === "coc" 
-                          ? "CoC 7판 시스템 액션" 
-                          : activeSession?.ruleMode?.startsWith("dating") 
-                          ? "미연시 전용 액션" 
-                          : "자유 서사 액션"}
-                      </div>
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: "absolute",
+                          bottom: "48px",
+                          left: "0",
+                          width: "240px",
+                          backgroundColor: theme.panel,
+                          backdropFilter: "blur(14px)",
+                          WebkitBackdropFilter: "blur(14px)",
+                          border: `1.5px solid ${theme.border}`,
+                          borderRadius: "16px",
+                          padding: "8px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px",
+                          boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
+                          zIndex: 100
+                        }}
+                      >
+                        <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 8px", fontWeight: "800", borderBottom: `1px dashed ${theme.border}` }}>
+                          {activeSession?.ruleMode === "insane" 
+                            ? (activeSession?.sheet?.actionUsed ? "행동 완료 (장면 정리 단계)" : "인세인 주요 행동") 
+                            : activeSession?.ruleMode === "coc" 
+                            ? "CoC 7판 시스템 액션" 
+                            : activeSession?.ruleMode?.startsWith("dating") 
+                            ? "미연시 전용 액션" 
+                            : "자유 서사 액션"}
+                        </div>
 
-                      {/* 1. 🎲 인세인 방일 때 */}
-                      {activeSession?.ruleMode === "insane" && (
-                        <>
-                          {!activeSession?.sheet?.actionUsed ? (
-                            <>
+                        {/* 1. 🎲 인세인 방일 때 */}
+                        {activeSession?.ruleMode === "insane" && (
+                          <>
+                            {!activeSession?.sheet?.actionUsed ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => { setInvestigationModal({ step: "selectTarget" }); setIsActionDrawerOpen(false); }}
+                                  style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                >
+                                  🔍 조사 판정 선언
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const npcs = activeSession?.sheet?.npcs || [];
+                                    const defaultTarget = npcs.length === 1 ? npcs[0] : null;
+                                    const d = Math.floor(Math.random() * 6) + 1;
+                                    setEmotionModal({ 
+                                      targetNpc: defaultTarget, 
+                                      roll: d, 
+                                      pair: INSANE_EMOTIONS_TABLE[d] 
+                                    });
+                                    setIsActionDrawerOpen(false);
+                                  }}
+                                  style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                >
+                                  💬 감정 맺기 (1D6 감정표)
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInput("휴식을 취하며 엉클어진 마음과 상처를 추스릅니다. ");
+                                    rollInsaneCheck("인내", 5, "회복 판정");
+                                    setIsActionDrawerOpen(false);
+                                  }}
+                                  style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                >
+                                  🩹 휴식 및 회복 판정
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => { handleRollSceneTable(); setIsActionDrawerOpen(false); }}
+                                  style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.warning, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                >
+                                  📜 2D6 정규 장면표 굴리기
+                                </button>
+                              </>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => { setInvestigationModal({ step: "selectTarget" }); setIsActionDrawerOpen(false); }}
-                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                                onClick={handleSceneClose}
+                                style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
                               >
-                                🔍 조사 판정 선언
+                                🎬 장면 닫기 (Scene Close)
                               </button>
+                            )}
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const npcs = activeSession?.sheet?.npcs || [];
-                                  const defaultTarget = npcs.length === 1 ? npcs[0] : null;
-                                  const d = Math.floor(Math.random() * 6) + 1;
-                                  setEmotionModal({ 
-                                    targetNpc: defaultTarget, 
-                                    roll: d, 
-                                    pair: INSANE_EMOTIONS_TABLE[d] 
-                                  });
-                                  setIsActionDrawerOpen(false);
-                                }}
-                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                              >
-                                💬 감정 맺기 (1D6 감정표)
-                              </button>
+                            <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setInput("휴식을 취하며 엉클어진 마음과 상처를 추스릅니다. ");
-                                  rollInsaneCheck("인내", 5, "회복 판정");
-                                  setIsActionDrawerOpen(false);
-                                }}
-                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                              >
-                                🩹 휴식 및 회복 판정
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => { handleRollSceneTable(); setIsActionDrawerOpen(false); }}
-                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.warning, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                              >
-                                📜 2D6 정규 장면표 굴리기
-                              </button>
-                            </>
-                          ) : (
                             <button
                               type="button"
-                              onClick={handleSceneClose}
-                              style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+                              onClick={() => { setShowInsaneGuideModal(true); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              🎬 장면 닫기 (Scene Close)
+                              ❓ 인세인 룰 가이드
                             </button>
-                          )}
+                          </>
+                        )}
 
-                          <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
+                        {/* 2. 🐙 CoC 방일 때 */}
+                        {activeSession?.ruleMode === "coc" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => { rollDiceDirectly(); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              🎲 1D100 주사위 굴리기
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => { setShowInsaneGuideModal(true); setIsActionDrawerOpen(false); }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            ❓ 인세인 룰 가이드
-                          </button>
-                        </>
-                      )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성 체크");
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.danger, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              🧠 이성(SAN) 체크
+                            </button>
 
-                      {/* 2. 🐙 CoC 방일 때 */}
-                      {activeSession?.ruleMode === "coc" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => { rollDiceDirectly(); setIsActionDrawerOpen(false); }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            🎲 1D100 주사위 굴리기
-                          </button>
+                            <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성 체크");
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.danger, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            🧠 이성(SAN) 체크
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRuleHelpModal({
+                                  icon: "🐙",
+                                  name: "크툴루의 부름 (CoC 7판)",
+                                  sub: "1D100 기반 탐색과 공포",
+                                  points: [
+                                    { title: "1D100 판정", desc: "주사위를 굴려 내 특성치나 기능치 수치 이하가 나오면 성공합니다." },
+                                    { title: "이성과 광기", desc: "괴이한 광경을 마주해 이성(SAN)이 크게 깎이면 일시적 광기가 발현됩니다." },
+                                    { title: "대성공과 대실패", desc: "1이 나오면 대성공, 96~100이 나오면 치명적인 대실패(펌블)입니다." }
+                                  ]
+                                });
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              ❓ CoC 7판 가이드
+                            </button>
+                          </>
+                        )}
 
-                          <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
+                        {/* 3. 🌸 미연시 방일 때 */}
+                        {activeSession?.ruleMode?.startsWith("dating") && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => { setIsPhoneDrawerOpen(true); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              📱 메신저 열기
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRuleHelpModal({
-                                icon: "🐙",
-                                name: "크툴루의 부름 (CoC 7판)",
-                                sub: "1D100 기반 탐색과 공포",
-                                points: [
-                                  { title: "1D100 판정", desc: "주사위를 굴려 내 특성치나 기능치 수치 이하가 나오면 성공합니다." },
-                                  { title: "이성과 광기", desc: "괴이한 광경을 마주해 이성(SAN)이 크게 깎이면 일시적 광기가 발현됩니다." },
-                                  { title: "대성공과 대실패", desc: "1이 나오면 대성공, 96~100이 나오면 치명적인 대실패(펌블)입니다." }
-                                ]
-                              });
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            ❓ CoC 7판 가이드
-                          </button>
-                        </>
-                      )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const partner = activeSession.sheet?.npcs?.[0];
+                                if (partner) setGiftModalNpc(partner);
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              🎁 상대에게 선물하기
+                            </button>
 
-                      {/* 3. 🌸 미연시 방일 때 */}
-                      {activeSession?.ruleMode?.startsWith("dating") && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => { setIsPhoneDrawerOpen(true); setIsActionDrawerOpen(false); }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            📱 메신저 열기
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const partner = activeSession.sheet?.npcs?.[0];
+                                if (partner) setClueModalNpc(partner);
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              💡 취향 수첩 확인
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const partner = activeSession.sheet?.npcs?.[0];
-                              if (partner) setGiftModalNpc(partner);
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            🎁 상대에게 선물하기
-                          </button>
+                            <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const partner = activeSession.sheet?.npcs?.[0];
-                              if (partner) setClueModalNpc(partner);
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            💡 취향 수첩 확인
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRuleHelpModal({
+                                  icon: "🌸",
+                                  name: "미연시 (연애 시뮬레이션)",
+                                  sub: "선택지와 관계성 중심 서사",
+                                  points: [
+                                    { title: "호감도 (Affection)", desc: "대화와 공감, 맞춤 선물을 통해 호감도를 쌓아 다양한 엔딩에 도달합니다." },
+                                    { title: "취향 수첩", desc: "대화 중 상대방이 흘린 좋아하는 것들을 수집하여 선물에 활용하세요." },
+                                    { title: "답장 선택지", desc: "입력창 상단의 제안 칩을 눌러 캐릭터 성격에 맞는 대사를 쉽게 고를 수 있습니다." }
+                                  ]
+                                });
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              ❓ 미연시 가이드
+                            </button>
+                          </>
+                        )}
 
-                          <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
+                        {/* 4. ✍️ 자유 서사 방일 때 */}
+                        {activeSession?.ruleMode === "freeform" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => { rollDiceDirectly(null, "1D20 운명 주사위"); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              🎲 1D20 운명 주사위
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRuleHelpModal({
-                                icon: "🌸",
-                                name: "미연시 (연애 시뮬레이션)",
-                                sub: "선택지와 관계성 중심 서사",
-                                points: [
-                                  { title: "호감도 (Affection)", desc: "대화와 공감, 맞춤 선물을 통해 호감도를 쌓아 다양한 엔딩에 도달합니다." },
-                                  { title: "취향 수첩", desc: "대화 중 상대방이 흘린 좋아하는 것들을 수집하여 선물에 활용하세요." },
-                                  { title: "답장 선택지", desc: "입력창 상단의 제안 칩을 눌러 캐릭터 성격에 맞는 대사를 쉽게 고를 수 있습니다." }
-                                ]
-                              });
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            ❓ 미연시 가이드
-                          </button>
-                        </>
-                      )}
+                            <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
-                      {/* 4. ✍️ 자유 서사 방일 때 */}
-                      {activeSession?.ruleMode === "freeform" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => { rollDiceDirectly(null, "1D20 운명 주사위"); setIsActionDrawerOpen(false); }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            🎲 1D20 운명 주사위
-                          </button>
-
-                          <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRuleHelpModal({
-                                icon: "✍️",
-                                name: "자유 서사",
-                                sub: "주사위 없이 즐기는 순수 텍스트 서사",
-                                points: [
-                                  { title: "순수 텍스트 모드", desc: "주사위나 스탯 제약 없이 오직 롤플레잉과 문학적 서사에 집중합니다." },
-                                  { title: "자유로운 호흡", desc: "기계적인 턴이나 시스템 제한 없이 자연스러운 감정선을 이어갈 수 있습니다." }
-                                ]
-                              });
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            ❓ 자유 서사 가이드
-                          </button>
-                        </>
-                      )}
-                    </div>
-                      </>
-                    )}
-                  </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRuleHelpModal({
+                                  icon: "✍️",
+                                  name: "자유 서사",
+                                  sub: "주사위 없이 즐기는 순수 텍스트 서사",
+                                  points: [
+                                    { title: "순수 텍스트 모드", desc: "주사위나 스탯 제약 없이 오직 롤플레잉과 문학적 서사에 집중합니다." },
+                                    { title: "자유로운 호흡", desc: "기계적인 턴이나 시스템 제한 없이 자연스러운 감정선을 이어갈 수 있습니다." }
+                                  ]
+                                });
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              ❓ 자유 서사 가이드
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   {/* 2. 중앙: 테두리 없는 투명 textarea */}
                 <textarea 
