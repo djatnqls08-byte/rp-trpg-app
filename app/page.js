@@ -2408,23 +2408,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 <h1 className="serif-text" style={{ margin: "0 0 6px 0", fontSize: "1.65rem", fontWeight: "800", color: theme.text }}>새로운 서사의 시작</h1>
                 <div style={{ fontSize: "0.82rem", color: theme.textMuted }}>룰과 장르를 선택하면 AI 마스터가 세계를 구축합니다.</div>
               </div>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
-                <button 
-                  type="button" 
-                  onClick={handleSaveLobbyPreset} 
-                  title="로비 세팅 저장"
-                  style={{ 
-                    background: "none", 
-                    border: "none", 
-                    cursor: "pointer", 
-                    fontSize: "1.3rem", 
-                    padding: "4px 6px",
-                    lineHeight: 1
-                  }}
-                >
-                  💾
-                </button>
-<div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
                 {/* 1. ⭐ 공식 시나리오 바로가기 버튼 */}
                 <button 
                   type="button" 
