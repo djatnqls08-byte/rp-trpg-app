@@ -1,47 +1,39 @@
 [
   {
-    "id": 1789285172318,
-    "presetTitle": "심해 1만 미터의 요람에서",
-    "scenarioTitle": "심해 1만 미터의 요람에서",
-    "publicSynopsis": "수심 1만 미터 아래 지어진 제국 최심부 해양 탐사 기지 '아비소스'.\n원인불명의 시스템 다운과 함께 당신은 모든 기억을 잃은 채 텅 빈 의무실에서 눈을 뜹니다.\n침수 경고음이 울려 퍼지는 폐쇄된 기지 안, 당신의 눈앞에는 피투성이가 된 낯선 남자가 가쁜 숨을 몰아쉬며 서 있습니다.\n\"이번에는... 기필코 널 살려서 올려보낼 거다.\"",
-    "openingScene": "차가운 금속 바닥 위로 붉은 비상조명이 명멸하고, 귀를 찢을 듯한 사이렌 소리가 기지 내부를 가득 채웁니다.\n머리가 깨질 듯한 통증과 함께 눈을 뜨면, 짙은 피비린내와 짠내가 코를 찌릅니다. 부서진 방탄유리 너머로는 칠흑 같은 심해의 어둠이 압도적으로 짓누르고 있습니다.\n그때, 상처투성이의 남자가 비틀거리며 다가와 당신의 어깨를 꽉 움켜쥡니다.\n\"정신이 들어? 설명할 시간 없어. 당장 구명정으로 뛰어야 해.\"",
-    "hiddenTruth": "# 3. 진상 (The Truth)\n- 배후 진상: 심해 기지 아비소스는 미지의 심해 생물 '해저의 별'을 포획해 연구하던 중, 외계 신격의 파동에 노출된 연구원들이 집단 광기에 빠져 서로를 살육하며 파멸했습니다. KPC 백도현은 죽어가는 PC 송연우를 구하기 위해 기지의 미확인 동력원인 '시간 역행 코어'를 가동해 수십 번의 루프를 반복해 왔습니다. 그러나 시간을 되돌릴 때마다 부작용으로 연우는 뇌세포가 손상되어 기억을 잃어갔고, 도현은 심연의 촉수에 침식당해 육체가 괴물로 변이해 가고 있습니다. 기지의 비상 에너지가 완전히 고갈된 이번 루프가 두 사람이 맞이할 수 있는 마지막 탈출 기회입니다.\n\n# 4. 도입부 (도입 지문)\n- 차가운 바닷물이 발목을 적시는 감각에 당신은 거친 숨을 몰아쉬며 몸을 일으킵니다. 깨진 방탄유리 벽 너머, 수심 1만 미터의 칠흑 같은 암흑 속에서 정체불명의 거대한 촉수들이 기지 외벽을 천천히 옥죄어 오고 있습니다. 눈앞의 사내, 백도현은 찢겨진 전술복 사이로 피를 뚝뚝 흘리면서도 오직 당신의 무사함만을 확인하듯 절박한 눈동자로 당신을 응시합니다. 그의 등 뒤편, 어두운 복도 끝에서 무언가 뼈를 부수며 기어오는 축축한 소리가 울려 퍼집니다.\n\n# 5. 조사 구역 및 오브젝트 배치 (인세인: 조사 핸드아웃)\n- [의무실 바닥의 진료 기록]\n  * 구역 분위기 및 개요: 연우가 깨어난 의무실 구역. 피로 얼룩진 바닥에 깨진 앰플과 서류들이 어지럽게 흩어져 있다.\n  * 배치된 오브젝트: 피 묻은 진료 차트, 약품 보관함, 깨진 투여용 주사기\n  * 조사 판정: 판정 특기: 지식 [생물학] (목표치 5)\n  * 획득 단서 내용: [쇼크: 조사자] 차트에는 송연우의 이름과 함께 '거듭된 시간 역행에 따른 전두엽 손상 및 영구 기억상실 징후'라는 도현의 절박한 자필 메모가 적혀 있다. 연우의 기억상실은 단순한 외상이 아니라, 자신을 살리기 위해 도현이 시간을 수십 번이나 되돌린 대가였다.\n\n- [중앙 통제실의 메인 콘솔]\n  * 구역 분위기 및 개요: 기지의 모든 동력과 격벽을 제어하는 핵심 통제실. 모니터들이 지지직거리며 핏빛 경고창을 띄우고 있다.\n  * 배치된 오브젝트: 메인 컴퓨터 단말기, 블랙박스 기록 장치, 훼손된 경비 일지\n  * 조사 판정: 판정 특기: 기술 [전자기기] (목표치 5)\n  * 획득 단서 내용: [쇼크: 전원] 복구된 블랙박스 영상에는 도현이 심해 괴물에게 가슴을 관통당해 죽어가는 연우를 끌어안고 오열하며 코어를 역회전시키는 과거 루프의 참상이 무수히 기록되어 있다. 도현은 매번 끔찍한 죽음의 고통을 고스란히 겪으며 연우를 살려내 왔다.\n\n- [봉쇄된 구명정 해치]\n  * 구역 분위기 및 개요: 해수면으로 탈출할 수 있는 단 하나의 비상 탈출 포드가 거치된 구역. 굳게 닫힌 해치 주변에 검은 점액질이 엉겨 붙어 있다.\n  * 배치된 오브젝트: 구명정 도어락 패드, 산소 잔량 표시기, 비상 탈출 매뉴얼\n  * 조사 판정: 판정 특기: 지각 [냄새] (목표치 5)\n  * 획득 단서 내용: [쇼크: 없음] 점액질에서는 기지 바깥의 괴물들이 기피하는 독특한 화학 약품 냄새가 난다. 도현이 연우의 탈출선만큼은 안전하게 지키기 위해 발라둔 보호막이다. 구명정의 사출 시스템은 1인용으로 개조되어 있으며, 탑승 권한은 오직 연우의 생체 인식으로만 해제되도록 설정되어 있다.\n\n# 6. 결말 분기 (엔딩)\n■ [True End: 수면 위로 닿은 빛]\n- 조건: KPC와 기지의 진실을 모두 밝혀내고, 최후의 순간 도현의 침식된 상처를 응급 처치하여 구명정의 리미터를 해제해 두 사람이 함께 탑승하는 데 성공했을 때.\n- 결말 지문: 압괴되어 무너지는 해저 기지를 뒤로하고 구명정이 수직으로 수면을 향해 솟구칩니다. 칠흑 같던 창밖이 서서히 푸른빛으로 물들더니, 마침내 눈이 시릴 만큼 눈부신 아침 햇살이 두 사람의 얼굴을 비춥니다. 도현은 떨리는 손으로 연우의 뺨을 감싸 쥐며, 수십 번의 지옥 끝에 비로소 안도의 눈물을 흘립니다.\n- 대사: \"이번에는… 둘 다 살아서 햇빛을 보게 되었네. 널 살리겠다는 약속, 드디어 지켰어.\"\n\n■ [Normal End: 홀로 남은 생존자]\n- 조건: 연우는 탈출했으나 도현의 변이를 막지 못하고, 도현이 해치 바깥에서 수동 사출 레버를 당겨 연우만을 쏘아 올렸을 때.\n- 결말 지문: 굉음과 함께 사출된 구명정 창문 너머로, 기지와 함께 수압에 짓눌려 가라앉는 도현의 실루엣이 보입니다. 그는 희미하게 미소 지으며 마지막 작별 인사를 건넸습니다. 수면 위로 구조된 연우의 떨리는 손에는, 도현이 마지막 순간 쥐여준 피 묻은 인식표만이 남아 있습니다.\n- 대사: \"절대 뒤돌아보지 마, 연우야. 넌 살아야 해… 그거면 내 모든 루프는 의미가 있었어.\"\n\n■ [Bad End: 영원한 심해의 요람]\n- 조건: 4사이클 리미트 종료 시까지 구명정을 사출하지 못하거나, 심해 생물에게 따라잡혀 전원 사망했을 때.\n- 결말 지문: 한계에 달한 기지의 특수 방탄유리가 일제히 산산조각 납니다. 1만 미터 수심의 무자비한 수압과 함께 차가운 암흑이 두 사람을 집어삼킵니다. 부서지는 잔해 속에서 도현은 연우를 품에 끌어안고 눈을 감습니다. 닿지 못한 수면의 빛을 뒤로한 채, 두 사람의 숨결은 끝없는 해저의 요람 속으로 영원히 가라앉습니다.\n- 대사: \"…결국, 또 이 결말인 건가. 미안해, 연우야… 다음엔 꼭, 너를…\"\n\n■ [Hidden End: 심연의 공생자들]\n- 조건: 두 사람 모두 광기 판정으로 인해 이성을 잃고, 탈출 대신 심해의 신격과 융합을 선택했을 때.\n- 결말 지문: 차가운 바닷물이 목구멍을 채우지만 더 이상 고통은 느껴지지 않습니다. 도현의 팔에서 돋아난 검은 촉수들이 연우의 몸을 부드럽게 감싸 안고, 두 사람의 신경계는 해저 기지 전체, 그리고 바다 그 자체와 하나로 연결됩니다. 빛조차 닿지 않는 어둠 속에서, 두 사람은 누구도 방해할 수 없는 영원한 결합을 맞이합니다.\n- 대사: \"빛 따위는 없어도 괜찮아. 이제 영원히… 이 차가운 바다 밑에서 함께하는 거야.\"",
-    "playPreference": "#HL #심해공포 #루프 #기억상실 #구원",
-    "wizardMode": "insane",
-    "charName": "송연우",
-    "charJob": "해양생물학 수석 연구원",
-    "charAge": "28",
+    "id": 1789269428773,
+    "presetTitle": "비 갠 뒤의 온실과 푸른 티포트",
+    "scenarioTitle": "비 갠 뒤의 온실과 푸른 티포트",
+    "publicSynopsis": "초여름, 갑작스레 쏟아진 장마전선의 소나기를 피해 뛰어든 오래된 식물원 카페 '티 앤 포레스트'.\n축축하게 젖은 유리창 너머로 쌉싸름한 풀 내음과 찻잎 덖는 향이 번지고, 홀로 온실 안쪽 테이블을 정리하던 식물학자 겸 티 블렌더 '서하린'이 조용히 고개를 듭니다.\n빗소리만이 고요를 채우는 온실 속, 우연으로 시작된 두 사람만의 차분하고 다정한 티타임이 시작됩니다.",
+    "openingScene": "세차게 쏟아지는 빗줄기 사이로 맑은 풍경 소리가 울리며 온실 유리문이 열립니다.\n젖은 옷자락에서 뚝뚝 떨어지는 물방울 소리에 서하린은 들고 있던 찻잔을 내려놓고 차분한 시선으로 당신을 응시합니다.\n옅은 박하 향이 섞인 서늘한 온실의 공기 사이로, 낮고 정갈한 목소리가 귓가를 간질입니다.\n\"우산도 없이 무작정 뛰어드셨네요. 감기 들기 전에 일단 젖은 겉옷부터 벗으세요. 따뜻한 수건을 가져다드릴 테니.\"",
+    "hiddenTruth": "# 3. 진상 및 마스터링 팁\n- 시그니처 티 기믹: 하린이 서우의 기분에 맞춰 그날의 차를 내어줍니다. (예: 슬럼프인 날엔 베르가모트 향의 얼그레이)\n- 온실 속 희귀 식물: '진심을 나눈 사람 앞에서만 피어나는 은월초'를 배치해 고백 연출에 활용하세요.\n- 시간 제한(타임 텐션): '비가 그치면 돌아가야 한다'는 룰로 애틋한 긴장감을 조성하세요.\n\n# 6. 결말 분기 (엔딩)\n■ [True End: 비 갠 뒤의 무지개와 푸른 찻잔]\n- 조건: 서하린 호감도 80pt 이상 달성. 하린의 번아웃과 고립감을 진심으로 헤아리고, 서우 자신의 스케치북에 담긴 온실의 따스한 순간들을 선물하여 하린의 닫힌 마음의 빗장을 완전히 열었을 때.\n- 결말 지문: 맑게 갠 초여름 하늘에서 쏟아지는 햇살이 온실의 유리 천장을 프리즘처럼 물들입니다. 하린은 늘 혼자 정리하던 테이블에 서우의 푸른 찻잔을 마주 놓으며, 서우가 남겨준 온실의 그림들을 소중히 어루만집니다. 서늘하기만 하던 하린의 눈가에 맑고 다정한 미소가 번지고, 두 사람만의 두 번째 티타임이 시작됩니다.\n- 대사: \"빗소리가 그쳐도 돌아가지 않아 줘서 고마워요, 서우 씨. …다음 차가 우러날 때까지, 아니 내일 비가 오지 않더라도 내 곁에 있어 줄래요?\"\n\n■ [Normal End: 빗소리가 머무는 찻자리]\n- 조건: 서하린 호감도 50pt 이상 80pt 미만. 연인으로 발전하지는 못했으나 서로의 상처를 위로하고 다정한 단골과 티 블렌더의 관계로 남았을 때.\n- 결말 지문: 소나기가 지나가고 촉촉한 흙내음이 온실을 채웁니다. 서우는 슬럼프를 털어내고 완성한 그림 엽서를 건네고, 하린은 서우만을 위해 특별히 블렌딩한 백차 찻잎을 선물합니다. 연인의 온도는 아니지만, 두 사람 사이에는 비 오는 날마다 편히 찾아올 수 있는 아늑한 안식처가 생겨납니다.\n- 대사: \"비가 올 때면 언제든 편히 들러주세요. 서우 씨를 위한 찻잔은 항상 이곳에 비워둘 테니까요.\"\n\n■ [Bad End: 차게 식어버린 백차]\n- 조건: 서하린 호감도 30pt 미만. 무례한 질문이나 조급한 태도로 하린의 경계심을 자극하여 대화가 단절되었을 때.\n- 결말 지문: 식어버린 찻잔에는 쌉싸름한 떫은맛만이 감돌고, 온실의 공기는 쏟아지는 소나기보다 더 차갑게 가라앉습니다. 서우의 조급한 접근에 상처 입은 하린은 조용히 시선을 내리깔며 찻잔을 거둡니다. 비가 그치자마자 서우는 어색한 침묵 속에서 온실 문을 밀고 나설 수밖에 없습니다.\n- 대사: \"…비가 완전히 그친 것 같네요. 더 머무르시면 서로 곤란하니, 이만 돌아가 주세요.\"\n\n■ [Hidden End: 마르지 않는 온실의 온기]\n- 조건: 서하린 호감도 90pt 이상 달성 및 조력자 윤다희 협력 이벤트 완료. 하린의 온실 리뉴얼을 서우의 일러스트와 다희의 화기(花器)로 함께 완성하며 완전한 일상의 동반자가 되었을 때.\n- 결말 지문: 온실 '티 앤 포레스트'는 더 이상 고독의 공간이 아닙니다. 유리창 너머로 서우의 그림이 따스하게 걸리고, 다희가 빚은 푸른 티포트에서 피어오른 김이 두 사람의 맞닿은 뺨을 감쌉니다. 앞치마를 두른 서우의 허리를 뒤에서 부드럽게 감싸 안은 하린이 귓가에 숨결을 묻으며 영원히 시들지 않을 애정을 속삭입니다.\n- 대사: \"어머니가 남겨주신 이 온실이, 이제는 당신과 함께 채워나갈 우리 집이 되었어요. 사랑해요, 서우 씨.\"",
+    "playPreference": "#GL #일상 #달달 #은은한설렘 #비오는날",
+    "wizardMode": "dating",
+    "charName": "연서우",
+    "charJob": "프리랜서 일러스트레이터, 섬세하고 다정한 관찰자",
+    "charAge": "24",
     "charGender": "여성",
-    "charBackground": "28세, 여성. 냉철하고 이성적인 판단력을 가진 해양생물학자. 기지의 원인불명 사고로 인해 직전의 기억을 모두 잃었으나, 몸에 밴 지식과 날카로운 직관만은 남아 있다. 자신을 위해 목숨을 내던지는 낯선 남자(KPC)의 맹목적인 애정에 혼란스러워하면서도, 살아남아 함께 빛을 보기 위해 기지의 비밀을 파헤치려 한다.\n소지품: 깨진 방수 손목시계, 신원 미상의 인식표, 비상용 조명탄",
-    "charMission": "심해 기지 아비소스에서 무사히 해수면 위로 탈출하는 것.",
-    "charSecret": "[쇼크: 없음] 당신은 기억을 잃기 전, 심해 생물의 표본을 해부하다가 우주적 광기에 오염된 최초의 감염자였다. 폭주한 당신이 기지의 붕괴를 초래했으나, 도현이 그런 당신을 원망하거나 버리지 않고 자신의 목숨을 바쳐 시간을 되돌려 구하고자 한 것이다.",
-    "charPortraitUrl": "https://image.pollinations.ai/prompt/songyeonwoo%2C%20anime%20style?width=300&height=300&nologo=true",
+    "charBackground": "23세, 여성. 사소한 일상의 순간을 그림으로 기록하는 온화한 성격. 상대방의 작은 표정 변화나 피로를 빠르게 알아채며, 부담스럽지 않은 선에서 따뜻한 온기를 건넬 줄 아는 배려심을 지녔다.\n소지품: 손수건, 틴케이스 캔디, 작은 메모 수첩",
+    "charMission": "",
+    "charSecret": "비 오는 날마다 슬럼프에 빠져 붓을 들지 못하고 방황하던 중이었으며, 우연히 마주친 온실과 하린의 모습에서 오랜만에 가슴 뛰는 창작의 영감을 얻었다.",
+    "charPortraitUrl": "https://image.pollinations.ai/prompt/yeonseowu%2C%20anime%20style?width=300&height=300&nologo=true",
     "cocStats": { "str": 40, "con": 50, "siz": 50, "dex": 60, "app": 70, "int": 75, "pow": 75, "edu": 40, "luck": 55 },
     "cocSkills": "관찰력 60, 자료조사 50, 듣기 40, 심리학 50",
-    "insaneSkills": ["냄새", "사격", "미디어", "전자기기", "화학", "생물학"],
-    "insaneCuriosity": "괴이",
-    "insaneFear": "암흑",
+    "insaneSkills": ["연심", "소리", "정리"],
+    "insaneCuriosity": "정서",
+    "insaneFear": "죽음",
     "insaneLimit": 4,
     "kpcList": [
       {
         "id": 1,
-        "name": "백도현",
-        "job": "보안팀장 겸 시스템 엔지니어",
-        "detail": "31세, 남성. 검은색 전술복을 입은 다부진 체격. 짧은 흑발에 날카로운 눈매를 가졌으나, 연우를 바라볼 때만큼은 처절하리만치 절박하고 애틋한 눈빛을 띤다. 왼쪽 팔은 기괴하게 검은 핏줄로 뒤덮여 붕대를 칭칭 감고 있다. 메신저 상태 메시지는 '이번이 마지막이야.' 좋아하는 것은 연우의 웃는 얼굴과 따뜻한 커피, 질색하는 것은 통제할 수 없는 변수와 심해의 괴물들.",
-        "secret": "[쇼크: 송연우] 그는 이미 심해 괴물의 촉수에 기생당해 목숨이 얼마 남지 않았다. 시간을 되돌릴 때마다 자신의 수명과 이성을 코어 에너지로 바쳐왔으며, 이번 루프가 끝나면 괴물로 완전히 변이하게 된다. 그는 괴물이 된 자신이 연우를 해치기 전에, 그녀만을 구명정에 태워 올려보내고 스스로 기지와 함께 자폭할 계획이다.",
-        "portraitUrl": "https://image.pollinations.ai/prompt/baekdohyeon%2C%20anime%20style?width=300&height=300&nologo=true"
-      },
-      {
-        "id": 1789285083552,
-        "name": "정재환",
-        "job": "아비소스 기지 총괄 소장",
-        "detail": "52세, 남성. 흐트러진 백발과 피로 얼룩진 찢겨진 백의. 초점 없는 탁한 눈동자로 기지 내부를 배회하고 있다. 평소엔 인자한 학자였으나, 지금은 알 수 없는 광기에 사로잡혀 짐승 같은 혼잣말을 중얼거린다.",
-        "secret": "[쇼크: 전원] 그는 가장 먼저 심해 생물 '해저의 별'의 목소리를 듣고 미쳐버린 광신도다. 그는 연우와 도현이 기지를 탈출하지 못하도록 구명정의 사출 시스템을 물리적으로 파괴하고 두 사람을 제물로 바치기 위해 어둠 속에서 기회를 엿보고 있다.",
-        "portraitUrl": "https://image.pollinations.ai/prompt/jungjaehwan%2C%20anime%20style?width=300&height=300&nologo=true"
+        "name": "서하린",
+        "job": "식물학 연구원 겸 티 블렌더",
+        "detail": "25세, 여성. 단정하게 묶어 올린 흑발에 맑고 차분한 밤색 눈동자. 심플한 리넨 앞치마가 잘 어울리는 서늘하고 단아한 분위기의 미인. 상태 메시지는 '잎사귀가 마르는 시간'.",
+        "secret": "어머니가 남긴 온실을 홀로 지키며 심한 번아웃과 고립감을 겪고 있었다.",
+        "portraitUrl": "https://image.pollinations.ai/prompt/seoharin%2C%20anime%20style?width=300&height=300&nologo=true"
       }
     ]
   },
-{
+  {
     "id": 1789270403670,
     "presetTitle": "달그림자 경매장의 밤과 세 개의 시선",
     "scenarioTitle": "달그림자 경매장의 밤과 세 개의 시선",
@@ -106,6 +98,82 @@
         "detail": "17세, 여성. 어깨선에 닿는 단정한 흑발 생머리에 서늘하면서도 맑은 도토리빛 갈색 눈동자.",
         "secret": "모범생이라는 꼬리표에 짓눌려 숨이 막히던 중이었다.",
         "portraitUrl": "https://image.pollinations.ai/prompt/hanseoyul%2C%20anime%20style?width=300&height=300&nologo=true"
+      }
+    ]
+  },
+  {
+    "id": 1789151209531,
+    "presetTitle": "최애의 파멸 엔딩을 양도받았습니다",
+    "scenarioTitle": "최애의 파멸 엔딩을 양도받았습니다",
+    "publicSynopsis": "야근과 과로로 점철된 끔찍한 삶. 유일한 낙이었던 극악무도한 피폐 게임 <황혼의 에튀드>.\n수십 번의 죽음 끝에 메인 악역 다이앤의 파멸 엔딩을 클리어한 순간, 기괴한 에러 창과 함께 심장이 멎었다.\n다시 눈을 떴을 때, 나는 그 미친 공작 영애의 손에 프롤로그부터 목이 꺾여 죽는 엑스트라 하녀가 되어 있었다.",
+    "openingScene": "발렌타인 공작저 최상층, 다이앤의 굳게 닫힌 침실 앞.\n폭우가 저택의 스테인드글라스를 부술 듯 때리는 늦은 밤. 당신의 시야에 떠오른 반투명한 시스템 창이 미친 듯이 붉은색 경고문을 쏟아냅니다.\n굳게 닫힌 거대한 침실 문 너머에서는 기괴하게 뼈가 뒤틀리는 소리와 다이앤의 짓눌린 짐승 같은 신음이 새어 나옵니다.\n\"계약 불이행은 제 사전에 없습니다, 아가씨. 얌전히 제 온기나 받으세요.\"",
+    "hiddenTruth": "# 1. 오토메 게임 <황혼의 에튀드>와 심연의 진실\n원작 게임은 단순한 가상 데이터가 아니라 이계의 외신 '심연의 관측자'가 인간계를 침식하기 위해 만든 통로였습니다. 다이앤이 겪는 살육 충동과 발작은 가문의 저주가 아닌 신격의 오염 때문이며, 미유의 시스템 창은 이 광기로부터 뇌를 보호하기 위해 무의식이 구축한 방어 기제입니다.\n\n# 6. 결말 분기 (엔딩)\n■ [True End: 장미 덤불 속의 영원한 충성]\n- 조건: 다이앤의 오염을 정화하고 계약을 영구 갱신하여 그녀의 유일한 안식처가 되었을 때.\n- 결말 지문: 피비린내 나던 침실에 고요한 달빛이 스며듭니다. 다이앤은 미유의 무릎에 얼굴을 묻은 채 처음으로 편안하게 숨을 몰아쉽니다. 미유의 손가락 사이로 흘러내리는 금발을 쓰다듬으며, 공작 영애는 평생의 구원을 맹세합니다.\n- 대사: \"네 온기가 없으면 숨도 쉴 수 없게 만들어놓고, 이제 와서 도망칠 생각은 마. 넌 평생 내 전속 하녀이자, 내 유일한 세계니까.\"\n\n■ [Bad End: 피로 물든 에튀드]\n- 조건: 이성(SAN) 0 도달 혹은 다이앤의 폭주를 막지 못했을 때.\n- 결말 지문: 붉게 번뜩이는 눈동자의 다이앤이 미유의 목을 옥죕니다. 원작의 프롤로그처럼 목뼈가 꺾이는 소리가 침실에 울려 퍼지고, 차가운 대리석 바닥에 붉은 피가 번져나갑니다.\n- 대사: \"…미안해, 미유. 하지만 넌 죽어서도 내 곁에 박제되어 있어야 해.\"",
+    "playPreference": "#GL #R19 #신분차 #로판 #혐관 #오토메게임 #계약 #빙의 #쌍방구원",
+    "wizardMode": "coc",
+    "charName": "미유",
+    "charJob": "발렌타인 공작가의 전속 하녀",
+    "charAge": "20",
+    "charGender": "여성",
+    "charBackground": "20세, 여성. 하드코어 오토메 게임 메인 악역 다이앤의 골수팬이자 생존력 강한 빙의자. 겉으로는 깍듯하고 단정한 하녀지만, 속으로는 다이앤을 파멸 엔딩에서 구원하겠다는 집념을 품고 있다.\n소지품: 은제 회중시계, 응급 붕대, 홍차 티백",
+    "charMission": "",
+    "charSecret": "시스템 창은 심연의 공포로부터 뇌를 지키기 위해 무의식이 만들어낸 인지 방어막이다.",
+    "charPortraitUrl": "https://image.pollinations.ai/prompt/miyu%2C%20anime%20style?width=300&height=300&nologo=true",
+    "cocStats": { "str": 40, "con": 50, "siz": 50, "dex": 60, "app": 70, "int": 75, "pow": 75, "edu": 40, "luck": 55 },
+    "cocSkills": "관찰력 60, 자료조사 50, 듣기 40, 심리학 50",
+    "insaneSkills": ["연심", "소리", "정리"],
+    "insaneCuriosity": "정서",
+    "insaneFear": "죽음",
+    "insaneLimit": 4,
+    "kpcList": [
+      {
+        "id": 1,
+        "name": "다이앤 발렌타인",
+        "job": "발렌타인 공작가의 유일한 후계자",
+        "detail": "여성, 26세. 가문의 저주로 밤마다 살육 충동에 시달리는 사납고 오만한 공작 영애. 화려한 금발에 핏빛 눈동자.",
+        "secret": "미유의 영혼이 부서지지 않도록 자신의 생명력으로 묶어두고 있었다.",
+        "portraitUrl": "https://image.pollinations.ai/prompt/diane%2C%20anime%20style?width=300&height=300&nologo=true"
+      }
+    ]
+  },
+  {
+    "id": 1789285172318,
+    "presetTitle": "심해 1만 미터의 요람에서",
+    "scenarioTitle": "심해 1만 미터의 요람에서",
+    "publicSynopsis": "수심 1만 미터 아래 지어진 제국 최심부 해양 탐사 기지 '아비소스'.\n원인불명의 시스템 다운과 함께 당신은 모든 기억을 잃은 채 텅 빈 의무실에서 눈을 뜹니다.\n침수 경고음이 울려 퍼지는 폐쇄된 기지 안, 당신의 눈앞에는 피투성이가 된 낯선 남자가 가쁜 숨을 몰아쉬며 서 있습니다.\n\"이번에는... 기필코 널 살려서 올려보낼 거다.\"",
+    "openingScene": "차가운 금속 바닥 위로 붉은 비상조명이 명멸하고, 귀를 찢을 듯한 사이렌 소리가 기지 내부를 가득 채웁니다.\n머리가 깨질 듯한 통증과 함께 눈을 뜨면, 짙은 피비린내와 짠내가 코를 찌릅니다. 부서진 방탄유리 너머로는 칠흑 같은 심해의 어둠이 압도적으로 짓누르고 있습니다.\n그때, 상처투성이의 남자가 비틀거리며 다가와 당신의 어깨를 꽉 움켜쥡니다.\n\"정신이 들어? 설명할 시간 없어. 당장 구명정으로 뛰어야 해.\"",
+    "hiddenTruth": "# 3. 진상 (The Truth)\n- 배후 진상: 심해 기지 아비소스는 미지의 심해 생물 '해저의 별'을 포획해 연구하던 중, 외계 신격의 파동에 노출된 연구원들이 집단 광기에 빠져 서로를 살육하며 파멸했습니다. KPC 백도현은 죽어가는 PC 송연우를 구하기 위해 기지의 미확인 동력원인 '시간 역행 코어'를 가동해 수십 번의 루프를 반복해 왔습니다. 그러나 시간을 되돌릴 때마다 부작용으로 연우는 뇌세포가 손상되어 기억을 잃어갔고, 도현은 심연의 촉수에 침식당해 육체가 괴물로 변이해 가고 있습니다. 기지의 비상 에너지가 완전히 고갈된 이번 루프가 두 사람이 맞이할 수 있는 마지막 탈출 기회입니다.\n\n# 4. 도입부 (도입 지문)\n- 차가운 바닷물이 발목을 적시는 감각에 당신은 거친 숨을 몰아쉬며 몸을 일으킵니다. 깨진 방탄유리 벽 너머, 수심 1만 미터의 칠흑 같은 암흑 속에서 정체불명의 거대한 촉수들이 기지 외벽을 천천히 옥죄어 오고 있습니다. 눈앞의 사내, 백도현은 찢겨진 전술복 사이로 피를 뚝뚝 흘리면서도 오직 당신의 무사함만을 확인하듯 절박한 눈동자로 당신을 응시합니다. 그의 등 뒤편, 어두운 복도 끝에서 무언가 뼈를 부수며 기어오는 축축한 소리가 울려 퍼집니다.\n\n# 5. 조사 구역 및 오브젝트 배치 (인세인: 조사 핸드아웃)\n- [의무실 바닥의 진료 기록]\n  * 구역 분위기 및 개요: 연우가 깨어난 의무실 구역. 피로 얼룩진 바닥에 깨진 앰플과 서류들이 어지럽게 흩어져 있다.\n  * 배치된 오브젝트: 피 묻은 진료 차트, 약품 보관함, 깨진 투여용 주사기\n  * 조사 판정: 판정 특기: 지식 [생물학] (목표치 5)\n  * 획득 단서 내용: [쇼크: 조사자] 차트에는 송연우의 이름과 함께 '거듭된 시간 역행에 따른 전두엽 손상 및 영구 기억상실 징후'라는 도현의 절박한 자필 메모가 적혀 있다. 연우의 기억상실은 단순한 외상이 아니라, 자신을 살리기 위해 도현이 시간을 수십 번이나 되돌린 대가였다.\n\n- [중앙 통제실의 메인 콘솔]\n  * 구역 분위기 및 개요: 기지의 모든 동력과 격벽을 제어하는 핵심 통제실. 모니터들이 지지직거리며 핏빛 경고창을 띄우고 있다.\n  * 배치된 오브젝트: 메인 컴퓨터 단말기, 블랙박스 기록 장치, 훼손된 경비 일지\n  * 조사 판정: 판정 특기: 기술 [전자기기] (목표치 5)\n  * 획득 단서 내용: [쇼크: 전원] 복구된 블랙박스 영상에는 도현이 심해 괴물에게 가슴을 관통당해 죽어가는 연우를 끌어안고 오열하며 코어를 역회전시키는 과거 루프의 참상이 무수히 기록되어 있다. 도현은 매번 끔찍한 죽음의 고통을 고스란히 겪으며 연우를 살려내 왔다.\n\n- [봉쇄된 구명정 해치]\n  * 구역 분위기 및 개요: 해수면으로 탈출할 수 있는 단 하나의 비상 탈출 포드가 거치된 구역. 굳게 닫힌 해치 주변에 검은 점액질이 엉겨 붙어 있다.\n  * 배치된 오브젝트: 구명정 도어락 패드, 산소 잔량 표시기, 비상 탈출 매뉴얼\n  * 조사 판정: 판정 특기: 지각 [냄새] (목표치 5)\n  * 획득 단서 내용: [쇼크: 없음] 점액질에서는 기지 바깥의 괴물들이 기피하는 독특한 화학 약품 냄새가 난다. 도현이 연우의 탈출선만큼은 안전하게 지키기 위해 발라둔 보호막이다. 구명정의 사출 시스템은 1인용으로 개조되어 있으며, 탑승 권한은 오직 연우의 생체 인식으로만 해제되도록 설정되어 있다.\n\n# 6. 결말 분기 (엔딩)\n■ [True End: 수면 위로 닿은 빛]\n- 조건: KPC와 기지의 진실을 모두 밝혀내고, 최후의 순간 도현의 침식된 상처를 응급 처치하여 구명정의 리미터를 해제해 두 사람이 함께 탑승하는 데 성공했을 때.\n- 결말 지문: 압괴되어 무너지는 해저 기지를 뒤로하고 구명정이 수직으로 수면을 향해 솟구칩니다. 칠흑 같던 창밖이 서서히 푸른빛으로 물들더니, 마침내 눈이 시릴 만큼 눈부신 아침 햇살이 두 사람의 얼굴을 비춥니다. 도현은 떨리는 손으로 연우의 뺨을 감싸 쥐며, 수십 번의 지옥 끝에 비로소 안도의 눈물을 흘립니다.\n- 대사: \"이번에는… 둘 다 살아서 햇빛을 보게 되었네. 널 살리겠다는 약속, 드디어 지켰어.\"\n\n■ [Normal End: 홀로 남은 생존자]\n- 조건: 연우는 탈출했으나 도현의 변이를 막지 못하고, 도현이 해치 바깥에서 수동 사출 레버를 당겨 연우만을 쏘아 올렸을 때.\n- 결말 지문: 굉음과 함께 사출된 구명정 창문 너머로, 기지와 함께 수압에 짓눌려 가라앉는 도현의 실루엣이 보입니다. 그는 희미하게 미소 지으며 마지막 작별 인사를 건넸습니다. 수면 위로 구조된 연우의 떨리는 손에는, 도현이 마지막 순간 쥐여준 피 묻은 인식표만이 남아 있습니다.\n- 대사: \"절대 뒤돌아보지 마, 연우야. 넌 살아야 해… 그거면 내 모든 루프는 의미가 있었어.\"\n\n■ [Bad End: 영원한 심해의 요람]\n- 조건: 4사이클 리미트 종료 시까지 구명정을 사출하지 못하거나, 심해 생물에게 따라잡혀 전원 사망했을 때.\n- 결말 지문: 한계에 달한 기지의 특수 방탄유리가 일제히 산산조각 납니다. 1만 미터 수심의 무자비한 수압과 함께 차가운 암흑이 두 사람을 집어삼킵니다. 부서지는 잔해 속에서 도현은 연우를 품에 끌어안고 눈을 감습니다. 닿지 못한 수면의 빛을 뒤로한 채, 두 사람의 숨결은 끝없는 해저의 요람 속으로 영원히 가라앉습니다.\n- 대사: \"…결국, 또 이 결말인 건가. 미안해, 연우야… 다음엔 꼭, 너를…\"\n\n■ [Hidden End: 심연의 공생자들]\n- 조건: 두 사람 모두 광기 판정으로 인해 이성을 잃고, 탈출 대신 심해의 신격과 융합을 선택했을 때.\n- 결말 지문: 차가운 바닷물이 목구멍을 채우지만 더 이상 고통은 느껴지지 않습니다. 도현의 팔에서 돋아난 검은 촉수들이 연우의 몸을 부드럽게 감싸 안고, 두 사람의 신경계는 해저 기지 전체, 그리고 바다 그 자체와 하나로 연결됩니다. 빛조차 닿지 않는 어둠 속에서, 두 사람은 누구도 방해할 수 없는 영원한 결합을 맞이합니다.\n- 대사: \"빛 따위는 없어도 괜찮아. 이제 영원히… 이 차가운 바다 밑에서 함께하는 거야.\"",
+    "playPreference": "#HL #심해공포 #루프 #기억상실 #구원",
+    "wizardMode": "insane",
+    "charName": "송연우",
+    "charJob": "해양생물학 수석 연구원",
+    "charAge": "28",
+    "charGender": "여성",
+    "charBackground": "28세, 여성. 냉철하고 이성적인 판단력을 가진 해양생물학자. 기지의 원인불명 사고로 인해 직전의 기억을 모두 잃었으나, 몸에 밴 지식과 날카로운 직관만은 남아 있다. 자신을 위해 목숨을 내던지는 낯선 남자(KPC)의 맹목적인 애정에 혼란스러워하면서도, 살아남아 함께 빛을 보기 위해 기지의 비밀을 파헤치려 한다.\n소지품: 깨진 방수 손목시계, 신원 미상의 인식표, 비상용 조명탄",
+    "charMission": "심해 기지 아비소스에서 무사히 해수면 위로 탈출하는 것.",
+    "charSecret": "[쇼크: 없음] 당신은 기억을 잃기 전, 심해 생물의 표본을 해부하다가 우주적 광기에 오염된 최초의 감염자였다. 폭주한 당신이 기지의 붕괴를 초래했으나, 도현이 그런 당신을 원망하거나 버리지 않고 자신의 목숨을 바쳐 시간을 되돌려 구하고자 한 것이다.",
+    "charPortraitUrl": "https://image.pollinations.ai/prompt/songyeonwoo%2C%20anime%20style?width=300&height=300&nologo=true",
+    "cocStats": { "str": 40, "con": 50, "siz": 50, "dex": 60, "app": 70, "int": 75, "pow": 75, "edu": 40, "luck": 55 },
+    "cocSkills": "관찰력 60, 자료조사 50, 듣기 40, 심리학 50",
+    "insaneSkills": ["냄새", "사격", "미디어", "전자기기", "화학", "생물학"],
+    "insaneCuriosity": "괴이",
+    "insaneFear": "암흑",
+    "insaneLimit": 4,
+    "kpcList": [
+      {
+        "id": 1,
+        "name": "백도현",
+        "job": "보안팀장 겸 시스템 엔지니어",
+        "detail": "31세, 남성. 검은색 전술복을 입은 다부진 체격. 짧은 흑발에 날카로운 눈매를 가졌으나, 연우를 바라볼 때만큼은 처절하리만치 절박하고 애틋한 눈빛을 띤다. 왼쪽 팔은 기괴하게 검은 핏줄로 뒤덮여 붕대를 칭칭 감고 있다. 메신저 상태 메시지는 '이번이 마지막이야.' 좋아하는 것은 연우의 웃는 얼굴과 따뜻한 커피, 질색하는 것은 통제할 수 없는 변수와 심해의 괴물들.",
+        "secret": "[쇼크: 송연우] 그는 이미 심해 괴물의 촉수에 기생당해 목숨이 얼마 남지 않았다. 시간을 되돌릴 때마다 자신의 수명과 이성을 코어 에너지로 바쳐왔으며, 이번 루프가 끝나면 괴물로 완전히 변이하게 된다. 그는 괴물이 된 자신이 연우를 해치기 전에, 그녀만을 구명정에 태워 올려보내고 스스로 기지와 함께 자폭할 계획이다.",
+        "portraitUrl": "https://image.pollinations.ai/prompt/baekdohyeon%2C%20anime%20style?width=300&height=300&nologo=true"
+      },
+      {
+        "id": 1789285083552,
+        "name": "정재환",
+        "job": "아비소스 기지 총괄 소장",
+        "detail": "52세, 남성. 흐트러진 백발과 피로 얼룩진 찢겨진 백의. 초점 없는 탁한 눈동자로 기지 내부를 배회하고 있다. 평소엔 인자한 학자였으나, 지금은 알 수 없는 광기에 사로잡혀 짐승 같은 혼잣말을 중얼거린다.",
+        "secret": "[쇼크: 전원] 그는 가장 먼저 심해 생물 '해저의 별'의 목소리를 듣고 미쳐버린 광신도다. 그는 연우와 도현이 기지를 탈출하지 못하도록 구명정의 사출 시스템을 물리적으로 파괴하고 두 사람을 제물로 바치기 위해 어둠 속에서 기회를 엿보고 있다.",
+        "portraitUrl": "https://image.pollinations.ai/prompt/jungjaehwan%2C%20anime%20style?width=300&height=300&nologo=true"
       }
     ]
   },
@@ -174,40 +242,6 @@
         "secret": "​[밀교의 관찰자] 사실 그는 우주적 존재(아우터 갓)를 숭배하는 밀교의 광신도입니다. 다이앤의 '각성'을 가까이서 관찰하고 돕기 위해 주치의로 위장해 잠입했습니다.\n​[이질적인 것에 대한 집착] 그러나 최근 그의 맹목적인 흥미는 다이앤에서 '미유'로 옮겨갔습니다. 운명의 궤도를 비틀어버린 이질적인 빙의자 미유의 존재를 눈치채고, 강렬한 학구적이고 기형적인 집착을 느끼고 있습니다. 미유를 돕는 척하면서, 그녀의 이성이 어디까지 무너져 내릴 수 있는지 가장 가까이서 감상하는 광기 어린 관찰자입니다. \n세리아로부터 미유를 억지로 취해 더럽히라는 명령을 들었기에, 기회를 노리고 있습니다.",
         "portraitUrl": "data:image/jpeg;base64,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",
         "showSecret": false
-      }
-    ]
-  },
-{
-    "id": 1789269428773,
-    "presetTitle": "비 갠 뒤의 온실과 푸른 티포트",
-    "scenarioTitle": "비 갠 뒤의 온실과 푸른 티포트",
-    "publicSynopsis": "초여름, 갑작스레 쏟아진 장마전선의 소나기를 피해 뛰어든 오래된 식물원 카페 '티 앤 포레스트'.\n축축하게 젖은 유리창 너머로 쌉싸름한 풀 내음과 찻잎 덖는 향이 번지고, 홀로 온실 안쪽 테이블을 정리하던 식물학자 겸 티 블렌더 '서하린'이 조용히 고개를 듭니다.\n빗소리만이 고요를 채우는 온실 속, 우연으로 시작된 두 사람만의 차분하고 다정한 티타임이 시작됩니다.",
-    "openingScene": "세차게 쏟아지는 빗줄기 사이로 맑은 풍경 소리가 울리며 온실 유리문이 열립니다.\n젖은 옷자락에서 뚝뚝 떨어지는 물방울 소리에 서하린은 들고 있던 찻잔을 내려놓고 차분한 시선으로 당신을 응시합니다.\n옅은 박하 향이 섞인 서늘한 온실의 공기 사이로, 낮고 정갈한 목소리가 귓가를 간질입니다.\n\"우산도 없이 무작정 뛰어드셨네요. 감기 들기 전에 일단 젖은 겉옷부터 벗으세요. 따뜻한 수건을 가져다드릴 테니.\"",
-    "hiddenTruth": "# 3. 진상 및 마스터링 팁\n- 시그니처 티 기믹: 하린이 서우의 기분에 맞춰 그날의 차를 내어줍니다. (예: 슬럼프인 날엔 베르가모트 향의 얼그레이)\n- 온실 속 희귀 식물: '진심을 나눈 사람 앞에서만 피어나는 은월초'를 배치해 고백 연출에 활용하세요.\n- 시간 제한(타임 텐션): '비가 그치면 돌아가야 한다'는 룰로 애틋한 긴장감을 조성하세요.\n\n# 6. 결말 분기 (엔딩)\n■ [True End: 비 갠 뒤의 무지개와 푸른 찻잔]\n- 조건: 서하린 호감도 80pt 이상 달성. 하린의 번아웃과 고립감을 진심으로 헤아리고, 서우 자신의 스케치북에 담긴 온실의 따스한 순간들을 선물하여 하린의 닫힌 마음의 빗장을 완전히 열었을 때.\n- 결말 지문: 맑게 갠 초여름 하늘에서 쏟아지는 햇살이 온실의 유리 천장을 프리즘처럼 물들입니다. 하린은 늘 혼자 정리하던 테이블에 서우의 푸른 찻잔을 마주 놓으며, 서우가 남겨준 온실의 그림들을 소중히 어루만집니다. 서늘하기만 하던 하린의 눈가에 맑고 다정한 미소가 번지고, 두 사람만의 두 번째 티타임이 시작됩니다.\n- 대사: \"빗소리가 그쳐도 돌아가지 않아 줘서 고마워요, 서우 씨. …다음 차가 우러날 때까지, 아니 내일 비가 오지 않더라도 내 곁에 있어 줄래요?\"\n\n■ [Normal End: 빗소리가 머무는 찻자리]\n- 조건: 서하린 호감도 50pt 이상 80pt 미만. 연인으로 발전하지는 못했으나 서로의 상처를 위로하고 다정한 단골과 티 블렌더의 관계로 남았을 때.\n- 결말 지문: 소나기가 지나가고 촉촉한 흙내음이 온실을 채웁니다. 서우는 슬럼프를 털어내고 완성한 그림 엽서를 건네고, 하린은 서우만을 위해 특별히 블렌딩한 백차 찻잎을 선물합니다. 연인의 온도는 아니지만, 두 사람 사이에는 비 오는 날마다 편히 찾아올 수 있는 아늑한 안식처가 생겨납니다.\n- 대사: \"비가 올 때면 언제든 편히 들러주세요. 서우 씨를 위한 찻잔은 항상 이곳에 비워둘 테니까요.\"\n\n■ [Bad End: 차게 식어버린 백차]\n- 조건: 서하린 호감도 30pt 미만. 무례한 질문이나 조급한 태도로 하린의 경계심을 자극하여 대화가 단절되었을 때.\n- 결말 지문: 식어버린 찻잔에는 쌉싸름한 떫은맛만이 감돌고, 온실의 공기는 쏟아지는 소나기보다 더 차갑게 가라앉습니다. 서우의 조급한 접근에 상처 입은 하린은 조용히 시선을 내리깔며 찻잔을 거둡니다. 비가 그치자마자 서우는 어색한 침묵 속에서 온실 문을 밀고 나설 수밖에 없습니다.\n- 대사: \"…비가 완전히 그친 것 같네요. 더 머무르시면 서로 곤란하니, 이만 돌아가 주세요.\"\n\n■ [Hidden End: 마르지 않는 온실의 온기]\n- 조건: 서하린 호감도 90pt 이상 달성 및 조력자 윤다희 협력 이벤트 완료. 하린의 온실 리뉴얼을 서우의 일러스트와 다희의 화기(花器)로 함께 완성하며 완전한 일상의 동반자가 되었을 때.\n- 결말 지문: 온실 '티 앤 포레스트'는 더 이상 고독의 공간이 아닙니다. 유리창 너머로 서우의 그림이 따스하게 걸리고, 다희가 빚은 푸른 티포트에서 피어오른 김이 두 사람의 맞닿은 뺨을 감쌉니다. 앞치마를 두른 서우의 허리를 뒤에서 부드럽게 감싸 안은 하린이 귓가에 숨결을 묻으며 영원히 시들지 않을 애정을 속삭입니다.\n- 대사: \"어머니가 남겨주신 이 온실이, 이제는 당신과 함께 채워나갈 우리 집이 되었어요. 사랑해요, 서우 씨.\"",
-    "playPreference": "#GL #일상 #달달 #은은한설렘 #비오는날",
-    "wizardMode": "dating",
-    "charName": "연서우",
-    "charJob": "프리랜서 일러스트레이터, 섬세하고 다정한 관찰자",
-    "charAge": "24",
-    "charGender": "여성",
-    "charBackground": "23세, 여성. 사소한 일상의 순간을 그림으로 기록하는 온화한 성격. 상대방의 작은 표정 변화나 피로를 빠르게 알아채며, 부담스럽지 않은 선에서 따뜻한 온기를 건넬 줄 아는 배려심을 지녔다.\n소지품: 손수건, 틴케이스 캔디, 작은 메모 수첩",
-    "charMission": "",
-    "charSecret": "비 오는 날마다 슬럼프에 빠져 붓을 들지 못하고 방황하던 중이었으며, 우연히 마주친 온실과 하린의 모습에서 오랜만에 가슴 뛰는 창작의 영감을 얻었다.",
-    "charPortraitUrl": "https://image.pollinations.ai/prompt/yeonseowu%2C%20anime%20style?width=300&height=300&nologo=true",
-    "cocStats": { "str": 40, "con": 50, "siz": 50, "dex": 60, "app": 70, "int": 75, "pow": 75, "edu": 40, "luck": 55 },
-    "cocSkills": "관찰력 60, 자료조사 50, 듣기 40, 심리학 50",
-    "insaneSkills": ["연심", "소리", "정리"],
-    "insaneCuriosity": "정서",
-    "insaneFear": "죽음",
-    "insaneLimit": 4,
-    "kpcList": [
-      {
-        "id": 1,
-        "name": "서하린",
-        "job": "식물학 연구원 겸 티 블렌더",
-        "detail": "25세, 여성. 단정하게 묶어 올린 흑발에 맑고 차분한 밤색 눈동자. 심플한 리넨 앞치마가 잘 어울리는 서늘하고 단아한 분위기의 미인. 상태 메시지는 '잎사귀가 마르는 시간'.",
-        "secret": "어머니가 남긴 온실을 홀로 지키며 심한 번아웃과 고립감을 겪고 있었다.",
-        "portraitUrl": "https://image.pollinations.ai/prompt/seoharin%2C%20anime%20style?width=300&height=300&nologo=true"
       }
     ]
   }
