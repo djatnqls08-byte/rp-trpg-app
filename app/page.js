@@ -3158,19 +3158,23 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               text: m.text
             }));
 
-            const res = await fetch("/api/chat", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                messages: messagesForApi,
-                scenarioText: activeSession.scenarioText || "",
-                playerSheet: activeSession.sheet,
-                ruleMode: "dating",
-                playPreference: activeSession.preference,
-                isPhoneChat: true,
-                targetNpc: currentContact
-              })
-            });
+            // 🌟 1) 직전 서사 지문 2개를 가져와서 상황 파악용으로 만듦
+          const recentStoryContext = (activeSession.messages || []).slice(-2).map(m => m.text).join("\n\n");
+
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: messagesForApi,
+              scenarioText: activeSession.scenarioText || "",
+              playerSheet: activeSession.sheet,
+              ruleMode: "dating",
+              playPreference: activeSession.preference,
+              isPhoneChat: true,
+              targetNpc: currentContact,
+              lastStoryContext: recentStoryContext // 🌟 2) 서버로 상황 전달
+            })
+          });
 
             if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
             const data = await res.json();
