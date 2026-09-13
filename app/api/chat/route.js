@@ -48,7 +48,7 @@ export async function POST(req) {
 
       let systemInstruction = "";
 
-      // ── [1. 통합 미연시 모드: "dating"] ── 
+      // ── [1. 통합 미연시 모드: "dating"] ──
       if (ruleMode === "dating") {
         if (isPhoneChat) {
           // 📱 1:1 스마트폰 서랍 메신저
@@ -81,12 +81,35 @@ export async function POST(req) {
           formattedContents.push({ role: "model", parts: [{ text: `네, 3인칭 묘사를 배제하고 오직 ${partnerName}으로서 메신저 답장만 자연스럽게 출력하겠습니다.` }] });
 
         } else {
-          // 📖 비주얼 노벨 소설 서사
+          // 📖 비주얼 노벨 소설 서사 (메신저 대화 유기적 연동)
           const npcListStr = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
+
+          // 📱 [핵심] 최근 스마트폰 메신저로 주고받은 톡 내역 추출
+          let recentPhoneSummary = "";
+          if (playerSheet?.phoneChats) {
+            const phoneLogs = [];
+            const npcs = playerSheet.npcs || [];
+            Object.entries(playerSheet.phoneChats).forEach(([contactId, msgs]) => {
+              const target = npcs.find(n => String(n.id) === String(contactId));
+              const cName = target?.name || "상대방";
+              (msgs || []).slice(-8).forEach(m => {
+                phoneLogs.push(`- ${m.sender === "user" ? pName : cName}: "${m.text}"`);
+              });
+            });
+            if (phoneLogs.length > 0) {
+              recentPhoneSummary = `\n\n[📱 최근 주고받은 메신저(개인 연락/서신) 내역]
+${phoneLogs.join("\n")}
+
+[🚨 메신저-서사 유기적 연동 절대 수칙]
+1. 메신저 내역에서 시간/장소 약속을 잡았거나 만나기로 했다면, 시간의 경과를 자연스럽게 묘사하고 **실제 약속 장소로 씬을 전환하여 대면하는 순간**을 서술하십시오.
+2. 메신저로 나눈 둘만의 대화나 감정선은 실제 만났을 때의 시선, 표정, 혹은 직접 대사("아까 보낸 톡 말인데...", "기다렸어" 등)로 자연스럽게 언급하며 서사를 이어가십시오.`;
+            }
+          }
 
           systemInstruction = `[비주얼 노벨 / 인터랙티브 로맨스 모드]
 당신은 두 사람의 관계를 이끄는 비주얼 노벨 마스터입니다.
 주인공: '${pName}' (${pcTone}), 상대방: '${partnerName}' (${activePartner.job || "인물"}, 설정: ${activePartner.detail || "설정 없음"})
+${recentPhoneSummary}
 
 [🚨 제4의 벽 파괴 및 메타 발언 절대 금지]
 1. 절대로 플레이어를 '작가님', '독자님' 등으로 부르지 마십시오!
@@ -113,7 +136,7 @@ export async function POST(req) {
   <!-- PHONE_MSG: {"from": "${partnerName}", "text": "짤막한 메시지"} -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: `네, 메타 발언을 일절 배제하고 ${partnerName}의 성격과 발화 특성을 100% 반영하여 깊이 있는 비주얼 노벨 서사를 진행하겠습니다.` }] });
+          formattedContents.push({ role: "model", parts: [{ text: `네, 메타 발언을 일절 배제하고 최근 메신저 대화 내역까지 유기적으로 서사에 반영하여 깊이 있는 비주얼 노벨을 진행하겠습니다.` }] });
         }
 
       // ── [2. 정통 TRPG 모드 (CoC, inSANe, 자유 서사)] ──
