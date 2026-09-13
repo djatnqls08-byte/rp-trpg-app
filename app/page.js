@@ -158,19 +158,34 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     }
   ]);
 
-  // 🌟 public/presets.json 자동 로드 (단일 객체/배열 자동 처리 및 캐시 방지)
+ // 🌟 public/presets.json 자동 로드 (쉼표나 괄호가 누락되어도 자동 수리하여 로드)
   useEffect(() => {
     fetch(`/presets.json?t=${Date.now()}`, { cache: "no-store" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (!data) return;
-        // 💡 대괄호([ ])가 없어도 자동으로 목록으로 변환하여 모두 띄워줍니다!
-        const list = Array.isArray(data) ? data : [data];
-        if (list.length > 0) {
+      .then(res => res.text())
+      .then(text => {
+        if (!text || !text.trim()) return;
+        try {
+          // 1. 정상적인 JSON인 경우 바로 로드
+          const data = JSON.parse(text);
+          const list = Array.isArray(data) ? data : [data];
           setOfficialPresets(list);
+        } catch (e) {
+          // 2. 💡 쉼표(,)나 대괄호([ ])가 빠진 채 연달아 붙어있을 때 자동으로 고쳐서 로드!
+          try {
+            let repaired = text.trim();
+            if (!repaired.startsWith("[")) repaired = "[" + repaired;
+            if (!repaired.endsWith("]")) repaired = repaired + "]";
+            repaired = repaired.replace(/}\s*{/g, "},{");
+            const data = JSON.parse(repaired);
+            if (Array.isArray(data) && data.length > 0) {
+              setOfficialPresets(data);
+            }
+          } catch (err2) {
+            console.error("프리셋 자동 수리 실패:", err2);
+          }
         }
       })
-      .catch(err => console.log("프리셋 로드 에러:", err));
+      .catch(() => {});
   }, []);
   // 🌟 낱개(1개) 세팅만 깔끔하게 단독 JSON으로 다운로드
   const exportSingleLobbyPreset = (p) => {
