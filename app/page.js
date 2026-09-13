@@ -133,8 +133,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     } catch(e) {}
   }, []);
 
-  const handleSaveLobbyPreset = () => {
-    const titlePrompt = // 🌟 로비 세팅 저장 인앱 모달 열기
+// 🌟 로비 세팅 저장 인앱 모달 열기
   const handleSaveLobbyPreset = () => {
     const defaultTitle = scenarioTitle || (charName ? `${charName}의 캠페인` : "새로운 모험");
     setLobbySaveInput(defaultTitle);
