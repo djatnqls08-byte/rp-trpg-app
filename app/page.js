@@ -61,43 +61,6 @@ const INSANE_EMOTIONS_TABLE = {
   6: { pos: "광신(+)", neg: "살의(-)" }
 };
 
-// 🌟 66개 특기 매트릭스 좌표 및 최단 격자 거리 계산기 (순수 JS)
-function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityCategory = "") {
-  if (!targetSkill) return 5;
-  if (learnedSkills.includes(targetSkill)) return 5; // 습득 특기는 기본 5
-
-  let targetCoord = null;
-  INSANE_MATRIX.forEach((col, colIdx) => {
-    const rowIdx = col.skills.indexOf(targetSkill);
-    if (rowIdx !== -1) {
-      targetCoord = { col: colIdx, row: rowIdx, category: col.category };
-    }
-  });
-
-  if (!targetCoord) return 5;
-
-  let minDistance = 999;
-  learnedSkills.forEach(learned => {
-    INSANE_MATRIX.forEach((col, colIdx) => {
-      const rowIdx = col.skills.indexOf(learned);
-      if (rowIdx !== -1) {
-        const colDist = Math.abs(targetCoord.col - colIdx);
-        const rowDist = Math.abs(targetCoord.row - rowIdx);
-        const dist = colDist + rowDist;
-        if (dist < minDistance) minDistance = dist;
-      }
-    });
-  });
-
-  if (minDistance === 999) minDistance = 2; // 습득 특기가 없을 경우 기본 보정
-
-  // 호기심 분야 대용 시 거리 -1 적용
-  const curiosityBonus = targetCoord.category === curiosityCategory ? 1 : 0;
-  const finalTarget = Math.max(5, 5 + minDistance - curiosityBonus);
-
-  return finalTarget;
-}
-
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
