@@ -2605,6 +2605,43 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   const isHiddenEnding = isScenarioEnded && /Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText);
   const isBadEnding = isScenarioEnded && !isHiddenEnding && /Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText);
 
+ // 🌟 [추가] 모바일 뒤로가기(제스처/버튼) 시 앱 종료 방지 및 로비 복귀
+  useEffect(() => {
+    if (activeSessionId) {
+      window.history.pushState({ inSession: true }, "");
+    }
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // 1. 열려 있는 서랍이나 모달이 있다면 서랍부터 닫기
+      if (isPhoneDrawerOpen) {
+        setIsPhoneDrawerOpen(false);
+        return;
+      }
+      if (isTabletopOpen) {
+        setIsTabletopOpen(false);
+        return;
+      }
+      if (isSheetOpen) {
+        setIsSheetOpen(false);
+        return;
+      }
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+        return;
+      }
+
+      // 2. 채팅방에 머물고 있는 상태라면 로비로 퇴장
+      if (activeSessionId) {
+        setActiveSessionId(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [activeSessionId, isPhoneDrawerOpen, isTabletopOpen, isSheetOpen, isSidebarOpen]);
+ 
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
