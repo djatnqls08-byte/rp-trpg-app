@@ -2076,18 +2076,30 @@ let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
       const currentPhase = activeSession.sheet?.phase || "도입";
       const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
 
-      let phaseInstruction = "";
+      let phaseInstruction = "- [메인 페이즈]: 자유로운 대화를 나누되, 플레이어가 원할 때 핸드아웃을 조사할 수 있도록 여지를 열어두십시오.";
       if (currentPhase === "도입") {
         phaseInstruction = "- [도입 페이즈]: 사건에 휘말리는 첫 순간입니다. 판정이나 행동 요구 없이 인물 간의 첫 만남과 서막의 분위기를 느긋하게 풀어가십시오.";
       } else if (currentPhase === "마스터 씬") {
         phaseInstruction = "- [마스터 씬]: 돌발 위협이나 괴이가 개입한 상황입니다. 유저의 반응을 천천히 받아주며 긴장감을 연출하십시오.";
       } else if (currentPhase === "클라이맥스") {
         phaseInstruction = "- [클라이맥스 페이즈]: 모든 비밀이 드러난 최종 국면입니다. 마지막 결단과 대결 구도를 팽팽하게 묘사하십시오.";
-      } else {
-        phaseInstruction = isActionDone 
-          ? "- [메인 페이즈]: 이번 장면의 주요 행동이 완료되었습니다. 판정 요구 없이 인물과 여유롭게 대화와 교감을 나누십시오."
-          : "- [메인 페이즈]: 자유로운 대화를 나누되, 플레이어가 원할 때 핸드아웃을 조사할 수 있도록 여지를 열어두십시오.";
+      } else if (isActionDone) {
+        phaseInstruction = "- [메인 페이즈]: 이번 장면의 주요 행동이 완료되었습니다. 판정 요구 없이 인물과 여유롭게 대화와 교감을 나누십시오.";
       }
+
+      dynamicRules += `\n\n[🎲 인세인(inSANe) 정규 룰 엄수 절대 수칙]
+1. [느긋한 대화 호흡과 무제한 티키타카 보장]
+- 절대로 사건을 서둘러 진행하거나 상황을 급하게 정리하려 들지 마십시오.
+- 인물의 사소한 손짓, 미세한 표정 변화, 주변 분위기를 천천히 묘사하며 유저와 충분한 대화를 나누십시오.
+- 유저가 직접 [장면 닫기]를 누르기 전까지는 대화의 여운을 살리며 자연스럽게 답변을 이어가십시오.
+
+2. [임의 판정 및 Scene Close 독단 선언 절대 금지]
+- 일상 대화 중 "판정을 하세요"라며 주사위를 요구하지 마십시오.
+- 지문 끝에 "Scene Close", "장면을 마칩니다", "[제N사이클 N장면] 시작" 등의 텍스트를 절대로 직접 출력하지 마십시오. 장면 전환은 오직 플레이어가 시스템 버튼을 눌러 통제합니다.
+
+3. [현재 페이즈: ${currentPhase}]
+${phaseInstruction}`;
+    }
 
       dynamicRules += `\n\n[🎲 인세인(inSANe) 정규 룰 엄수 절대 수칙]
 1. [느긋한 대화 호흡과 무제한 티키타카 보장]
@@ -4091,13 +4103,18 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                               </>
                             ) : (
                               <button
-                                type="button"
-                                onClick={handleSceneClose}
-                                style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
-                              >
-                                🎬 장면 닫기 (Scene Close)
-                              </button>
-                            )}
+                                  type="button"
+                                  onClick={handleSceneClose}
+                                  style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+                                >
+                                  🎬 장면 닫기 (Scene Close)
+                                </button>
+                              )}
+                            </>
+                          )}
+
+                        {/* 2. 🐙 CoC 방일 때 */}
+                        {activeSession?.ruleMode === "coc" && (
 
                             <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
