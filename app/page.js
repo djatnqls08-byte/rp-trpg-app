@@ -3560,7 +3560,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               )}
             </div>
 
-           {/* 🌟 제미나이 정석 캡슐형 입력창 (좌측 플랫 + / 우측 원형 ↑ 전송 버튼) */}
+{/* 🌟 제미나이 정석 캡슐형 입력창 (좌측 플랫 + / 우측 원형 ↑ 전송 버튼) */}
             <div style={{ 
               position: "sticky", 
               bottom: 0, 
@@ -3591,7 +3591,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   <button
                     type="button"
                     onClick={() => setIsActionDrawerOpen(!isActionDrawerOpen)}
-                    title="인세인 액션 서랍"
+                    title="시스템 액션 서랍"
                     style={{
                       background: "none",
                       border: "none",
@@ -3634,7 +3634,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         zIndex: 100
                       }}
                     >
-                      {/* 서랍 헤더 라벨 */}
                       <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 8px", fontWeight: "800", borderBottom: `1px dashed ${theme.border}` }}>
                         {activeSession?.ruleMode === "insane" 
                           ? (activeSession?.sheet?.actionUsed ? "행동 완료 (장면 정리 단계)" : "인세인 주요 행동") 
@@ -3645,7 +3644,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                           : "자유 서사 액션"}
                       </div>
 
-                      {/* 1. 🎲 인세인(inSANe) 방일 때 */}
+                      {/* 1. 🎲 인세인 방일 때 */}
                       {activeSession?.ruleMode === "insane" && (
                         <>
                           {!activeSession?.sheet?.actionUsed ? (
@@ -3659,23 +3658,22 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                               </button>
 
                               <button
-                            type="button"
-                            onClick={() => {
-                              const npcs = activeSession?.sheet?.npcs || [];
-                              // NPC가 1명이면 자동 선택, 2명 이상이면 대상 선택 화면으로 진입
-                              const defaultTarget = npcs.length === 1 ? npcs[0] : null;
-                              const d = Math.floor(Math.random() * 6) + 1;
-                              setEmotionModal({ 
-                                targetNpc: defaultTarget, 
-                                roll: d, 
-                                pair: INSANE_EMOTIONS_TABLE[d] 
-                              });
-                              setIsActionDrawerOpen(false);
-                            }}
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            💬 감정 맺기 (1D6 감정표)
-                          </button>
+                                type="button"
+                                onClick={() => {
+                                  const npcs = activeSession?.sheet?.npcs || [];
+                                  const defaultTarget = npcs.length === 1 ? npcs[0] : null;
+                                  const d = Math.floor(Math.random() * 6) + 1;
+                                  setEmotionModal({ 
+                                    targetNpc: defaultTarget, 
+                                    roll: d, 
+                                    pair: INSANE_EMOTIONS_TABLE[d] 
+                                  });
+                                  setIsActionDrawerOpen(false);
+                                }}
+                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                              >
+                                💬 감정 맺기 (1D6 감정표)
+                              </button>
 
                               <button
                                 type="button"
@@ -3719,7 +3717,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         </>
                       )}
 
-                      {/* 2. 🐙 CoC (크툴루의 부름) 방일 때 */}
+                      {/* 2. 🐙 CoC 방일 때 */}
                       {activeSession?.ruleMode === "coc" && (
                         <>
                           <button
@@ -3765,7 +3763,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         </>
                       )}
 
-                      {/* 3. 🌸 미연시 (Dating) 방일 때 */}
+                      {/* 3. 🌸 미연시 방일 때 */}
                       {activeSession?.ruleMode?.startsWith("dating") && (
                         <>
                           <button
@@ -3824,7 +3822,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         </>
                       )}
 
-                      {/* 4. ✍️ 자유 서사 (Freeform) 방일 때 */}
+                      {/* 4. ✍️ 자유 서사 방일 때 */}
                       {activeSession?.ruleMode === "freeform" && (
                         <>
                           <button
@@ -3859,6 +3857,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       )}
                     </div>
                   )}
+                </div>
 
                 {/* 2. 중앙: 테두리 없는 투명 textarea */}
                 <textarea 
