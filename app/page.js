@@ -2278,6 +2278,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               {isDarkMode ? "☀️" : "🌙"}
             </button>
           </div>
+        </div> {
 
         {!activeSession ? (
           /* 로비 화면 */
