@@ -3548,10 +3548,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 {/* 🌟 [화면 1: 내 프로필 상세 뷰] */}
               {isMyProfileOpen ? (
                 <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", backgroundColor: activePhoneSkin.shellBg }}>
-                  {/* 상단 닫기 바 (불필요한 별, 점점점 제거) */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 18px 0 18px" }}>
-                    <button type="button" onClick={() => setIsMyProfileOpen(false)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
-                  </div>
+                
 
                   {/* 히어로 프로필 영역 (상단 여백 시원하게 확보) */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 20px 24px 20px", textAlign: "center" }}>
@@ -3615,10 +3612,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               ) : selectedProfileNpc ? (
                 /* 🌟 [화면 2: 상대방 프로필 상세 뷰 (의미없는 표시 제거 및 여백 확보)] */
                 <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", backgroundColor: activePhoneSkin.shellBg }}>
-                  {/* 상단 닫기 바 (별, 점점점 제거) */}
-                  <div style={{ display: "flex", justifyContent: "flex-end", padding: "14px 18px 0 18px" }}>
-                    <button type="button" onClick={() => setSelectedProfileNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
-                  </div>
+                
 
                   {/* 히어로 프로필 영역 (상단 여백 시원하게 내려서 확보) */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "20px 20px 24px 20px", textAlign: "center" }}>
@@ -3839,8 +3833,12 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       {(activeSession.sheet?.npcs || []).map(npc => {
                         const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
                         const lastMsg = chats[chats.length - 1];
-                        const quoteText = npc.statusMessage || (lastMsg ? `"${lastMsg.text}"` : (npc.quote || npc.detail?.slice(0, 28) || npc.title));
-
+                        // 🌟 연락처 목록: 최근 대화 대신 인물의 고유 상태메시지 또는 인물 특징 메모 출력
+const quoteText = npc.statusMessage 
+  ? `"${npc.statusMessage}"` 
+  : (npc.quote 
+      ? `"${npc.quote}"` 
+      : (npc.detail ? `"${npc.detail.slice(0, 30)}..."` : (npc.title || "대화 가능")));
                         return (
                           <div
                             key={npc.id}
@@ -3979,37 +3977,86 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     </div>
                   )}
 
-                  {/* 🌟 3단 하단 탭 네비게이션 바 */}
-                  <div style={{ height: "54px", borderTop: `1px solid ${activePhoneSkin.border}`, backgroundColor: activePhoneSkin.headerBg, display: "flex", alignItems: "center", justifyContent: "space-around", flexShrink: 0 }}>
+{/* 🌟 3단 하단 탭 네비게이션 바 (활성 탭 캡슐형 하이라이트 완벽 적용) */}
+                  <div style={{ height: "56px", borderTop: `1px solid ${activePhoneSkin.border}`, backgroundColor: activePhoneSkin.headerBg, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 10px", flexShrink: 0 }}>
+                    {/* [1. 연락처 탭] */}
                     <button
                       type="button"
                       onClick={() => setPhoneNavTab("contacts")}
-                      style={{ background: "none", border: "none", color: phoneNavTab === "contacts" ? activePhoneSkin.accent : activePhoneSkin.textMuted, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", fontWeight: phoneNavTab === "contacts" ? "800" : "500" }}
+                      style={{
+                        background: phoneNavTab === "contacts" ? activePhoneSkin.panelAlt : "transparent",
+                        border: `1px solid ${phoneNavTab === "contacts" ? activePhoneSkin.border : "transparent"}`,
+                        borderRadius: "14px",
+                        boxShadow: phoneNavTab === "contacts" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                        padding: "6px 20px",
+                        color: phoneNavTab === "contacts" ? activePhoneSkin.accent : activePhoneSkin.textMuted,
+                        opacity: phoneNavTab === "contacts" ? 1 : 0.55,
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "2px",
+                        fontWeight: phoneNavTab === "contacts" ? "800" : "500",
+                        transition: "all 0.2s ease"
+                      }}
                     >
-                      <span style={{ fontSize: "1.1rem" }}>👤</span>
+                      <span style={{ fontSize: "1.1rem", transform: phoneNavTab === "contacts" ? "scale(1.1)" : "scale(1)", transition: "transform 0.2s" }}>👤</span>
                       <span style={{ fontSize: "0.68rem" }}>연락처</span>
                     </button>
 
+                    {/* [2. 대화 탭 (안 읽은 메시지 뱃지 포함)] */}
                     <button
                       type="button"
                       onClick={() => setPhoneNavTab("chats")}
-                      style={{ position: "relative", background: "none", border: "none", color: phoneNavTab === "chats" ? activePhoneSkin.accent : activePhoneSkin.textMuted, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", fontWeight: phoneNavTab === "chats" ? "800" : "500" }}
+                      style={{
+                        position: "relative",
+                        background: phoneNavTab === "chats" ? activePhoneSkin.panelAlt : "transparent",
+                        border: `1px solid ${phoneNavTab === "chats" ? activePhoneSkin.border : "transparent"}`,
+                        borderRadius: "14px",
+                        boxShadow: phoneNavTab === "chats" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                        padding: "6px 20px",
+                        color: phoneNavTab === "chats" ? activePhoneSkin.accent : activePhoneSkin.textMuted,
+                        opacity: phoneNavTab === "chats" ? 1 : 0.55,
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "2px",
+                        fontWeight: phoneNavTab === "chats" ? "800" : "500",
+                        transition: "all 0.2s ease"
+                      }}
                     >
-                      <span style={{ fontSize: "1.1rem" }}>💬</span>
+                      <span style={{ fontSize: "1.1rem", transform: phoneNavTab === "chats" ? "scale(1.1)" : "scale(1)", transition: "transform 0.2s" }}>💬</span>
                       <span style={{ fontSize: "0.68rem" }}>대화</span>
                       {totalUnread > 0 && (
-                        <span style={{ position: "absolute", top: "-2px", right: "2px", backgroundColor: activePhoneSkin.heart, color: "#fff", borderRadius: "10px", minWidth: "15px", height: "15px", padding: "0 3px", fontSize: "0.58rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ position: "absolute", top: "2px", right: "8px", backgroundColor: activePhoneSkin.heart, color: "#fff", borderRadius: "10px", minWidth: "15px", height: "15px", padding: "0 4px", fontSize: "0.58rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.2)" }}>
                           {totalUnread}
                         </span>
                       )}
                     </button>
 
+                    {/* [3. 더보기 탭] */}
                     <button
                       type="button"
                       onClick={() => setPhoneNavTab("settings")}
-                      style={{ background: "none", border: "none", color: phoneNavTab === "settings" ? activePhoneSkin.accent : activePhoneSkin.textMuted, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", fontWeight: phoneNavTab === "settings" ? "800" : "500" }}
+                      style={{
+                        background: phoneNavTab === "settings" ? activePhoneSkin.panelAlt : "transparent",
+                        border: `1px solid ${phoneNavTab === "settings" ? activePhoneSkin.border : "transparent"}`,
+                        borderRadius: "14px",
+                        boxShadow: phoneNavTab === "settings" ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                        padding: "6px 20px",
+                        color: phoneNavTab === "settings" ? activePhoneSkin.accent : activePhoneSkin.textMuted,
+                        opacity: phoneNavTab === "settings" ? 1 : 0.55,
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "2px",
+                        fontWeight: phoneNavTab === "settings" ? "800" : "500",
+                        transition: "all 0.2s ease"
+                      }}
                     >
-                      <span style={{ fontSize: "1.1rem" }}>⚙️</span>
+                      <span style={{ fontSize: "1.1rem", transform: phoneNavTab === "settings" ? "scale(1.1)" : "scale(1)", transition: "transform 0.2s" }}>⚙️</span>
                       <span style={{ fontSize: "0.68rem" }}>더보기</span>
                     </button>
                   </div>
