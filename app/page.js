@@ -2020,25 +2020,6 @@ const startNewSession = async () => {
     }
   };
 
-// 👇 aiPromptOverride 매개변수 추가
-const executeMessage = async (textToSend, aiPromptOverride = null) => {
-  if (!textToSend.trim() || !activeSession) return;
-
-  const isDatingMsg = activeSession.ruleMode === "dating_msg";
-  const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
-  const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
-  const partnerName = currentContact?.name || "상대방";
-
-  const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
-
-  // 🌟 화면 말풍선에는 주석 태그(<!-- -->)를 제거한 깨끗한 텍스트만 저장
-  const cleanDisplayText = textToSend.replace(/<!--[\s\S]*?-->/g, "").trim();
-
-  const updatedMessages = [
-    ...(activeSession.messages || []), 
-    { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet }
-  ];
-
   setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
   setIsLoading(true);
 
