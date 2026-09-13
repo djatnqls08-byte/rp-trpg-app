@@ -1042,17 +1042,21 @@ useEffect(() => {
       const tagMatch = rawText.match(/(?:서사\s*지향\s*태그|장르\s*톤|태그)\s*[:：]\s*([^\n\r]+)/i);
       if (tagMatch) setPlayPreference(tagMatch[1].trim());
 
-      // ── [1. 시나리오 본문 & 진상] ──
+      // ── [1. 시나리오 본문 & 진상 파싱 (다양한 양식 완벽 지원)] ──
+      // 시나리오 제목
       const titleMatch = rawText.match(/(?:시나리오\s*제목|제목)\s*[:：]\s*([^\n\r]+)/i);
       if (titleMatch) setScenarioTitle(titleMatch[1].trim());
 
-      const synMatch = rawText.match(/(?:\[공개\s*시놉시스\][^\n]*|공개\s*시놉시스\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[서막\]|서막\s*[:：]|###|\n\n\[|$))/i);
+      // 공개 시놉시스 (# 1. 시놉시스, [공개 시놉시스], 시놉시스: 모두 수용)
+      const synMatch = rawText.match(/(?:\[공개\s*시놉시스\]|공개\s*시놉시스\s*[:：]?|#+\s*\d*\.?\s*시놉시스[^\n]*)\s*([\s\S]*?)(?=\n\s*(?:\[서막\]|서막\s*[:：]|\[도입부\]|도입부\s*[:：]|#+\s*\d*\.?\s*도입부|#+\s*\d*\.?\s*서막|###|\n\n\[|$))/i);
       if (synMatch) setPublicSynopsis(synMatch[1].trim());
 
-      const opMatch = rawText.match(/(?:\[서막\][^\n]*|서막\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[키퍼|키퍼\s*전용|###|\n\n\[|$))/i);
+      // 서막 / 도입부 (# 4. 도입부, [서막], 오프닝 등 모두 수용)
+      const opMatch = rawText.match(/(?:\[서막\]|서막\s*[:：]?|\[도입부\]|도입부\s*[:：]?|#+\s*\d*\.?\s*도입부[^\n]*|#+\s*\d*\.?\s*서막[^\n]*|오프닝\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[키퍼|키퍼\s*전용|#+\s*\d*\.?\s*진상|사건의\s*진상|###|\n\n\[|$))/i);
       if (opMatch) setOpeningScene(opMatch[1].trim());
 
-      const trMatch = rawText.match(/(?:\[키퍼\s*전용[^\n]*\]|키퍼\s*전용\s*(?:스포일러|진상|기밀)[^:：\n]*[:：]?|사건의\s*진상)\s*([\s\S]*?)(?=\n\s*(?:###\s*\d|\[내 프로필|\[등장인물|$))/i);
+      // 🌟 키퍼 전용 진상 / 비밀란 (# 3. 진상, [진상], 배후 진상, 기밀 진상 등 100% 캡처!)
+      const trMatch = rawText.match(/(?:\[키퍼\s*전용[^\n]*\]|키퍼\s*전용\s*(?:스포일러|진상|기밀)[^:：\n]*[:：]?|사건의\s*진상|#+\s*\d*\.?\s*진상[^\n]*|\[진상\]|진상\s*[:：])\s*([\s\S]*?)(?=\n\s*(?:###\s*\d|\[내\s*프로필|\[PC\s*프로필|\[등장인물|$))/i);
       if (trMatch) setHiddenTruth(cleanVal(trMatch[1]));
 
       // ── [2. 내 프로필 (PC 공통)] ──
@@ -1167,30 +1171,36 @@ useEffect(() => {
       if (parsedNpcList.length > 0) {
         setKpcList(parsedNpcList);
       }
-      // ── [5. 핸드아웃 (조사 구역 및 단서) 자동 추출] ──
+      // ── [5. 핸드아웃(조사 구역 및 단서) 강력 추출] ──
       let extractedHandouts = [];
-      // V3 프롬프트 양식: "- [조사 구역 이름]" 와 "* 획득 단서 내용:"
-      const handoutBlocks = rawText.split("- [");
-      
-      handoutBlocks.slice(1).forEach((block) => {
-        const titleMatch = block.match(/^(.*?)\]/);
-        const secretMatch = block.match(/획득\s*단서\s*내용\s*[:：]\s*([^\n]+)/);
 
-        if (titleMatch && secretMatch) {
+      // [-*■•]? [조사구역 이름] 형태로 시작하는 모든 블록을 안전하게 캡처
+      const handoutRegex = /(?:^|\n)\s*[-*■•]?\s*\[([^\]]+)\]\s*\n([\s\S]*?)(?=(?:\n\s*[-*■•]?\s*\[[^\]]+\]|\n\s*#+|$))/g;
+      let hMatch;
+      while ((hMatch = handoutRegex.exec(rawText)) !== null) {
+        const hTitle = hMatch[1].trim();
+        const hBody = hMatch[2];
+
+        // 단서/비밀 내용 다중 라인까지 통째로 캡처
+        const secretMatch = hBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
+
+        // 구역 분위기 및 개요가 있으면 앞면에 예쁘게 배치
+        const overviewMatch = hBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명)\s*[:：]\s*([^\n\r]+)/i);
+
+        if (secretMatch) {
           extractedHandouts.push({
-            title: titleMatch[1].trim(), // 예: 제3 생물표본 격리실
-            overview: `[조사 구역: ${titleMatch[1].trim()}] 탐색 시 발견할 수 있는 단서입니다.`,
-            secret: secretMatch[1].trim() // 예: 미확인 유기체 '테티스'의...
+            title: hTitle,
+            overview: overviewMatch ? overviewMatch[1].trim() : `[조사 구역: ${hTitle}] 탐색 및 조사 단서입니다.`,
+            secret: secretMatch[1].trim()
           });
         }
-      });
+      }
 
       if (extractedHandouts.length > 0) {
         setGeneratedHandouts(extractedHandouts);
       } else {
-        setGeneratedHandouts([]); // 단서가 없으면 더미 데이터 방지를 위해 초기화
+        setGeneratedHandouts([]);
       }
-      // 👆👆👆 여기까지 👆👆👆
 
      const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사", dating: "미연시" };
       alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
@@ -1557,18 +1567,39 @@ const startNewSession = async () => {
       });
     }
 
-    if (generatedHandouts && generatedHandouts.length > 0) {
-      // AI 즉석 생성으로 만들어진 카드인지 확인 (사명 등이 포함되어 있는지)
-      const hasBase = generatedHandouts.some(h => h.title.includes("사명") || h.title.includes(pName) || h.title.includes(partnerName));
-      const parsedCards = generatedHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
+    // 🌟 [자동 구조] 파일 첨부 때 놓쳤더라도 비밀란(hiddenTruth)에서 핸드아웃 단서 자동 복원!
+    let effectiveHandouts = generatedHandouts;
+    if (!effectiveHandouts || effectiveHandouts.length === 0) {
+      const fallbackSource = `${hiddenTruth}\n${publicSynopsis}\n${openingScene}`;
+      const fallbackRegex = /(?:^|\n)\s*[-*■•]?\s*\[([^\]]+)\]\s*\n([\s\S]*?)(?=(?:\n\s*[-*■•]?\s*\[[^\]]+\]|\n\s*#+|$))/g;
+      let fbMatch;
+      const fbList = [];
+      while ((fbMatch = fallbackRegex.exec(fallbackSource)) !== null) {
+        const fbTitle = fbMatch[1].trim();
+        const fbBody = fbMatch[2];
+        const fbSec = fbBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
+        const fbOver = fbBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명)\s*[:：]\s*([^\n\r]+)/i);
+        if (fbSec) {
+          fbList.push({
+            title: fbTitle,
+            overview: fbOver ? fbOver[1].trim() : `[조사 구역: ${fbTitle}] 탐색 및 조사 단서입니다.`,
+            secret: fbSec[1].trim()
+          });
+        }
+      }
+      if (fbList.length > 0) effectiveHandouts = fbList;
+    }
+
+    if (effectiveHandouts && effectiveHandouts.length > 0) {
+      const hasBase = effectiveHandouts.some(h => h.title.includes("사명") || h.title.includes(pName) || h.title.includes(partnerName));
+      const parsedCards = effectiveHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
       
       if (hasBase) {
-        initialHandouts = parsedCards; // AI 즉석생성이면 통째로 적용
+        initialHandouts = parsedCards;
       } else {
-        initialHandouts = [...baseCards, ...parsedCards]; // 파일 첨부 시: [PC + 모든 NPC 카드] + [파일에서 뽑아낸 조사구역 단서들] 합치기
+        initialHandouts = [...baseCards, ...parsedCards];
       }
     } else {
-      // 단서가 아무것도 없다면 생성한 인물들의 기본 사명/비밀 카드들만 깔아둠
       initialHandouts = baseCards;
     }
 
@@ -4765,12 +4796,60 @@ const quoteText = npc.statusMessage
         </div>
       )}
 
-{/* 🌟 대화 취소 / 롤백 확인 인앱 모달 끝나는 곳 바로 아래 */}
-        {pendingRollback && (
-          <div ...>
-            ...
+{/* 🌟 대화 취소 / 롤백 확인 인앱 모달 */}
+      {pendingRollback && (
+        <div
+          onClick={() => setPendingRollback(null)}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="glass-card"
+            style={{ width: "100%", maxWidth: "320px", padding: "22px 18px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", textAlign: "center", boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
+          >
+            <span style={{ fontSize: "2rem", lineHeight: 1 }}>⎌</span>
+            <div>
+              <div style={{ fontWeight: "800", fontSize: "0.95rem", marginBottom: "4px" }}>마지막 대화 취소</div>
+              <div style={{ fontSize: "0.75rem", color: theme.textMuted, lineHeight: "1.5" }}>
+                마지막 대사를 취소하고 입력창에 불러올까요?<br />
+                직전 턴의 상태(호감도, 선물함)로 롤백됩니다.
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", width: "100%", marginTop: "6px" }}>
+              <button
+                type="button"
+                onClick={() => setPendingRollback(null)}
+                style={{ flex: 1, padding: "10px 0", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { text, index, prevSheet } = pendingRollback;
+                  setInput(text);
+                  setSessions(prev => prev.map(s => {
+                    if (s.id !== activeSessionId) return s;
+                    const newMsgs = s.messages.slice(0, index);
+                    return {
+                      ...s,
+                      sheet: prevSheet ? prevSheet : s.sheet,
+                      messages: newMsgs,
+                      suggestedActions: [],
+                      pendingCheck: null
+                    };
+                  }));
+                  setPendingRollback(null);
+                }}
+                style={{ flex: 1, padding: "10px 0", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}
+              >
+                되돌리기
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* 🌟 [여기 추가!] 룰 설명 (? 버튼) 전용 팝업 모달 */}
         {ruleHelpModal && (
