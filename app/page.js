@@ -5171,4 +5171,3 @@ const quoteText = npc.statusMessage
     </div>
   );
 }
-}
