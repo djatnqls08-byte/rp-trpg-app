@@ -51,6 +51,53 @@ const INSANE_MATRIX = [
   { category: "괴이", skills: ["시간", "혼돈", "심해", "죽음", "영혼", "마술", "암흑", "종말", "꿈", "지저", "우주"] }
 ];
 
+// 🌟 인세인 1D6 정규 감정표
+const INSANE_EMOTIONS_TABLE = {
+  1: { pos: "공감(+)", neg: "불신(-)" },
+  2: { pos: "우정(+)", neg: "분노(-)" },
+  3: { pos: "애정(+)", neg: "질투(-)" },
+  4: { pos: "충성(+)", neg: "모멸(-)" },
+  5: { pos: "동경(+)", neg: "열등감(-)" },
+  6: { pos: "광신(+)", neg: "살의(-)" }
+};
+
+// 🌟 66개 특기 매트릭스 좌표 및 최단 격자 거리 계산기 (순수 JS)
+function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityCategory = "") {
+  if (!targetSkill) return 5;
+  if (learnedSkills.includes(targetSkill)) return 5; // 습득 특기는 기본 5
+
+  let targetCoord = null;
+  INSANE_MATRIX.forEach((col, colIdx) => {
+    const rowIdx = col.skills.indexOf(targetSkill);
+    if (rowIdx !== -1) {
+      targetCoord = { col: colIdx, row: rowIdx, category: col.category };
+    }
+  });
+
+  if (!targetCoord) return 5;
+
+  let minDistance = 999;
+  learnedSkills.forEach(learned => {
+    INSANE_MATRIX.forEach((col, colIdx) => {
+      const rowIdx = col.skills.indexOf(learned);
+      if (rowIdx !== -1) {
+        const colDist = Math.abs(targetCoord.col - colIdx);
+        const rowDist = Math.abs(targetCoord.row - rowIdx);
+        const dist = colDist + rowDist;
+        if (dist < minDistance) minDistance = dist;
+      }
+    });
+  });
+
+  if (minDistance === 999) minDistance = 2; // 습득 특기가 없을 경우 기본 보정
+
+  // 호기심 분야 대용 시 거리 -1 적용
+  const curiosityBonus = targetCoord.category === curiosityCategory ? 1 : 0;
+  const finalTarget = Math.max(5, 5 + minDistance - curiosityBonus);
+
+  return finalTarget;
+}
+
 const INSANE_MADNESS_TABLE = [
   { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
   { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
@@ -69,10 +116,147 @@ const INSANE_SCENE_TABLE = [
   "순간적으로 전등이 깜빡이며 등 뒤에서 서늘한 기척이 스쳐 지나갑니다."
 ];
 
+
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
 const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트", "이능력"];
 
 export default function App() {
+  // 🌟 인세인 전용 UI 상태
+  const [isActionDrawerOpen, setIsActionDrawerOpen] = useState(false); // + 서랍 토글
+  const [showInsaneGuideModal, setShowInsaneGuideModal] = useState(false); // 인게임 룰북 모달
+  const [investigationModal, setInvestigationModal] = useState(null); // 조사 대상 선택 모달
+  const [emotionModal, setEmotionModal] = useState(null); // 감정 판정 및 선택 모달
+
+  // 1. 2D6 정규 판정기 (12 스페셜 / 2 펌블 자동 연동)
+  const rollInsaneCheck = (skillName, overrideTarget = null, actionType = "판정") => {
+    if (isRolling || !activeSession) return;
+    setIsRolling(true);
+    playDiceSound();
+
+    const learned = activeSession.sheet?.insaneSkills || [];
+    const curiosity = activeSession.sheet?.insaneCuriosity || "정서";
+    const targetVal = overrideTarget !== null ? overrideTarget : calculateInsaneTargetNumber(skillName, learned, curiosity);
+
+    const rollInterval = setInterval(() => {
+      setRollingDisplayNum(Math.floor(Math.random() * 12) + 1);
+    }, 50);
+
+    setTimeout(() => {
+      clearInterval(rollInterval);
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      const sum = d1 + d2;
+
+      let outcome = "";
+      let bonusMessage = "";
+
+      if (sum === 12) {
+        outcome = "스페셜(대성공)";
+        bonusMessage = "\n[체계 알림] 스페셜 달성! 생명력 또는 이성치가 1점 회복됩니다.";
+        // 생명력/이성치 1 자동 회복 (최대치 이내)
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+          const curSan = s.sheet?.san ?? 6;
+          const maxSan = s.sheet?.maxSan ?? 6;
+          return { ...s, sheet: { ...s.sheet, san: Math.min(maxSan, curSan + 1) } };
+        }));
+      } else if (sum === 2) {
+        outcome = "펌블(대실패)";
+        bonusMessage = "\n[체계 알림] 펌블 발생! 공포에 잠식되어 광기 카드 1장을 획득합니다.";
+        drawMadnessCard(activeSessionId, false);
+      } else if (sum >= targetVal) {
+        outcome = "성공";
+      } else {
+        outcome = "실패";
+      }
+
+      const logText = `[주사위 2D6 ${actionType}: ${d1}+${d2}=${sum} / 목표치: ${targetVal} (${skillName || "임의 판정"}) ➔ 결과: ${outcome}]${bonusMessage}`;
+      setIsRolling(false);
+
+      // 이번 장면 주요 행동 완료 처리
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s,
+        sheet: { ...s.sheet, actionUsed: true }
+      } : s));
+
+      executeMessage(logText);
+    }, animationEnabled ? 600 : 100);
+  };
+
+  // 2. 3대 주요 행동 - 조사 완료 처리
+  const handleExecuteInvestigation = (targetType, targetObj, skillName) => {
+    setInvestigationModal(null);
+    setIsActionDrawerOpen(false);
+
+    const learned = activeSession.sheet?.insaneSkills || [];
+    const curiosity = activeSession.sheet?.insaneCuriosity || "정서";
+    const targetVal = calculateInsaneTargetNumber(skillName, learned, curiosity);
+
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const isSuccess = sum === 12 || (sum >= targetVal && sum !== 2);
+
+    let resultDetail = "";
+    if (isSuccess) {
+      if (targetType === "secret") {
+        resultDetail = `\n[조사 성공: 비밀 해금] ${targetObj.title || targetObj.name}의 숨겨진 진실이 해금되었습니다. 테이블탑 핸드아웃에서 내용을 확인하세요.`;
+        // 핸드아웃 비밀 자동 오픈
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+          const hList = (s.sheet?.handouts || []).map(h => (h.id === targetObj.id || h.title === targetObj.title) ? { ...h, revealed: true, isFlipped: true } : h);
+          return { ...s, sheet: { ...s.sheet, handouts: hList } };
+        }));
+      } else if (targetType === "location") {
+        resultDetail = `\n[조사 성공: 거처 확보] ${targetObj.name}의 거처와 활동 경로를 확보했습니다! (메인 페이즈 전투 신청 가능)`;
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+          const nList = (s.sheet?.npcs || []).map(n => n.id === targetObj.id ? { ...n, hasLocation: true } : n);
+          return { ...s, sheet: { ...s.sheet, npcs: nList } };
+        }));
+      } else if (targetType === "mental") {
+        const mCount = targetObj.madnessCards?.length || 0;
+        resultDetail = `\n[조사 성공: 정신상태 파악] ${targetObj.name}의 내면을 관찰했습니다. (현재 보유 미공개 광기: ${mCount}장)`;
+      }
+    } else {
+      resultDetail = `\n[조사 실패] 경계가 삼엄하여 핵심 정보를 알아내지 못했습니다.`;
+    }
+
+    const logText = `[주요 행동: 조사 선언 (대상: ${targetObj.title || targetObj.name} / 특기: ${skillName})]\n2D6 결과: ${d1}+${d2}=${sum} (목표치: ${targetVal}) ➔ ${isSuccess ? "성공" : "실패"}${resultDetail}`;
+    
+    // 주요 행동 소모 처리
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
+    executeMessage(logText);
+  };
+
+  // 3. 3대 주요 행동 - 감정 결정 처리
+  const handleSelectEmotion = (npc, selectedEmotionName) => {
+    setEmotionModal(null);
+    setIsActionDrawerOpen(false);
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeSessionId) return s;
+      const nList = (s.sheet?.npcs || []).map(n => n.id === npc.id ? { ...n, emotion: selectedEmotionName } : n);
+      return { ...s, sheet: { ...s.sheet, npcs: nList, actionUsed: true } };
+    }));
+
+    executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) 교감하여 서로에게 《${selectedEmotionName}》의 감정을 맺었습니다. (향후 정보 공유 및 위기 지원 가능)`);
+  };
+
+  // 4. 장면 닫기 (Scene Close) 실행
+  const handleSceneClose = () => {
+    setIsActionDrawerOpen(false);
+    if (!activeSession) return;
+
+    // 사이클 및 장면 카운트 전진 + 주요 행동 리셋
+    advanceInsaneScene(activeSessionId);
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { ...s.sheet, actionUsed: false }
+    } : s));
+
+    executeMessage(`[🎬 장면 닫기 (Scene Close)]\n이번 장면에서의 모든 행동과 대화를 마무리하고 퇴장합니다. 다음 장면을 준비해 주십시오.`);
+  };
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [input, setInput] = useState("");
@@ -3368,7 +3552,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               )}
             </div>
 
-            {/* 🌟 제미나이 스타일 자동 확장 입력창 (글이 많아지면 위로 쑥쑥 늘어남!) */}
+           {/* 🌟 제미나이 정석 캡슐형 입력창 (좌측 플랫 + / 우측 원형 ↑ 전송 버튼) */}
             <div style={{ 
               position: "sticky", 
               bottom: 0, 
@@ -3378,72 +3562,250 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               backgroundColor: theme.sidebar, 
               borderTop: `1px solid ${theme.border}`, 
               display: "flex", 
-              gap: "8px", 
-              alignItems: "flex-end",
+              justifyContent: "center",
               flexShrink: 0
             }}>
-              <textarea 
-                value={input} 
-                onChange={e => {
-                  setInput(e.target.value);
-                  // 🌟 글 길이에 맞춰 높이 자동 조절 (최대 130px까지 부드럽게 위로 확장!)
-                  e.target.style.height = "auto";
-                  e.target.style.height = Math.min(e.target.scrollHeight, 130) + "px";
-                }} 
-                onKeyDown={e => { 
-                  if (!isMobile && e.key === "Enter" && !e.shiftKey) { 
-                    e.preventDefault(); 
-                    sendMessage(); 
-                    e.target.style.height = "42px";
-                  } 
-                }} 
-                onFocus={() => {
-                  if (typeof window !== "undefined") window.scrollTo(0, 0);
-                }}
-                placeholder="대사나 메시지를 입력하세요..." 
-                rows={1}
-                style={{ 
-                  flex: 1, 
-                  height: "42px", 
-                  minHeight: "42px", 
-                  maxHeight: "130px", 
-                  backgroundColor: theme.panel, 
-                  color: theme.text, 
-                  border: `1.5px solid ${theme.border}`, 
-                  borderRadius: "22px", 
-                  padding: "10px 16px", 
-                  outline: "none", 
-                  fontSize: "0.88rem", 
-                  lineHeight: "1.4",
-                  resize: "none",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  transition: "height 0.12s ease"
-                }} 
-              />
-              {abortController || isLoading ? (
-                <button 
-                  onClick={handleCancelResponse} 
-                  style={{ height: "42px", padding: "0 16px", backgroundColor: theme.danger || "#dc3545", color: "#fff", border: "none", borderRadius: "22px", cursor: "pointer", fontWeight: "700", fontSize: "0.82rem", whiteSpace: "nowrap", flexShrink: 0 }}
-                >
-                  ⏹️ 취소
-                </button>
-              ) : (
-                <button 
-                  onClick={() => {
-                    sendMessage();
-                    const el = document.querySelector('textarea[placeholder="대사나 메시지를 입력하세요..."]');
-                    if (el) el.style.height = "42px";
+              {/* 알약 형태의 단일 캡슐 컨테이너 */}
+              <div style={{
+                flex: 1,
+                maxWidth: "860px",
+                display: "flex",
+                alignItems: "flex-end",
+                backgroundColor: theme.panel,
+                border: `1.5px solid ${theme.border}`,
+                borderRadius: "28px",
+                padding: "4px 8px 4px 10px",
+                position: "relative",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
+              }}>
+                {/* 1. 좌측: 원 테두리 없는 깔끔한 플랫 + 버튼 */}
+                <div style={{ position: "relative", display: "flex", alignItems: "center", marginBottom: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsActionDrawerOpen(!isActionDrawerOpen)}
+                    title="인세인 액션 서랍"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: isActionDrawerOpen ? theme.accent : (activeSession?.sheet?.actionUsed ? theme.warning : theme.textMuted),
+                      cursor: "pointer",
+                      padding: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      lineHeight: 1,
+                      transition: "color 0.15s ease",
+                      flexShrink: 0
+                    }}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </button>
+
+                  {/* 액션 서랍 팝오버 */}
+                  {isActionDrawerOpen && (
+                    <div
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        position: "absolute",
+                        bottom: "48px",
+                        left: "0",
+                        width: "240px",
+                        backgroundColor: theme.panel,
+                        backdropFilter: "blur(14px)",
+                        WebkitBackdropFilter: "blur(14px)",
+                        border: `1.5px solid ${theme.border}`,
+                        borderRadius: "16px",
+                        padding: "8px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px",
+                        boxShadow: "0 12px 32px rgba(0,0,0,0.35)",
+                        zIndex: 100
+                      }}
+                    >
+                      <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 8px", fontWeight: "800", borderBottom: `1px dashed ${theme.border}` }}>
+                        {activeSession?.ruleMode === "insane" 
+                          ? (activeSession?.sheet?.actionUsed ? "행동 완료 (장면 정리 단계)" : "드라마 씬 주요 행동 선언") 
+                          : "시스템 액션"}
+                      </div>
+
+                      {activeSession?.ruleMode === "insane" && !activeSession?.sheet?.actionUsed && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setInvestigationModal({ step: "selectTarget" }); setIsActionDrawerOpen(false); }}
+                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                          >
+                            🔍 조사 판정 선언
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = Math.floor(Math.random() * 6) + 1;
+                              setEmotionModal({ step: "rollResult", roll: d, pair: INSANE_EMOTIONS_TABLE[d] });
+                              setIsActionDrawerOpen(false);
+                            }}
+                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                          >
+                            💬 감정 맺기 (1D6 감정표)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInput("휴식을 취하며 엉클어진 마음과 상처를 추스릅니다. ");
+                              rollInsaneCheck("인내", 5, "회복 판정");
+                              setIsActionDrawerOpen(false);
+                            }}
+                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                          >
+                            🩹 휴식 및 회복 판정
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => { handleRollSceneTable(); setIsActionDrawerOpen(false); }}
+                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.warning, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                          >
+                            📜 2D6 정규 장면표 굴리기
+                          </button>
+                        </>
+                      )}
+
+                      {activeSession?.ruleMode === "insane" && activeSession?.sheet?.actionUsed && (
+                        <button
+                          type="button"
+                          onClick={handleSceneClose}
+                          style={{
+                            padding: "10px",
+                            textAlign: "center",
+                            backgroundColor: "rgba(229, 169, 60, 0.2)",
+                            border: `1.5px solid ${theme.warning}`,
+                            borderRadius: "10px",
+                            color: theme.warning,
+                            fontSize: "0.82rem",
+                            fontWeight: "800",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px"
+                          }}
+                        >
+                          🎬 장면 닫기 (Scene Close)
+                        </button>
+                      )}
+
+                      <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
+
+                      <button
+                        type="button"
+                        onClick={() => { setShowInsaneGuideModal(true); setIsActionDrawerOpen(false); }}
+                        style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        ❓ 인세인 룰 가이드
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. 중앙: 테두리 없는 투명 textarea */}
+                <textarea 
+                  value={input} 
+                  onChange={e => {
+                    setInput(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 130) + "px";
                   }} 
-                  disabled={isLoading || !input.trim()} 
-                  style={{ height: "42px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "22px", cursor: "pointer", fontWeight: "800", fontSize: "0.84rem", flexShrink: 0 }}
-                >
-                  전송
-                </button>
-              )}
+                  onKeyDown={e => { 
+                    if (!isMobile && e.key === "Enter" && !e.shiftKey) { 
+                      e.preventDefault(); 
+                      sendMessage(); 
+                      e.target.style.height = "36px";
+                    } 
+                  }} 
+                  onFocus={() => {
+                    if (typeof window !== "undefined") window.scrollTo(0, 0);
+                  }}
+                  placeholder="대사나 메시지를 입력하세요..." 
+                  rows={1}
+                  style={{ 
+                    flex: 1, 
+                    height: "36px", 
+                    minHeight: "36px", 
+                    maxHeight: "130px", 
+                    backgroundColor: "transparent", 
+                    color: theme.text, 
+                    border: "none", 
+                    outline: "none", 
+                    padding: "8px 10px", 
+                    fontSize: "0.88rem", 
+                    lineHeight: "1.4",
+                    resize: "none"
+                  }} 
+                />
+
+                {/* 3. 우측: 원형 화살표(↑) 전송 버튼 */}
+                {abortController || isLoading ? (
+                  <button 
+                    onClick={handleCancelResponse} 
+                    title="응답 중단"
+                    style={{ 
+                      height: "36px", 
+                      width: "36px", 
+                      borderRadius: "50%", 
+                      backgroundColor: theme.danger || "#dc3545", 
+                      color: "#fff", 
+                      border: "none", 
+                      cursor: "pointer", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      marginBottom: "2px",
+                      flexShrink: 0 
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+                    </svg>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      sendMessage();
+                      const el = document.querySelector('textarea[placeholder="대사나 메시지를 입력하세요..."]');
+                      if (el) el.style.height = "36px";
+                    }} 
+                    disabled={isLoading || !input.trim()} 
+                    title="전송"
+                    style={{ 
+                      height: "36px", 
+                      width: "36px", 
+                      borderRadius: "50%", 
+                      backgroundColor: input.trim() ? theme.accent : "rgba(150, 150, 150, 0.22)", 
+                      color: input.trim() ? "#fff" : theme.textMuted, 
+                      border: "none", 
+                      cursor: input.trim() ? "pointer" : "default", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      marginBottom: "2px",
+                      transition: "all 0.15s ease",
+                      flexShrink: 0 
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="19" x2="12" y2="5"></line>
+                      <polyline points="5 12 12 5 19 12"></polyline>
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
-          </>
-        )}
-      </div>
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
@@ -5427,6 +5789,79 @@ const quoteText = npc.statusMessage
             </select>
 
             <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
+          </div>
+        </div>
+      )}
+
+{/* 🌟 1. 인게임 인세인 룰 설명서 모달 */}
+      {showInsaneGuideModal && (
+        <div
+          onClick={() => setShowInsaneGuideModal(false)}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 160, padding: "20px" }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="glass-card"
+            style={{ width: "100%", maxWidth: "520px", maxHeight: "85vh", overflowY: "auto", borderRadius: "18px", padding: "22px", color: theme.text, display: "flex", flexDirection: "column", gap: "14px" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <span style={{ fontWeight: "800", fontSize: "1.05rem" }}>📖 인세인(inSANe) 정규 규칙 가이드</span>
+              <button onClick={() => setShowInsaneGuideModal(false)} style={{ background: "none", border: "none", fontSize: "1.2rem", color: theme.text, cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.82rem", lineHeight: "1.65" }}>
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <strong style={{ color: theme.warning }}>• 페이즈와 장면의 흐름 (사이클)</strong><br />
+                인세인은 [도입 ➔ 메인 ➔ 클라이맥스 ➔ 에필로그]로 진행됩니다. 메인 페이즈에서는 1사이클마다 자신의 '장면'을 열어 자유롭게 대화를 나누고, 장면당 딱 1번의 [주요 행동]을 선언할 수 있습니다. 할 일을 마치면 [+] 서랍에서 [장면 닫기]를 누르세요.
+              </div>
+
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <strong style={{ color: theme.accent }}>• 3대 주요 행동: 조사 / 감정 / 회복</strong><br />
+                1. <strong>조사</strong>: 현장의 단서나 다른 인물의 [비밀], [거처], [정신상태]를 파헤칩니다.<br />
+                2. <strong>감정</strong>: 동행자와 주사위를 굴려 플러스(+) 혹은 마이너스(-) 감정을 맺습니다.<br />
+                3. <strong>회복</strong>: 휴식을 취해 생명력이나 이성치를 1점 회복하거나, 동행자의 미공개 광기를 치료합니다.
+              </div>
+
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <strong style={{ color: theme.success }}>• 66개 특기와 대용 판정 (거리 계산)</strong><br />
+                내가 배운 특기는 주사위 목표치가 기본 '5'로 낮아 성공하기 쉽습니다. 배우지 않은 특기 행동을 할 때는, 내가 배운 가장 가까운 특기로 건너가 판정합니다. 이때 표에서 떨어진 칸수(거리)만큼 목표치가 1씩 올라가 판정이 어려워집니다.
+              </div>
+
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <strong style={{ color: theme.danger }}>• 광기와 착란 (공포의 연쇄)</strong><br />
+                주사위 판정에서 펌블(2)이 뜨거나 공포 판정에 실패하면 [미공개 광기]를 뽑습니다. 광기는 숨겨져 있다가 조건(트리거)이 맞으면 수면 위로 드러납니다(현재화). 현재화된 광기의 수가 내 현재 이성치보다 많아지면 통제 불능인 [착란] 상태에 빠집니다.
+              </div>
+
+              <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                <strong style={{ color: theme.warning }}>• 클라이맥스 전투와 플롯 (속도 대결)</strong><br />
+                모든 사이클이 끝나면 최종 결전이 열립니다. 모두가 1~6번 플롯(속도)을 몰래 정해 동시에 공개하며, 같은 숫자가 겹치면 부딪혀 서로 1점의 피해를 입습니다(버팅). 세션 중 단 1번, 내 비밀을 밝히며 [회상]으로 역전타를 노릴 수 있습니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 2. 감정 맺기 선택 모달 */}
+      {emotionModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 155, padding: "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "340px", padding: "20px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ fontWeight: "800", fontSize: "0.95rem" }}>💬 감정 판정 결과 (1D6 ➔ {emotionModal.roll}번)</div>
+            <div style={{ fontSize: "0.78rem", color: theme.textMuted }}>부여할 감정의 극성을 선택해 주십시오:</div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+              <button
+                onClick={() => handleSelectEmotion(activeSession.sheet?.npcs?.[0], emotionModal.pair.pos)}
+                style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px solid ${theme.success}`, borderRadius: "10px", color: theme.success, fontWeight: "800", cursor: "pointer", fontSize: "0.82rem" }}
+              >
+                {emotionModal.pair.pos}
+              </button>
+              <button
+                onClick={() => handleSelectEmotion(activeSession.sheet?.npcs?.[0], emotionModal.pair.neg)}
+                style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px solid ${theme.danger}`, borderRadius: "10px", color: theme.danger, fontWeight: "800", cursor: "pointer", fontSize: "0.82rem" }}
+              >
+                {emotionModal.pair.neg}
+              </button>
+            </div>
           </div>
         </div>
       )}
