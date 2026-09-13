@@ -5044,7 +5044,7 @@ const quoteText = npc.statusMessage
                   {/* 1. 시나리오 연동 방법 */}
                   <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
                     <div style={{ fontWeight: "800", color: theme.accent, fontSize: "0.82rem", marginBottom: "6px" }}>
-                      📄 1. 시나리오 연동 (파일 첨부 & AI 생성)
+                      📄 1. 시나리오 연동 (파일 첨부)
                     </div>
                     <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
                       • <strong>파일 첨부 (.txt / .pdf):</strong> 로비의 [📄 파일 첨부]로 시나리오 문서를 올리면 룰 시스템, 시놉시스, 서막, KPC 명단, 조사 구역 및 단서 핸드아웃이 자동으로 파싱되어 입력란에 배치됩니다.<br/>
