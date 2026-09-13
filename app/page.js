@@ -233,6 +233,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [selectedProfileNpc, setSelectedProfileNpc] = useState(null); // 🌟 [추가] 상세 프로필 열람 대상 NPC
   const [isMyProfileOpen, setIsMyProfileOpen] = useState(false); // 🌟 내 프로필 모달 상태
   const [giftModalNpc, setGiftModalNpc] = useState(null); // 🌟 인앱 선물 선택 모달 상태
+  const [clueModalNpc, setClueModalNpc] = useState(null); // 🌟 인앱 취향 수첩 팝업 상태
   const [zoomedPortrait, setZoomedPortrait] = useState(null); // 🌟 프로필 사진 크게보기 상태
   const [pendingRollback, setPendingRollback] = useState(null); // 🌟 대화 취소(롤백) 확인 모달 상태
   const [phoneInput, setPhoneInput] = useState("");
@@ -3668,10 +3669,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
                     <button
                       type="button"
-                      onClick={() => {
-                        const targetElem = document.getElementById("npc-clues-section");
-                        if (targetElem) targetElem.scrollIntoView({ behavior: "smooth" });
-                      }}
+                      onClick={() => setClueModalNpc(selectedProfileNpc)}
                       style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", cursor: "pointer", color: activePhoneSkin.text }}
                     >
                       <span style={{ fontSize: "1.25rem" }}>💡</span>
@@ -4019,6 +4017,46 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               )}
 
               {/* 🌟 [인앱 선물 선택 모달 (바닥 쳐박힘 해결 -> 화면 중앙 플로팅 카드!)] */}
+{/* 🌟 [인앱 취향 수첩 모달 (화면 중앙 플로팅 카드)] */}
+              {clueModalNpc && (
+                <div 
+                  onClick={() => setClueModalNpc(null)}
+                  style={{ position: "absolute", inset: 0, zIndex: 136, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+                >
+                  <div 
+                    onClick={e => e.stopPropagation()}
+                    style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "10px" }}>
+                      <div>
+                        <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>💡 {clueModalNpc.name}의 취향 수첩</span>
+                        <div style={{ fontSize: "0.72rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>서사 속에서 수집된 취향과 관심사</div>
+                      </div>
+                      <button type="button" onClick={() => setClueModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
+                    </div>
+
+                    <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "40vh" }}>
+                      {(() => {
+                        const npcClues = (activeSession.sheet?.clues || []).filter(c => c.name.includes(clueModalNpc.name));
+                        if (npcClues.length === 0) {
+                          return (
+                            <div style={{ textAlign: "center", padding: "26px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.6" }}>
+                              아직 파악된 취향이 없습니다.<br />
+                              대화를 통해 좋아하는 것을 자연스럽게 물어보세요!
+                            </div>
+                          );
+                        }
+                        return npcClues.map((clue, idx) => (
+                          <div key={idx} style={{ padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px", borderLeft: `3px solid ${activePhoneSkin.accent}` }}>
+                            <div style={{ fontWeight: "800", fontSize: "0.82rem", color: activePhoneSkin.accent }}>{clue.name}</div>
+                            <div style={{ fontSize: "0.74rem", color: activePhoneSkin.text, marginTop: "4px", lineHeight: "1.4" }}>{clue.desc}</div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
               {giftModalNpc && (
                 <div 
                   onClick={() => setGiftModalNpc(null)}
