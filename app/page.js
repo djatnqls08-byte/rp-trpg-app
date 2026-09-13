@@ -2019,20 +2019,37 @@ const startNewSession = async () => {
       setAbortController(null);
     }
   };
+ 
+const executeMessage = async (textToSend, aiPromptOverride = null) => {
+    if (!textToSend.trim() || !activeSession) return;
 
-  setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
-  setIsLoading(true);
+    const isDatingMsg = activeSession.ruleMode === "dating_msg";
+    const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
+    const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
+    const partnerName = currentContact?.name || "상대방";
+
+    const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
+
+    // 🌟 화면 말풍선에는 주석 태그(<!-- -->)를 제거한 깨끗한 텍스트만 저장
+    const cleanDisplayText = textToSend.replace(/<!--[\s\S]*?-->/g, "").trim();
+
+    const updatedMessages = [
+      ...(activeSession.messages || []), 
+      { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet }
+    ];
+
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
+    setIsLoading(true);
 
     const controller = new AbortController();
     setAbortController(controller);
 
-// 👇 교체할 정상 코드 (중복 및 꼬인 괄호 제거 완료)
     // 1. R19 및 자유 서사 모드 감지
     const fullContext = `${activeSession.title || ""} ${activeSession.scenarioText || ""} ${activeSession.preference || ""}`.toLowerCase();
     const isR19 = fullContext.includes("r19") || fullContext.includes("19금") || fullContext.includes("성인") || fullContext.includes("r-19");
     const isFreeform = activeSession.ruleMode === "freeform";
 
-// 2. 동적 시스템 수칙 주입
+    // 2. 동적 시스템 수칙 주입
     const isDating = activeSession.ruleMode?.startsWith("dating");
     const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
@@ -2097,47 +2114,17 @@ currentPhase === "클라이맥스" ? `
 - BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
     }
 
-// 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙 (마스터 씬 & 클라이맥스 완벽 연동)
-    if (activeSession.ruleMode === "insane") {
-      const currentPhase = activeSession.sheet?.phase || "도입";
-      const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
-
-// 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙 (느긋한 호흡 & 장면 통제권 플레이어 위임)
-    if (activeSession.ruleMode === "insane") {
-      const currentPhase = activeSession.sheet?.phase || "도입";
-      const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
-
-      dynamicRules += `\n\n[🎲 인세인(inSANe) 정규 룰 엄수 절대 수칙]
-1. [느긋한 대화 호흡과 무제한 티키타카 보장]
-- 절대로 사건을 서둘러 진행하거나 상황을 급하게 정리하려 들지 마십시오.
-- 인물의 사소한 손짓, 미세한 표정 변화, 주변 분위기를 천천히 묘사하며 유저와 1:1 대화(티키타카)를 충분히 나누십시오.
-- 주요 행동(조사 등)이 끝났더라도 대화는 제한 없이 계속 이어질 수 있습니다. 유저가 직접 [장면 닫기]를 누르기 전까지는 대화의 여운을 살리며 자연스럽게 답변을 이어가십시오.
-
-2. [임의 판정 및 Scene Close 독단 선언 절대 금지]
-- 일상 대화 중 "판정을 하세요"라며 주사위를 요구하지 마십시오.
-- 지문 끝에 "Scene Close", "장면을 마칩니다", "[제N사이클 N장면] 시작" 등의 텍스트를 절대로 직접 출력하지 마십시오. 장면 전환은 오직 플레이어가 시스템 버튼을 눌러 통제합니다.
-
-3. [현재 페이즈: ${currentPhase}]
-${currentPhase === "도입" ? `
-- 현재는 '도입 페이즈'입니다. 판정이나 행동 강요 없이 인물 간의 첫 만남과 서막의 분위기를 느긋하게 풀어가십시오.` : 
-
-currentPhase === "마스터 씬" ? `
-- 현재는 '마스터 씬'입니다. 돌발 사건이나 괴이의 개입을 묘사하되, 유저의 대응 반응을 차분히 받아주십시오.` : 
-
-currentPhase === "클라이맥스" ? `
-- 현재는 '클라이맥스 페이즈'입니다. 모든 비밀과 진상이 드러난 최종 국면입니다. 마지막 결단과 감정적 대치 구도를 팽팽하게 묘사하십시오.` : `
-- 현재는 '메인 페이즈'입니다.
-- ${isActionDone ? "이번 장면의 주요 행동이 완료되었습니다. 판정 요구 없이 인물과 여유롭게 대화와 교감을 나누십시오." : "자유로운 대화를 나누되, 플레이어가 원할 때 핸드아웃을 조사할 수 있도록 여지를 열어두십시오."}`}`;
-    }
-
-
-     
- // 🌟 메신저 모드일 때는 현재 톡 중인 상대와의 대화 내역만 추려서 AI에게 전달
-    const messagesForAi = isDatingMsg
+    // 🌟 메신저 모드일 때는 현재 톡 중인 상대와의 대화 내역만 추려서 AI에게 전달
+    const rawMessagesForAi = isDatingMsg
       ? updatedMessages.filter(m => (m.contactId ? m.contactId === currentContactId : true))
       : updatedMessages;
 
-    // 🌟 AI에게 현재 선택된 인물의 성격과 비밀을 확실하게 주입
+    // 🌟 aiPromptOverride가 들어온 경우(예: 장면 닫기) 화면엔 displayLog가 남고 AI에겐 aiPrompt가 전송되도록 바인딩
+    const messagesForAi = aiPromptOverride
+      ? rawMessagesForAi.map((m, idx) => idx === rawMessagesForAi.length - 1 ? { ...m, text: aiPromptOverride } : m)
+      : rawMessagesForAi;
+
+    // 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입
     let currentNpcPrompt = "";
     if (isDatingMsg && currentContact) {
       currentNpcPrompt = `\n\n[🚨 현재 메신저 톡 상대방 전환 알림]
@@ -2189,7 +2176,6 @@ currentPhase === "클라이맥스" ? `
         try {
           const clueObj = JSON.parse(clueMatch[1]);
           if (clueObj.name) {
-            // 🌟 NPC 이름이 누락되었으면 자동으로 상대방 이름을 붙여서 수첩 필터링 통과 보장!
             const formattedName = clueObj.name.includes(partnerName) ? clueObj.name : `[${partnerName}] ${clueObj.name}`;
             newClues.push({ 
               id: Date.now() + Math.random(), 
@@ -2202,7 +2188,7 @@ currentPhase === "클라이맥스" ? `
       }
       rawText = rawText.replace(clueRegex, "");
 
-      // 💡 [자동 구조 Fallback] 취향을 물어봤는데 AI가 CLUE 태그를 깜빡했을 때 자동 추출 등록
+      // 💡 [취향 자동 구조 Fallback]
       if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("관심"))) {
         const quoteMatch = rawText.match(/[\*"]([^\*"]*(?:좋아합|선호합|취향|마음에 듭|애정|시간을)[^\*"]*)[\*"]/);
         const descText = quoteMatch ? quoteMatch[1].trim() : (rawText.split("\n").find(l => l.includes("좋아")) || "대화를 통해 확인된 관심사");
@@ -2213,7 +2199,8 @@ currentPhase === "클라이맥스" ? `
           npcName: partnerName
         });
       }
-// 🌟 [새로운 등장인물(NEW_NPC) 자동 추출]
+
+      // [새 등장인물 자동 추출]
       let newlyFoundNpcs = [];
       const newNpcRegex = /<!--\s*NEW_NPC:\s*(\{.*?\})\s*-->/gs;
       let npcMatch;
@@ -2225,8 +2212,7 @@ currentPhase === "클라이맥스" ? `
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-      // [호감도 변화 자동 추출]
-      // 🌟 [스마트폰 선톡(PHONE_MSG) 자동 수신 및 햅틱 알림]
+      // [선톡 자동 수신]
       let newPhoneMsg = null;
       const phoneRegex = /<!--\s*PHONE_MSG:\s*(\{.*?\})\s*-->/gs;
       let phoneMatch;
@@ -2234,6 +2220,8 @@ currentPhase === "클라이맥스" ? `
         try { newPhoneMsg = JSON.parse(phoneMatch[1]); } catch (e) {}
       }
       rawText = rawText.replace(phoneRegex, "");
+
+      // [호감도 변화 추출]
       let affChanges = [];
       const affRegex = /<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/gs;
       let affMatch;
@@ -2246,31 +2234,25 @@ currentPhase === "클라이맥스" ? `
       }
       rawText = rawText.replace(affRegex, "");
 
-const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
+      const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
       
-      // 1) newSheet 생성
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-// 🌟 [인세인 페이즈 자동 전환 엔진]
+      // [인세인 페이즈 자동 전환]
       if (activeSession.ruleMode === "insane") {
-        // 1. 도입 페이즈에서 첫 대화가 오가면 자동으로 [제1사이클 1장면]으로 전환!
         if (activeSession.sheet?.phase === "도입") {
           newSheet.phase = "메인";
           newSheet.cycle = 1;
           newSheet.scene = 1;
         }
-
-        // 2. AI가 마스터 씬을 일으켰을 때
         if (parsedData.triggerMasterScene) {
           newSheet.phase = "마스터씬";
-        }
-        // 3. 마스터 씬이 종료되었을 때 다시 메인으로 복귀
-        else if (parsedData.endMasterScene && newSheet.phase === "마스터씬") {
+        } else if (parsedData.endMasterScene && newSheet.phase === "마스터씬") {
           newSheet.phase = "메인";
         }
       }
-     
-// 2) 선톡(PHONE_MSG) 도착 시 수신 (단일 문자 및 2~3연속 멀티톡 완벽 지원!)
+      
+      // [선톡 반영]
       if (newPhoneMsg) {
         const targetSenderName = (newPhoneMsg.from || "").trim();
         const matchedNpc = (newSheet.npcs || []).find(n => n.name === targetSenderName || n.name.includes(targetSenderName)) || newSheet.npcs?.[0];
@@ -2279,7 +2261,6 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         const contactMsgs = currentChats[contactId] || [];
         const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 
-        // 🌟 문자가 여러 개(배열)로 왔거나, '||'로 쪼개져 있으면 각각 개별 말풍선으로 분리 생성!
         let msgList = [];
         if (Array.isArray(newPhoneMsg.messages)) {
           msgList = newPhoneMsg.messages;
@@ -2304,14 +2285,13 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         }
       }
 
-      // 🌟 3) [선물하기 자동 소모] 선물 전달 시 선물함(소지품)에서 아이템 즉시 삭제!
+      // [선물하기 아이템 자동 차감]
       const giftMatch = textToSend.match(/\[(.*?) 선물하기\]/);
       if (giftMatch) {
         const giftedItemName = giftMatch[1].trim();
         newSheet.items = (newSheet.items || []).filter(it => it.name !== giftedItemName);
       }
 
-      // 4) 아이템 및 단서 반영
       if (newItems.length > 0) newSheet.items = [...(newSheet.items || []), ...newItems];
       if (newClues.length > 0) {
         const existingClueNames = (newSheet.clues || []).map(c => c.name);
@@ -2319,7 +2299,7 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         newSheet.clues = [...(newSheet.clues || []), ...uniqueClues];
       }
 
-      // 🌟 5) NPC 목록 및 호감도 동기화 (한 턴 최대 +3~5점 철벽 제한)
+      // [NPC 목록 및 호감도 동기화]
       const currentNpcs = activeSession.sheet?.npcs || [];
       let mergedNpcs = currentNpcs.map(cNpc => {
         const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
@@ -2345,9 +2325,8 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
           }
         }
         return { ...cNpc, affection: affVal };
-      }); // 👈 빠져있던 괄호 복구 완료!
+      });
 
-      // 새 NPC 데이터 병합
       if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
         parsedData.newSheetVars.npcs.forEach(aNpc => {
           if (!currentNpcs.find(cNpc => cNpc.name === aNpc.name || cNpc.id === aNpc.id)) {
@@ -2362,7 +2341,6 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         });
       }
 
-      // NEW_NPC 태그로 발견된 새 인물 자동 등록
       if (newlyFoundNpcs.length > 0) {
         newlyFoundNpcs.forEach(n => {
           const tName = n.name.trim();
@@ -2383,7 +2361,7 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
       }
       newSheet.npcs = mergedNpcs;
 
-      // 6) 광기 및 핸드아웃 처리
+      // [광기 및 핸드아웃 처리]
       if (parsedData.triggeredMadness) {
         const mObj = parsedData.triggeredMadness;
         setShowInsanityFlash(true);
@@ -2413,13 +2391,12 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         newSheet.handouts = [...(newSheet.handouts || []), ...added];
       }
 
-     // 7) 세션 상태 정상 반영 (해금된 핸드아웃 및 NPC 상태 영구 보존)
+      // [세션 상태 최종 반영]
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
         sheet: {
           ...s.sheet,
           ...newSheet,
-          // 👇 조사로 열린 핸드아웃과 NPC 상태가 이전 시트로 덮어씌워지지 않도록 유지
           handouts: s.sheet?.handouts || newSheet.handouts,
           npcs: s.sheet?.npcs || newSheet.npcs,
           cycle: s.sheet?.cycle ?? newSheet.cycle,
@@ -2432,6 +2409,7 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
       } : s));
+
       if (parsedData.shouldAdvanceScene && activeSession.ruleMode === "insane") {
         advanceInsaneScene(activeSessionId);
       }
@@ -2442,16 +2420,6 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
     } finally {
       setIsLoading(false);
       setAbortController(null);
-    }
-  };
-
-  const sendMessage = () => { if (!input.trim()) return; const t = input; setInput(""); executeMessage(t); };
-
-  const handleSuggestionClick = (sugg) => {
-    if (sugg.includes("장면표")) {
-      handleRollSceneTable();
-    } else {
-      setInput(sugg);
     }
   };
 
