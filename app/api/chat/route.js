@@ -48,7 +48,7 @@ export async function POST(req) {
 
       let systemInstruction = "";
 
-      // ── [1. 통합 미연시 모드: "dating"] ──
+      // ── [1. 통합 미연시 모드: "dating"] ── 
       if (ruleMode === "dating") {
         if (isPhoneChat) {
           // 📱 1:1 스마트폰 서랍 메신저
