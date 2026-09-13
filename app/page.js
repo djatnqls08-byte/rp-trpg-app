@@ -5164,7 +5164,7 @@ const quoteText = npc.statusMessage
             {/* 상단 타이틀 & 닫기 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
               <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "800" }}>
-                {lobbyPresetTab === "public" ? "⭐ 공식 추천 시나리오" : "📁 내 저장 세팅 보관함"}
+                {lobbyPresetTab === "public" ? "⭐ 공식 시나리오" : "📁 내 저장 세팅 보관함"}
               </h3>
               <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
             </div>
@@ -5185,9 +5185,9 @@ const quoteText = npc.statusMessage
             {/* 프리셋 리스트 영역 */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, overflowY: "auto", maxHeight: "360px", paddingRight: "2px" }}>
               
-{/* 1. ⭐ 공식 시나리오 (4대 카테고리 분류 + 빈 카테고리 자동 숨김 + 스케치 스타일 구분선) */}
+{/* 1. ⭐ 공식 시나리오 (대소문자/속성명/한글 완벽 호환 만능 카테고리 파서) */}
               {lobbyPresetTab === "public" && (() => {
-                if (officialPresets.length === 0) {
+                if (!officialPresets || officialPresets.length === 0) {
                   return (
                     <div style={{ fontSize: "0.82rem", color: theme.textMuted, textAlign: "center", padding: "30px 0" }}>
                       등록된 공식 시나리오가 없습니다.
@@ -5195,26 +5195,47 @@ const quoteText = npc.statusMessage
                   );
                 }
 
-                // 4대 카테고리 정의 (자유 서사 / CoC / 인세인 / 미연시)
+                // 🌟 대문자(COC, DATING), 소문자, 한글(크툴루, 미연시), 속성명(wizardMode, ruleMode 등) 모두 판별!
+                const getNormalizedMode = (p) => {
+                  const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
+                  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
+                  if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
+                  if (raw.includes("insane") || raw.includes("인세인")) return "insane";
+                  if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
+                  return "other";
+                };
+
+                // 4대 카테고리 + 기타
                 const CATEGORIES = [
-                  { key: "freeform", label: "자유 서사", icon: "✍️", match: (m) => m === "freeform" },
-                  { key: "coc", label: "CoC (크툴루의 부름)", icon: "🐙", match: (m) => m === "coc" },
-                  { key: "insane", label: "inSANe (인세인)", icon: "🎲", match: (m) => m === "insane" },
-                  { key: "dating", label: "미연시", icon: "🌸", match: (m) => m?.startsWith("dating") }
+                  { key: "freeform", label: "자유 서사", icon: "✍️" },
+                  { key: "coc", label: "CoC (크툴루의 부름)", icon: "🐙" },
+                  { key: "insane", label: "inSANe (인세인)", icon: "🎲" },
+                  { key: "dating", label: "미연시", icon: "🌸" },
+                  { key: "other", label: "추천 시나리오", icon: "✨" }
                 ];
 
-                // 시나리오가 1개 이상 있는 카테고리만 골라내기 (없는 카테고리는 화면에서 자동 소멸!)
-                const activeSections = CATEGORIES.map(cat => ({
+                // 시나리오가 있는 카테고리만 골라내기
+                let activeSections = CATEGORIES.map(cat => ({
                   ...cat,
-                  presets: officialPresets.filter(p => cat.match(p.wizardMode))
+                  presets: officialPresets.filter(p => getNormalizedMode(p) === cat.key)
                 })).filter(cat => cat.presets.length > 0);
+
+                // 🌟 비상 안전장치: 혹시라도 룰 구분이 전부 빗나가도 시나리오를 숨기지 않고 싹 다 출력!
+                if (activeSections.length === 0 && officialPresets.length > 0) {
+                  activeSections = [{
+                    key: "all",
+                    label: "공식 추천 시나리오",
+                    icon: "⭐",
+                    presets: officialPresets
+                  }];
+                }
 
                 return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {activeSections.map((sec, secIdx) => (
                       <div key={sec.key} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         
-                        {/* 카테고리 헤더 (동그란 외곽선 없이 깔끔한 텍스트 헤더) */}
+                        {/* 카테고리 헤더 (스케치 반영) */}
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "2px 2px 0 2px" }}>
                           <span style={{ fontSize: "0.95rem" }}>{sec.icon}</span>
                           <span style={{ fontSize: "0.86rem", fontWeight: "900", color: theme.text }}>
@@ -5227,51 +5248,54 @@ const quoteText = npc.statusMessage
 
                         {/* 카테고리에 속한 시나리오 목록 */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          {sec.presets.map((p, pIdx) => (
-                            <div 
-                              key={p.id || pIdx} 
-                              style={{ 
-                                padding: "10px 12px", 
-                                backgroundColor: theme.panelAlt, 
-                                border: `1px solid ${theme.border}`, 
-                                borderRadius: "10px", 
-                                display: "flex", 
-                                justifyContent: "space-between", 
-                                alignItems: "center", 
-                                gap: "8px" 
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {p.presetTitle || p.scenarioTitle}
+                          {sec.presets.map((p, pIdx) => {
+                            const displayRule = (p.wizardMode || p.ruleMode || p.rule || "STORY").toString().toUpperCase();
+                            return (
+                              <div 
+                                key={p.id || pIdx} 
+                                style={{ 
+                                  padding: "10px 12px", 
+                                  backgroundColor: theme.panelAlt, 
+                                  border: `1px solid ${theme.border}`, 
+                                  borderRadius: "10px", 
+                                  display: "flex", 
+                                  justifyContent: "space-between", 
+                                  alignItems: "center", 
+                                  gap: "8px" 
+                                }}
+                              >
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {p.presetTitle || p.scenarioTitle || "시나리오"}
+                                  </div>
+                                  <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    룰: <strong style={{ color: theme.accent }}>{displayRule}</strong> {p.playPreference ? `· ${p.playPreference}` : ""}
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  룰: <strong style={{ color: theme.accent }}>{p.wizardMode?.toUpperCase()}</strong> {p.playPreference ? `· ${p.playPreference}` : ""}
-                                </div>
-                              </div>
 
-                              <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-                                <button
-                                  type="button"
-                                  onClick={() => exportSingleLobbyPreset(p)}
-                                  title="이 시나리오만 JSON 파일로 저장"
-                                  style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap" }}
-                                >
-                                  📥 저장
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleLoadLobbyPreset(p)}
-                                  style={{ padding: "5px 12px", backgroundColor: theme.accent, border: "none", borderRadius: "6px", color: "#fff", fontSize: "0.72rem", cursor: "pointer", fontWeight: "800", whiteSpace: "nowrap" }}
-                                >
-                                  적용 ➔
-                                </button>
+                                <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => exportSingleLobbyPreset(p)}
+                                    title="이 시나리오만 JSON 파일로 저장"
+                                    style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap" }}
+                                  >
+                                    📥 저장
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLoadLobbyPreset(p)}
+                                    style={{ padding: "5px 12px", backgroundColor: theme.accent, border: "none", borderRadius: "6px", color: "#fff", fontSize: "0.72rem", cursor: "pointer", fontWeight: "800", whiteSpace: "nowrap" }}
+                                  >
+                                    적용 ➔
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
 
-                        {/* 카테고리 사이를 나누는 깔끔한 가로 구분선 (스케치 반영) */}
+                        {/* 카테고리 사이를 나누는 깔끔한 가로 구분선 */}
                         {secIdx < activeSections.length - 1 && (
                           <div style={{ height: "1.5px", backgroundColor: theme.border, margin: "10px 0 4px 0", opacity: 0.8 }} />
                         )}
