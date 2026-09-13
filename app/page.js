@@ -2424,27 +2424,28 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 >
                   💾
                 </button>
-<button 
+<div style={{ display: "flex", gap: "6px", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                {/* 1. ⭐ 공식 시나리오 바로가기 버튼 */}
+                <button 
                   type="button" 
                   onClick={() => {
                     setLobbyPresetTab("public");
                     openModal(setShowLobbyPresetModal);
                   }} 
-                  title="공식 시나리오 및 저장된 세팅 열기"
+                  title="공식 추천 시나리오 둘러보기"
                   style={{ 
                     display: "flex",
                     alignItems: "center",
-                    gap: "6px",
+                    gap: "5px",
                     padding: "6px 12px",
                     backgroundColor: theme.panelAlt,
                     border: `1.5px solid ${theme.accent}`,
                     borderRadius: "20px",
                     cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    position: "relative"
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)"
                   }}
                 >
-                  <span style={{ fontSize: "1.05rem" }}>📂</span>
+                  <span style={{ fontSize: "0.95rem" }}>⭐</span>
                   <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.text }}>
                     공식 시나리오
                   </span>
@@ -2453,13 +2454,55 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     color: "#ffffff",
                     fontSize: "0.62rem",
                     fontWeight: "900",
-                    padding: "1px 6px",
+                    padding: "1px 5px",
                     borderRadius: "10px",
-                    lineHeight: 1.3,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)"
+                    lineHeight: 1.2
                   }}>
                     HOT
                   </span>
+                </button>
+
+                {/* 2. 📂 내 세팅 불러오기 버튼 */}
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setLobbyPresetTab("local");
+                    openModal(setShowLobbyPresetModal);
+                  }} 
+                  title="저장된 세팅 불러오기"
+                  style={{ 
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "6px 10px",
+                    backgroundColor: theme.panelAlt,
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    color: theme.text,
+                    fontSize: "0.78rem",
+                    fontWeight: "700"
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>📂</span>
+                  <span>불러오기</span>
+                </button>
+
+                {/* 3. 💾 세팅 저장 버튼 */}
+                <button 
+                  type="button" 
+                  onClick={handleSaveLobbyPreset} 
+                  title="현재 세팅 저장"
+                  style={{ 
+                    background: "none", 
+                    border: "none", 
+                    cursor: "pointer", 
+                    fontSize: "1.25rem", 
+                    padding: "4px 6px",
+                    lineHeight: 1
+                  }}
+                >
+                  💾
                 </button>
               </div>
             </div>
