@@ -2333,7 +2333,10 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         ...s,
         sheet: {
           ...newSheet,
-          actionUsed: s.sheet?.actionUsed || newSheet.actionUsed || false
+          cycle: s.sheet?.cycle ?? newSheet.cycle,
+scene: s.sheet?.scene ?? newSheet.scene,
+phase: s.sheet?.phase ?? newSheet.phase,
+actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
         },
         messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],
         suggestedActions: parsedData.suggActions,
