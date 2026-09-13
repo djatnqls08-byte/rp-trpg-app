@@ -3806,6 +3806,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 )}
               </div>
             </div>
+          </>
+        )}
+      </div>
 
       {/* 3. 우측 시트 패널 (▶ 오른쪽으로 밀면 닫힘) */}
       {activeSession && (
