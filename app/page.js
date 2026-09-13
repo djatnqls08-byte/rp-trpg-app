@@ -369,17 +369,16 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     } catch (e) {}
   }
 
-  useEffect(() => {
+useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (!mobile) { setIsSidebarOpen(true); setIsSheetOpen(true); }
     };
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
+  
   const openModal = (setModalFn) => { window.history.pushState({ modalOpen: true }, ""); setModalFn(true); };
   const closeModal = (setModalFn) => { setModalFn(false); if (window.history.state?.modalOpen) window.history.back(); };
 
@@ -1917,23 +1916,82 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
 {/* 우측 아이콘 및 수치 영역 */}
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            {/* 미연시일 때는 상단에 하트 호감도 배지 출력 */}
-            {activeSession && activeSession.ruleMode?.startsWith("dating") && (
-              <span style={{ padding: "4px 10px", backgroundColor: "rgba(247, 101, 133, 0.15)", border: `1px solid ${theme.danger}`, borderRadius: "14px", fontSize: "0.78rem", color: theme.danger, fontWeight: "800" }}>
-                ♥ {((activeSession.sheet?.npcs || []).find(n => n.id === activeSession.activeContactId) || activeSession.sheet?.npcs?.[0])?.affection ?? 10}
-              </span>
-            )}
+           {/* 🌟 미연시 모드 전용 스마트폰 버튼 (독립 분리) */}
+            {activeSession && activeSession.ruleMode === "dating" && (() => {
+              const phoneChats = activeSession.sheet?.phoneChats || {};
+              let unreadCount = 0;
+              Object.values(phoneChats).forEach(msgs => {
+                unreadCount += (msgs || []).filter(m => m.unread).length;
+              });
+              return (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation(); // 오른쪽 시트 이벤트 전파 방지
+                    setIsSheetOpen(false); // 폰 열 때 시트가 열려있다면 닫아주기
+                    setIsPhoneDrawerOpen(!isPhoneDrawerOpen);
+                    triggerVibration("light");
+                  }}
+                  title="스마트폰 메신저"
+                  style={{
+                    position: "relative",
+                    padding: "6px 10px",
+                    backgroundColor: isPhoneDrawerOpen ? theme.accent : theme.panel,
+                    border: `1px solid ${unreadCount > 0 ? theme.danger : theme.border}`,
+                    color: isPhoneDrawerOpen ? "#fff" : theme.text,
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: "700"
+                  }}
+                >
+                  📱
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: "absolute",
+                      top: "-4px",
+                      right: "-4px",
+                      backgroundColor: theme.danger,
+                      color: "#fff",
+                      borderRadius: "10px",
+                      minWidth: "16px",
+                      height: "16px",
+                      padding: "0 4px",
+                      fontSize: "0.62rem",
+                      fontWeight: "800",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })()}
 
-            {activeSession && activeSession.ruleMode === "insane" && (
-              <>
-                <button onClick={() => advanceInsaneScene(activeSessionId)} title="수동으로 씬을 넘깁니다" style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "12px", fontSize: "0.72rem", cursor: "pointer" }}>씬 종료 ➔</button>
-                <button onClick={handleRollSceneTable} style={{ padding: "5px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.warning}`, color: theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🎲 장면표</button>
-                <button onClick={() => setIsTabletopOpen(!isTabletopOpen)} style={{ padding: "5px 10px", backgroundColor: isTabletopOpen ? theme.warning : theme.panel, border: `1px solid ${theme.warning}`, color: isTabletopOpen ? "#000" : theme.warning, borderRadius: "12px", fontSize: "0.72rem", fontWeight: "700", cursor: "pointer" }}>🃏 테이블탑</button>
-              </>
-            )}
-            {activeSession && activeSession.ruleMode === "coc" && (
-              <button onClick={() => rollDiceDirectly(activeSession.sheet?.san ?? 50, "이성(SAN)")} disabled={isRolling || isLoading} title="1D100 이성 체크" style={{ padding: "6px 10px", backgroundColor: "rgba(247, 101, 133, 0.2)", border: `1.5px solid ${theme.danger}`, color: theme.danger, borderRadius: "16px", cursor: "pointer", fontWeight: "800", fontSize: "0.78rem" }}>
-                🧠 {activeSession.sheet?.san ?? 50}
+            {/* 🌟 캐릭터 정보 / 시트 열기 버튼 */}
+            {activeSession && (
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPhoneDrawerOpen(false); // 시트 열 때 폰 서랍은 닫아주기
+                  setIsSheetOpen(!isSheetOpen);
+                }} 
+                title="프로필 및 설정" 
+                style={{ 
+                  padding: "6px 10px", 
+                  backgroundColor: isSheetOpen ? theme.accent : theme.panel, 
+                  border: `1px solid ${theme.border}`, 
+                  color: isSheetOpen ? "#fff" : theme.text, 
+                  borderRadius: "8px", 
+                  cursor: "pointer", 
+                  fontSize: "0.82rem",
+                  fontWeight: "700"
+                }}
+              >
+                {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋"}
               </button>
             )}
             {activeSession && (
