@@ -160,36 +160,24 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
 
  // 🌟 교체할 useEffect 코드
 useEffect(() => {
+  console.log("presets.json 요청 시작...");
   fetch(`/presets.json?t=${Date.now()}`, { cache: "no-store" })
     .then(async (res) => {
+      console.log("presets.json 응답 상태:", res.status, res.ok);
       if (!res.ok) {
-        console.warn("presets.json을 찾을 수 없습니다. (상태 코드:", res.status, ")");
-        return;
+        throw new Error(`파일을 찾을 수 없음 (HTTP ${res.status})`);
       }
       const text = await res.text();
-      if (!text || !text.trim()) return;
+      console.log("불러온 데이터 앞부분:", text.slice(0, 100));
 
-      try {
-        const data = JSON.parse(text);
-        const list = Array.isArray(data) ? data : [data];
-        setOfficialPresets(list);
-      } catch (e) {
-        // 쉼표/대괄호 누락 자동 수리
-        try {
-          let repaired = text.trim();
-          if (!repaired.startsWith("[")) repaired = "[" + repaired;
-          if (!repaired.endsWith("]")) repaired = repaired + "]";
-          repaired = repaired.replace(/}\s*{/g, "},{");
-          const data = JSON.parse(repaired);
-          if (Array.isArray(data) && data.length > 0) {
-            setOfficialPresets(data);
-          }
-        } catch (err2) {
-          console.error("presets.json 파싱 실패:", err2);
-        }
-      }
+      const data = JSON.parse(text);
+      const list = Array.isArray(data) ? data : [data];
+      console.log("파싱 성공! 프리셋 개수:", list.length);
+      setOfficialPresets(list);
     })
-    .catch((err) => console.error("presets.json 로드 에러:", err));
+    .catch((err) => {
+      console.error("presets.json 불러오기 실패 원인:", err);
+    });
 }, []);
   
   // 🌟 낱개(1개) 세팅만 깔끔하게 단독 JSON으로 다운로드
@@ -5197,14 +5185,22 @@ const quoteText = npc.statusMessage
                 }
 
                 // 🌟 대문자(COC, DATING), 소문자, 한글(크툴루, 미연시), 속성명(wizardMode, ruleMode 등) 모두 판별!
-                const getNormalizedMode = (p) => {
-                  const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
-                  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
-                  if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
-                  if (raw.includes("insane") || raw.includes("인세인")) return "insane";
-                  if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
-                  return "other";
-                };
+               const getNormalizedMode = (p) => {
+  // 1. 기존 필드 확인
+  const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
+  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
+  if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
+  if (raw.includes("insane") || raw.includes("인세인")) return "insane";
+  if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
+
+  // 🌟 2. 필드가 없을 경우: 본문 텍스트에서 자동 유추 (Fallback)
+  const fullText = `${p.presetTitle || ""} ${p.scenarioTitle || ""} ${p.hiddenTruth || ""} ${p.playPreference || ""}`.toLowerCase();
+  if (fullText.includes("호감도") || fullText.includes("미연시") || fullText.includes("데이트")) return "dating";
+  if (fullText.includes("이성") || fullText.includes("san") || fullText.includes("크툴루")) return "coc";
+  if (fullText.includes("광기") || fullText.includes("사명") || fullText.includes("인세인")) return "insane";
+
+  return "dating"; // 기본값으로 미연시에 배치
+};
 
                 // 4대 카테고리 + 기타
                 const CATEGORIES = [
