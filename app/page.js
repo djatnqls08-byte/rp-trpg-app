@@ -3974,6 +3974,28 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
                   {/* 위로 열리는 액션 서랍 팝오버 (방 룰에 맞게 100% 동적 분기) */}
                   {isActionDrawerOpen && (
+  <>
+    {/* 🌟 바깥 대지를 누르면 서랍이 닫히는 투명 터치막 */}
+    <div 
+      onClick={() => setIsActionDrawerOpen(false)} 
+      style={{ position: "fixed", inset: 0, zIndex: 90 }} 
+    />
+
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        bottom: "48px",
+        left: "0",
+        // ... (기존 서랍 스타일 유지)
+        zIndex: 100 // 터치막보다 위에 떠야 하므로 zIndex 100 확인
+      }}
+    >
+      ...
+    </div>
+  </>
+)}
+                   
                     <div
                       onClick={e => e.stopPropagation()}
                       style={{
