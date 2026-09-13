@@ -80,7 +80,7 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // 🌟 [추가] 버전 관리 및 공지사항/가이드 상태
-  const APP_VERSION = "v1.0.0";
+  const APP_VERSION = "v1.1.0";
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [activeNoticeTab, setActiveNoticeTab] = useState("guide"); // 'guide' 또는 'update'
   const [hideNoticeCheckbox, setHideNoticeCheckbox] = useState(false);
@@ -134,24 +134,50 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   }, []);
 
   const handleSaveLobbyPreset = () => {
-    const titlePrompt = prompt("저장할 로비 세팅의 이름을 입력하세요:", scenarioTitle || `${charName}의 캠페인`);
-    if (!titlePrompt) return;
-
-    const newLobbyPreset = {
-      id: Date.now(),
-      presetTitle: titlePrompt,
-      scenarioTitle, publicSynopsis, openingScene, hiddenTruth, playPreference, wizardMode,
-      charName, charJob, charAge, charGender, charBackground, charMission, charSecret, charPortraitUrl,
-      cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, insaneLimit,
-      kpcList
-    };
-
-    const updated = [newLobbyPreset, ...lobbyPresets];
-    setLobbyPresets(updated);
-    localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
-    alert(`'${titlePrompt}' 로비 세팅이 저장되었습니다!`);
+    const titlePrompt = // 🌟 로비 세팅 저장 인앱 모달 열기
+  const handleSaveLobbyPreset = () => {
+    const defaultTitle = scenarioTitle || (charName ? `${charName}의 캠페인` : "새로운 모험");
+    setLobbySaveInput(defaultTitle);
+    setLobbySaveModal({ isFromSession: false });
   };
 
+  // 🌟 실제 세팅 저장 실행 (모달에서 '저장하기' 눌렀을 때 실행)
+  const confirmSaveLobbyPreset = () => {
+    const title = lobbySaveInput.trim();
+    if (!title) return;
+
+    if (lobbySaveModal?.isFromSession && activeSession) {
+      const s = activeSession;
+      let parsedSynopsis = "", parsedOpening = "", parsedTruth = s.scenarioText || "";
+      if (s.scenarioText) {
+        const synMatch = s.scenarioText.match(/\[공개 시놉시스\]\n([\s\S]*?)\n\n\[초기 배경\/서막\]/);
+        const opMatch = s.scenarioText.match(/\[초기 배경\/서막\]\n([\s\S]*?)\n\n\[키퍼 전용 기밀\/진상\]/);
+        const trMatch = s.scenarioText.match(/\[키퍼 전용 기밀\/진상\]\n([\s\S]*)$/);
+        if (synMatch) parsedSynopsis = synMatch[1].trim();
+        if (opMatch) parsedOpening = opMatch[1].trim();
+        if (trMatch) parsedTruth = trMatch[1].trim();
+      }
+      const restoredKpcList = (s.sheet?.npcs || []).map((npc, idx) => ({
+        id: npc.id || Date.now() + idx, name: npc.name || "", job: npc.title || "", detail: npc.detail || "", secret: npc.secret || "", portraitUrl: npc.portrait || "", showSecret: false
+      }));
+      const newLobbyPreset = {
+        id: Date.now(), presetTitle: title, scenarioTitle: s.title || "", publicSynopsis: parsedSynopsis, openingScene: parsedOpening, hiddenTruth: parsedTruth, playPreference: s.preference || "#GL #쌍방구원 #달달", wizardMode: s.ruleMode || "coc", charName: s.sheet?.name || "", charJob: s.sheet?.job || "", charAge: s.sheet?.age || "24", charGender: s.sheet?.gender || "여성", charBackground: s.sheet?.background || "", charMission: s.sheet?.mission || "", charSecret: s.sheet?.secret || "", charPortraitUrl: s.sheet?.portrait || "", cocStats: s.sheet?.cocStats, cocSkills: s.sheet?.cocSkills || "", insaneSkills: s.sheet?.insaneSkills || [], insaneCuriosity: s.sheet?.insaneCuriosity || "정서", insaneFear: s.sheet?.insaneFear || "죽음", insaneLimit: s.sheet?.limit || 4, kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }]
+      };
+      const updated = [newLobbyPreset, ...lobbyPresets];
+      setLobbyPresets(updated);
+      localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
+    } else {
+      const newLobbyPreset = {
+        id: Date.now(), presetTitle: title, scenarioTitle, publicSynopsis, openingScene, hiddenTruth, playPreference, wizardMode, charName, charJob, charAge, charGender, charBackground, charMission, charSecret, charPortraitUrl, cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, insaneLimit, kpcList
+      };
+      const updated = [newLobbyPreset, ...lobbyPresets];
+      setLobbyPresets(updated);
+      localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
+    }
+
+    setLobbySaveModal(null);
+    triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
+  };
   const handleLoadLobbyPreset = (p) => {
     setScenarioTitle(p.scenarioTitle || "");
     setPublicSynopsis(p.publicSynopsis || "");
@@ -236,6 +262,14 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [clueModalNpc, setClueModalNpc] = useState(null); // 🌟 인앱 취향 수첩 팝업 상태
   const [zoomedPortrait, setZoomedPortrait] = useState(null); // 🌟 프로필 사진 크게보기 상태
   const [pendingRollback, setPendingRollback] = useState(null); // 🌟 대화 취소(롤백) 확인 모달 상태
+  const [appToast, setAppToast] = useState(null); // 🌟 화면 상단 알림 토스트
+  const [lobbySaveModal, setLobbySaveModal] = useState(null); // 🌟 로비 세팅 저장 모달
+  const [lobbySaveInput, setLobbySaveInput] = useState("");
+
+  const triggerToast = (msg) => {
+    setAppToast(msg);
+    setTimeout(() => setAppToast(null), 3000);
+  };
   const [phoneInput, setPhoneInput] = useState("");
   const [isPhoneSending, setIsPhoneSending] = useState(false);
   const [phoneSuggestions, setPhoneSuggestions] = useState([]);
@@ -753,13 +787,14 @@ useEffect(() => {
     }
   };
 
+  // 🌟 PC/KPC 치환 완료 알림 (alert 대신 토스트)
   const handleAutoReplaceKpcPc = () => {
     const pName = charName.trim() || "주인공";
     const kName = kpcList[0]?.name || "파트너";
     setPublicSynopsis(publicSynopsis.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
     setOpeningScene(openingScene.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
     setHiddenTruth(hiddenTruth.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
-    alert(`'PC' ➔ '${pName}', 'KPC' ➔ '${kName}' 치환 완료!`);
+    triggerToast(`'PC' ➔ '${pName}', 'KPC' ➔ '${kName}' 치환 완료! 🔄`);
   };
 
   const handleSaveCurrentAsPreset = () => {
@@ -4220,6 +4255,81 @@ const quoteText = npc.statusMessage
 
         
       {/* 설정 모달 */}
+{/* 🌟 화면 상단 플로팅 토스트 배너 */}
+      {appToast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 165,
+            backgroundColor: "rgba(35, 35, 35, 0.92)",
+            backdropFilter: "blur(8px)",
+            color: "#ffffff",
+            padding: "10px 20px",
+            borderRadius: "20px",
+            fontSize: "0.82rem",
+            fontWeight: "700",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            pointerEvents: "none"
+          }}
+        >
+          {appToast}
+        </div>
+      )}
+
+      {/* 🌟 로비 세팅 저장 인앱 모달 (기존 prompt 대체) */}
+      {lobbySaveModal && (
+        <div
+          onClick={() => setLobbySaveModal(null)}
+          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 145, padding: "20px" }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="glass-card"
+            style={{ width: "100%", maxWidth: "340px", padding: "20px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 12px 32px rgba(0,0,0,0.3)" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>💾 로비 세팅 저장</span>
+              <button type="button" onClick={() => setLobbySaveModal(null)} style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
+            </div>
+
+            <div style={{ fontSize: "0.75rem", color: theme.textMuted }}>
+              현재 설정된 시나리오와 캐릭터 프로필 전체를 프리셋으로 저장합니다.
+            </div>
+
+            <input
+              type="text"
+              value={lobbySaveInput}
+              onChange={e => setLobbySaveInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") confirmSaveLobbyPreset(); }}
+              placeholder="세팅 이름을 입력하세요..."
+              autoFocus
+              style={{ width: "100%", padding: "10px 12px", backgroundColor: theme.inputBg, border: `1.5px solid ${theme.accent}`, borderRadius: "10px", color: theme.text, fontSize: "0.85rem", outline: "none" }}
+            />
+
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+              <button
+                type="button"
+                onClick={() => setLobbySaveModal(null)}
+                style={{ flex: 1, padding: "9px 0", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", cursor: "pointer", fontWeight: "600" }}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={confirmSaveLobbyPreset}
+                style={{ flex: 1.5, padding: "9px 0", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}
+              >
+                저장하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 {/* 🌟 대화 취소 / 롤백 확인 인앱 모달 */}
       {pendingRollback && (
         <div
@@ -4718,18 +4828,47 @@ const quoteText = npc.statusMessage
                   </p>
                 </div>
               ) : (
-                /* 업데이트 노트 탭 */
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <h3 style={{ margin: "0 0 4px 0", color: theme.text, fontSize: "1.1rem" }}>{APP_VERSION} 패치 노트</h3>
-                  <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}` }}>
-                    <strong style={{ color: theme.success, display: "block", marginBottom: "6px" }}>✨ 정식 배포 주요 변경 사항</strong>
+{/* 업데이트 노트 탭 (최신 v1.1.0 + 이전 v1.0.0 히스토리 통합) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                
+                {/* 🌟 [최신] v1.1.0 패치 노트 */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                    <h3 style={{ margin: 0, color: theme.text, fontSize: "1.05rem", fontWeight: "800" }}>
+                      🚀 v1.1.0 패치 노트
+                    </h3>
+                    <span style={{ fontSize: "0.68rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
+                      LATEST
+                    </span>
+                  </div>
+
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ fontSize: "0.78rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
+                      "탐사자여, 낭만적인 서사에 몰입하려는데 90년대 회색 경고창이 뜨고, 누구든 돋보기부터 챙기던 야만의 시대는 이제 끝났습니다."
+                    </div>
+
+                    <div style={{ fontSize: "0.74rem", lineHeight: "1.65", color: theme.text }}>
+                      • <strong>📱 읽씹 방지 & 스마트폰 풀옵션:</strong> 내가 보낸 말풍선 옆에 노란색 <strong>'1'</strong>이 박히며 상대가 읽으면 즉시 사라집니다. 점 세 개가 톡톡 튀는 <strong>(•••) 타이핑 말풍선</strong>과, 문자가 오면 화면 상단에서 스르륵 내려오는 <strong>푸시 알림 배너</strong>가 장착되었습니다.<br/>
+                      • <strong>🎁 브라우저 경고창 전면 추방:</strong> 화면 분위기를 와장창 깨뜨리던 회색 alert/prompt 창을 모두 압수했습니다. 이제 <strong>[선물하기]</strong>, <strong>[취향 수첩]</strong>, <strong>[로비 세팅 저장]</strong> 모두 화면 중앙에 깔끔한 인앱 모달 카드로 열립니다.<br/>
+                      • <strong>🎒 돋보기의 저주 해제:</strong> 직업과 장르를 불문하고 돋보기와 만년필만 들고 태어나던 탐정병을 치료했습니다. 미연시 모드에서는 <strong>[손수건]</strong>과 <strong>[틴케이스 캔디]</strong>가 지급되며, 대화 중 상대가 흘린 취향은 시스템이 귀신같이 낚아채 수첩에 자동 저장합니다.<br/>
+                      • <strong>🎨 비주얼 대청소 & 실종자 구조:</strong> 헤더 바에 스티커처럼 둥둥 떠다니던 하얀색 박스들을 투명 플랫 아이콘으로 정돈하고, 메신저를 얹느라 잠시 미아가 되었던 CoC/인세인 <strong>[🃏 테이블탑]</strong>과 <strong>[🎲 다이스]</strong> 버튼을 무사히 구출했습니다.
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📦 [이전] v1.0.0 정식 배포 기록 */}
+                <div>
+                  <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.85rem", fontWeight: "750" }}>
+                    📦 v1.0.0 정식 배포
+                  </h4>
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.72rem", color: theme.textMuted, lineHeight: "1.6" }}>
                     • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드가 추가되었습니다.<br/>
                     • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 모든 서브 NPC의 사명/비밀 분리 생성 및 '스스로 밝힐 수 없다' 핸드아웃 카드가 완성되었습니다.<br/>
                     • <strong>온보딩 가이드 & 세이브 백업:</strong> 신규 사용자를 위한 가이드 모달과 JSON 풀세팅 백업/복원 기능이 탑재되었습니다.
                   </div>
                 </div>
-              )}
-            </div>
+
+              </div>
 
             {/* 하단 닫기 및 7일 체크 영역 */}
             <div style={{ padding: "12px 20px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
