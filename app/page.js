@@ -1274,40 +1274,39 @@ useEffect(() => {
           .trim();
       };
 
-      // ── [0. 룰 시스템 자동 감지 및 전환 (미연시 최우선 판정)] ──
+     // ── [0. 룰 시스템 자동 감지 (맨 윗줄 '룰 시스템' 최우선 판정)] ──
+      const ruleLineMatch = rawText.match(/(?:룰\s*시스템|룰\s*모드|룰)\s*[:：]\s*([^\n\r]+)/i);
+      const ruleTargetText = ruleLineMatch ? ruleLineMatch[1] : rawText.slice(0, 300);
+
       let detectedMode = wizardMode;
-      if (/미연시|연애\s*시뮬레이션|dating/i.test(rawText)) {
-        detectedMode = "dating";
-        setWizardMode("dating");
-      } else if (/인세인|insane/i.test(rawText)) {
+      if (/인세인|insane/i.test(ruleTargetText)) {
         detectedMode = "insane";
         setWizardMode("insane");
-      } else if (/크툴루|coc/i.test(rawText)) {
+      } else if (/크툴루|coc/i.test(ruleTargetText)) {
         detectedMode = "coc";
         setWizardMode("coc");
-      } else if (/자유\s*서사|소설\s*모드|freeform/i.test(rawText)) {
+      } else if (/자유\s*서사|소설\s*모드|freeform/i.test(ruleTargetText)) {
         detectedMode = "freeform";
         setWizardMode("freeform");
+      } else if (/미연시|연애\s*시뮬레이션|dating/i.test(ruleTargetText)) {
+        detectedMode = "dating";
+        setWizardMode("dating");
       }
 
-      // 태그 자동 추출 (있을 경우)
+      // 태그 자동 추출
       const tagMatch = rawText.match(/(?:서사\s*지향\s*태그|장르\s*톤|태그)\s*[:：]\s*([^\n\r]+)/i);
       if (tagMatch) setPlayPreference(tagMatch[1].trim());
 
-      // ── [1. 시나리오 본문 & 진상 파싱 (다양한 양식 완벽 지원)] ──
-      // 시나리오 제목
+      // ── [1. 시나리오 본문 & 진상] ──
       const titleMatch = rawText.match(/(?:시나리오\s*제목|제목)\s*[:：]\s*([^\n\r]+)/i);
       if (titleMatch) setScenarioTitle(titleMatch[1].trim());
 
-      // 공개 시놉시스 (# 1. 시놉시스, [공개 시놉시스], 시놉시스: 모두 수용)
       const synMatch = rawText.match(/(?:\[공개\s*시놉시스\]|공개\s*시놉시스\s*[:：]?|#+\s*\d*\.?\s*시놉시스[^\n]*)\s*([\s\S]*?)(?=\n\s*(?:\[서막\]|서막\s*[:：]|\[도입부\]|도입부\s*[:：]|#+\s*\d*\.?\s*도입부|#+\s*\d*\.?\s*서막|###|\n\n\[|$))/i);
       if (synMatch) setPublicSynopsis(synMatch[1].trim());
 
-      // 서막 / 도입부 (# 4. 도입부, [서막], 오프닝 등 모두 수용)
       const opMatch = rawText.match(/(?:\[서막\]|서막\s*[:：]?|\[도입부\]|도입부\s*[:：]?|#+\s*\d*\.?\s*도입부[^\n]*|#+\s*\d*\.?\s*서막[^\n]*|오프닝\s*[:：]?)\s*([\s\S]*?)(?=\n\s*(?:\[키퍼|키퍼\s*전용|#+\s*\d*\.?\s*진상|사건의\s*진상|###|\n\n\[|$))/i);
       if (opMatch) setOpeningScene(opMatch[1].trim());
 
-      // 🌟 키퍼 전용 진상 / 비밀란 (# 3. 진상, [진상], 배후 진상, 기밀 진상 등 100% 캡처!)
       const trMatch = rawText.match(/(?:\[키퍼\s*전용[^\n]*\]|키퍼\s*전용\s*(?:스포일러|진상|기밀)[^:：\n]*[:：]?|사건의\s*진상|#+\s*\d*\.?\s*진상[^\n]*|\[진상\]|진상\s*[:：])\s*([\s\S]*?)(?=\n\s*(?:###\s*\d|\[내\s*프로필|\[PC\s*프로필|\[등장인물|$))/i);
       if (trMatch) setHiddenTruth(cleanVal(trMatch[1]));
 
@@ -1321,7 +1320,7 @@ useEffect(() => {
       const pcJobMatch = pcText.match(/(?:직업|역할|직업\/역할)\s*[:：]\s*([^\n\r]+)/i);
       if (pcJobMatch) setCharJob(pcJobMatch[1].trim());
 
-      const pcBgMatch = pcText.match(/(?:백스토리(?:\s*및\s*성격)?|성격(?:\s*및\s*백스토리)?)\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:-?\s*\[?내\s*캐릭터|###|\[|-?\s*사명|$))/i);
+      const pcBgMatch = pcText.match(/(?:백스토리[^\n:]*|성격[^\n:]*)\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:-?\s*\[?내\s*캐릭터|###|\[|-?\s*사명|$))/i);
       if (pcBgMatch) setCharBackground(pcBgMatch[1].trim());
 
       const pcSecMatch = rawText.match(/(?:\[내\s*캐릭터의\s*숨겨진\s*비밀[^\]]*\]|PC\s*숨겨진\s*비밀|PC\s*비밀)\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:###|\[|\n\n-|(?:리미트|호기심|공포심|습득\s*특기)\s*[:：]|$))/i);
@@ -1364,12 +1363,12 @@ useEffect(() => {
 
         const skillsMatch = rawText.match(/(?:습득\s*특기|특기)\s*[:：]\s*([^\n\r]+)/i);
         if (skillsMatch) {
-          const list = skillsMatch[1].split(/[,/]\s*/).map(s => s.trim()).filter(Boolean);
+          const list = skillsMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean);
           if (list.length > 0) setInsaneSkills(list);
         }
       }
 
-      // ── [4. 등장인물 (KPC 및 서브 NPC)] ──
+      // ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
       let parsedNpcList = [];
 
       // 파트너 KPC
@@ -1378,7 +1377,8 @@ useEffect(() => {
         const kText = kpcSection[1];
         const kName = (kText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "파트너";
         const kJob = (kText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
-        const kDetail = (kText.match(/(?:외모[,\s]*성격[^\n:]*|관계성?)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        // 🌟 '외모 및 관계성', '외모 및 성격', '외모' 등 모든 수식어 완벽 수용!
+        const kDetail = (kText.match(/(?:외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
         
         const kSecMatch = rawText.match(/(?:\[(?:파트너\s*)?KPC\s*비밀[^\]]*\]|\[이\s*인물의\s*비밀\])\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[서브|서브\s*NPC|###|\[|\n\n-|$))/i);
         const kSecret = kSecMatch ? cleanVal(kSecMatch[1]) : "";
@@ -1403,7 +1403,8 @@ useEffect(() => {
 
         const sName = (sText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || `NPC ${idx}`;
         const sJob = (sText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
-        const sDetail = (sText.match(/(?:외모[,\s]*성격[^\n:]*|관계성?)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        // 🌟 서브 NPC도 '외모 및 관계성' 완벽 추출!
+        const sDetail = (sText.match(/(?:외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
 
         const sSecReg = new RegExp(`(?:\\[서브\\s*NPC\\s*${idx}\\s*비밀[^\\]]*\\]|\\[이\\s*인물의\\s*비밀\\])\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\[서브|\\(서브|###|\\[|\\n\\n-|$))`, "i");
         const sSecMatch = rawText.match(sSecReg);
