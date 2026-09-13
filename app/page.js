@@ -2130,10 +2130,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             )}
           </div>
 
-{/* 우측 아이콘 및 수치 영역 */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-           {/* 🌟 1. 스마트폰 메신저 열기 버튼 (단독) */}
-            {activeSession && activeSession.ruleMode === "dating" && (() => {
+{/* 우측 아이콘 및 수치 영역 (스마트폰 투명화 + CoC/인세인 테이블탑 & 주사위 완전 복구) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            
+            {/* 🌟 1. 스마트폰 메신저 아이콘 (미연시 모드: 배경 제거 및 시원한 크기) */}
+            {activeSession && activeSession.ruleMode?.startsWith("dating") && (() => {
               const phoneChats = activeSession.sheet?.phoneChats || {};
               let unreadCount = 0;
               Object.values(phoneChats).forEach(msgs => {
@@ -2145,31 +2146,30 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsSheetOpen(false);
-                    setActivePhoneContactId(null); // 🌟 무조건 연락처/스킨 목록부터 열기!
+                    setActivePhoneContactId(null);
                     setIsPhoneDrawerOpen(!isPhoneDrawerOpen);
                     triggerVibration("light");
                   }}
-                  title="메신저 열기"
+                  title="스마트폰 메신저 열기"
                   style={{
                     position: "relative",
-                    padding: "7px 11px",
-                    backgroundColor: isPhoneDrawerOpen ? theme.accent : theme.panel,
-                    border: `1px solid ${unreadCount > 0 ? theme.danger : theme.border}`,
-                    color: isPhoneDrawerOpen ? "#fff" : theme.text,
-                    borderRadius: "8px",
+                    background: "none",
+                    border: "none",
                     cursor: "pointer",
-                    fontSize: "0.88rem",
+                    fontSize: "1.4rem",
+                    padding: "4px 6px",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center"
+                    justifyContent: "center",
+                    lineHeight: 1
                   }}
                 >
                   📱
                   {unreadCount > 0 && (
                     <span style={{
                       position: "absolute",
-                      top: "-4px",
-                      right: "-4px",
+                      top: "-2px",
+                      right: "-2px",
                       backgroundColor: theme.danger,
                       color: "#fff",
                       borderRadius: "10px",
@@ -2180,7 +2180,8 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       fontWeight: "800",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center"
+                      justifyContent: "center",
+                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
                     }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
@@ -2189,7 +2190,55 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               );
             })()}
 
-            {/* 🌟 2. 캐릭터 정보 열기 버튼 (단독) */}
+            {/* 🌟 2. 인세인 전용: [🃏 테이블탑] 핸드아웃/광기 덱 오버레이 복구 */}
+            {activeSession && activeSession.ruleMode === "insane" && (
+              <button 
+                type="button"
+                onClick={() => setIsTabletopOpen(!isTabletopOpen)}
+                title="테이블탑 핸드아웃 & 광기 덱 열기"
+                style={{
+                  padding: "6px 10px",
+                  backgroundColor: isTabletopOpen ? theme.warning : theme.panelAlt,
+                  border: `1px solid ${isTabletopOpen ? theme.warning : theme.border}`,
+                  color: isTabletopOpen ? "#000" : theme.text,
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                  fontWeight: "700",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                🃏 테이블탑
+              </button>
+            )}
+
+            {/* 🌟 3. CoC / 인세인 전용: [🎲 다이스] 빠른 주사위 굴림 복구 */}
+            {activeSession && (activeSession.ruleMode === "coc" || activeSession.ruleMode === "insane") && (
+              <button
+                type="button"
+                onClick={() => rollDiceDirectly()}
+                title={activeSession.ruleMode === "coc" ? "1D100 주사위 굴리기" : "2D6 주사위 굴리기"}
+                style={{
+                  padding: "6px 10px",
+                  backgroundColor: theme.panelAlt,
+                  border: `1px solid ${theme.border}`,
+                  color: theme.text,
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                  fontWeight: "700",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                🎲 {activeSession.ruleMode === "coc" ? "1D100" : "2D6"}
+              </button>
+            )}
+
+            {/* 🌟 4. 캐릭터 정보 / 시트 열기 버튼 */}
             {activeSession && (
               <button 
                 type="button"
@@ -2200,13 +2249,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 }} 
                 title="캐릭터 정보" 
                 style={{ 
-                  padding: "7px 11px", 
-                  backgroundColor: isSheetOpen ? theme.accent : theme.panel, 
+                  padding: "6px 11px", 
+                  backgroundColor: isSheetOpen ? theme.accent : theme.panelAlt, 
                   border: `1px solid ${theme.border}`, 
                   color: isSheetOpen ? "#fff" : theme.text, 
                   borderRadius: "8px", 
                   cursor: "pointer", 
-                  fontSize: "0.82rem",
+                  fontSize: "0.8rem",
                   fontWeight: "700",
                   display: "flex",
                   alignItems: "center",
@@ -2217,17 +2266,18 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               </button>
             )}
 
-            {/* 🌟 플레이 중에는 숨기고, 로비 화면일 때만 공지 버튼 표시 */}
+            {/* 로비 화면일 때만 공지 버튼 표시 */}
             {!activeSession && (
               <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
                 📢
               </button>
             )}
+
+            {/* 다크모드 토글 */}
             <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
               {isDarkMode ? "☀️" : "🌙"}
             </button>
           </div>
-        </div>
 
         {!activeSession ? (
           /* 로비 화면 */
