@@ -2407,9 +2407,22 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     badge: "2D6 사이클",
                     icon: "🎲",
                     points: [
-                      { title: "핵심 판정", desc: "2D6 주사위와 6대 분야 66개 특기표 매트릭스를 기반으로 판정을 진행합니다." },
-                      { title: "비밀과 사명", desc: "모든 인물이 겉으로 드러난 '사명'과 숨겨둔 '비밀'을 가지고 서로를 탐색합니다." },
-                      { title: "추천 분위기", desc: "서로를 향한 복잡한 의혹과 집착, 영화적이고 극적인 서스펜스 호러에 적합합니다." }
+                      { 
+                        title: "왜 특기를 6개 고르나요? (66개 매트릭스의 원리)", 
+                        desc: "인세인은 폭력·정서·지각·기술·지식·괴이 6개 분야(총 66개 특기)로 이루어진 표를 사용합니다. 캐릭터는 자신의 과거와 개성을 상징하는 특기를 딱 '6개' 습득하여 자신만의 전문 영역을 구축합니다." 
+                      },
+                      { 
+                        title: "특기의 핵심 역할: 대용 판정과 갭(Gap)", 
+                        desc: "상황에 딱 맞는 특기를 배웠다면 2D6 주사위 목표치가 기본 '5'로 낮아져 쉽게 성공합니다! 반면 배우지 않은 특기 행동을 할 때는, 내가 배운 가장 가까운 특기로 '대용 판정'을 시도합니다. 이때 표에서 떨어진 칸수(거리)만큼 목표치가 1씩 올라가 판정이 아슬아슬해집니다." 
+                      },
+                      { 
+                        title: "호기심과 공포심", 
+                        desc: "호기심 분야의 특기는 거리에 따른 난이도 페널티를 1 줄여주며, 반대로 공포심에 지정된 특기 상황에 직면하면 이성을 잃고 광기 카드를 뽑게 됩니다." 
+                      },
+                      { 
+                        title: "비밀과 사명 (서스펜스)", 
+                        desc: "모든 인물이 겉으로 드러난 '사명'과 숨겨둔 치명적인 '비밀'을 지니고 서로의 마음과 약점을 파고듭니다." 
+                      }
                     ]
                   },
                   {
@@ -4860,7 +4873,7 @@ const quoteText = npc.statusMessage
                   <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.85rem", fontWeight: "750" }}>
                     📦 v1.0.0 정식 배포
                   </h4>
-                  <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.72rem", color: theme.textMuted, lineHeight: "1.6" }}>
+<div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.72rem", color: theme.textMuted, lineHeight: "1.6" }}>
                     • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드가 추가되었습니다.<br/>
                     • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 모든 서브 NPC의 사명/비밀 분리 생성 및 '스스로 밝힐 수 없다' 핸드아웃 카드가 완성되었습니다.<br/>
                     • <strong>온보딩 가이드 & 세이브 백업:</strong> 신규 사용자를 위한 가이드 모달과 JSON 풀세팅 백업/복원 기능이 탑재되었습니다.
@@ -4868,6 +4881,8 @@ const quoteText = npc.statusMessage
                 </div>
 
               </div>
+            )}
+          </div>
 
             {/* 하단 닫기 및 7일 체크 영역 */}
             <div style={{ padding: "12px 20px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
