@@ -2424,20 +2424,42 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 >
                   💾
                 </button>
-                <button 
+<button 
                   type="button" 
-                  onClick={() => openModal(setShowLobbyPresetModal)} 
-                  title="로비 세팅 불러오기"
+                  onClick={() => {
+                    setLobbyPresetTab("public");
+                    openModal(setShowLobbyPresetModal);
+                  }} 
+                  title="공식 시나리오 및 저장된 세팅 열기"
                   style={{ 
-                    background: "none", 
-                    border: "none", 
-                    cursor: "pointer", 
-                    fontSize: "1.3rem", 
-                    padding: "4px 6px",
-                    lineHeight: 1
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    backgroundColor: theme.panelAlt,
+                    border: `1.5px solid ${theme.accent}`,
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    position: "relative"
                   }}
                 >
-                  📂
+                  <span style={{ fontSize: "1.05rem" }}>📂</span>
+                  <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.text }}>
+                    공식 시나리오
+                  </span>
+                  <span style={{
+                    backgroundColor: theme.danger || "#d63857",
+                    color: "#ffffff",
+                    fontSize: "0.62rem",
+                    fontWeight: "900",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    lineHeight: 1.3,
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)"
+                  }}>
+                    HOT
+                  </span>
                 </button>
               </div>
             </div>
@@ -4994,6 +5016,7 @@ const quoteText = npc.statusMessage
                       💾 2. 시트 & 로비 세팅 저장 (프리셋/백업)
                     </div>
                     <div style={{ fontSize: "0.74rem", color: theme.text, lineHeight: "1.6" }}>
+• <strong style={{ color: theme.accent }}>⭐ 공식 추천 시나리오 (상단 📂 공식 시나리오):</strong> 복잡한 설정 없이도 플랫폼에 준비된 고퀄리티 공식 시나리오들을 원클릭으로 즉시 세팅해 플레이할 수 있습니다.<br/>
                       • <strong>로비 전체 저장 (상단 💾 / 📂):</strong> PC와 KPC 프로필, 시나리오 본문, 스탯까지 포함된 '로비 풀 세팅'을 저장해 두고 원클릭으로 다시 불러올 수 있습니다. (JSON 파일 다운로드/복원 지원)<br/>
                       • <strong>PC만 단독 저장 (우측 시트 💾 PC만):</strong> 세션 진행 도중 우측 시트 상단의 [💾 PC만]을 누르면 내 캐릭터 설정과 스탯만 별도 저장되어 다른 시나리오에서도 재활용할 수 있습니다.<br/>
                       • <strong>전체 데이터 관리:</strong> 좌측 사이드바 하단의 [💾 데이터 관리]에서 진행 중인 세션을 텍스트(.txt), 마크다운(.md), PDF 인쇄본, 혹은 복원용 세이브(.json)로 안전하게 백업할 수 있습니다.
