@@ -1605,25 +1605,12 @@ useEffect(() => {
     const newVal = Math.max(0, currentVal + delta);
 
     if (statName === "san" && delta < 0) {
+      if (statName === "san" && delta < 0) {
       if (activeSession.ruleMode === "insane") {
-      const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
-      if (isActionDone) {
-        dynamicRules += `\n\n[🎲 인세인 드라마 씬 행동 완료 수칙]
-- 이번 장면의 1회 주요 행동(조사/감정/회복)이 이미 성공적으로 완료되었습니다!
-- [🚨 절대 금지] 절대로 추가 특기 판정이나 주사위 판정(<!-- CHECK: ... -->)을 요구하지 마십시오!
-- "주변을 둘러보려면 특기 판정이 필요합니다" 같은 판정 유도 지문을 일절 출력하지 마십시오.
-- 판정 요구 없이 두 사람의 대화와 분위기 묘사의 여운으로 장면을 마무리하고, 플레이어가 자연스럽게 퇴장(장면 닫기)하도록 이끄십시오.`;
-      } else {
-        dynamicRules += `\n\n[🎲 인세인 규칙]
-- 광기가 발생하지 않은 정상 상황에서는 <!-- TRIGGER_MADNESS --> 태그를 절대로 출력하지 마십시오.`;
+        drawMadnessCard(activeSessionId, true);
+      } else if (activeSession.ruleMode === "coc" && delta <= -5) {
+        triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
       }
-    } else if (isFreeform) {
-      dynamicRules += `\n\n[문체 마감 수칙 (자유 서사 전용)]
-- 지문 말미에 "다음으로 어떤 행동을 취하시겠습니까?" 같은 기계적 질문을 절대 출력하지 마십시오.
-- 문장의 끝은 항상 인물의 가쁜 호흡, 대사, 혹은 감각적인 신체 묘사의 여운으로 자연스럽게 매듭지으십시오.`;
-    } else {
-      dynamicRules += `\n\n[TRPG 진행 수칙]
-- 지문 끝에 상황에 맞는 탐사자의 다음 행동이나 판정 선언을 자연스럽게 유도하십시오.`;
     }
 
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, [statName]: newVal } } : s));
@@ -1998,7 +1985,19 @@ const startNewSession = async () => {
 - BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
     }
 
-    if (isFreeform) {
+if (activeSession.ruleMode === "insane") {
+      const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
+      if (isActionDone) {
+        dynamicRules += `\n\n[🎲 인세인 드라마 씬 행동 완료 수칙]
+- 이번 장면의 1회 주요 행동(조사/감정/회복)이 이미 성공적으로 완료되었습니다!
+- [🚨 절대 금지] 절대로 추가 특기 판정이나 주사위 판정(<!-- CHECK: ... -->)을 요구하지 마십시오!
+- "주변을 둘러보려면 특기 판정이 필요합니다" 같은 판정 유도 지문을 일절 출력하지 마십시오.
+- 판정 요구 없이 두 사람의 대화와 분위기 묘사의 여운으로 장면을 마무리하고, 플레이어가 자연스럽게 퇴장(장면 닫기)하도록 이끄십시오.`;
+      } else {
+        dynamicRules += `\n\n[🎲 인세인 규칙]
+- 광기가 발생하지 않은 정상 상황에서는 <!-- TRIGGER_MADNESS --> 태그를 절대로 출력하지 마십시오.`;
+      }
+    } else if (isFreeform) {
       dynamicRules += `\n\n[문체 마감 수칙 (자유 서사 전용)]
 - 지문 말미에 "다음으로 어떤 행동을 취하시겠습니까?" 같은 기계적 질문을 절대 출력하지 마십시오.
 - 문장의 끝은 항상 인물의 가쁜 호흡, 대사, 혹은 감각적인 신체 묘사의 여운으로 자연스럽게 매듭지으십시오.`;
