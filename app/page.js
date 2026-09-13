@@ -183,51 +183,7 @@ export default function App() {
     }, animationEnabled ? 600 : 100);
   };
 
-  // 2. 3대 주요 행동 - 조사 완료 처리
-  const handleExecuteInvestigation = (targetType, targetObj, skillName) => {
-    setInvestigationModal(null);
-    setIsActionDrawerOpen(false);
 
-    const learned = activeSession.sheet?.insaneSkills || [];
-    const curiosity = activeSession.sheet?.insaneCuriosity || "정서";
-    const targetVal = calculateInsaneTargetNumber(skillName, learned, curiosity);
-
-    const d1 = Math.floor(Math.random() * 6) + 1;
-    const d2 = Math.floor(Math.random() * 6) + 1;
-    const sum = d1 + d2;
-    const isSuccess = sum === 12 || (sum >= targetVal && sum !== 2);
-
-    let resultDetail = "";
-    if (isSuccess) {
-      if (targetType === "secret") {
-        resultDetail = `\n[조사 성공: 비밀 해금] ${targetObj.title || targetObj.name}의 숨겨진 진실이 해금되었습니다. 테이블탑 핸드아웃에서 내용을 확인하세요.`;
-        // 핸드아웃 비밀 자동 오픈
-        setSessions(prev => prev.map(s => {
-          if (s.id !== activeSessionId) return s;
-          const hList = (s.sheet?.handouts || []).map(h => (h.id === targetObj.id || h.title === targetObj.title) ? { ...h, revealed: true, isFlipped: true } : h);
-          return { ...s, sheet: { ...s.sheet, handouts: hList } };
-        }));
-      } else if (targetType === "location") {
-        resultDetail = `\n[조사 성공: 거처 확보] ${targetObj.name}의 거처와 활동 경로를 확보했습니다! (메인 페이즈 전투 신청 가능)`;
-        setSessions(prev => prev.map(s => {
-          if (s.id !== activeSessionId) return s;
-          const nList = (s.sheet?.npcs || []).map(n => n.id === targetObj.id ? { ...n, hasLocation: true } : n);
-          return { ...s, sheet: { ...s.sheet, npcs: nList } };
-        }));
-      } else if (targetType === "mental") {
-        const mCount = targetObj.madnessCards?.length || 0;
-        resultDetail = `\n[조사 성공: 정신상태 파악] ${targetObj.name}의 내면을 관찰했습니다. (현재 보유 미공개 광기: ${mCount}장)`;
-      }
-    } else {
-      resultDetail = `\n[조사 실패] 경계가 삼엄하여 핵심 정보를 알아내지 못했습니다.`;
-    }
-
-    const logText = `[주요 행동: 조사 선언 (대상: ${targetObj.title || targetObj.name} / 특기: ${skillName})]\n2D6 결과: ${d1}+${d2}=${sum} (목표치: ${targetVal}) ➔ ${isSuccess ? "성공" : "실패"}${resultDetail}`;
-    
-    // 주요 행동 소모 처리
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
-    executeMessage(logText);
-  };
 
   // 3. 3대 주요 행동 - 감정 결정 처리
   const handleSelectEmotion = (npc, selectedEmotionName) => {
