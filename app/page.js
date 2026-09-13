@@ -4222,9 +4222,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             </button>
                           </>
                         )}
-                      </div>
-                    </>
-                  )}
+                     </div>
+                      </>
+                    )}
+                  </div>
+
 
                   {/* 2. 중앙: 테두리 없는 투명 textarea */}
                 <textarea 
