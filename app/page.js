@@ -4827,7 +4827,7 @@ const quoteText = npc.statusMessage
                   </p>
                 </div>
               ) : (
-{/* 업데이트 노트 탭 (최신 v1.1.0 + 이전 v1.0.0 히스토리 통합) */}
+/* 업데이트 노트 탭 (최신 v1.1.0 + 이전 v1.0.0 히스토리 통합) */
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 
                 {/* 🌟 [최신] v1.1.0 패치 노트 */}
