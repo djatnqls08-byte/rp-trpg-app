@@ -1591,7 +1591,11 @@ useEffect(() => {
 
     let dynamicRules = `\n\n[키퍼 시스템 연동 절대 수칙]
 1. 탐사자가 새로운 물건이나 소지품을 획득하면 지문 맨 끝에 반드시 <!-- ITEM: {"name": "아이템 이름", "desc": "간략한 설명"} --> 태그를 출력하십시오.
-2. 사건의 결정적 단서나 비밀 기록을 조사해 알아내면 지문 맨 끝에 반드시 <!-- CLUE: {"name": "단서명", "desc": "발견한 진실 내용 요약"} --> 태그를 출력하십시오.
+2. [단서 및 취향 수첩 연동 절대 수칙]
+- 사건의 단서를 발견하거나, 대화 중 상대방(${partnerName})이 자신의 취향, 좋아하는 음식/장소/물건, 관심사, 속마음을 밝혔다면:
+  * ❌ 본문 서술로만 끝내지 마십시오!
+  * ⭕ 반드시 지문 맨 끝에 아래 태그를 100% 출력하십시오:
+    <!-- CLUE: {"name": "${partnerName}의 취향: 핵심키워드", "desc": "좋아하는 이유 및 상세 내용"} -->
 3. [NPC 호감도 및 인격 관리 절대 수칙]
 - 호감도 범위는 0~100입니다. 
 - [🚨 절대 경고: 급격한 변동 및 착각 금지] 
@@ -1676,18 +1680,38 @@ useEffect(() => {
       }
       rawText = rawText.replace(itemRegex, "");
 
-      // [단서 자동 추출 및 수첩 추가]
+      // [단서/취향 자동 추출 및 수첩 추가]
       let newClues = [];
       const clueRegex = /<!--\s*CLUE:\s*(\{.*?\})\s*-->/gs;
       let clueMatch;
       while ((clueMatch = clueRegex.exec(rawText)) !== null) {
         try {
           const clueObj = JSON.parse(clueMatch[1]);
-          if (clueObj.name) newClues.push({ id: Date.now() + Math.random(), name: clueObj.name, desc: clueObj.desc || "" });
+          if (clueObj.name) {
+            // 🌟 NPC 이름이 누락되었으면 자동으로 상대방 이름을 붙여서 수첩 필터링 통과 보장!
+            const formattedName = clueObj.name.includes(partnerName) ? clueObj.name : `[${partnerName}] ${clueObj.name}`;
+            newClues.push({ 
+              id: Date.now() + Math.random(), 
+              name: formattedName, 
+              desc: clueObj.desc || "",
+              npcName: partnerName
+            });
+          }
         } catch (e) {}
       }
       rawText = rawText.replace(clueRegex, "");
 
+      // 💡 [자동 구조 Fallback] 취향을 물어봤는데 AI가 CLUE 태그를 깜빡했을 때 자동 추출 등록
+      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("관심"))) {
+        const quoteMatch = rawText.match(/[\*"]([^\*"]*(?:좋아합|선호합|취향|마음에 듭|애정|시간을)[^\*"]*)[\*"]/);
+        const descText = quoteMatch ? quoteMatch[1].trim() : (rawText.split("\n").find(l => l.includes("좋아")) || "대화를 통해 확인된 관심사");
+        newClues.push({
+          id: Date.now() + Math.random(),
+          name: `[${partnerName}] ${partnerName}의 취향과 관심사`,
+          desc: descText.replace(/^["'*]+|["'*]+$/g, ""),
+          npcName: partnerName
+        });
+      }
 // 🌟 [새로운 등장인물(NEW_NPC) 자동 추출]
       let newlyFoundNpcs = [];
       const newNpcRegex = /<!--\s*NEW_NPC:\s*(\{.*?\})\s*-->/gs;
@@ -2131,9 +2155,10 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
           </div>
 
 {/* 우측 아이콘 및 수치 영역 (스마트폰 투명화 + CoC/인세인 테이블탑 & 주사위 완전 복구) */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+         {/* 우측 아이콘 및 수치 영역 (흰색 박스 완전 제거 & 깔끔한 플랫 헤더) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             
-            {/* 🌟 1. 스마트폰 메신저 아이콘 (미연시 모드: 배경 제거 및 시원한 크기) */}
+            {/* 🌟 1. 스마트폰 메신저 아이콘 (미연시 모드) */}
             {activeSession && activeSession.ruleMode?.startsWith("dating") && (() => {
               const phoneChats = activeSession.sheet?.phoneChats || {};
               let unreadCount = 0;
@@ -2157,10 +2182,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     border: "none",
                     cursor: "pointer",
                     fontSize: "1.4rem",
-                    padding: "4px 6px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    padding: "6px 8px",
                     lineHeight: 1
                   }}
                 >
@@ -2168,8 +2190,8 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   {unreadCount > 0 && (
                     <span style={{
                       position: "absolute",
-                      top: "-2px",
-                      right: "-2px",
+                      top: "2px",
+                      right: "2px",
                       backgroundColor: theme.danger,
                       color: "#fff",
                       borderRadius: "10px",
@@ -2180,8 +2202,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       fontWeight: "800",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.3)"
+                      justifyContent: "center"
                     }}>
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
@@ -2190,55 +2211,49 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               );
             })()}
 
-            {/* 🌟 2. 인세인 전용: [🃏 테이블탑] 핸드아웃/광기 덱 오버레이 복구 */}
+            {/* 🌟 2. 인세인 전용: [🃏 테이블탑] */}
             {activeSession && activeSession.ruleMode === "insane" && (
               <button 
                 type="button"
                 onClick={() => setIsTabletopOpen(!isTabletopOpen)}
                 title="테이블탑 핸드아웃 & 광기 덱 열기"
                 style={{
-                  padding: "6px 10px",
-                  backgroundColor: isTabletopOpen ? theme.warning : theme.panelAlt,
-                  border: `1px solid ${isTabletopOpen ? theme.warning : theme.border}`,
-                  color: isTabletopOpen ? "#000" : theme.text,
-                  borderRadius: "8px",
+                  background: isTabletopOpen ? "rgba(0,0,0,0.08)" : "none",
+                  border: isTabletopOpen ? `1px solid ${theme.border}` : "none",
+                  color: isTabletopOpen ? theme.danger : theme.text,
+                  padding: "6px 8px",
+                  borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "0.8rem",
-                  fontWeight: "700",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
+                  fontSize: "0.82rem",
+                  fontWeight: "700"
                 }}
               >
-                🃏 테이블탑
+                🃏
               </button>
             )}
 
-            {/* 🌟 3. CoC / 인세인 전용: [🎲 다이스] 빠른 주사위 굴림 복구 */}
+            {/* 🌟 3. CoC / 인세인 전용: [🎲 주사위] */}
             {activeSession && (activeSession.ruleMode === "coc" || activeSession.ruleMode === "insane") && (
               <button
                 type="button"
                 onClick={() => rollDiceDirectly()}
                 title={activeSession.ruleMode === "coc" ? "1D100 주사위 굴리기" : "2D6 주사위 굴리기"}
                 style={{
-                  padding: "6px 10px",
-                  backgroundColor: theme.panelAlt,
-                  border: `1px solid ${theme.border}`,
+                  background: "none",
+                  border: "none",
                   color: theme.text,
-                  borderRadius: "8px",
+                  padding: "6px 8px",
+                  borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "0.8rem",
-                  fontWeight: "700",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
+                  fontSize: "0.82rem",
+                  fontWeight: "700"
                 }}
               >
                 🎲 {activeSession.ruleMode === "coc" ? "1D100" : "2D6"}
               </button>
             )}
 
-            {/* 🌟 4. 캐릭터 정보 / 시트 열기 버튼 */}
+            {/* 🌟 4. 캐릭터 정보 / 시트 열기 */}
             {activeSession && (
               <button 
                 type="button"
@@ -2249,17 +2264,14 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 }} 
                 title="캐릭터 정보" 
                 style={{ 
-                  padding: "6px 11px", 
-                  backgroundColor: isSheetOpen ? theme.accent : theme.panelAlt, 
-                  border: `1px solid ${theme.border}`, 
-                  color: isSheetOpen ? "#fff" : theme.text, 
-                  borderRadius: "8px", 
+                  background: isSheetOpen ? "rgba(0,0,0,0.08)" : "none",
+                  border: isSheetOpen ? `1px solid ${theme.border}` : "none",
+                  color: isSheetOpen ? theme.accent : theme.text,
+                  padding: "6px 8px",
+                  borderRadius: "6px",
                   cursor: "pointer", 
-                  fontSize: "0.8rem",
-                  fontWeight: "700",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
+                  fontSize: "0.82rem",
+                  fontWeight: "700"
                 }}
               >
                 {activeSession.ruleMode?.startsWith("dating") ? "👤 정보" : "📋 시트"}
@@ -2268,13 +2280,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
             {/* 로비 화면일 때만 공지 버튼 표시 */}
             {!activeSession && (
-              <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+              <button onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} title="이용 가이드 및 패치 노트" style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "4px 6px" }}>
                 📢
               </button>
             )}
 
             {/* 다크모드 토글 */}
-            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "0 4px" }}>
+            <button onClick={handleToggleDarkMode} style={{ background: "none", border: "none", fontSize: "1.15rem", cursor: "pointer", padding: "4px 6px" }}>
               {isDarkMode ? "☀️" : "🌙"}
             </button>
           </div>
@@ -2295,16 +2307,12 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   onClick={handleSaveLobbyPreset} 
                   title="로비 세팅 저장"
                   style={{ 
-                    width: "38px", 
-                    height: "38px", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "center", 
-                    backgroundColor: theme.panelAlt, 
-                    border: `1px solid ${theme.border}`, 
-                    borderRadius: "50%", 
+                    background: "none", 
+                    border: "none", 
                     cursor: "pointer", 
-                    fontSize: "1.05rem" 
+                    fontSize: "1.3rem", 
+                    padding: "4px 6px",
+                    lineHeight: 1
                   }}
                 >
                   💾
@@ -2314,39 +2322,15 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   onClick={() => openModal(setShowLobbyPresetModal)} 
                   title="로비 세팅 불러오기"
                   style={{ 
-                    width: "38px", 
-                    height: "38px", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "center", 
-                    backgroundColor: theme.panelAlt, 
-                    border: `1px solid ${theme.border}`, 
-                    borderRadius: "50%", 
+                    background: "none", 
+                    border: "none", 
                     cursor: "pointer", 
-                    fontSize: "1.05rem" 
+                    fontSize: "1.3rem", 
+                    padding: "4px 6px",
+                    lineHeight: 1
                   }}
                 >
                   📂
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleAiGenerate} 
-                  disabled={isAiGenerating || isLoading} 
-                  style={{ 
-                    padding: "8px 16px", 
-                    height: "38px",
-                    backgroundColor: "#4a4947", 
-                    color: "#fff", 
-                    border: "none", 
-                    borderRadius: "20px", 
-                    cursor: "pointer", 
-                    fontSize: "0.82rem", 
-                    fontWeight: "700", 
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)", 
-                    whiteSpace: "nowrap" 
-                  }}
-                >
-                  {isAiGenerating || isLoading ? "기획 중..." : "✨ AI 즉석 생성"}
                 </button>
               </div>
             </div>
@@ -3747,7 +3731,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     <div id="npc-clues-section" style={{ borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "12px" }}>
                       <div style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, fontWeight: "700", marginBottom: "6px" }}>발견된 취향 & 관심사</div>
                       {(() => {
-                        const npcClues = (activeSession.sheet?.clues || []).filter(c => c.name.includes(selectedProfileNpc.name));
+                       const npcClues = (activeSession.sheet?.clues || []).filter(c => 
+  c.name.includes(selectedProfileNpc.name) || 
+  c.npcName === selectedProfileNpc.name || 
+  (activeSession.sheet?.npcs || []).length <= 1
+);
                         if (npcClues.length === 0) return <div style={{ fontSize: "0.74rem", color: activePhoneSkin.textMuted }}>대화를 통해 좋아하는 취향을 파악해 보세요.</div>;
                         return (
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -4135,7 +4123,11 @@ const quoteText = npc.statusMessage
 
                     <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "40vh" }}>
                       {(() => {
-                        const npcClues = (activeSession.sheet?.clues || []).filter(c => c.name.includes(clueModalNpc.name));
+                        const npcClues = (activeSession.sheet?.clues || []).filter(c => 
+  c.name.includes(clueModalNpc.name) || 
+  c.npcName === clueModalNpc.name || 
+  (activeSession.sheet?.npcs || []).length <= 1
+);
                         if (npcClues.length === 0) {
                           return (
                             <div style={{ textAlign: "center", padding: "26px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.6" }}>
