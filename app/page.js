@@ -2342,22 +2342,25 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         newSheet.handouts = [...(newSheet.handouts || []), ...added];
       }
 
-      // 7) 세션 상태 정상 반영 (actionUsed 행동 소모 상태 영구 보존)
+     // 7) 세션 상태 정상 반영 (해금된 핸드아웃 및 NPC 상태 영구 보존)
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
         sheet: {
+          ...s.sheet,
           ...newSheet,
+          // 👇 조사로 열린 핸드아웃과 NPC 상태가 이전 시트로 덮어씌워지지 않도록 유지
+          handouts: s.sheet?.handouts || newSheet.handouts,
+          npcs: s.sheet?.npcs || newSheet.npcs,
           cycle: s.sheet?.cycle ?? newSheet.cycle,
-scene: s.sheet?.scene ?? newSheet.scene,
-phase: s.sheet?.phase ?? newSheet.phase,
-actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
+          scene: s.sheet?.scene ?? newSheet.scene,
+          phase: s.sheet?.phase ?? newSheet.phase,
+          actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
         },
         messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
       } : s));
-
       if (parsedData.shouldAdvanceScene && activeSession.ruleMode === "insane") {
         advanceInsaneScene(activeSessionId);
       }
@@ -2415,22 +2418,35 @@ actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed 
     }, animationEnabled ? 600 : 100);
   };
 
-// 🌟 인세인 핸드아웃 뒤집기 (완전 범용 ID & 상태 기반)
+// 🌟 인세인 핸드아웃 뒤집기 (대화 기록 조사 성공 이력 자동 감지 및 즉시 해금)
   const toggleHandoutReveal = (hId) => {
     if (!activeSession) return;
     const card = (activeSession.sheet?.handouts || []).find(h => h.id === hId);
     if (!card) return;
 
-    // 내 캐릭터 카드인지 판별 (PC 이름 동적 참조)
+    // 내 캐릭터 카드인지 판별
     const isPcCard = card.id === "pc_base" || (activeSession.sheet?.name && card.title.includes(activeSession.sheet.name));
 
-    // 연결된 NPC의 비밀이 해금되었는지 판별 (ID 또는 동적 이름 매칭)
-    const isLinkedNpcRevealed = (activeSession.sheet?.npcs || []).some(n => 
-      (card.npcId === n.id || (n.name && card.title.includes(n.name))) && n.secretRevealed
+    // 🌟 대화창에 '조사 성공'이 찍혀 있는지 이름/직업/카드명으로 자동 대조
+    const isInvestigatedInChat = (activeSession.messages || []).some(m =>
+      m.text.includes("조사 성공") && (
+        m.text.includes(card.title) ||
+        (activeSession.sheet?.npcs || []).some(n =>
+          (card.title.includes(n.name) || card.overview?.includes(n.title)) &&
+          (m.text.includes(n.name) || (n.title && m.text.includes(n.title)))
+        )
+      )
     );
 
-    if (card.revealed || isPcCard || isLinkedNpcRevealed) {
-      const handouts = (activeSession.sheet.handouts || []).map(h => h.id === hId ? { ...h, isFlipped: !h.isFlipped } : h);
+    // 연결된 NPC의 비밀이 풀렸는지 확인
+    const isNpcRevealed = (activeSession.sheet?.npcs || []).some(n =>
+      n.secretRevealed && (card.title.includes(n.name) || (n.title && card.overview?.includes(n.title)))
+    );
+
+    if (card.revealed || isPcCard || isInvestigatedInChat || isNpcRevealed) {
+      const handouts = (activeSession.sheet.handouts || []).map(h => 
+        h.id === hId ? { ...h, revealed: true, isFlipped: !h.isFlipped } : h
+      );
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, handouts } } : s));
     } else {
       triggerToast("🔒 아직 조사되지 않은 비밀입니다! (조사 판정 성공 시 해금)");
