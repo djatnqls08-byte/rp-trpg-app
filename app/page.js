@@ -248,43 +248,72 @@ export default function App() {
     executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) ${relationDesc}`);
   };
 
-  // 4. 장면 닫기 (Scene Close) 실행
-  // 4. 장면 닫기 (Scene Close) 실행 ➔ 정규 장면표/마스터 씬 자동 연동
-const handleSceneClose = () => {
-  setIsActionDrawerOpen(false);
-  if (!activeSession) return;
+  // 4. 장면 닫기 (Scene Close) 실행 ➔ 화면 로그와 AI 지시문 분리
+  const handleSceneClose = () => {
+    setIsActionDrawerOpen(false);
+    if (!activeSession) return;
 
-  playDiceSound();
+    playDiceSound();
 
-  const currScene = activeSession.sheet?.scene || 1;
-  const currCycle = activeSession.sheet?.cycle || 1;
-  const limit = activeSession.sheet?.limit || 4;
+    const currScene = activeSession.sheet?.scene || 1;
+    const currCycle = activeSession.sheet?.cycle || 1;
+    const limit = activeSession.sheet?.limit || 4;
 
-  let nextScene = currScene;
-  let nextCycle = currCycle;
+    let nextScene = currScene;
+    let nextCycle = currCycle;
 
-  if (currScene >= 2) {
-    nextCycle += 1;
-    nextScene = 1;
-  } else {
-    nextScene += 1;
-  }
+    if (currScene >= 2) {
+      nextCycle += 1;
+      nextScene = 1;
+    } else {
+      nextScene += 1;
+    }
 
-  const isClimax = nextCycle > limit;
+    const isClimax = nextCycle > limit;
 
-  // 1) 상태 갱신: 사이클/장면 전진 및 [주요 행동 잠금 해제(actionUsed: false)]
-  setSessions(prev => prev.map(s => {
-    if (s.id !== activeSessionId) return s;
-    return {
-      ...s,
-      sheet: {
-        ...s.sheet,
-        cycle: nextCycle,
-        scene: nextScene,
-        phase: isClimax ? "클라이맥스" : "메인",
-        actionUsed: false // 👈 플러스 서랍 액션을 다시 활성화
-      }
-    };
+    // 1) 상태 갱신: 사이클/장면 전진 및 [주요 행동 잠금 해제(actionUsed: false)]
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeSessionId) return s;
+      return {
+        ...s,
+        sheet: {
+          ...s.sheet,
+          cycle: nextCycle,
+          scene: nextScene,
+          phase: isClimax ? "클라이맥스" : "메인",
+          actionUsed: false
+        }
+      };
+    }));
+
+    // 2) 화면 말풍선 표시용 로그 vs AI 전용 지시문 분리
+    let displayLog = "";
+    let aiPrompt = "";
+
+    if (isClimax) {
+      displayLog = `[🎬 장면 닫기 ➔ ⚠️ 클라이맥스 페이즈 돌입!]`;
+      aiPrompt = `[🎬 장면 닫기 ➔ ⚠️ 클라이맥스 페이즈(Climax Phase) 돌입!]
+모든 메인 사이클(${limit}C)이 종료되어 최종 결전이 시작됩니다.
+키퍼로서 긴박한 마스터 씬(Master Scene)을 3~4문장으로 서술하여 흑막과의 최종 대치 국면을 열어주십시오.`;
+    } else {
+      const rollIdx = Math.floor(Math.random() * 6);
+      const sceneDesc = INSANE_SCENE_TABLE[rollIdx];
+
+      // 💬 플레이어 채팅창에 뜨는 깔끔한 말풍선
+      displayLog = `[🎬 장면 닫기 ➔ ${nextCycle}사이클 ${nextScene}장면 개막]\n[🎲 1D6 정규 장면표]: "${sceneDesc}"`;
+
+      // 🤖 AI에게만 전달되는 시스템 지시문 (채팅창에 절대 안 뜸)
+      aiPrompt = `[🎬 장면 닫기 ➔ 새 장면 개막: ${nextCycle}사이클 ${nextScene}장면]
+이전 장면을 퇴장으로 마무리하고 새로운 드라마 씬을 엽니다.
+[🎲 1D6 정규 장면표 ${rollIdx + 1}번 결과]: "${sceneDesc}"
+
+위 장면표의 분위기를 바탕으로 키퍼로서 새로운 장면 도입 지문(마스터 씬)을 3~4문장으로 서술하십시오.
+지문 끝에는 탐사자가 이번 장면의 새로운 1회 주요 행동(조사/감정/회복)을 취할 수 있도록 상황을 유도하고, 아래 선택지 태그를 출력하십시오:
+<!-- SUGGESTIONS: ["주변 단서 조사", "파트너와 감정 맺기", "휴식 및 회복"] -->`;
+    }
+
+    executeMessage(displayLog, aiPrompt);
+  };
   }));
 
   // 2) 클라이맥스 돌입 vs 1D6 장면표 기반 새 드라마 씬 분기
@@ -1970,24 +1999,27 @@ const startNewSession = async () => {
     }
   };
 
-   const executeMessage = async (textToSend) => {
-    if (!textToSend.trim() || !activeSession) return;
+// 👇 aiPromptOverride 매개변수 추가
+const executeMessage = async (textToSend, aiPromptOverride = null) => {
+  if (!textToSend.trim() || !activeSession) return;
 
-    // 🌟 현재 톡 중인 연락처의 인물을 정확히 찾아오기
-    const isDatingMsg = activeSession.ruleMode === "dating_msg";
-    const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
-    const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
-    const partnerName = currentContact?.name || "상대방";
+  const isDatingMsg = activeSession.ruleMode === "dating_msg";
+  const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
+  const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
+  const partnerName = currentContact?.name || "상대방";
 
-    // 🌟 메시지에 누구와의 대화인지(contactId) 이름표를 달아줌!
-    const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
-    const updatedMessages = [
-      ...(activeSession.messages || []), 
-      { role: "user", text: textToSend, contactId: currentContactId, prevSheet: snapshotSheet }
-    ];
+  const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
 
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
-    setIsLoading(true);
+  // 🌟 화면 말풍선에는 주석 태그(<!-- -->)를 제거한 깨끗한 텍스트만 저장
+  const cleanDisplayText = textToSend.replace(/<!--[\s\S]*?-->/g, "").trim();
+
+  const updatedMessages = [
+    ...(activeSession.messages || []), 
+    { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet }
+  ];
+
+  setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
+  setIsLoading(true);
 
     const controller = new AbortController();
     setAbortController(controller);
