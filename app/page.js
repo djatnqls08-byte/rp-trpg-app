@@ -1599,22 +1599,22 @@ useEffect(() => {
     setSessions(prev => prev.map(s => s.id === targetSessionId ? { ...s, sheet: { ...s.sheet, madnessStatus: madnessStatusStr } } : s));
   };
 
-  const adjustStat = (statName, delta) => {
-    if (!activeSession) return;
-    const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
-    const newVal = Math.max(0, currentVal + delta);
+  //  수정 후
+const adjustStat = (statName, delta) => {
+  if (!activeSession) return;
+  const currentVal = Number(activeSession.sheet?.[statName] ?? 10);
+  const newVal = Math.max(0, currentVal + delta);
 
-    if (statName === "san" && delta < 0) {
-      if (statName === "san" && delta < 0) {
-      if (activeSession.ruleMode === "insane") {
-        drawMadnessCard(activeSessionId, true);
-      } else if (activeSession.ruleMode === "coc" && delta <= -5) {
-        triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
-      }
+  if (statName === "san" && delta < 0) {
+    if (activeSession.ruleMode === "insane") {
+      drawMadnessCard(activeSessionId, true);
+    } else if (activeSession.ruleMode === "coc" && delta <= -5) {
+      triggerMadnessCheck("coc", Math.abs(delta), activeSessionId);
     }
+  }
 
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, [statName]: newVal } } : s));
-  };
+  setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, [statName]: newVal } } : s));
+};
 
   const handleRollSceneTable = () => {
     if (!activeSession) return;
