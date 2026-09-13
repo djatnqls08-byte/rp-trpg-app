@@ -1577,11 +1577,9 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
 
         triggerVibration(); // 선톡 도착 시 진동 피드백
       }
-      let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
       // 아이템 및 단서 반영
       if (newItems.length > 0) newSheet.items = [...(newSheet.items || []), ...newItems];
-      if (newClues.length > 0) newSheet.clues = [...(newSheet.clues || []), ...newClues];
 
       // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 완벽 방어
       const currentNpcs = activeSession.sheet?.npcs || [];
