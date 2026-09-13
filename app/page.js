@@ -4435,15 +4435,31 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               </summary>
                 
-              {/* 드롭다운 펼쳤을 때 나오는 상세 내용 */}
-<div style={{ backgroundColor: "rgba(214, 56, 87, 0.08)", padding: "6px", borderRadius: "4px", border: `1px solid ${theme.border}` }}>
-                    <strong style={{ color: theme.danger }}>[🔒 숨겨진 비밀/진심]</strong>
-                    <div style={{ marginTop: "2px", color: npc.secretRevealed ? theme.danger : theme.textMuted }}>
-                      {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
-                    </div>
-                  </div>
-              </details>
-            ))}
+{/* 드롭다운 펼쳤을 때 나오는 상세 내용 (핸드아웃 해금 상태 자동 연동) */}
+{(() => {
+  // 🌟 핸드아웃 카드가 열렸거나, 조사 성공 이력이 있거나, 시나리오가 완결되었을 때 자동 해금
+  const isHandoutUnlocked = (activeSession.sheet?.handouts || []).some(h => 
+    (h.npcId === npc.id || (npc.name && h.title?.includes(npc.name))) && h.revealed
+  );
+  const isChatUnlocked = (activeSession.messages || []).some(m =>
+    m.text.includes("조사 성공") && (m.text.includes(npc.name) || (npc.title && m.text.includes(npc.title)))
+  );
+  const isUnlocked = npc.secretRevealed || isHandoutUnlocked || isChatUnlocked || isScenarioEnded;
+
+  return (
+    <div style={{ backgroundColor: isUnlocked ? "rgba(214, 56, 87, 0.12)" : "rgba(214, 56, 87, 0.08)", padding: "8px", borderRadius: "6px", border: `1px solid ${isUnlocked ? theme.danger : theme.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ color: theme.danger, fontSize: "0.74rem" }}>
+          {isUnlocked ? "🔓 [숨겨진 비밀/진심]" : "[🔒 숨겨진 비밀/진심]"}
+        </strong>
+        {isUnlocked && <span style={{ fontSize: "0.62rem", color: theme.danger, fontWeight: "700" }}>해금 완료</span>}
+      </div>
+      <div style={{ marginTop: "4px", color: isUnlocked ? theme.danger : theme.textMuted, fontSize: "0.72rem", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
+        {isUnlocked ? (npc.secret || "숨겨진 비밀이 없습니다.") : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
+      </div>
+    </div>
+  );
+})()}
         </div>
       </div>
     </div>
