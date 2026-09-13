@@ -1,15 +1,15 @@
 export const metadata = {
-  title: "LyrisTable | 1:1 TRPG",
-  description: "텍스트 TRPG",
+  title: "LyrisTable",
+  description: "​몇 개의 키워드가 온전한 세계로 완성되는 1:1 텍스트 TRPG",
   icons: {
     icon: "/icon.png", // 🌟 [추가됨] 브라우저 탭 아이콘 연결!
   },
   openGraph: {
-    title: "LyrisTable | 1:1 TRPG",
-    description: "텍스트 TRPG",
+    title: "LyrisTable",
+    description: "​몇 개의 키워드가 온전한 세계로 완성되는 1:1 텍스트 TRPG",
     images: [
       {
-        url: "https://i.pinimg.com/1200x/d8/2a/97/d82a97e86b15f52758d8cca34c51ffc1.jpg",
+        url: "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg",
         width: 1200,
         height: 630,
         alt: "TRPG Cover Image",
@@ -18,9 +18,9 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "LyrisTable | 1:1 TRPG",
-    description: "텍스트 TRPG",
-    images: ["https://i.pinimg.com/1200x/d8/2a/97/d82a97e86b15f52758d8cca34c51ffc1.jpg"],
+    title: "LyrisTable",
+    description: "​몇 개의 키워드가 온전한 세계로 완성되는 1:1 텍스트 TRPG",
+    images: ["https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg"],
   },
 };
 
