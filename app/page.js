@@ -240,7 +240,12 @@ export default function App() {
       return { ...s, sheet: { ...s.sheet, npcs: nList, actionUsed: true } };
     }));
 
-    executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) 교감하여 서로에게 《${selectedEmotionName}》의 감정을 맺었습니다. (향후 정보 공유 및 위기 지원 가능)`);
+    const isPositive = selectedEmotionName.includes("+");
+    const relationDesc = isPositive 
+      ? `서로에게 마음이 닿아 《${selectedEmotionName}》의 유대를 맺었습니다. (향후 정보 공유 및 위기 지원 가능)`
+      : `서로에게 날을 세우며 《${selectedEmotionName}》의 인연으로 얽혔습니다. (향후 정보 공유 및 전투 난입 가능)`;
+
+    executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) ${relationDesc}`);
   };
 
   // 4. 장면 닫기 (Scene Close) 실행
