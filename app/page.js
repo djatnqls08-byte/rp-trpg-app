@@ -3186,7 +3186,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             {/* 입력창 */}
             <div style={{ padding: "10px 14px", paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))", backgroundColor: theme.sidebar, borderTop: `1px solid ${theme.border}`, display: "flex", gap: "8px", alignItems: "flex-end" }}>
               <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (!isMobile && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="대사나 메시지를 입력하세요..." style={{ flex: 1, minHeight: "48px", maxHeight: "120px", backgroundColor: theme.panel, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "10px", padding: "10px 12px", outline: "none", fontSize: "0.9rem", resize: "none" }} />
-             {abortController || isLoading ? (
+              {abortController || isLoading ? (
                 <button 
                   onClick={handleCancelResponse} 
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.danger || "#dc3545", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem", whiteSpace: "nowrap" }}
@@ -3194,7 +3194,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   ⏹️ 취소
                 </button>
               ) : (
-             <button 
+                <button 
                   onClick={sendMessage} 
                   disabled={isLoading || !input.trim()} 
                   style={{ height: "48px", padding: "0 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}
