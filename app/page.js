@@ -3002,7 +3002,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       {npc.secretRevealed ? npc.secret : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
                     </div>
                   </div>
-                </div>
               </details>
             ))}
         </div>
@@ -3519,17 +3518,20 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 닫기
               </button>
               <button
-                    type="button"
-                    onClick={() => {
-                      setWizardMode(ruleHelpModal.key);
-                      setRuleHelpModal(null);
-                    }}
-                    style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
-                  >
-                    이 룰로 시작하기
-                  </button>
-                </div>
-              </div>
+                type="button"
+                onClick={() => {
+                  setWizardMode(ruleHelpModal.key);
+                  setRuleHelpModal(null);
+                }}
+                style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                이 룰로 시작하기
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
