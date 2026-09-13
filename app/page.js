@@ -1549,8 +1549,12 @@ useEffect(() => {
       }
       rawText = rawText.replace(affRegex, "");
 
-      const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
-      // 🌟 선톡이 도착했을 때 해당 NPC의 톡 목록에 메시지 보관 및 진동 울리기
+const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
+      
+      // 🌟 1) newSheet를 먼저 만들어 줍니다!
+      let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
+
+      // 🌟 2) 그 다음 선톡을 저장합니다!
       if (newPhoneMsg && newPhoneMsg.text) {
         const targetSenderName = (newPhoneMsg.from || "").trim();
         const matchedNpc = (newSheet.npcs || []).find(n => n.name === targetSenderName || n.name.includes(targetSenderName)) || newSheet.npcs?.[0];
