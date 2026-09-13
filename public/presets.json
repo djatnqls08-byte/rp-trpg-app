@@ -1,4 +1,4 @@
-[{
+{
   "id": 1789269428773,
   "presetTitle": "비 갠 뒤의 온실과 푸른 티포트",
   "scenarioTitle": "비 갠 뒤의 온실과 푸른 티포트",
@@ -55,8 +55,7 @@
       "showSecret": false
     }
   ]
-},
-  {
+}{
   "id": 1789270403670,
   "presetTitle": "달그림자 경매장의 밤과 세 개의 시선",
   "scenarioTitle": "달그림자 경매장의 밤과 세 개의 시선",
@@ -131,8 +130,9 @@
       "showSecret": false
     }
   ]
-},
-  {
+}
+
+{
   "id": 1789271605387,
   "presetTitle": "새 학기 교실과 네 개의 쉼표",
   "scenarioTitle": "새 학기 교실과 네 개의 쉼표",
@@ -207,8 +207,8 @@
       "showSecret": false
     }
   ]
-},
-  [
+}
+[
   {
     "id": 1789151209531,
     "presetTitle": "《최애의 파멸 엔딩을 양도받았습니다》",
