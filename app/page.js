@@ -107,14 +107,57 @@ const INSANE_MADNESS_TABLE = [
   { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
 ];
 
-const INSANE_SCENE_TABLE = [
-  "창밖으로 빗줄기가 거세지며 불길한 그림자가 유리창을 스칩니다.",
-  "오래된 벽시계가 불규칙한 박자로 째깍거리며 방 안의 정적을 깨뜨립니다.",
-  "어디선가 스며드는 눅눅하고 서늘한 바람에 촛불이 위태롭게 흔들립니다.",
-  "복도 끝에서 무언가 무겁게 끌리는 소리가 들려오다 뚝 멈춥니다.",
-  "익숙했던 방의 가구 배치가 왠지 낯설고 왜곡되어 보이기 시작합니다.",
-  "순간적으로 전등이 깜빡이며 등 뒤에서 서늘한 기척이 스쳐 지나갑니다."
-];
+// 인세인 정규 2D6 장면표 (2~12번 총 11종)
+const INSANE_SCENE_TABLE_2D6 = {
+  2: "주위가 피 냄새로 가득하다. 사건인가? 사고인가? 혹시 그것은 지금도 계속되고 있는 걸까?",
+  3: "이것은…… 꿈인가? 이미 지나갔을 과거가 기억 속에서 되살아난다.",
+  4: "눈앞에 펼쳐진 거리의 풍경을 내려다본다. 왜 이렇게 높은 곳에……?",
+  5: "세상의 끝처럼 느껴지는 어둠. 어둠 속에서 누군가가 움직이고 있다…….",
+  6: "평화로운 시간이 흘러간다. 마치 그런 일이 없었던 것처럼.",
+  7: "축축한 흙냄새. 농밀한 기척이 풍기는 숲속. 새나 벌레의 소리, 바람에 나무가 살랑거리는 소리가 들려온다.",
+  8: "사람이 잘 안 다니는 주택가. 낯선 사람들의 사는 집 안에서는 불분명한 목소리나 소음이 새어 나온다…….",
+  9: "갑자기 구름이 하늘을 뒤덮더니 세찬 비가 내린다. 사람들은 처마를 찾아 황급히 달려간다.",
+  10: "황폐한 폐허. 쇠퇴한 생활의 흔적. 희미하게 들려오는 것은 바람 소리인가? 파도 소리인가? 귀울림인가?",
+  11: "사람들, 떠들썩한 소리, 요란한 가게 내부의 BGM에, 이질적인 웃음소리. 소란스러운 번화가의 한구석인데…….",
+  12: "밝은 빛을 받았을 때 안도의 한숨. 하지만 빛이 강할수록 그림자도 더 짙어진다……."
+};
+
+// 🌟 66개 격자 맨해튼 거리 기반 대용 난이도 계산기 (Zero-API Cost)
+function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityCategory = "") {
+  if (learnedSkills.includes(targetSkill)) return 5;
+  let targetCol = -1, targetRow = -1;
+  INSANE_MATRIX.forEach((colObj, cIdx) => {
+    const rIdx = colObj.skills.indexOf(targetSkill);
+    if (rIdx !== -1) { targetCol = cIdx; targetRow = rIdx; }
+  });
+  if (targetCol === -1) return 5;
+
+  let minDistance = 999;
+  learnedSkills.forEach(learned => {
+    let lCol = -1, lRow = -1;
+    INSANE_MATRIX.forEach((colObj, cIdx) => {
+      const rIdx = colObj.skills.indexOf(learned);
+      if (rIdx !== -1) { lCol = cIdx; lRow = rIdx; }
+    });
+    if (lCol !== -1) {
+      let colDist = Math.abs(targetCol - lCol);
+      let rowDist = Math.abs(targetRow - lRow);
+      let totalDist = colDist + rowDist;
+      if (curiosityCategory) {
+        const curioCol = INSANE_MATRIX.findIndex(c => c.category === curiosityCategory);
+        if (curioCol !== -1) {
+          const minCol = Math.min(targetCol, lCol);
+          const maxCol = Math.max(targetCol, lCol);
+          if (curioCol >= minCol && curioCol <= maxCol && colDist > 0) {
+            totalDist = Math.max(1, totalDist - 1);
+          }
+        }
+      }
+      if (totalDist < minDistance) minDistance = totalDist;
+    }
+  });
+  return minDistance === 999 ? 5 : 5 + minDistance;
+}
 
 
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
@@ -373,6 +416,7 @@ export default function App() {
 
   // 모달 제어
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+ const [showSkillMatrixModal, setShowSkillMatrixModal] = useState(false); // 🌟 66개 특기 매트릭스 팝업 상태
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
 const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
@@ -1686,11 +1730,13 @@ const adjustStat = (statName, delta) => {
   const handleRollSceneTable = () => {
     if (!activeSession) return;
     playDiceSound();
-    const roll = Math.floor(Math.random() * 6);
-    const desc = INSANE_SCENE_TABLE[roll];
-    executeMessage(`[🎲 장면표 1D6 ➔ ${roll + 1}번 결과]: "${desc}"\n(이 분위기를 무대로 다음 행동을 이어갑니다.)`);
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const desc = INSANE_SCENE_TABLE_2D6[sum] || "정적이 흐른다.";
+    executeMessage(`[🎬 2D6 장면표 굴림: ${d1}+${d2}=${sum}번]\n"${desc}"\n(이 분위기 속에서 장면을 시작합니다.)`);
   };
-
+ 
   const parseTagsSafely = (rawText, partnerName, currentRule) => {
     let cleanText = rawText || "";
     let parsedData = { 
@@ -1734,7 +1780,15 @@ const adjustStat = (statName, delta) => {
           if (obj.title) parsedData.revealedHandoutTitles.push(obj.title);
         } catch (e) {}
       }
-
+// 🌟 인세인 마스터 씬(Master Scene) 트리거 및 종료 감지
+      const masterSceneMatch = cleanText.match(/<!--\s*TRIGGER_MASTER_SCENE:\s*({[\s\S]*?})\s*-{1,3}>/i);
+      if (masterSceneMatch) {
+        try { parsedData.triggerMasterScene = JSON.parse(masterSceneMatch[1]); } catch (e) {}
+      }
+      if (cleanText.includes("<!-- END_MASTER_SCENE")) {
+        parsedData.endMasterScene = true;
+      }
+     
       if (cleanText.includes("<!-- ADVANCE_SCENE") || cleanText.includes("<!-- END_SCENE")) {
         parsedData.shouldAdvanceScene = true;
       }
@@ -1899,14 +1953,27 @@ const startNewSession = async () => {
     
     if (wizardMode === "insane") {
       initialSheet = { 
-        ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: insaneLimit, cycle: 1, scene: 1, phase: "메인",
-        mission: charMission || "일상의 온기를 되찾는다.", secret: charSecret || "밝혀지지 않은 과거",
-        insaneSkills, insaneCuriosity, insaneFear
-      };
-    } else if (wizardMode === "coc") {
-      initialSheet = { 
-        ...initialSheet, hp: derivedHp, maxHp: derivedHp, mp: derivedMp, maxMp: derivedMp, san: derivedSan, maxSan: 99, 
-        luck: Number(cocStats.luck), db: derivedDb, cocStats: { ...cocStats }, cocSkills 
+        ...initialSheet, 
+        hp: 6, maxHp: 6, san: 6, maxSan: 6, 
+        limit: insaneLimit || 4, 
+        cycle: 1, scene: 1, 
+        phase: "도입", // 도입 ➔ 메인 ➔ 마스터씬 ➔ 클라이맥스 ➔ 에필로그
+        mission: charMission || "일상의 온기를 되찾는다.", 
+        secret: charSecret || "밝혀지지 않은 과거",
+        insaneSkills, insaneCuriosity, insaneFear,
+        flashbackUsed: false, // 1세션 1회 회상 사용권
+        insaneItems: {
+          painkiller: 2, // 진통제 2개 기본 지급 (HP 1D6 회복 소모품)
+          weapon: 0,     // 무기 (데미지 +1)
+          talisman: 0    // 부적 (재굴림)
+        },
+        npcs: npcs.map(n => ({
+          ...n,
+          emotion: null,        // 예: { name: "우정", sign: "+" }
+          locationFound: false, // 거처 확보 여부
+          secretRevealed: false,// 비밀 해금 여부
+          mentalChecked: false  // 정신상태 조사 여부
+        }))
       };
     }
 
@@ -2040,6 +2107,23 @@ let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->`;
+
+ // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
+    if (activeSession.ruleMode === "insane") {
+      const currentPhase = activeSession.sheet?.phase || "도입";
+      dynamicRules += `\n\n[인세인(inSANe) 정규 룰 연동 절대 수칙]
+1. [수치 연산 및 시스템 판정 금지]: 당신은 주사위를 굴리거나 목표치(Gap), HP, SAN을 직접 계산하지 마십시오. 모든 판정과 결과는 시스템이 확정하여 [시스템 이벤트 결과]로 전달합니다. 당신은 오직 인물의 감정선, 서늘한 분위기, 생생한 대사만 서술하십시오.
+2. [도입 페이즈(Intro) 진행 수칙]:
+- 현재 페이즈: [${currentPhase}]
+- 페이즈가 '도입'인 상태에서 플레이어의 첫 반응이 들어오면, 상황을 매듭지으며 도입 페이즈를 닫고 제1사이클 1장면(플레이어의 드라마 씬)으로 바통을 넘기십시오.
+- 지문 말미에 반드시 아래 구분선과 문구를 출력하십시오:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎬 Scene Close (도입 페이즈를 마칩니다.)
+🔔 [제1사이클 1장면] 시작 (드라마 장면)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. [마스터 씬(Master Scene) 발동 수칙]:
+- 중요한 비밀이 밝혀지거나, 흑막/괴이가 돌발 개입하여 인물 전원이 휘말리는 사건이 터질 때만 지문 맨 끝에 <!-- TRIGGER_MASTER_SCENE: {"title": "사건명"} --> 태그를 출력하십시오.`;
+    }
 
     // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
     if (isDating) {
@@ -2199,6 +2283,25 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
       // 1) newSheet 생성
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
+// 🌟 [인세인 페이즈 자동 전환 엔진]
+      if (activeSession.ruleMode === "insane") {
+        // 1. 도입 페이즈에서 첫 대화가 오가면 자동으로 [제1사이클 1장면]으로 전환!
+        if (activeSession.sheet?.phase === "도입") {
+          newSheet.phase = "메인";
+          newSheet.cycle = 1;
+          newSheet.scene = 1;
+        }
+
+        // 2. AI가 마스터 씬을 일으켰을 때
+        if (parsedData.triggerMasterScene) {
+          newSheet.phase = "마스터씬";
+        }
+        // 3. 마스터 씬이 종료되었을 때 다시 메인으로 복귀
+        else if (parsedData.endMasterScene && newSheet.phase === "마스터씬") {
+          newSheet.phase = "메인";
+        }
+      }
+     
 // 2) 선톡(PHONE_MSG) 도착 시 수신 (단일 문자 및 2~3연속 멀티톡 완벽 지원!)
       if (newPhoneMsg) {
         const targetSenderName = (newPhoneMsg.from || "").trim();
@@ -2402,7 +2505,25 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
         const d2 = Math.floor(Math.random() * 6) + 1;
         const sum = d1 + d2;
         const targetVal = Number(overrideTarget !== null ? overrideTarget : 5);
-        let outcome = sum === 12 ? "스페셜(대성공)" : sum === 2 ? "펌블(대실패)" : sum >= targetVal ? "성공" : "실패";
+        let outcome = "";
+
+        if (sum === 12) {
+          outcome = "✨ 대성공(스페셜)! 이성치/생명력 1점 회복";
+          // 12 대성공: 이성치 1점 자동 회복 (최대 6)
+          setSessions(prev => prev.map(s => {
+            if (s.id !== activeSessionId) return s;
+            const curSan = s.sheet?.san ?? 6;
+            const maxSan = s.sheet?.maxSan ?? 6;
+            return { ...s, sheet: { ...s.sheet, san: Math.min(maxSan, curSan + 1) } };
+          }));
+        } else if (sum === 2) {
+          outcome = "💀 펌블(대실패)! 공포로 인해 미공개 광기 1장 강제 획득";
+          drawMadnessCard(activeSessionId, false);
+        } else if (sum >= targetVal) {
+          outcome = "성공";
+        } else {
+          outcome = "실패";
+        }
         rollFormatted = `[🎲 2D6 판정: ${d1}+${d2}=${sum} / 목표치: ${targetVal}${skillName ? ` (${skillName})` : ""} ➔ 결과: ${outcome}]`;
       } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1;
@@ -2416,6 +2537,67 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
       setIsRolling(false);
       executeMessage(rollFormatted);
     }, animationEnabled ? 600 : 100);
+  };
+
+ // 💊 진통제 복용 함수
+  const usePainkiller = () => {
+    if (!activeSession || (activeSession.sheet.insaneItems?.painkiller || 0) <= 0) return;
+    playDiceSound();
+    const healRoll = Math.floor(Math.random() * 6) + 1;
+    const curHp = activeSession.sheet.hp || 0;
+    const maxHp = activeSession.sheet.maxHp || 6;
+    const newHp = Math.min(maxHp, curHp + healRoll);
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        hp: newHp,
+        insaneItems: { ...s.sheet.insaneItems, painkiller: s.sheet.insaneItems.painkiller - 1 }
+      }
+    } : s));
+    executeMessage(`[💊 진통제 복용] 고통을 가라앉힙니다. (1D6 ➔ ${healRoll} 회복 / HP: ${curHp} ➔ ${newHp})`);
+  };
+
+  // ⚔️ 클라이맥스 1~6 플롯 선택 & 버팅(Butting) 연산
+  const executeClimaxPlot = (playerPlot) => {
+    if (!activeSession) return;
+    playDiceSound();
+    const enemyPlot = Math.floor(Math.random() * 6) + 1;
+    const isButting = playerPlot === enemyPlot;
+    let buttingText = "";
+    let updatedPlayerHp = activeSession.sheet.hp;
+
+    if (isButting) {
+      updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
+      buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
+    }
+
+    const orderText = playerPlot > enemyPlot 
+      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공` 
+      : playerPlot < enemyPlot 
+      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공` 
+      : `동시 행동 (버팅)`;
+
+    const playerDodgeTarget = playerPlot + 4; // 회피 목표치: 속도 + 4
+
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { ...s.sheet, hp: updatedPlayerHp }
+    } : s));
+
+    executeMessage(`[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerDodgeTarget})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n행동 선언을 이어가십시오.`);
+  };
+
+  // 🗝️ 회상 발동 (세션 1회 한정)
+  const triggerFlashback = (bonusType) => {
+    if (!activeSession || activeSession.sheet.flashbackUsed) return;
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { ...s.sheet, flashbackUsed: true }
+    } : s));
+    const secretText = activeSession.sheet.secret || "감춰둔 진실";
+    const bonusText = bonusType === "check" ? "판정 달성치 +3 수정" : "데미지 +1D6 가산";
+    executeMessage(`[🗝️ 회상 선언]\n"……${secretText}"\n가슴속 비밀을 밝히며 온 힘을 다합니다. (효과: ${bonusText})`);
   };
 
 // 🌟 인세인 핸드아웃 뒤집기 (대화 기록 조사 성공 이력 자동 감지 및 즉시 해금)
@@ -2652,23 +2834,42 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 
                 {activeSession && activeSession.ruleMode === "insane" && (
                   <span style={{ 
-                    padding: "2px 6px", 
-                    backgroundColor: activeSession.sheet?.phase === "클라이맥스" ? "rgba(214, 56, 87, 0.2)" : "rgba(229, 169, 60, 0.15)", 
-                    border: `1px solid ${activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning}`, 
+                    padding: "2px 7px", 
+                    backgroundColor: activeSession.sheet?.phase === "클라이맥스" || activeSession.sheet?.phase === "마스터씬" 
+                      ? "rgba(214, 56, 87, 0.2)" 
+                      : activeSession.sheet?.phase === "도입" 
+                      ? "rgba(0, 183, 211, 0.2)" 
+                      : "rgba(229, 169, 60, 0.15)", 
+                    border: `1px solid ${
+                      activeSession.sheet?.phase === "클라이맥스" || activeSession.sheet?.phase === "마스터씬" 
+                        ? theme.danger 
+                        : activeSession.sheet?.phase === "도입" 
+                        ? theme.accent 
+                        : theme.warning
+                    }`, 
                     borderRadius: "6px", 
                     fontSize: "0.68rem", 
-                    color: activeSession.sheet?.phase === "클라이맥스" ? theme.danger : theme.warning, 
+                    color: activeSession.sheet?.phase === "클라이맥스" || activeSession.sheet?.phase === "마스터씬" 
+                      ? theme.danger 
+                      : activeSession.sheet?.phase === "도입" 
+                      ? theme.accent 
+                      : theme.warning, 
                     fontWeight: "800", 
                     whiteSpace: "nowrap", 
                     flexShrink: 0 
                   }}>
-                    {activeSession.sheet?.phase === "클라이맥스" 
-                      ? "⚠️ 클라이맥스" 
+                    {activeSession.sheet?.phase === "도입" 
+                      ? "🎬 도입 페이즈" 
+                      : activeSession.sheet?.phase === "마스터씬" 
+                      ? "⚠️ 마스터 씬" 
+                      : activeSession.sheet?.phase === "클라이맥스" 
+                      ? "⚔️ 클라이맥스" 
                       : (isMobile 
                           ? `${activeSession.sheet?.cycle || 1}C/${activeSession.sheet?.scene || 1}S` 
                           : `${activeSession.sheet?.cycle || 1}C / ${activeSession.sheet?.scene || 1}S (L:${activeSession.sheet?.limit || 4})`
                         )}
                   </span>
+                )}
                 )}
               </div>
             )}
@@ -3541,6 +3742,95 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             </div>
 
             {/* 알림 배너 & 제안 버튼 영역 (CoC 조사 칩 완벽 복구 포함!) */}
+{/* ⚠️ 마스터 씬 진행 중 배너 */}
+              {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "마스터씬" && (
+                <div style={{ backgroundColor: "rgba(214, 56, 87, 0.18)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: "0.78rem", color: theme.danger }}>
+                    ⚠️ <strong>마스터 씬 진행 중 (주요 행동 잠금)</strong>
+                    <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>대사와 반응을 자유롭게 나눈 뒤 씬을 마무리하세요.</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, phase: "메인" } } : s));
+                      executeMessage(`[🎬 마스터 씬 종료] 사건이 일단락되고, 다시 메인 드라마 장면으로 돌아갑니다.`);
+                    }}
+                    style={{ padding: "4px 10px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.72rem", fontWeight: "800", cursor: "pointer" }}
+                  >
+                    마무리 ➔
+                  </button>
+                </div>
+              )}
+
+              {/* ⚔️ 클라이맥스 1~6 플롯 선택 패널 */}
+              {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "클라이맥스" && (
+                <div style={{ backgroundColor: "rgba(229, 169, 60, 0.15)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.warning }}>⚔️ 라운드 플롯(속도) 선택:</span>
+                    {!activeSession.sheet.flashbackUsed && (
+                      <button
+                        type="button"
+                        onClick={() => triggerFlashback("check")}
+                        style={{ padding: "2px 8px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.68rem", fontWeight: "800", cursor: "pointer" }}
+                      >
+                        🗝️ 회상 (판정+3)
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
+                    {[1, 2, 3, 4, 5, 6].map(num => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => executeClimaxPlot(num)}
+                        style={{ flex: 1, padding: "6px 0", backgroundColor: theme.panel, border: `1px solid ${theme.warning}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem", fontWeight: "900", cursor: "pointer" }}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
+              {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
+                <div style={{ display: "flex", gap: "6px", overflowX: "auto", padding: "4px 0", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "800", alignSelf: "center" }}>🎯 주요 행동:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowSkillMatrixModal(true)}
+                    style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
+                  >
+                    🔍 조사 판정 (66개 특기)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = Math.floor(Math.random() * 6) + 1;
+                      const emo = { 1: "공감(+) / 불신(-)", 2: "우정(+) / 분노(-)", 3: "애정(+) / 질투(-)", 4: "충성(+) / 모멸(-)", 5: "동경(+) / 열등감(-)", 6: "광신(+) / 살의(-)" };
+                      setInput(`[주요 행동: 감정 판정 선언] (1D6 ➔ ${d}번: ${emo[d]} 중 선택) `);
+                    }}
+                    style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.accent, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
+                  >
+                    💬 감정 판정 (1D6)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInput(`[주요 행동: 회복 판정 선언] 흐트러진 정신과 상처를 추스릅니다. `)}
+                    style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.success, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
+                  >
+                    🩹 회복 판정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRollSceneTable}
+                    style={{ padding: "4px 9px", backgroundColor: "rgba(229, 169, 60, 0.15)", border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.warning, fontSize: "0.72rem", cursor: "pointer", fontWeight: "800" }}
+                  >
+                    🎬 장면표 (2D6)
+                  </button>
+                </div>
+              )}
+               
             <div style={{ backgroundColor: theme.panel, borderTop: `1px solid ${theme.border}`, padding: "8px 14px", display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0 }}>
               
               {isScenarioEnded && (
@@ -6371,6 +6661,71 @@ const quoteText = npc.statusMessage
               <button onClick={handleCloseNotice} style={{ padding: "6px 16px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer", fontSize: "0.84rem" }}>
                 닫기
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+       {/* 🌟 인세인 66개 특기 대용 판정 팝업 모달 */}
+      {showSkillMatrixModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 160, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "620px", maxHeight: "88vh", display: "flex", flexDirection: "column", padding: "16px", borderRadius: "16px", overflow: "hidden" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <div>
+                <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>⚔️ 인세인 66개 특기 대용 판정</span>
+                <span style={{ fontSize: "0.72rem", color: theme.warning, marginLeft: "8px", fontWeight: "700" }}>
+                  호기심 분야: [{activeSession?.sheet?.insaneCuriosity || "미정"}]
+                </span>
+              </div>
+              <button onClick={() => setShowSkillMatrixModal(false)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <div style={{ flex: 1, overflowX: "auto", overflowY: "auto", padding: "10px 0" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", minWidth: "520px", gap: "4px" }}>
+                {INSANE_MATRIX.map(col => (
+                  <div key={col.category} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                    <div style={{ textAlign: "center", fontSize: "0.74rem", fontWeight: "900", padding: "6px 0", backgroundColor: col.category === activeSession?.sheet?.insaneCuriosity ? "rgba(229, 169, 60, 0.25)" : theme.panelAlt, border: `1px solid ${col.category === activeSession?.sheet?.insaneCuriosity ? theme.warning : theme.border}`, borderRadius: "6px" }}>
+                      {col.category}
+                    </div>
+                    {col.skills.map(skill => {
+                      const isLearned = (activeSession?.sheet?.insaneSkills || []).includes(skill);
+                      const targetNumber = calculateInsaneTargetNumber(
+                        skill,
+                        activeSession?.sheet?.insaneSkills || [],
+                        activeSession?.sheet?.insaneCuriosity || ""
+                      );
+
+                      return (
+                        <button
+                          key={skill}
+                          type="button"
+                          onClick={() => {
+                            setShowSkillMatrixModal(false);
+                            rollDiceDirectly(targetNumber, skill);
+                          }}
+                          style={{
+                            padding: "6px 2px",
+                            fontSize: "0.7rem",
+                            backgroundColor: isLearned ? theme.warning : theme.inputBg,
+                            color: isLearned ? "#000" : theme.text,
+                            border: `1px solid ${isLearned ? theme.warning : theme.border}`,
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "2px"
+                          }}
+                        >
+                          <span style={{ fontWeight: isLearned ? "900" : "500" }}>{skill}</span>
+                          <span style={{ fontSize: "0.62rem", opacity: 0.85, fontWeight: "700" }}>
+                            {targetNumber}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
