@@ -4107,9 +4107,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
                               ❓ 인세인 룰 가이드
-                            </button>
-                          </>
-                        )}
+                              </button>
+                            </>  
+                          )}   
 
                         {/* 2. 🐙 CoC 방일 때 */}
                         {activeSession?.ruleMode === "coc" && (
