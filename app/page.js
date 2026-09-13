@@ -2051,7 +2051,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     const isR19 = fullContext.includes("r19") || fullContext.includes("19금") || fullContext.includes("성인") || fullContext.includes("r-19");
     const isFreeform = activeSession.ruleMode === "freeform";
 
-    // 2. 동적 시스템 수칙 주입
+// 2. 동적 시스템 수칙 주입
     const isDating = activeSession.ruleMode?.startsWith("dating");
     const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
