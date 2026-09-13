@@ -1706,24 +1706,35 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
       // 🌟 AI가 npcs 배열을 지멋대로 덮어쓰면서 KPC 초상화, 설정, 비밀이 날아가는 현상 완벽 방어
       const currentNpcs = activeSession.sheet?.npcs || [];
       let mergedNpcs = currentNpcs.map(cNpc => {
-        // 1) AFFECTION 태그로 호감도가 변경된 경우
+        // 1) AFFECTION 태그로 호감도가 변경된 경우 (1턴당 최대 -5 ~ +3 강제 제한!)
         const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
-        let affVal = affTarget ? Math.max(0, Math.min(100, affTarget.value)) : cNpc.affection;
+        let affVal = cNpc.affection ?? 10;
+        if (affTarget) {
+          const incomingRaw = Number(affTarget.value);
+          const currentAff = Number(cNpc.affection ?? 10);
+          const rawDiff = incomingRaw - currentAff;
+          const safeDiff = Math.max(-5, Math.min(3, rawDiff)); // 👈 한 턴 최대 +3점 제한!
+          affVal = Math.max(0, Math.min(100, currentAff + safeDiff));
+        }
 
-        // 2) 기존 SHEET 태그로 데이터가 온 경우
+        // 2) 기존 SHEET 태그로 데이터가 온 경우에도 동일하게 방어
         if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
           const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
-          if (updatedNpc) {
+          if (updatedNpc && updatedNpc.affection !== undefined) {
+            const incomingRaw = Number(updatedNpc.affection);
+            const currentAff = Number(cNpc.affection ?? 10);
+            const rawDiff = incomingRaw - currentAff;
+            const safeDiff = Math.max(-5, Math.min(3, rawDiff));
+            affVal = Math.max(0, Math.min(100, currentAff + safeDiff));
             return {
               ...cNpc,
-              affection: updatedNpc.affection !== undefined ? updatedNpc.affection : affVal,
+              affection: affVal,
               title: updatedNpc.title || cNpc.title,
               secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
             };
           }
         }
         return { ...cNpc, affection: affVal };
-      });
 
       // 새로운 NPC가 추가된 경우에만 안전하게 밀어넣기 (기존 데이터 파괴 방지)
       if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
@@ -3232,9 +3243,56 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             </div>
 
 {/* 🌟 파트너 상세 아코디언 & 비밀 블라인드 */}
-      <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
-        <div style={{ fontWeight: "800", fontSize: "0.78rem", marginBottom: "6px", color: theme.accent }}>
-          주요 등장인물 (파트너)
+<div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+          <span style={{ fontWeight: "800", fontSize: "0.78rem", color: theme.accent }}>
+            주요 등장인물 (파트너)
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const newName = prompt("추가할 등장인물의 이름을 입력하세요 (예: 유진):");
+              if (!newName || !newName.trim()) return;
+              const newJob = prompt(`${newName}의 직업이나 역할을 입력하세요 (예: 동료 연구원, 손님):`, "조력자");
+              const newDetail = prompt(`${newName}의 외모나 관계성을 입력하세요 (선택):`, "");
+
+              const newNpcObj = {
+                id: Date.now(),
+                name: newName.trim(),
+                title: (newJob || "조력자").trim(),
+                detail: (newDetail || "").trim(),
+                portrait: typeof getPortraitUrl === "function" ? getPortraitUrl(`${newName.trim()}, portrait`) : "",
+                affection: 10,
+                secret: "",
+                secretRevealed: false
+              };
+
+              setSessions(prev => prev.map(s => {
+                if (s.id !== activeSessionId) return s;
+                const oldNpcs = s.sheet?.npcs || [];
+                return {
+                  ...s,
+                  sheet: {
+                    ...s.sheet,
+                    npcs: [...oldNpcs, newNpcObj]
+                  }
+                };
+              }));
+              alert(`'${newName.trim()}' 인물이 캐릭터 시트와 메신저에 등록되었습니다!`);
+            }}
+            style={{
+              padding: "2px 8px",
+              backgroundColor: theme.panelAlt,
+              border: `1px solid ${theme.border}`,
+              borderRadius: "4px",
+              fontSize: "0.68rem",
+              fontWeight: "700",
+              color: theme.accent,
+              cursor: "pointer"
+            }}
+          >
+            + 인물 추가
+          </button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {(activeSession.sheet.npcs || []).map(npc => (
