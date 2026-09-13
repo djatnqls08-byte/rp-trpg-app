@@ -334,47 +334,95 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
 
-  // ⭕ [여기에 붙여넣기!] theme가 먼저 선언되었으므로 완벽하게 작동합니다
+// 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
   const PHONE_SKINS = {
     default: {
       name: "시스템",
       icon: "✨",
-      userBg: theme.accent,
-      userText: "#ffffff",
-      npcBg: theme.panelAlt,
-      npcText: theme.text,
-      npcBorder: theme.border,
-      chatBg: theme.panel
+      shellBg: theme.panel,
+      headerBg: theme.sidebar,
+      chatBg: theme.panel,
+      panelAlt: theme.panelAlt,
+      border: theme.border,
+      text: theme.text,
+      textMuted: theme.textMuted,
+      navBtn: theme.text, // < 목록, ✕ 버튼 색
+      inputBg: theme.inputBg || theme.panel,
+      inputText: theme.text,
+      userBubbleBg: theme.accent,
+      userBubbleText: "#ffffff",
+      npcBubbleBg: theme.panelAlt,
+      npcBubbleText: theme.text,
+      npcBubbleBorder: theme.border,
+      accent: theme.accent,
+      accentText: "#ffffff",
+      heart: theme.danger
     },
     kakao: {
       name: "옐로우",
       icon: "💬",
-      userBg: "#fee500",
-      userText: "#191919",
-      npcBg: "#ffffff",
-      npcText: "#191919",
-      npcBorder: "rgba(0,0,0,0.08)",
-      chatBg: "#b2c7d9"
+      shellBg: "#b2c7d9", // 카톡 특유의 파스텔 하늘색 배경
+      headerBg: "#9bb3c7",
+      chatBg: "#b2c7d9",
+      panelAlt: "#ffffff",
+      border: "rgba(0, 0, 0, 0.08)",
+      text: "#191919",
+      textMuted: "#556677",
+      navBtn: "#1e1e1e",
+      inputBg: "#ffffff",
+      inputText: "#191919",
+      userBubbleBg: "#fee500",
+      userBubbleText: "#191919",
+      npcBubbleBg: "#ffffff",
+      npcBubbleText: "#191919",
+      npcBubbleBorder: "rgba(0, 0, 0, 0.06)",
+      accent: "#fee500",
+      accentText: "#191919",
+      heart: "#e03e52"
     },
     parchment: {
       name: "양피지",
       icon: "📜",
-      userBg: "#d8c29d",
-      userText: "#3c2a1e",
-      npcBg: "#f5ece1",
-      npcText: "#3c2a1e",
-      npcBorder: "rgba(120, 80, 40, 0.2)",
-      chatBg: "#ece2d0"
+      shellBg: "#eddcc3", // 고문서 양피지 색상
+      headerBg: "#d9c0a3",
+      chatBg: "#ebd8be",
+      panelAlt: "#f8f0e3",
+      border: "rgba(100, 70, 35, 0.2)",
+      text: "#382310",
+      textMuted: "#7a5c3e",
+      navBtn: "#382310",
+      inputBg: "#fbf6ec",
+      inputText: "#382310",
+      userBubbleBg: "#be8a54",
+      userBubbleText: "#ffffff",
+      npcBubbleBg: "#fbf6ec",
+      npcBubbleText: "#382310",
+      npcBubbleBorder: "rgba(100, 70, 35, 0.25)",
+      accent: "#8c531b",
+      accentText: "#fdfaf5",
+      heart: "#a83232"
     },
     cyber: {
       name: "네온",
       icon: "🔮",
-      userBg: "#00d2d3",
-      userText: "#011627",
-      npcBg: "#1e272e",
-      npcText: "#00f5d4",
-      npcBorder: "rgba(0, 245, 212, 0.3)",
-      chatBg: "#0b0c10"
+      shellBg: "#080c14", // 흑요석 다크 배경
+      headerBg: "#04060a",
+      chatBg: "#070a12",
+      panelAlt: "#0e1522",
+      border: "rgba(0, 245, 212, 0.28)",
+      text: "#e0fbfc",
+      textMuted: "#5a7888",
+      navBtn: "#00f5d4", // 발광 청록색 버튼
+      inputBg: "#090f18",
+      inputText: "#00f5d4",
+      userBubbleBg: "#00f5d4",
+      userBubbleText: "#020912",
+      npcBubbleBg: "#121a27",
+      npcBubbleText: "#e0fbfc",
+      npcBubbleBorder: "rgba(0, 245, 212, 0.35)",
+      accent: "#00f5d4",
+      accentText: "#040810",
+      heart: "#ff2a70" // 사이버 펑크 네온 핑크 하트
     }
   };
   const activePhoneSkin = PHONE_SKINS[phoneTheme] || PHONE_SKINS.default;
@@ -1590,6 +1638,18 @@ useEffect(() => {
       }
       rawText = rawText.replace(clueRegex, "");
 
+// 🌟 [새로운 등장인물(NEW_NPC) 자동 추출]
+      let newlyFoundNpcs = [];
+      const newNpcRegex = /<!--\s*NEW_NPC:\s*(\{.*?\})\s*-->/gs;
+      let npcMatch;
+      while ((npcMatch = newNpcRegex.exec(rawText)) !== null) {
+        try {
+          const parsedN = JSON.parse(npcMatch[1]);
+          if (parsedN.name) newlyFoundNpcs.push(parsedN);
+        } catch(e) {}
+      }
+      rawText = rawText.replace(newNpcRegex, "");
+      
       // [호감도 변화 자동 추출]
       // 🌟 [스마트폰 선톡(PHONE_MSG) 자동 수신 및 햅틱 알림]
       let newPhoneMsg = null;
@@ -1675,6 +1735,25 @@ const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSe
               portrait: typeof getPortraitUrl === "function" ? getPortraitUrl(aNpc.name) : "", 
               detail: "", 
               secret: "" 
+            });
+          }
+        });
+      }
+      // 🌟 새로 발견된 인물이 있다면 기존 명단과 중복 확인 후 자동 등록
+      if (newlyFoundNpcs.length > 0) {
+        newlyFoundNpcs.forEach(n => {
+          const tName = n.name.trim();
+          const exists = mergedNpcs.some(cNpc => cNpc.name === tName || cNpc.name.includes(tName) || tName.includes(cNpc.name));
+          if (!exists) {
+            mergedNpcs.push({
+              id: Date.now() + Math.random(),
+              name: tName,
+              title: n.job || n.title || "등장인물",
+              detail: n.detail || "",
+              portrait: typeof getPortraitUrl === "function" ? getPortraitUrl(`${tName}, portrait`) : "",
+              affection: 10,
+              secret: n.secret || "",
+              secretRevealed: false
             });
           }
         });
@@ -3188,7 +3267,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   </div>
 )}
 
-        {/* 🌟 하단 팝업 메신저 서랍 (제스처 닫기 & 테마 커스텀 완결본) */}
+{/* 🌟 하단 팝업 메신저 서랍 (전체 디테일 완벽 테마 연동본) */}
       {(() => {
         if (!isPhoneDrawerOpen || !activeSession || activeSession.ruleMode !== "dating") return null;
 
@@ -3196,7 +3275,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
         const partnerName = currentContact?.name || "상대방";
         const currentMsgs = (activeSession.sheet?.phoneChats || {})[activePhoneContactId] || [];
 
-        // 드래그 제스처 핸들러 (마우스 & 터치 공용)
+        // 드래그 제스처 핸들러
         const onDragStart = (clientY) => {
           setDragStartY(clientY);
           setDragCurrentY(0);
@@ -3204,12 +3283,12 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
         const onDragMove = (clientY) => {
           if (dragStartY === null) return;
           const diff = clientY - dragStartY;
-          if (diff > 0) setDragCurrentY(diff); // 아래로 당길 때만 반응
+          if (diff > 0) setDragCurrentY(diff);
         };
         const onDragEnd = () => {
           if (dragCurrentY > 90) {
             setIsPhoneDrawerOpen(false);
-            setActivePhoneContactId(null); // 👈 추가!
+            setActivePhoneContactId(null);
           }
           setDragStartY(null);
           setDragCurrentY(0);
@@ -3331,81 +3410,83 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
         return (
           <div
-            onClick={() => setIsPhoneDrawerOpen(false)}
+            onClick={() => {
+              setIsPhoneDrawerOpen(false);
+              setActivePhoneContactId(null);
+            }}
             onMouseMove={e => onDragMove(e.clientY)}
             onMouseUp={onDragEnd}
-            style={{ position: "fixed", inset: 0, zIndex: 125, display: "flex", justifyContent: "center", alignItems: "flex-end", backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+            style={{ position: "fixed", inset: 0, zIndex: 125, display: "flex", justifyContent: "center", alignItems: "flex-end", backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
           >
+            {/* 🌟 폰 본체 프레임 */}
             <div
               onClick={(e) => e.stopPropagation()}
-              className="glass-card"
               style={{
                 width: "100%",
                 maxWidth: "460px",
-                height: "80vh",
-                maxHeight: "700px",
-                backgroundColor: theme.panel,
+                height: "82vh",
+                maxHeight: "720px",
+                backgroundColor: activePhoneSkin.shellBg,
+                color: activePhoneSkin.text,
                 borderRadius: "20px 20px 0 0",
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                border: `1px solid ${theme.border}`,
+                border: `1.5px solid ${activePhoneSkin.border}`,
                 borderBottom: "none",
-                boxShadow: "0 -8px 32px rgba(0,0,0,0.28)",
+                boxShadow: "0 -8px 36px rgba(0,0,0,0.38)",
                 transform: `translateY(${dragCurrentY}px)`,
                 transition: dragStartY === null ? "transform 0.2s ease-out" : "none"
               }}
             >
-              {/* 🌟 상단 드래그 핸들 & 헤더 (마우스/터치 드래그 지원) */}
+              {/* 🌟 상단 드래그 헤더 바 (< 목록, ✕, 제목 색상 완벽 연동) */}
               <div
                 onMouseDown={e => onDragStart(e.clientY)}
                 onTouchStart={e => onDragStart(e.touches[0].clientY)}
                 onTouchMove={e => onDragMove(e.touches[0].clientY)}
                 onTouchEnd={onDragEnd}
-                style={{ height: "48px", padding: "0 16px", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, cursor: "grab", userSelect: "none" }}
+                style={{ height: "48px", padding: "0 16px", borderBottom: `1px solid ${activePhoneSkin.border}`, backgroundColor: activePhoneSkin.headerBg, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, cursor: "grab", userSelect: "none" }}
               >
                 <div style={{ width: "60px" }}>
                   {activePhoneContactId !== null && (
                     <button
                       type="button"
                       onClick={() => setActivePhoneContactId(null)}
-                      style={{ background: "none", border: "none", color: theme.text, fontSize: "0.85rem", cursor: "pointer", fontWeight: "800", padding: "4px 0" }}
+                      style={{ background: "none", border: "none", color: activePhoneSkin.navBtn, fontSize: "0.85rem", cursor: "pointer", fontWeight: "800", padding: "4px 0" }}
                     >
                       〈 목록
                     </button>
                   )}
                 </div>
 
-                {/* 중앙 드래그 바 */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-                  <div style={{ width: "36px", height: "4px", backgroundColor: theme.textMuted, borderRadius: "2px", opacity: 0.5 }} />
-                  <span style={{ fontSize: "0.8rem", fontWeight: "800", color: theme.text }}>
+                  <div style={{ width: "36px", height: "4px", backgroundColor: activePhoneSkin.textMuted, borderRadius: "2px", opacity: 0.5 }} />
+                  <span style={{ fontSize: "0.82rem", fontWeight: "800", color: activePhoneSkin.text }}>
                     {activePhoneContactId === null ? "메신저" : partnerName}
                   </span>
                 </div>
 
-                {/* 🌟 동그라미 없는 깔끔한 ✕ 닫기 버튼 */}
                 <div style={{ width: "60px", display: "flex", justifyContent: "flex-end" }}>
                   <button
                     type="button"
                     onClick={() => {
                       setIsPhoneDrawerOpen(false);
-                      setActivePhoneContactId(null); // 👈 X 버튼 눌러 닫을 때도 목록으로 리셋
+                      setActivePhoneContactId(null);
                     }}
-                    style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.1rem", cursor: "pointer", padding: "4px 0", lineHeight: 1 }}
+                    style={{ background: "none", border: "none", color: activePhoneSkin.navBtn, fontSize: "1.1rem", cursor: "pointer", padding: "4px 0", lineHeight: 1 }}
                   >
                     ✕
                   </button>
                 </div>
               </div>
 
-              {/* [화면 1] 연락처 목록 + 하단 톡 커스텀 패널 */}
+              {/* [화면 1] 연락처 목록 + 하단 풀스킨 설정 패널 */}
               {activePhoneContactId === null ? (
-                <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "space-between", backgroundColor: activePhoneSkin.shellBg }}>
                   
                   {/* 상단 연락처 리스트 */}
                   <div>
-                    <div style={{ padding: "8px 16px 4px 16px", fontSize: "0.72rem", color: theme.textMuted, fontWeight: "700" }}>대화 상대</div>
+                    <div style={{ padding: "10px 16px 4px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "700" }}>대화 상대</div>
                     {(activeSession.sheet?.npcs || []).map(npc => {
                       const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
                       const lastMsg = chats[chats.length - 1];
@@ -3428,31 +3509,222 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             alignItems: "center",
                             gap: "12px",
                             padding: "12px 16px",
-                            borderBottom: `1px solid ${theme.border}`,
+                            backgroundColor: activePhoneSkin.panelAlt,
+                            borderBottom: `1px solid ${activePhoneSkin.border}`,
                             cursor: "pointer",
                             transition: "background 0.15s ease"
                           }}
                         >
-                          <div style={{ width: "46px", height: "46px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${theme.border}`, flexShrink: 0, backgroundColor: theme.panelAlt }}>
+                          <div style={{ width: "46px", height: "46px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${activePhoneSkin.border}`, flexShrink: 0 }}>
                             <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "3px" }}>
-                              <span style={{ fontWeight: "800", fontSize: "0.88rem", color: theme.text }}>{npc.name}</span>
-                              <span style={{ fontSize: "0.72rem", color: theme.danger, fontWeight: "800" }}>♥ {npc.affection}</span>
+                              <span style={{ fontWeight: "800", fontSize: "0.88rem", color: activePhoneSkin.text }}>{npc.name}</span>
+                              <span style={{ fontSize: "0.72rem", color: activePhoneSkin.heart, fontWeight: "800" }}>♥ {npc.affection}</span>
                             </div>
-                            <div style={{ fontSize: "0.75rem", color: theme.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: "0.75rem", color: activePhoneSkin.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {lastMsg ? lastMsg.text : (npc.title || "새 대화를 시작하세요")}
                             </div>
                           </div>
                           {unread > 0 && (
-                            <span style={{ backgroundColor: theme.danger, color: "#fff", borderRadius: "10px", minWidth: "18px", height: "18px", padding: "0 5px", fontSize: "0.65rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ backgroundColor: activePhoneSkin.heart, color: "#fff", borderRadius: "10px", minWidth: "18px", height: "18px", padding: "0 5px", fontSize: "0.65rem", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               {unread}
                             </span>
                           )}
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* 🌟 하단 설정 패널 (버튼, 테두리, 텍스트 일체화) */}
+                  <div style={{ padding: "16px", backgroundColor: activePhoneSkin.headerBg, borderTop: `1px solid ${activePhoneSkin.border}`, display: "flex", flexDirection: "column", gap: "12px", marginTop: "14px" }}>
+                    {/* 1. 스킨 선택기 */}
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "0.76rem", fontWeight: "800", color: activePhoneSkin.text }}>🎨 메신저 테마 스킨</span>
+                        <span style={{ fontSize: "0.7rem", color: activePhoneSkin.accent, fontWeight: "800" }}>{activePhoneSkin.name}</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px" }}>
+                        {Object.entries(PHONE_SKINS).map(([k, sk]) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => handleSelectPhoneTheme(k)}
+                            style={{
+                              padding: "7px 4px",
+                              borderRadius: "8px",
+                              border: `1.5px solid ${phoneTheme === k ? activePhoneSkin.accent : activePhoneSkin.border}`,
+                              backgroundColor: phoneTheme === k ? activePhoneSkin.panelAlt : "transparent",
+                              color: activePhoneSkin.text,
+                              fontSize: "0.7rem",
+                              fontWeight: phoneTheme === k ? "800" : "500",
+                              cursor: "pointer",
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: "2px"
+                            }}
+                          >
+                            <span>{sk.icon}</span>
+                            <span>{sk.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. 진동 세기 */}
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "0.76rem", fontWeight: "800", color: activePhoneSkin.text }}>📳 알림 진동 세기</span>
+                        <span style={{ fontSize: "0.7rem", color: activePhoneSkin.accent, fontWeight: "700" }}>
+                          {vibrationLevel === "off" ? "끄기" : vibrationLevel === "light" ? "약하게" : vibrationLevel === "medium" ? "보통" : "강하게"}
+                        </span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px" }}>
+                        {[
+                          { k: "off", l: "끄기" },
+                          { k: "light", l: "약하게" },
+                          { k: "medium", l: "보통" },
+                          { k: "strong", l: "강하게" }
+                        ].map(opt => (
+                          <button
+                            key={opt.k}
+                            type="button"
+                            onClick={() => handleSaveVibration(opt.k)}
+                            style={{
+                              padding: "6px 0",
+                              borderRadius: "8px",
+                              border: `1.5px solid ${vibrationLevel === opt.k ? activePhoneSkin.accent : activePhoneSkin.border}`,
+                              backgroundColor: vibrationLevel === opt.k ? activePhoneSkin.panelAlt : "transparent",
+                              color: activePhoneSkin.text,
+                              fontSize: "0.7rem",
+                              fontWeight: vibrationLevel === opt.k ? "800" : "500",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {opt.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, textAlign: "center", lineHeight: "1.4" }}>
+                      💡 서사 진행 중 새로운 인물이 등장하거나 선톡이 도착하면 연락처에 자동 등록됩니다.
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                /* [화면 2] 1:1 대화방 (풀스킨 적용) */
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", backgroundColor: activePhoneSkin.chatBg }}>
+                  {/* 상단 미니 바 */}
+                  <div style={{ padding: "8px 16px", borderBottom: `1px solid ${activePhoneSkin.border}`, backgroundColor: activePhoneSkin.headerBg, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ width: "26px", height: "26px", borderRadius: "50%", overflow: "hidden", border: `1px solid ${activePhoneSkin.border}` }}>
+                        <img src={currentContact?.portrait} alt={partnerName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <span style={{ fontWeight: "800", fontSize: "0.82rem", color: activePhoneSkin.text }}>{currentContact?.title || "1:1 연결"}</span>
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: activePhoneSkin.heart, fontWeight: "800" }}>♥ {currentContact?.affection}</span>
+                  </div>
+
+                  {/* 톡 메시지 스크롤 */}
+                  <div ref={phoneChatContainerRef} style={{ flex: 1, overflowY: "auto", padding: "14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {currentMsgs.length === 0 ? (
+                      <div style={{ textAlign: "center", color: activePhoneSkin.textMuted, fontSize: "0.78rem", margin: "auto" }}>
+                        대화 기록이 없습니다.<br />먼저 메시지를 건네보세요.
+                      </div>
+                    ) : (
+                      currentMsgs.map((m, idx) => {
+                        const isUser = m.sender === "user";
+                        return (
+                          <div
+                            key={m.id || idx}
+                            style={{
+                              alignSelf: isUser ? "flex-end" : "flex-start",
+                              maxWidth: "80%",
+                              display: "flex",
+                              flexDirection: isUser ? "row-reverse" : "row",
+                              alignItems: "flex-end",
+                              gap: "6px"
+                            }}
+                          >
+                            {!isUser && (
+                              <div style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginBottom: "2px", border: `1px solid ${activePhoneSkin.border}` }}>
+                                <img src={currentContact?.portrait} alt="상대" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              </div>
+                            )}
+
+                            <div
+                              style={{
+                                backgroundColor: isUser ? activePhoneSkin.userBubbleBg : activePhoneSkin.npcBubbleBg,
+                                color: isUser ? activePhoneSkin.userBubbleText : activePhoneSkin.npcBubbleText,
+                                border: isUser ? "none" : `1px solid ${activePhoneSkin.npcBubbleBorder}`,
+                                padding: "9px 13px",
+                                borderRadius: isUser ? "14px 2px 14px 14px" : "2px 14px 14px 14px",
+                                fontSize: "0.84rem",
+                                lineHeight: "1.5",
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.08)"
+                              }}
+                            >
+                              {m.text}
+                            </div>
+                            <span style={{ fontSize: "0.62rem", color: activePhoneSkin.textMuted, flexShrink: 0, marginBottom: "2px" }}>
+                              {m.time || ""}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                    {isPhoneSending && (
+                      <div style={{ fontSize: "0.72rem", color: activePhoneSkin.accent, padding: "4px 8px" }}>{partnerName} 님이 입력 중...</div>
+                    )}
+                  </div>
+
+                  {/* 답장 제안 칩 */}
+                  {phoneSuggestions.length > 0 && (
+                    <div style={{ display: "flex", gap: "6px", overflowX: "auto", padding: "6px 12px", backgroundColor: activePhoneSkin.headerBg, borderTop: `1px solid ${activePhoneSkin.border}`, whiteSpace: "nowrap" }}>
+                      {phoneSuggestions.map((sugg, sIdx) => (
+                        <button
+                          key={sIdx}
+                          type="button"
+                          onClick={() => setPhoneInput(sugg)}
+                          style={{ padding: "4px 10px", backgroundColor: activePhoneSkin.panelAlt, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "14px", color: activePhoneSkin.text, fontSize: "0.72rem", cursor: "pointer" }}
+                        >
+                          {sugg}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 전송 인풋 바 */}
+                  <div style={{ padding: "10px 12px", backgroundColor: activePhoneSkin.headerBg, borderTop: `1px solid ${activePhoneSkin.border}`, display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      value={phoneInput}
+                      onChange={e => setPhoneInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") handleSendPhoneMessage(); }}
+                      placeholder={`${partnerName}에게 전할 말...`}
+                      style={{ flex: 1, padding: "9px 14px", backgroundColor: activePhoneSkin.inputBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "20px", color: activePhoneSkin.inputText, fontSize: "0.82rem", outline: "none" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendPhoneMessage}
+                      disabled={isPhoneSending || !phoneInput.trim()}
+                      style={{ padding: "0 16px", backgroundColor: activePhoneSkin.accent, color: activePhoneSkin.accentText, border: "none", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}
+                    >
+                      전송
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
                   </div>
 
                   {/* 🌟 하단 채우기: 메신저 스킨 테마 & 진동 조절 미니 패널 */}
