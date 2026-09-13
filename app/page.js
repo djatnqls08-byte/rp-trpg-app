@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-
+ 
 // 팬톤 테마 4종
 const THEME_PALETTES = {
   cloud: {
