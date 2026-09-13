@@ -2870,7 +2870,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         )}
                   </span>
                 )}
-                )}
               </div>
             )}
           </div>
