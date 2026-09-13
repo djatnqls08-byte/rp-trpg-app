@@ -2045,16 +2045,17 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     const controller = new AbortController();
     setAbortController(controller);
 
+// 👇 교체할 정상 코드 (중복 및 꼬인 괄호 제거 완료)
     // 1. R19 및 자유 서사 모드 감지
     const fullContext = `${activeSession.title || ""} ${activeSession.scenarioText || ""} ${activeSession.preference || ""}`.toLowerCase();
     const isR19 = fullContext.includes("r19") || fullContext.includes("19금") || fullContext.includes("성인") || fullContext.includes("r-19");
     const isFreeform = activeSession.ruleMode === "freeform";
 
-// 2. 동적 시스템 수칙 주입
-const isDating = activeSession.ruleMode?.startsWith("dating");
-const pcTone = activeSession.sheet?.background || "자연스러운 성격";
+    // 2. 동적 시스템 수칙 주입
+    const isDating = activeSession.ruleMode?.startsWith("dating");
+    const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
-let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
+    let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
 1. [🚨 진상 스포일러 절대 누설 금지]
 - 시나리오의 [키퍼 전용 기밀/진상]은 마스터만 알고 있는 비밀 배경입니다.
 - 플레이어가 주사위 판정(조사/심리학 등)을 성공하거나 직접적인 증거를 목격하기 전까지는, 지문이나 해설 독백으로 흑막의 정체나 사건의 진상을 절대로 미리 설명하지 마십시오.
@@ -2071,51 +2072,35 @@ let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->`;
 
-// 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
+    // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
       const currentPhase = activeSession.sheet?.phase || "도입";
       const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
 
-      let phaseInstruction = "- [메인 페이즈]: 자유로운 대화를 나누되, 플레이어가 원할 때 핸드아웃을 조사할 수 있도록 여지를 열어두십시오.";
-      if (currentPhase === "도입") {
-        phaseInstruction = "- [도입 페이즈]: 사건에 휘말리는 첫 순간입니다. 판정이나 행동 요구 없이 인물 간의 첫 만남과 서막의 분위기를 느긋하게 풀어가십시오.";
-      } else if (currentPhase === "마스터 씬") {
-        phaseInstruction = "- [마스터 씬]: 돌발 위협이나 괴이가 개입한 상황입니다. 유저의 반응을 천천히 받아주며 긴장감을 연출하십시오.";
-      } else if (currentPhase === "클라이맥스") {
-        phaseInstruction = "- [클라이맥스 페이즈]: 모든 비밀이 드러난 최종 국면입니다. 마지막 결단과 대결 구도를 팽팽하게 묘사하십시오.";
-      } else if (isActionDone) {
-        phaseInstruction = "- [메인 페이즈]: 이번 장면의 주요 행동이 완료되었습니다. 판정 요구 없이 인물과 여유롭게 대화와 교감을 나누십시오.";
-      }
-
       dynamicRules += `\n\n[🎲 인세인(inSANe) 정규 룰 엄수 절대 수칙]
 1. [느긋한 대화 호흡과 무제한 티키타카 보장]
 - 절대로 사건을 서둘러 진행하거나 상황을 급하게 정리하려 들지 마십시오.
-- 인물의 사소한 손짓, 미세한 표정 변화, 주변 분위기를 천천히 묘사하며 유저와 충분한 대화를 나누십시오.
-- 유저가 직접 [장면 닫기]를 누르기 전까지는 대화의 여운을 살리며 자연스럽게 답변을 이어가십시오.
+- 인물의 사소한 손짓, 미세한 표정 변화, 주변 분위기를 천천히 묘사하며 유저와 1:1 대화(티키타카)를 충분히 나누십시오.
+- 주요 행동(조사 등)이 끝났더라도 대화는 제한 없이 계속 이어질 수 있습니다. 유저가 직접 [장면 닫기]를 누르기 전까지는 대화의 여운을 살리며 자연스럽게 답변을 이어가십시오.
 
 2. [임의 판정 및 Scene Close 독단 선언 절대 금지]
 - 일상 대화 중 "판정을 하세요"라며 주사위를 요구하지 마십시오.
 - 지문 끝에 "Scene Close", "장면을 마칩니다", "[제N사이클 N장면] 시작" 등의 텍스트를 절대로 직접 출력하지 마십시오. 장면 전환은 오직 플레이어가 시스템 버튼을 눌러 통제합니다.
 
 3. [현재 페이즈: ${currentPhase}]
-${phaseInstruction}`;
+${currentPhase === "도입" ? `
+- 현재는 '도입 페이즈'입니다. 판정이나 행동 강요 없이 인물 간의 첫 만남과 서막의 분위기를 느긋하게 풀어가십시오.` : 
+
+currentPhase === "마스터 씬" ? `
+- 현재는 '마스터 씬'입니다. 돌발 사건이나 괴이의 개입을 묘사하되, 유저의 대응 반응을 차분히 받아주십시오.` : 
+
+currentPhase === "클라이맥스" ? `
+- 현재는 '클라이맥스 페이즈'입니다. 모든 비밀과 진상이 드러난 최종 국면입니다. 마지막 결단과 감정적 대치 구도를 팽팽하게 묘사하십시오.` : `
+- 현재는 '메인 페이즈'입니다.
+- ${isActionDone ? "이번 장면의 주요 행동이 완료되었습니다. 판정 요구 없이 인물과 여유롭게 대화와 교감을 나누십시오." : "자유로운 대화를 나누되, 플레이어가 원할 때 핸드아웃을 조사할 수 있도록 여지를 열어두십시오."}`}`;
     }
 
-      dynamicRules += `\n\n[🎲 인세인(inSANe) 정규 룰 엄수 절대 수칙]
-1. [느긋한 대화 호흡과 무제한 티키타카 보장]
-- 절대로 사건을 서둘러 진행하거나 상황을 급하게 정리하려 들지 마십시오.
-- 인물의 사소한 손짓, 미세한 표정 변화, 주변 분위기를 천천히 묘사하며 유저와 충분한 대화를 나누십시오.
-- 주요 행동이 끝났더라도 대화는 제한 없이 계속 이어질 수 있습니다. 유저가 직접 [장면 닫기]를 누르기 전까지는 대화의 여운을 살리며 자연스럽게 답변을 이어가십시오.
-
-2. [임의 판정 및 Scene Close 독단 선언 절대 금지]
-- 일상 대화 중 "판정을 하세요"라며 주사위를 요구하지 마십시오.
-- 지문 끝에 "Scene Close", "장면을 마칩니다", "[제N사이클 N장면] 시작" 등의 텍스트를 절대로 직접 출력하지 마십시오. 장면 전환은 오직 플레이어가 시스템 버튼을 눌러 통제합니다.
-
-3. [현재 페이즈: ${currentPhase}]
-${phaseInstruction}`;
-    }
-
-    // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙 추가
+    // 🌟 미연시 모드일 때 주인공 말투 맞춤형 답장 후보 생성 수칙
     if (isDating) {
       dynamicRules += `\n\n[미연시 대화 분기 수칙]
 - 지문 말미에 반드시 주인공이 보낼 수 있는 다음 답장/선택지 3개를 <!-- SUGGESTIONS: ["대사 1", "대사 2", "대사 3"] --> 태그로 출력하십시오.
@@ -4050,7 +4035,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             : "자유 서사 액션"}
                         </div>
 
-                        {/* 1. 🎲 인세인 방일 때 */}
+{/* 1. 🎲 인세인 방일 때 */}
                         {activeSession?.ruleMode === "insane" && (
                           <>
                             {!activeSession?.sheet?.actionUsed ? (
@@ -4103,18 +4088,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                               </>
                             ) : (
                               <button
-                                  type="button"
-                                  onClick={handleSceneClose}
-                                  style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
-                                >
-                                  🎬 장면 닫기 (Scene Close)
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                        {/* 2. 🐙 CoC 방일 때 */}
-                        {activeSession?.ruleMode === "coc" && (
+                                type="button"
+                                onClick={handleSceneClose}
+                                style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+                              >
+                                🎬 장면 닫기 (Scene Close)
+                              </button>
+                            )}
 
                             <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
@@ -4124,9 +4104,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
                               ❓ 인세인 룰 가이드
-                              </button>
-                            </>  
-                          )}   
+                            </button>
+                          </>
+                        )}
 
                         {/* 2. 🐙 CoC 방일 때 */}
                         {activeSession?.ruleMode === "coc" && (
