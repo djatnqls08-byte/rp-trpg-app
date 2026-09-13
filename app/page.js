@@ -158,39 +158,40 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     }
   ]);
 
- // 🌟 public/presets.json 자동 로드 (쉼표나 괄호가 누락되어도 자동 수리하여 로드)
-  useEffect(() => {
-    fetch(`/presets.json?t=${Date.now()}`, { cache: "no-store" })
-      .then(res => {
-        // 🌟 파일이 정상적으로 존재할 때만 읽고, 없으면 그냥 조용히 멈춤!
-        if (!res.ok) return null;
-        return res.text();
-      })
-      .then(text => {
-        if (!text || !text.trim()) return;
+ // 🌟 교체할 useEffect 코드
+useEffect(() => {
+  fetch(`/presets.json?t=${Date.now()}`, { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) {
+        console.warn("presets.json을 찾을 수 없습니다. (상태 코드:", res.status, ")");
+        return;
+      }
+      const text = await res.text();
+      if (!text || !text.trim()) return;
+
+      try {
+        const data = JSON.parse(text);
+        const list = Array.isArray(data) ? data : [data];
+        setOfficialPresets(list);
+      } catch (e) {
+        // 쉼표/대괄호 누락 자동 수리
         try {
-          // 1. 정상적인 JSON인 경우 바로 로드
-          const data = JSON.parse(text);
-          const list = Array.isArray(data) ? data : [data];
-          setOfficialPresets(list);
-        } catch (e) {
-          // 2. 💡 쉼표(,)나 대괄호([ ])가 빠진 채 연달아 붙어있을 때 자동으로 고쳐서 로드!
-          try {
-            let repaired = text.trim();
-            if (!repaired.startsWith("[")) repaired = "[" + repaired;
-            if (!repaired.endsWith("]")) repaired = repaired + "]";
-            repaired = repaired.replace(/}\s*{/g, "},{");
-            const data = JSON.parse(repaired);
-            if (Array.isArray(data) && data.length > 0) {
-              setOfficialPresets(data);
-            }
-          } catch (err2) {
-            console.error("프리셋 자동 수리 실패:", err2);
+          let repaired = text.trim();
+          if (!repaired.startsWith("[")) repaired = "[" + repaired;
+          if (!repaired.endsWith("]")) repaired = repaired + "]";
+          repaired = repaired.replace(/}\s*{/g, "},{");
+          const data = JSON.parse(repaired);
+          if (Array.isArray(data) && data.length > 0) {
+            setOfficialPresets(data);
           }
+        } catch (err2) {
+          console.error("presets.json 파싱 실패:", err2);
         }
-      })
-      .catch(() => {});
-  }, []);
+      }
+    })
+    .catch((err) => console.error("presets.json 로드 에러:", err));
+}, []);
+  
   // 🌟 낱개(1개) 세팅만 깔끔하게 단독 JSON으로 다운로드
   const exportSingleLobbyPreset = (p) => {
     const fileName = `${(p.presetTitle || p.scenarioTitle || "시나리오").replace(/[\/\\:*?"<>|]/g, "_")}.json`;
