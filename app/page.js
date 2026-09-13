@@ -3520,13 +3520,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               >
                 닫기
               </button>
-              <button
+           <button
                       type="button"
                       onClick={() => {
                         setWizardMode(ruleHelpModal.key);
                         setRuleHelpModal(null);
                       }}
-                      style={{ ... }}
+                      style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
                     >
                       이 룰로 시작하기
                     </button>
