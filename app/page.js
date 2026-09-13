@@ -2446,42 +2446,36 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   </span>
                 </button>
 
-                {/* 2. 📂 내 세팅 불러오기 버튼 */}
+                {/* 2. 📁 내 세팅 불러오기 버튼 (아이콘형) */}
                 <button 
                   type="button" 
                   onClick={() => {
                     setLobbyPresetTab("local");
                     openModal(setShowLobbyPresetModal);
                   }} 
-                  title="저장된 세팅 불러오기"
-                  style={{ 
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "6px 10px",
-                    backgroundColor: theme.panelAlt,
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: "20px",
-                    cursor: "pointer",
-                    color: theme.text,
-                    fontSize: "0.78rem",
-                    fontWeight: "700"
-                  }}
-                >
-                  <span style={{ fontSize: "1rem" }}>📂</span>
-                  <span>불러오기</span>
-                </button>
-
-                {/* 3. 💾 세팅 저장 버튼 */}
-                <button 
-                  type="button" 
-                  onClick={handleSaveLobbyPreset} 
-                  title="현재 세팅 저장"
+                  title="로비 세팅 불러오기"
                   style={{ 
                     background: "none", 
                     border: "none", 
                     cursor: "pointer", 
-                    fontSize: "1.25rem", 
+                    fontSize: "1.3rem", 
+                    padding: "4px 6px",
+                    lineHeight: 1
+                  }}
+                >
+                  📁
+                </button>
+
+                {/* 3. 💾 세팅 저장 버튼 (아이콘형) */}
+                <button 
+                  type="button" 
+                  onClick={handleSaveLobbyPreset} 
+                  title="로비 세팅 저장"
+                  style={{ 
+                    background: "none", 
+                    border: "none", 
+                    cursor: "pointer", 
+                    fontSize: "1.3rem", 
                     padding: "4px 6px",
                     lineHeight: 1
                   }}
