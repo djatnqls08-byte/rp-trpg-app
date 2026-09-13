@@ -3519,22 +3519,21 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 style={{ flex: 1, padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.8rem", cursor: "pointer" }}
               >
                 닫기
+              </button><button
+                type="button"
+                onClick={() => {
+                  setWizardMode(ruleHelpModal.key);
+                  setRuleHelpModal(null);
+                }}
+                style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
+              >
+                이 룰로 시작하기
               </button>
-           <button
-                      type="button"
-                      onClick={() => {
-                        setWizardMode(ruleHelpModal.key);
-                        setRuleHelpModal(null);
-                      }}
-                      style={{ flex: 2, padding: "10px", backgroundColor: theme.accent, border: "none", borderRadius: "8px", color: "#fff", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" }}
-                    >
-                      이 룰로 시작하기
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            </div>
           </div>
-        );
-      }
+        </div>
+      )}
+
+    </div>
+  );
+}
