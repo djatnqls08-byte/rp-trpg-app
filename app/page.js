@@ -248,7 +248,7 @@ export default function App() {
     executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) ${relationDesc}`);
   };
 
-  // 4. 장면 닫기 (Scene Close) 실행 ➔ 화면 로그와 AI 지시문 분리
+// 4. 장면 닫기 (Scene Close) 실행 ➔ 화면 로그와 AI 지시문 분리
   const handleSceneClose = () => {
     setIsActionDrawerOpen(false);
     if (!activeSession) return;
@@ -299,10 +299,10 @@ export default function App() {
       const rollIdx = Math.floor(Math.random() * 6);
       const sceneDesc = INSANE_SCENE_TABLE[rollIdx];
 
-      // 💬 플레이어 채팅창에 뜨는 깔끔한 말풍선
+      // 💬 플레이어 채팅창에 뜨는 말풍선
       displayLog = `[🎬 장면 닫기 ➔ ${nextCycle}사이클 ${nextScene}장면 개막]\n[🎲 1D6 정규 장면표]: "${sceneDesc}"`;
 
-      // 🤖 AI에게만 전달되는 시스템 지시문 (채팅창에 절대 안 뜸)
+      // 🤖 AI에게만 전달되는 시스템 연출 지시문
       aiPrompt = `[🎬 장면 닫기 ➔ 새 장면 개막: ${nextCycle}사이클 ${nextScene}장면]
 이전 장면을 퇴장으로 마무리하고 새로운 드라마 씬을 엽니다.
 [🎲 1D6 정규 장면표 ${rollIdx + 1}번 결과]: "${sceneDesc}"
@@ -314,29 +314,6 @@ export default function App() {
 
     executeMessage(displayLog, aiPrompt);
   };
-  }));
-
-  // 2) 클라이맥스 돌입 vs 1D6 장면표 기반 새 드라마 씬 분기
-  let closePrompt = "";
-  if (isClimax) {
-    closePrompt = `[🎬 장면 닫기 ➔ ⚠️ 클라이맥스 페이즈(Climax Phase) 돌입!]
-모든 메인 사이클(${limit}C)이 종료되어 최종 결전이 시작됩니다.
-키퍼로서 긴박한 마스터 씬(Master Scene)을 3~4문장으로 서술하여 흑막과의 최종 대치 국면을 열어주십시오.`;
-  } else {
-    // 1D6 정규 장면표 굴림
-    const rollIdx = Math.floor(Math.random() * 6);
-    const sceneDesc = INSANE_SCENE_TABLE[rollIdx];
-    closePrompt = `[🎬 장면 닫기 ➔ 새 장면 개막: ${nextCycle}사이클 ${nextScene}장면]
-이전 장면을 퇴장으로 마무리하고 새로운 드라마 씬을 엽니다.
-[🎲 1D6 정규 장면표 ${rollIdx + 1}번 결과]: "${sceneDesc}"
-
-위 장면표의 분위기를 바탕으로 키퍼로서 새로운 장면 도입 지문(마스터 씬)을 3~4문장으로 서술하십시오.
-지문 끝에는 탐사자가 이번 장면의 새로운 1회 주요 행동(조사/감정/회복)을 취할 수 있도록 상황을 유도하십시오.
-<!-- SUGGESTIONS: ["주변 단서 조사", "파트너와 감정 맺기", "휴식 및 회복"] -->`;
-  }
-
-  executeMessage(closePrompt);
-};
  
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
