@@ -125,6 +125,59 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   const [ruleHelpModal, setRuleHelpModal] = useState(null); // 🌟 [추가] 룰 설명 전용 팝업 상태
   const [showLobbyPresetModal, setShowLobbyPresetModal] = useState(false);
   const [lobbyPresets, setLobbyPresets] = useState([]);
+  // 🌟 [추가] 로비 프리셋 모달 탭 및 공식(배포용) 프리셋 상태
+  const [lobbyPresetTab, setLobbyPresetTab] = useState("public"); // "public" | "local"
+  const [officialPresets, setOfficialPresets] = useState([
+    // 💡 기본 내장 추천 시나리오 (public/presets.json이 없을 때 기본 작동)
+    {
+      id: "official_dating_1",
+      presetTitle: "온실의 오후 (미연시 입문)",
+      scenarioTitle: "온실의 오후",
+      wizardMode: "dating",
+      playPreference: "#GL #달달 #일상",
+      publicSynopsis: "비 내리는 늦은 오후, 조용한 식물원 온실에서 차를 마시며 상대방과의 조심스러운 유대를 쌓아가는 잔잔한 일상 이야기입니다.",
+      openingScene: "후두둑 유리창을 두드리는 빗소리 사이로 은은한 허브 향이 피어오릅니다. 테이블 맞은편에서 따뜻한 잔을 쥔 파트너가 조용히 당신을 바라봅니다.",
+      hiddenTruth: "평화로워 보이지만, 상대방은 조만간 이곳을 떠나야 할지도 모른다는 남모를 고민을 품고 있습니다. 호감도 60 이상 도달 시 고민을 털어놓습니다.",
+      charName: "클레어",
+      charJob: "다정함, 경청가",
+      charBackground: "24세, 여성. 온화하고 배려심이 깊은 성격.\n소지품: 손수건, 틴케이스 캔디",
+      charMission: "상대방과 편안하고 따뜻한 오후를 보낸다.",
+      charSecret: "사실 오래전부터 그녀를 조용히 눈여겨보고 있었다.",
+      charPortraitUrl: "",
+      kpcList: [
+        {
+          id: 1,
+          name: "아델",
+          job: "온실 관리자",
+          detail: "26세, 여성. 차분하고 단정한 인상. 상태 메시지는 '비 오는 날의 온기'. 은은한 허브티와 잔잔한 독서를 좋아하고, 소란스러운 장소를 싫어합니다.",
+          secret: "가족과의 문제로 곧 다른 지역으로 떠나야 할 위기에 처해 있습니다.",
+          portraitUrl: "",
+          showSecret: false
+        }
+      ]
+    }
+  ]);
+
+  // 🌟 public/presets.json 파일이 깃허브에 올라가 있으면 자동으로 불러오는 엔진
+  useEffect(() => {
+    fetch("/presets.json")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setOfficialPresets(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // 🌟 낱개(1개) 세팅만 깔끔하게 단독 JSON으로 다운로드
+  const exportSingleLobbyPreset = (p) => {
+    const fileName = `${(p.presetTitle || p.scenarioTitle || "시나리오").replace(/[\/\\:*?"<>|]/g, "_")}.json`;
+    const blob = new Blob([JSON.stringify(p, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = fileName; a.click(); URL.revokeObjectURL(url);
+    if (typeof triggerToast === "function") triggerToast(`'${p.presetTitle}' 세팅이 파일로 저장되었습니다! 📥`);
+  };
 
   useEffect(() => {
     try {
@@ -915,17 +968,20 @@ useEffect(() => {
           .trim();
       };
 
-      // ── [0. 룰 시스템 자동 감지 및 전환] ──
+      // ── [0. 룰 시스템 자동 감지 및 전환 (미연시 최우선 판정)] ──
       let detectedMode = wizardMode;
-      if (/인세인|insane/i.test(rawText)) {
+      if (/미연시|연애\s*시뮬레이션|dating/i.test(rawText)) {
+        detectedMode = "dating";
+        setWizardMode("dating");
+      } else if (/인세인|insane/i.test(rawText)) {
         detectedMode = "insane";
         setWizardMode("insane");
-      } else if (/자유\s*서사|소설\s*모드|freeform/i.test(rawText)) {
-        detectedMode = "freeform";
-        setWizardMode("freeform");
       } else if (/크툴루|coc/i.test(rawText)) {
         detectedMode = "coc";
         setWizardMode("coc");
+      } else if (/자유\s*서사|소설\s*모드|freeform/i.test(rawText)) {
+        detectedMode = "freeform";
+        setWizardMode("freeform");
       }
 
       // 태그 자동 추출 (있을 경우)
@@ -1082,7 +1138,7 @@ useEffect(() => {
       }
       // 👆👆👆 여기까지 👆👆👆
 
-      const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사" };
+     const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사", dating: "미연시" };
       alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
     };
 
@@ -4648,42 +4704,156 @@ const quoteText = npc.statusMessage
         </div>
       )}
 
-      {/* 🌟 로비 전체 프리셋 모달 */}
+{/* 🌟 [개편] 로비 전체 세팅 모달: 공식/공용 프리셋 + 내 저장 세팅 + 낱개 다운로드 */}
       {showLobbyPresetModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: "20px" }}>
-          <div className="glass-card" style={{ width: "100%", maxWidth: "440px", padding: "20px", borderRadius: "14px", color: theme.text }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-              <h3 style={{ margin: 0, fontSize: "0.95rem" }}>📂 로비 전체 세팅 목록</h3>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "480px", padding: "20px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", gap: "12px", maxHeight: "85vh" }}>
+            
+            {/* 상단 타이틀 & 닫기 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "800" }}>📂 시나리오 프리셋 보관함</h3>
               <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* 🌟 로비 세팅 JSON 백업/복원 버튼 */}
-            <div style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-              <button onClick={exportLobbyPresets} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>
-                📥 JSON 다운로드
+            {/* 🌟 2단 탭 바 (공식 추천 vs 내 세팅) */}
+            <div style={{ display: "flex", gap: "6px", borderBottom: `1px solid ${theme.border}`, paddingBottom: "8px" }}>
+              <button
+                type="button"
+                onClick={() => setLobbyPresetTab("public")}
+                style={{
+                  flex: 1, padding: "8px 0", borderRadius: "8px", border: "none", cursor: "pointer",
+                  backgroundColor: lobbyPresetTab === "public" ? theme.accent : theme.panelAlt,
+                  color: lobbyPresetTab === "public" ? "#fff" : theme.textMuted,
+                  fontWeight: "800", fontSize: "0.8rem", transition: "all 0.2s"
+                }}
+              >
+                ⭐ 공식/추천 시나리오 ({officialPresets.length})
               </button>
-              <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>
-                📤 JSON 복원
+              <button
+                type="button"
+                onClick={() => setLobbyPresetTab("local")}
+                style={{
+                  flex: 1, padding: "8px 0", borderRadius: "8px", border: "none", cursor: "pointer",
+                  backgroundColor: lobbyPresetTab === "local" ? theme.accent : theme.panelAlt,
+                  color: lobbyPresetTab === "local" ? "#fff" : theme.textMuted,
+                  fontWeight: "800", fontSize: "0.8rem", transition: "all 0.2s"
+                }}
+              >
+                💾 내 저장 세팅 ({lobbyPresets.length})
+              </button>
+            </div>
+
+            {/* 🌟 전체 백업 / 파일 복원 컨트롤 바 */}
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button onClick={exportLobbyPresets} title="모든 내 세팅을 한 파일로 백업" style={{ flex: 1, padding: "7px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}>
+                📦 전체 세팅 백업
+              </button>
+              <label title="외부 JSON 파일 불러오기" style={{ flex: 1, padding: "7px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>
+                📤 JSON 파일 복원
                 <input type="file" accept=".json" onChange={importLobbyPresets} style={{ display: "none" }} />
               </label>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "240px", overflowY: "auto" }}>
-              {lobbyPresets.length === 0 ? (
-                <div style={{ fontSize: "0.78rem", color: theme.textMuted, textAlign: "center", padding: "20px 0" }}>
-                  저장된 로비 세팅이 없습니다.<br />(상단의 [💾 로비 세팅 저장]을 눌러보세요)
-                </div>
-              ) : (
-                lobbyPresets.map(p => (
-                  <div key={p.id} onClick={() => handleLoadLobbyPreset(p)} style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontWeight: "700", fontSize: "0.82rem" }}>{p.presetTitle}</div>
-                      <div style={{ fontSize: "0.7rem", color: theme.textMuted }}>PC: {p.charName || "미상"} / KPC: {p.kpcList?.length || 0}명 / {p.wizardMode}</div>
+            {/* 프리셋 리스트 영역 */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, overflowY: "auto", maxHeight: "320px", paddingRight: "2px" }}>
+              
+              {/* 1. 공식/추천 탭 */}
+              {lobbyPresetTab === "public" && (
+                officialPresets.length === 0 ? (
+                  <div style={{ fontSize: "0.78rem", color: theme.textMuted, textAlign: "center", padding: "30px 0" }}>등록된 공식 시나리오가 없습니다.</div>
+                ) : (
+                  officialPresets.map((p, idx) => (
+                    <div key={p.id || idx} style={{ padding: "10px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.presetTitle || p.scenarioTitle}
+                        </div>
+                        <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px" }}>
+                          룰: <strong style={{ color: theme.accent }}>{p.wizardMode?.toUpperCase()}</strong> {p.playPreference ? `· ${p.playPreference}` : ""}
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
+                        {/* 낱개 다운로드 버튼 */}
+                        <button
+                          type="button"
+                          onClick={() => exportSingleLobbyPreset(p)}
+                          title="이 시나리오만 JSON 파일로 저장"
+                          style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          📥 저장
+                        </button>
+                        {/* 원클릭 불러오기 */}
+                        <button
+                          type="button"
+                          onClick={() => handleLoadLobbyPreset(p)}
+                          style={{ padding: "5px 12px", backgroundColor: theme.accent, border: "none", borderRadius: "6px", color: "#fff", fontSize: "0.72rem", cursor: "pointer", fontWeight: "800" }}
+                        >
+                          적용 ➔
+                        </button>
+                      </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); if (confirm("삭제하시겠습니까?")) { const filtered = lobbyPresets.filter(it => it.id !== p.id); setLobbyPresets(filtered); localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(filtered)); } }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px" }}>🗑️</button>
-                  </div>
-                ))
+                  ))
+                )
               )}
+
+              {/* 2. 내 저장 세팅 탭 */}
+              {lobbyPresetTab === "local" && (
+                lobbyPresets.length === 0 ? (
+                  <div style={{ fontSize: "0.78rem", color: theme.textMuted, textAlign: "center", padding: "30px 0", lineHeight: "1.6" }}>
+                    저장된 내 세팅이 없습니다.<br />
+                    (로비 상단의 <strong>[💾]</strong> 아이콘을 눌러 현재 세팅을 저장해 보세요)
+                  </div>
+                ) : (
+                  lobbyPresets.map((p) => (
+                    <div key={p.id} style={{ padding: "10px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.presetTitle}
+                        </div>
+                        <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px" }}>
+                          PC: {p.charName || "미상"} · KPC: {p.kpcList?.length || 0}명 · {p.wizardMode?.toUpperCase()}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "5px", alignItems: "center", flexShrink: 0 }}>
+                        {/* 🌟 낱개 파일 다운로드 버튼 (통째로 나가는 문제 완전 해결) */}
+                        <button
+                          type="button"
+                          onClick={() => exportSingleLobbyPreset(p)}
+                          title="이 세팅만 1개의 JSON 파일로 저장"
+                          style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
+                        >
+                          📥 저장
+                        </button>
+                        {/* 세팅 불러오기 */}
+                        <button
+                          type="button"
+                          onClick={() => handleLoadLobbyPreset(p)}
+                          style={{ padding: "5px 12px", backgroundColor: theme.accent, border: "none", borderRadius: "6px", color: "#fff", fontSize: "0.72rem", cursor: "pointer", fontWeight: "800" }}
+                        >
+                          적용 ➔
+                        </button>
+                        {/* 삭제 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`'${p.presetTitle}' 세팅을 삭제하시겠습니까?`)) {
+                              const filtered = lobbyPresets.filter(it => it.id !== p.id);
+                              setLobbyPresets(filtered);
+                              localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(filtered));
+                            }
+                          }}
+                          style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px", fontSize: "0.85rem" }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+
             </div>
           </div>
         </div>
