@@ -2240,19 +2240,26 @@ const startNewSession = async () => {
     executeMessage(`[💬 감정 판정 완료]\n- 대상: ${targetName}\n- 주사위: 1D6 ➔ ${emotionDiceResult.roll}번 (${emotionDiceResult.name})\n- 획득 감정: ✨ [${selectedEmotion}] 칩을 획득했습니다!`);
   };
 
-  // 🌟 [클맥 2] 기본 공격 선언 (2D6 공격 판정 ➔ 적 회피 ➔ 적 HP 차감)
+ // 🌟 [클맥 2] 기본 공격 선언 (플레이어 공격 ➔ 적 생존 시 반격 ➔ 플레이어 회피 판정)
   const executeClimaxAttack = () => {
     if (!activeSession) return;
     playDiceSound?.();
+
+    let curEnemyHp = activeSession.sheet?.enemyHp ?? 6;
+    let curPlayerHp = activeSession.sheet?.hp ?? 6;
+    const playerPlot = activeSession.sheet?.currentPlot ?? 3;
+    const enemyPlot = activeSession.sheet?.enemyPlot ?? 3;
+
+    // 1. 내 공격 판정
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const sum = d1 + d2;
     const isHit = sum >= 5;
 
     let text = `[⚔️ 클라이맥스 공격 선언]\n- 공격 명중 판정: ${d1}+${d2}=${sum} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
-    
+
     if (isHit) {
-      const enemyDodgeTarget = (activeSession.sheet?.enemyPlot || 3) + 4;
+      const enemyDodgeTarget = enemyPlot + 4;
       const ed1 = Math.floor(Math.random() * 6) + 1;
       const ed2 = Math.floor(Math.random() * 6) + 1;
       const enemyDodgeSum = ed1 + ed2;
@@ -2261,19 +2268,51 @@ const startNewSession = async () => {
       if (enemyDodged) {
         text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
       } else {
-        const curHp = activeSession.sheet?.enemyHp ?? 6;
-        const newEnemyHp = Math.max(0, curHp - 1);
-        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-          ...s, sheet: { ...s.sheet, enemyHp: newEnemyHp }
-        } : s));
-        text += `\n- 적 회피 실패! (${ed1}+${ed2}=${enemyDodgeSum} / 목표치 ${enemyDodgeTarget})\n💥 적에게 1점의 치명상을 입혔습니다! (적 HP: ${newEnemyHp}/${activeSession.sheet?.maxEnemyHp || 6})`;
-
-        if (newEnemyHp <= 0) {
-          text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
-        }
+        curEnemyHp = Math.max(0, curEnemyHp - 1);
+        text += `\n- 적 회피 실패! (${ed1}+${ed2}=${enemyDodgeSum} / 목표치 ${enemyDodgeTarget})\n💥 적에게 1점의 치명상을 입혔습니다! (적 HP: ${curEnemyHp}/${activeSession.sheet?.maxEnemyHp || 6})`;
       }
     }
-   // 🔔 행동 종료 ➔ 다음 라운드 플롯 단계로 전환!
+
+    // 2. 적 사망 시 즉시 승리
+    if (curEnemyHp <= 0) {
+      text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
+    } else if (playerPlot > enemyPlot) {
+      // 3. 플레이어 선공이었고 적이 생존했다면: 적의 후공 반격
+      const ea1 = Math.floor(Math.random() * 6) + 1;
+      const ea2 = Math.floor(Math.random() * 6) + 1;
+      const enemyHit = (ea1 + ea2) >= 5;
+
+      text += `\n\n👾 [적의 반격!] 적이 거친 반격을 시도합니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})`;
+
+      if (enemyHit) {
+        const dodgeTarget = playerPlot + 4;
+        const pd1 = Math.floor(Math.random() * 6) + 1;
+        const pd2 = Math.floor(Math.random() * 6) + 1;
+        const playerDodgeSum = pd1 + pd2;
+        const isDodged = playerDodgeSum >= dodgeTarget;
+
+        if (isDodged) {
+          text += `\n🛡️ [회피 성공!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 반격을 완벽히 흘려보냈습니다!`;
+        } else {
+          curPlayerHp = Math.max(0, curPlayerHp - 1);
+          text += `\n💥 [회피 실패!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 반격에 1점 피해를 입었습니다! (내 HP: ${curPlayerHp}/${activeSession.sheet?.maxHp ?? 6})`;
+        }
+      } else {
+        text += `\n💨 적의 반격이 허공을 갈랐습니다!`;
+      }
+    }
+
+    // 상태 반영
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        hp: curPlayerHp,
+        enemyHp: curEnemyHp
+      }
+    } : s));
+
+    // 라운드 종료 및 다음 플롯 단계로 전환
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
@@ -2854,47 +2893,77 @@ currentPhase === "클라이맥스" ? `
     executeMessage(`[💊 진통제 복용] 고통을 가라앉힙니다. (1D6 ➔ ${healRoll} 회복 / HP: ${curHp} ➔ ${newHp})`);
   };
 
-// ⚔️ 클라이맥스 1~6 플롯 선택 & 버팅(Butting) 연산
-const executeClimaxPlot = (playerPlot) => {
-  if (!activeSession) return;
-  playDiceSound?.();
-  const enemyPlot = Math.floor(Math.random() * 6) + 1;
-  const isButting = playerPlot === enemyPlot;
-  let buttingText = "";
-  let updatedPlayerHp = activeSession.sheet?.hp ?? 6;
-  let updatedEnemyHp = activeSession.sheet?.enemyHp ?? 6; // 🌟 적 현재 HP 가져오기
+// ⚔️ 클라이맥스 1~6 플롯 선택 & 선공/버팅 처리
+  const executeClimaxPlot = (playerPlot) => {
+    if (!activeSession) return;
+    playDiceSound?.();
+    const enemyPlot = Math.floor(Math.random() * 6) + 1;
+    const isButting = playerPlot === enemyPlot;
+    let buttingText = "";
+    let updatedPlayerHp = activeSession.sheet?.hp ?? 6;
+    let updatedEnemyHp = activeSession.sheet?.enemyHp ?? 6;
 
-  if (isButting) {
-    updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
-    updatedEnemyHp = Math.max(0, updatedEnemyHp - 1); // 🌟 버팅 시 적 HP도 1 차감
-    buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
-  }
-
-  const orderText = playerPlot > enemyPlot
-    ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
-    : playerPlot < enemyPlot
-    ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
-    : `동시 행동 (버팅)`;
-
-  // 시트 상태 반영
-  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-    ...s,
-    sheet: {
-      ...s.sheet,
-      hp: updatedPlayerHp,
-      enemyHp: updatedEnemyHp, // 🌟 차감된 적 HP 반영
-      currentPlot: playerPlot,
-      enemyPlot: enemyPlot
+    // 1) 버팅 발생 시
+    if (isButting) {
+      updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
+      updatedEnemyHp = Math.max(0, updatedEnemyHp - 1);
+      buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
     }
-  } : s));
 
-  // 🌟 플롯 선택 완료 ➔ 행동(공격/의식) 단계 열기
-  setClimaxStep("action");
+    let enemyFirstAttackLog = "";
 
-  const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
+    // 2) 적 선공인 경우 (적 플롯 > 플레이어 플롯)
+    if (enemyPlot > playerPlot && !isButting) {
+      // 적 공격 판정 (2D6 >= 5 성공)
+      const ea1 = Math.floor(Math.random() * 6) + 1;
+      const ea2 = Math.floor(Math.random() * 6) + 1;
+      const enemyHit = (ea1 + ea2) >= 5;
 
-  executeMessage(plotMsg);
-};
+      enemyFirstAttackLog = `\n\n⚡ [적 선공 개시!] 괴이가 속도(${enemyPlot}) 우위로 먼저 덮쳐옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})`;
+
+      if (enemyHit) {
+        // 플레이어 회피 판정 (목표치: 내 플롯 + 4)
+        const dodgeTarget = playerPlot + 4;
+        const pd1 = Math.floor(Math.random() * 6) + 1;
+        const pd2 = Math.floor(Math.random() * 6) + 1;
+        const playerDodgeSum = pd1 + pd2;
+        const isDodged = playerDodgeSum >= dodgeTarget;
+
+        if (isDodged) {
+          enemyFirstAttackLog += `\n🛡️ [회피 성공!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 일격을 날렵하게 피했습니다!`;
+        } else {
+          updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
+          enemyFirstAttackLog += `\n💥 [회피 실패!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 공격을 피하지 못하고 1점 피해를 입었습니다! (내 HP: ${updatedPlayerHp}/${activeSession.sheet?.maxHp ?? 6})`;
+        }
+      } else {
+        enemyFirstAttackLog += `\n💨 적의 공격이 빗나갔습니다!`;
+      }
+    }
+
+    const orderText = playerPlot > enemyPlot
+      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
+      : playerPlot < enemyPlot
+      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
+      : `동시 행동 (버팅)`;
+
+    // 상태 반영
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        hp: updatedPlayerHp,
+        enemyHp: updatedEnemyHp,
+        currentPlot: playerPlot,
+        enemyPlot: enemyPlot
+      }
+    } : s));
+
+    setClimaxStep("action");
+
+    const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}${enemyFirstAttackLog}\n\n👉 [행동 선언 단계] 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
+
+    executeMessage(plotMsg);
+  };
   // 🗝️ 회상 발동 (세션 1회 한정)
   const triggerFlashback = (bonusType) => {
     if (!activeSession || activeSession.sheet.flashbackUsed) return;
