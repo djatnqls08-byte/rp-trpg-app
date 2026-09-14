@@ -4205,6 +4205,8 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 📜 의식 진행 (다음 단계)
               </button>
             </div>
+          </div>
+        )}
 
               {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
