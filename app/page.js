@@ -5286,7 +5286,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 {climaxStep === "dodge" && (
   <button
     type="button"
-    onClick={executePlayerDodge}  {/* 👈 executeClimaxDodge 를 executePlayerDodge 로 변경 */}
+    onClick={executePlayerDodge}
     style={{
       flex: 1,
       padding: "8px",
