@@ -1366,6 +1366,19 @@ useEffect(() => {
           const list = skillsMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean);
           if (list.length > 0) setInsaneSkills(list);
         }
+      if (skillsMatch) {
+          const list = skillsMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean);
+          if (list.length > 0) setInsaneSkills(list);
+        }
+
+        // 🌟 에너미(괴이) 이름 & 프라이즈 자동 감지
+        const enemyMatch = rawText.match(/(?:에너미|괴이|보스|적)\s*[:：]\s*([^\n\r]+)/i);
+        if (enemyMatch) setCharEnemyName?.(enemyMatch[1].trim());
+
+        const prizeMatch = rawText.match(/(?:\[프라이즈[^\n\]]*\]|프라이즈\s*[:：])\s*([^\n\r]+)/i);
+        if (prizeMatch) {
+          setParsedPrizes?.([{ id: 1, name: prizeMatch[1].trim(), owner: "미정", secret: "조사 필요", revealed: false }]);
+        }
       }
 
       // ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
@@ -1387,7 +1400,8 @@ useEffect(() => {
           id: 1,
           name: kName.trim(),
           job: kJob.trim(),
-          detail: kDetail.trim(),
+          desc: kDetail.trim(),    // 🌟 로비와 시트가 찾는 원래 이름표!
+          detail: kDetail.trim(),  // 🌟 안전장치
           secret: kSecret,
           portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(kName.trim()) : "",
           showSecret: false
@@ -1411,12 +1425,13 @@ useEffect(() => {
         const sSecret = sSecMatch ? cleanVal(sSecMatch[1]) : "";
 
         parsedNpcList.push({
-          id: Date.now() + idx,
-          name: sName.trim(),
-          job: sJob.trim(),
-          detail: sDetail.trim(),
-          secret: sSecret,
-          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(sName.trim()) : "",
+          id: 1,
+          name: kName.trim(),
+          job: kJob.trim(),
+          desc: kDetail.trim(),    // 🌟 로비와 시트가 찾는 원래 이름표!
+          detail: kDetail.trim(),  // 🌟 안전장치
+          secret: kSecret,
+          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(kName.trim()) : "",
           showSecret: false
         });
       }
@@ -1921,26 +1936,41 @@ const startNewSession = async () => {
         hp: 6, maxHp: 6, san: 6, maxSan: 6, 
         limit: insaneLimit || 4, 
         cycle: 1, scene: 1, 
-        phase: "도입", // 도입 ➔ 메인 ➔ 마스터씬 ➔ 클라이맥스 ➔ 에필로그
+        phase: "도입", 
         mission: charMission || "일상의 온기를 되찾는다.", 
         secret: charSecret || "밝혀지지 않은 과거",
         insaneSkills, insaneCuriosity, insaneFear,
-        flashbackUsed: false, // 1세션 1회 회상 사용권
-        insaneItems: {
-          painkiller: 2, // 진통제 2개 기본 지급 (HP 1D6 회복 소모품)
-          weapon: 0,     // 무기 (데미지 +1)
-          talisman: 0    // 부적 (재굴림)
-        },
+        flashbackUsed: false, 
+        insaneItems: { painkiller: 2, weapon: 0, talisman: 0 },
+        
+        // 🌟 [동적 프라이즈 & 의식 시트: 파일 파싱 데이터 우선, 없으면 빈 배열]
+        prizes: (typeof parsedPrizes !== "undefined" && parsedPrizes.length > 0) 
+          ? parsedPrizes 
+          : [],
+        rituals: (typeof parsedRituals !== "undefined" && parsedRituals.length > 0) 
+          ? parsedRituals 
+          : [],
+
+        // 🌟 [동적 에너미: 파일에 에너미 이름이 있으면 그거 쓰고, 없으면 시나리오 제목으로 자동 생성]
+        enemyName: (typeof parsedEnemyName !== "undefined" && parsedEnemyName) 
+          ? parsedEnemyName 
+          : (scenarioTitle ? `${scenarioTitle}의 괴이` : "미지의 괴이"),
+        enemyHp: 6,
+        maxEnemyHp: 6,
+        currentPlot: null,
+        enemyPlot: null,
+
         npcs: npcs.map(n => ({
           ...n,
-          emotion: null,        // 예: { name: "우정", sign: "+" }
-          locationFound: false, // 거처 확보 여부
-          secretRevealed: false,// 비밀 해금 여부
-          mentalChecked: false  // 정신상태 조사 여부
+          desc: n.desc || n.detail || "",
+          detail: n.desc || n.detail || "",
+          emotion: null,
+          locationFound: false,
+          secretRevealed: false,
+          mentalChecked: false
         }))
       };
     }
-
     const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[초기 배경/서막]\n${openingScene}\n\n[키퍼 전용 기밀/진상]\n${hiddenTruth}`;
 
     const newId = Date.now();
@@ -3736,31 +3766,65 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               )}
 
               {/* ⚔️ 클라이맥스 1~6 플롯 선택 패널 */}
+              {/* ⚔️ 클라이맥스 1~6 플롯 대결 & 결전 액션 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "클라이맥스" && (
-                <div style={{ backgroundColor: "rgba(229, 169, 60, 0.15)", border: `1.5px solid ${theme.warning}`, borderRadius: "8px", padding: "8px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ backgroundColor: "rgba(214, 56, 87, 0.12)", border: `1.5px solid ${theme.danger}`, borderRadius: "10px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {/* 상단: 적 HP vs 내 HP */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
+                    <div style={{ fontSize: "0.76rem", fontWeight: "800", color: theme.danger }}>
+                      👾 {activeSession.sheet?.enemyName || "괴이"}: HP {activeSession.sheet?.enemyHp ?? 6} / {activeSession.sheet?.maxEnemyHp ?? 6}
+                    </div>
+                    <div style={{ fontSize: "0.76rem", fontWeight: "800", color: theme.success }}>
+                      ❤️ 내 HP: {activeSession.sheet?.hp ?? 6} / {activeSession.sheet?.maxHp ?? 6}
+                    </div>
+                  </div>
+
+                  {/* 플롯 속도 선택 */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.warning }}>⚔️ 라운드 플롯(속도) 선택:</span>
-                    {!activeSession.sheet.flashbackUsed && (
+                    <span style={{ fontSize: "0.74rem", fontWeight: "800", color: theme.text }}>속도(플롯) 선택:</span>
+                    {!activeSession.sheet?.flashbackUsed && (
                       <button
                         type="button"
                         onClick={() => triggerFlashback("check")}
-                        style={{ padding: "2px 8px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.68rem", fontWeight: "800", cursor: "pointer" }}
+                        style={{ padding: "2px 7px", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.68rem", fontWeight: "800", cursor: "pointer" }}
                       >
                         🗝️ 회상 (판정+3)
                       </button>
                     )}
                   </div>
-                  <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", gap: "4px" }}>
                     {[1, 2, 3, 4, 5, 6].map(num => (
                       <button
                         key={num}
                         type="button"
                         onClick={() => executeClimaxPlot(num)}
-                        style={{ flex: 1, padding: "6px 0", backgroundColor: theme.panel, border: `1px solid ${theme.warning}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem", fontWeight: "900", cursor: "pointer" }}
+                        style={{ flex: 1, padding: "5px 0", backgroundColor: theme.panel, border: `1px solid ${theme.warning}`, borderRadius: "5px", color: theme.text, fontSize: "0.76rem", fontWeight: "900", cursor: "pointer" }}
                       >
                         {num}
                       </button>
                     ))}
+                  </div>
+
+                  {/* 내 턴 결전 액션 버튼: 공격 or 의식 진행 */}
+                  <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
+                    <button
+                      type="button"
+                      onClick={executeClimaxAttack}
+                      style={{ flex: 1, padding: "7px 0", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800", cursor: "pointer" }}
+                    >
+                      ⚔️ 기본 공격 (2D6)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstUndone = (activeSession.sheet?.rituals || []).findIndex(r => !r.completed);
+                        if (firstUndone !== -1) executeClimaxRitual(firstUndone);
+                        else alert("이미 모든 의식이 완료되었습니다!");
+                      }}
+                      style={{ flex: 1, padding: "7px 0", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800", cursor: "pointer" }}
+                    >
+                      📜 의식 진행 (다음 단계)
+                    </button>
                   </div>
                 </div>
               )}
@@ -3774,7 +3838,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     onClick={() => setShowSkillMatrixModal(true)}
                     style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
                   >
-                    🔍 조사 판정 (66개 특기)
+                    🔍 조사 판정(자율)
                   </button>
                   <button
                     type="button"
@@ -4717,19 +4781,38 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 );
                 const isUnlocked = npc.secretRevealed || isHandoutUnlocked || isChatUnlocked || isScenarioEnded;
 
-                return (
-                  <div style={{ backgroundColor: isUnlocked ? "rgba(214, 56, 87, 0.12)" : "rgba(214, 56, 87, 0.08)", padding: "8px", borderRadius: "6px", border: `1px solid ${isUnlocked ? theme.danger : theme.border}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <strong style={{ color: theme.danger, fontSize: "0.74rem" }}>
-                        {isUnlocked ? "🔓 [숨겨진 비밀/진심]" : "[🔒 숨겨진 비밀/진심]"}
-                      </strong>
-                      {isUnlocked && <span style={{ fontSize: "0.62rem", color: theme.danger, fontWeight: "700" }}>해금 완료</span>}
-                    </div>
-                    <div style={{ marginTop: "4px", color: isUnlocked ? theme.danger : theme.textMuted, fontSize: "0.72rem", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>
-                      {isUnlocked ? (npc.secret || "숨겨진 비밀이 없습니다.") : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
-                    </div>
-                  </div>
-                );
+return (
+  <>
+    {/* 🌟 1. 캐릭터 외모/성격/상세 프로필 상자 (복구 완료!) */}
+    {(npc.desc || npc.detail) && (
+      <div style={{ 
+        fontSize: "0.74rem", 
+        color: theme.text, 
+        lineHeight: "1.5", 
+        marginBottom: "8px", 
+        padding: "6px 8px", 
+        backgroundColor: theme.panel, 
+        borderRadius: "6px",
+        whiteSpace: "pre-wrap"
+      }}>
+        {npc.desc || npc.detail}
+      </div>
+    )}
+
+    {/* 🌟 2. 숨겨진 비밀/진심 상자 */}
+    <div style={{ backgroundColor: isUnlocked ? "rgba(214, 56, 87, 0.12)" : "rgba(214, 56, 87, 0.08)", padding: "8px", borderRadius: "6px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ color: theme.danger, fontSize: "0.74rem" }}>
+          {isUnlocked ? "🔓 [숨겨진 비밀/진심]" : "[🔒 숨겨진 비밀/진심]"}
+        </strong>
+        {isUnlocked && <span style={{ fontSize: "0.62rem", color: theme.danger, fontWeight: "700" }}>해금 완료</span>}
+      </div>
+      <div style={{ marginTop: "4px", color: isUnlocked ? theme.danger : theme.textMuted, fontSize: "0.72rem", lineHeight: "1.4" }}>
+        {isUnlocked ? (npc.secret || "숨겨진 비밀이 없습니다.") : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
+      </div>
+    </div>
+  </>
+);
               })()}
             </details>
           ))}
