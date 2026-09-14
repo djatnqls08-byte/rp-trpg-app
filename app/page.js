@@ -2752,8 +2752,9 @@ currentPhase === "클라이맥스" ? `
           ...s.sheet,
           ...newSheet,
           handouts: s.sheet?.handouts || newSheet.handouts,
-          npcs: s.sheet?.npcs || newSheet.npcs,
-          cycle: s.sheet?.cycle ?? newSheet.cycle,
+npcs: s.sheet?.npcs || newSheet.npcs,
+rituals: s.sheet?.rituals || newSheet.rituals, // 👈 이 한 줄 추가!
+cycle: s.sheet?.cycle ?? newSheet.cycle,
           scene: s.sheet?.scene ?? newSheet.scene,
           phase: s.sheet?.phase ?? newSheet.phase,
           actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
@@ -4135,7 +4136,33 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     ))}
                   </div>
 
-{/* 🌟 결전 액션 버튼: 공격 or 의식 */}
+{/* 🌟 📜 봉인 의식 3단계 실시간 현황 게이지 바 */}
+            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+              {(activeSession.sheet?.rituals || [
+                { id: 1, name: "1단계: 무대 조명 정지", skill: "도구" },
+                { id: 2, name: "2단계: 진혼의 공명", skill: "소리" },
+                { id: 3, name: "3단계: 마지막 커튼 강제 폐막", skill: "슬픔" }
+              ]).map((r, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    flex: 1,
+                    padding: "5px 4px",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                    backgroundColor: r.completed ? "rgba(98, 214, 129, 0.2)" : "rgba(255,255,255,0.05)",
+                    border: `1px solid ${r.completed ? theme.success : theme.border}`,
+                    color: r.completed ? theme.success : theme.textMuted,
+                    fontSize: "0.7rem",
+                    fontWeight: "800"
+                  }}
+                >
+                  {r.completed ? `✔️ ${idx + 1}단계 완료` : `${idx + 1}단계: 《${r.skill}》`}
+                </div>
+              ))}
+            </div>
+
+            {/* 🌟 결전 액션 버튼: 공격 or 의식 */}
             <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
               <button
                 type="button"
