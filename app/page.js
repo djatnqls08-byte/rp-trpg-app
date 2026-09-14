@@ -5283,26 +5283,26 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
 
 {/* 🛡️ 적 선공 시 노출되는 회피 판정 버튼 */}
-        {climaxStep === "dodge" && (
-          <button
-            type="button"
-            onClick={executeClimaxDodge}
-            style={{
-              flex: 1,
-              padding: "8px",
-              backgroundColor: "#2563eb",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              fontWeight: "800",
-              fontSize: "0.78rem",
-              cursor: "pointer",
-              boxShadow: "0 0 10px rgba(37, 99, 235, 0.5)"
-            }}
-          >
-            🛡️ 회피 판정 (2D6)
-          </button>
-        )}
+{climaxStep === "dodge" && (
+  <button
+    type="button"
+    onClick={executePlayerDodge}  {/* 👈 executeClimaxDodge 를 executePlayerDodge 로 변경 */}
+    style={{
+      flex: 1,
+      padding: "8px",
+      backgroundColor: "#2563eb",
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      fontWeight: "800",
+      fontSize: "0.78rem",
+      cursor: "pointer",
+      boxShadow: "0 0 10px rgba(37, 99, 235, 0.5)"
+    }}
+  >
+    🛡️ 회피 판정 (2D6)
+  </button>
+)}
 
         {/* ⚔️ 기존 기본 공격 버튼 */}
         <button
@@ -5906,7 +5906,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       </>
                     )}
                   </div>
-                </div>
 
                 {/* 2. 중앙: 테두리 없는 투명 textarea */}
                 <textarea 
