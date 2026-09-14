@@ -2119,6 +2119,7 @@ const startNewSession = async () => {
     const newSession = {
       id: newId,
       title: sessionTitle,
+      thumbnail: "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg", // 🌟 기본 썸네일 지정
       ruleMode: wizardMode,
       preference: playPreference.trim(),
       scenarioText: fullScenarioContext,
@@ -2128,7 +2129,7 @@ const startNewSession = async () => {
       investigationSpots: [],
       pendingCheck: null
     };
-
+ 
     setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
     setIsLoading(true);
@@ -3243,7 +3244,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 style={{ borderRadius: "10px", cursor: "pointer", marginBottom: "8px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : theme.panel, border: `1px solid ${activeSessionId === s.id ? theme.accent : theme.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}
               >
                 {/* 상단 썸네일 배너 영역 (고정 높이 70px) */}
-                <div style={{ width: "100%", height: "70px", backgroundColor: theme.panelAlt, backgroundImage: s.thumbnail ? `url(${s.thumbnail})` : "linear-gradient(135deg, rgba(150,150,150,0.1), rgba(100,100,100,0.2))", backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
+                <div style={{ width: "100%", height: "70px", backgroundColor: theme.panelAlt, backgroundImage: `url(${s.thumbnail || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg"})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
                   {/* 🌟 클릭 시 컴퓨터 파일 선택 창 바로 열림 */}
                   <label 
                     onClick={(e) => e.stopPropagation()} 
