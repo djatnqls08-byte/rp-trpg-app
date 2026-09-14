@@ -650,7 +650,7 @@ export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // 🌟 [추가] 버전 관리 및 공지사항/가이드 상태
-  const APP_VERSION = "v1.1.0";
+  const APP_VERSION = "v1.2.0";
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [activeNoticeTab, setActiveNoticeTab] = useState("guide"); // 'guide' 또는 'update'
   const [hideNoticeCheckbox, setHideNoticeCheckbox] = useState(false);
