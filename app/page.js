@@ -2052,7 +2052,17 @@ const startNewSession = async () => {
   };
  
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
-    if (!textToSend.trim() || !activeSession) return;
+  if (!textToSend.trim() || !activeSession) return;
+
+  // 🌟 [여기에 쏙!] 개발자용 클라이맥스 즉시 워프 치트키
+  if (textToSend.trim() === "/클맥" || textToSend.trim() === "/climax") {
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { ...s.sheet, phase: "클라이맥스" }
+    } : s));
+    setInput("");
+    return;
+  }
 
     const isDatingMsg = activeSession.ruleMode === "dating_msg";
     const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
