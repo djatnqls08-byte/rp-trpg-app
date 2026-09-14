@@ -4096,7 +4096,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               )}
 
-              {/* ⚔️ 클라이맥스 1~6 플롯 선택 패널 */}
               {/* ⚔️ 클라이맥스 1~6 플롯 대결 & 결전 액션 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "클라이맥스" && (
                 <div style={{ backgroundColor: "rgba(214, 56, 87, 0.12)", border: `1.5px solid ${theme.danger}`, borderRadius: "10px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -4136,24 +4135,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     ))}
                   </div>
 
-                  {/* 내 턴 결전 액션 버튼: 공격 or 의식 진행 */}
-                  <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
-                   <button
-    type="button"
-    disabled={climaxStep !== "action"} // 👈 행동 단계가 아니면 잠금!
-    onClick={executeClimaxAttack}
-    style={{
-      flex: 1,
-      padding: "8px",
-      backgroundColor: theme.danger,
-      color: "#fff",
-      border: "none",
-      borderRadius: "6px",
-      fontWeight: "800",
-      opacity: climaxStep === "action" ? 1 : 0.35, // 잠기면 흐리게
-      cursor: climaxStep === "action" ? "pointer" : "not-allowed"
-    }}
-  >
 {/* 🌟 결전 액션 버튼: 공격 or 의식 */}
             <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
               <button
