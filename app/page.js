@@ -2916,7 +2916,7 @@ currentPhase === "클라이맥스" ? `
       buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
     }
 
-   const orderText = playerPlot > enemyPlot
+    const orderText = playerPlot > enemyPlot
       ? `⚔️ 플레이어(속도 ${playerPlot}) 선공 ➔ 적(속도 ${enemyPlot}) 후공`
       : playerPlot < enemyPlot
       ? `⚡ 적(속도 ${enemyPlot}) 선공 ➔ 플레이어(속도 ${playerPlot}) 후공`
@@ -2941,13 +2941,11 @@ currentPhase === "클라이맥스" ? `
       const enemyHit = (ea1 + ea2) >= 5;
 
       if (enemyHit) {
-        // 적 공격 적중 ➔ 플레이어 회피 단계 진입!
         setClimaxStep("dodge");
         const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}\n\n⚡ [적 선공 개시!] 괴이가 속도(${enemyPlot}) 우위로 먼저 날카로운 공격을 가해옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 아래 [회피 판정] 버튼을 눌러 공격을 피하십시오!`;
         executeMessage(plotMsg);
         return;
       } else {
-        // 적 공격 빗나감 ➔ 플레이어 행동 단계로
         setClimaxStep("action");
         const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}\n\n💨 [적 선공 빗나감!] 괴이가 덮쳐왔으나 공격이 허공을 갈랐습니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 [내 턴] 아래 [기본 공격] 또는 [의식 진행] 버튼을 누르세요.`;
         executeMessage(plotMsg);
@@ -2955,13 +2953,11 @@ currentPhase === "클라이맥스" ? `
       }
     }
 
-    // 플레이어 선공이거나 버팅인 경우 ➔ 바로 공격/의식 단계로
+    // 플레이어 선공이거나 버팅인 경우
     setClimaxStep("action");
     const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
-    executeMessage(plotMsg);
-  };
 
- // 🤖 AI에게 아직 적이 쓰러지지 않았음을 명시하는 지시문
+    // 🤖 AI에게 아직 적이 쓰러지지 않았음을 명시하는 지시문
     const aiPrompt = `${plotMsg}
 [🚨 키퍼 연출 절대 수칙]
 - 지금은 턴의 순서(플롯)만 정해진 '대치 단계'입니다. 아직 플레이어의 공격이나 의식이 확정되지 않았습니다.
