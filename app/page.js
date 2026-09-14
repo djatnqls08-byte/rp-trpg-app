@@ -4347,26 +4347,14 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         <textarea 
                           rows={3}
                           value={kpc.secret} 
-                          onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, secret: e.target.value } : k))} 
-                          placeholder={wizardMode.startsWith("dating") ? "당신에게 쉽게 드러내지 않는 진짜 속마음이나 약점..." : "숨겨진 진심이나 비밀"} 
-                          style={{ 
-                            width: "100%", 
-                            boxSizing: "border-box",
-                            padding: "8px 10px", 
-                            backgroundColor: theme.inputBg, 
-                            border: `1px solid ${theme.danger}`, 
-                            borderRadius: "6px", 
-                            color: theme.danger, 
-                            fontSize: "0.8rem", 
-                            lineHeight: "1.4",
-                            resize: "vertical" 
-                          }} 
+                          ...
                         />
                       )}
                     </div>
                   ))}
                 </div>
               </div>
+            </div> 
 
             {/* CoC 스탯 블록 */}
             {wizardMode === "coc" && (
