@@ -729,6 +729,27 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
     }
   ]);
 
+// 🌟 구글 스프레드시트 CSV 웹 게시 링크
+  const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv";
+
+  useEffect(() => {
+    if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL.trim() !== "" && !GOOGLE_SHEET_CSV_URL.includes("여기에")) {
+      fetch(GOOGLE_SHEET_CSV_URL)
+        .then(res => res.text())
+        .then(csvText => {
+          const rows = parseCSV(csvText);
+          const sheetPresets = rows.slice(1)
+            .filter(r => r[0] && r[0].trim())
+            .map((row, idx) => convertRowToPreset(row, idx));
+
+          if (sheetPresets.length > 0) {
+            setOfficialPresets(sheetPresets);
+          }
+        })
+        .catch(err => console.error("구글 시트 불러오기 실패:", err));
+    }
+  }, []);
+ 
  // 🌟 교체할 useEffect 코드
 useEffect(() => {
   console.log("presets.json 요청 시작...");
