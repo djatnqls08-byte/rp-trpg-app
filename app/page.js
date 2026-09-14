@@ -239,6 +239,91 @@ function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityC
 const ORIENT_TAGS = ["#GL", "#BL", "#HL", "#논로맨스"];
 const TROPE_TAGS = ["#집착", "#혐관", "#쌍방구원", "#우정", "#R19", "#피폐", "#애증", "#신분차", "#배틀", "#계약", "#착각", "#구원", "#짝사랑", "#달달", "#일상", "#오컬트", "이능력"];
 
+// ==========================================
+// 📑 구글 스프레드시트 연동 도우미 (CSV 변환기)
+// ==========================================
+function parseCSV(text) {
+  let p = '', c = '', r = [];
+  let q = false;
+  let row = [''];
+  for (let i = 0; i < text.length; i++) {
+    c = text[i];
+    let next = text[i + 1];
+    if (c === '"') {
+      if (q && next === '"') { row[row.length - 1] += '"'; i++; }
+      else { q = !q; }
+    } else if (c === ',' && !q) {
+      row.push('');
+    } else if ((c === '\r' || c === '\n') && !q) {
+      if (c === '\r' && next === '\n') { i++; }
+      r.push(row);
+      row = [''];
+    } else {
+      row[row.length - 1] += c;
+    }
+  }
+  if (row.length > 1 || row[0] !== '') r.push(row);
+  return r;
+}
+
+function convertRowToPreset(row, index) {
+  const [
+    title, rule, tags, synopsis, opening, truth,
+    pcName, pcJob, pcAgeGender, pcBg, pcMission, pcSecret, pcImg,
+    skills, curiosity, fear,
+    n1Name, n1Job, n1Detail, n1Secret, n1Img,
+    n2Name, n2Job, n2Detail, n2Secret, n2Img,
+    n3Name, n3Job, n3Detail, n3Secret, n3Img,
+    n4Name, n4Job, n4Detail, n4Secret, n4Img
+  ] = row;
+
+  const kpcList = [];
+  const rawNpcs = [
+    { name: n1Name, job: n1Job, detail: n1Detail, secret: n1Secret, img: n1Img },
+    { name: n2Name, job: n2Job, detail: n2Detail, secret: n2Secret, img: n2Img },
+    { name: n3Name, job: n3Job, detail: n3Detail, secret: n3Secret, img: n3Img },
+    { name: n4Name, job: n4Job, detail: n4Detail, secret: n4Secret, img: n4Img }
+  ];
+
+  rawNpcs.forEach((npc, i) => {
+    if (npc.name && npc.name.trim()) {
+      kpcList.push({
+        id: Date.now() + i,
+        name: npc.name.trim(),
+        job: npc.job || "",
+        detail: npc.detail || "",
+        secret: npc.secret || "",
+        portraitUrl: npc.img || "",
+        showSecret: false
+      });
+    }
+  });
+
+  return {
+    id: 9000000000000 + index,
+    presetTitle: title || "새 시나리오",
+    scenarioTitle: title || "새 시나리오",
+    wizardMode: (rule || "insane").toLowerCase().trim(),
+    playPreference: tags || "",
+    publicSynopsis: synopsis || "",
+    openingScene: opening || "",
+    hiddenTruth: truth || "",
+    charName: pcName || "주인공",
+    charJob: pcJob || "",
+    charAge: (pcAgeGender || "").split("/")[0]?.trim() || "20",
+    charGender: (pcAgeGender || "").split("/")[1]?.trim() || "여성",
+    charBackground: pcBg || "",
+    charMission: pcMission || "",
+    charSecret: pcSecret || "",
+    charPortraitUrl: pcImg || "",
+    insaneSkills: (skills || "").split(",").map(s => s.trim()).filter(Boolean),
+    insaneCuriosity: curiosity || "정서",
+    insaneFear: fear || "죽음",
+    insaneLimit: 3,
+    kpcList: kpcList
+  };
+}
+
 export default function App() {
   // 🌟 인세인 전용 UI 상태
   const [isActionDrawerOpen, setIsActionDrawerOpen] = useState(false); // + 서랍 토글
@@ -8252,12 +8337,12 @@ const quoteText = npc.statusMessage
                       • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드 추가.<br/>
                       • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 서브 NPC 사명/비밀 분리 생성 및 핸드아웃 카드 완성.<br/>
                       • <strong>온보딩 가이드 & 세이브 백업:</strong> 가이드 모달과 JSON 백업/복원 기능 탑재.
-                    </div>
-                  </div>
+</div>
+    )}
+  </div>
 
-                </div>
-      )}
-       {/* 🌟 인세인 66개 특기 대용 판정 팝업 모달 */}
+  {/* 🌟 인세인 66개 특기 대용 판정 팝업 */}
+  {showSkillMatrixModal && (
       {showSkillMatrixModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 160, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "620px", maxHeight: "88vh", display: "flex", flexDirection: "column", padding: "16px", borderRadius: "16px", overflow: "hidden" }}>
