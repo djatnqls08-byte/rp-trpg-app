@@ -1041,6 +1041,8 @@ useEffect(() => {
   };
 
   const advanceInsaneScene = (sessionId) => {
+   // 🌟 이미 클라이맥스면 메인으로 강제 강등되는 것 방지!
+      if (s.sheet?.phase === "클라이맥스") return s;
     setSessions(prev => prev.map(s => {
       if (s.id !== sessionId || s.ruleMode !== "insane") return s;
       let currScene = s.sheet?.scene || 1;
@@ -2958,6 +2960,16 @@ currentPhase === "클라이맥스" ? `
     setClimaxStep("action");
     const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
     executeMessage(plotMsg);
+  };
+
+ // 🤖 AI에게 아직 적이 쓰러지지 않았음을 명시하는 지시문
+    const aiPrompt = `${plotMsg}
+[🚨 키퍼 연출 절대 수칙]
+- 지금은 턴의 순서(플롯)만 정해진 '대치 단계'입니다. 아직 플레이어의 공격이나 의식이 확정되지 않았습니다.
+- ❌ 절대 금지: 적이 쓰러지거나, 소멸하거나, 에필로그/엔딩으로 직행하는 서술.
+- ⭕ 허용: 두 인물이 숨을 죽이며 서로를 향해 쇄도하려는 '일촉즉발의 긴장감'만 2문장으로 짧게 서술하십시오.`;
+
+    executeMessage(plotMsg, aiPrompt);
   };
 
 // 🛡️ 플레이어 회피 판정 실행 (2D6 굴림 ➔ 목표치: 내 플롯 + 4)
