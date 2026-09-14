@@ -4322,17 +4322,47 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                           ⚔️ 기본 공격 (2D6)
                         </button>
 
-                        <button
+                          <button
                           type="button"
                           disabled={climaxStep === "plot"}
                           onClick={() => {
                             if (!activeSession) return;
-                            let rituals = activeSession.sheet?.rituals || [];
+
+                            // 1. 의식 목록이 비어있으면 배경 맞춤 의식으로 자동 복원
+                            let rituals = activeSession.sheet?.rituals;
+                            if (!rituals || rituals.length === 0) {
+                              const generated = typeof generateInsaneThemeAssets === "function"
+                                ? generateInsaneThemeAssets(activeSession.title, activeSession.scenarioText)
+                                : null;
+
+                              rituals = generated?.rituals || [
+                                { id: 1, name: "1단계: 무대 조명 정지", skill: "도구", completed: false },
+                                { id: 2, name: "2단계: 진혼의 공명", skill: "소리", completed: false },
+                                { id: 3, name: "3단계: 마지막 커튼 강제 폐막", skill: "슬픔", completed: false }
+                              ];
+
+                              setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                                ...s,
+                                sheet: { ...s.sheet, rituals }
+                              } : s));
+                            }
+
+                            // 2. 미완료된 다음 의식 단계 탐색
                             const nextIdx = rituals.findIndex(r => !r.completed);
+
+                            // 3. 이미 3단계를 모두 성공한 상태일 때
                             if (nextIdx === -1) {
-                              alert("🎉 모든 봉인 의식이 이미 완수되었습니다!");
+                              if (confirm("🎉 이미 3단계 봉인 의식을 모두 완수했습니다!\n\n의식을 1단계부터 다시 진행(초기화)하여 테스트하시겠습니까?")) {
+                                const resetRituals = rituals.map(r => ({ ...r, completed: false }));
+                                setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                                  ...s,
+                                  sheet: { ...s.sheet, rituals: resetRituals }
+                                } : s));
+                                executeClimaxRitual(0);
+                              }
                               return;
                             }
+
                             executeClimaxRitual(nextIdx);
                           }}
                           style={{
