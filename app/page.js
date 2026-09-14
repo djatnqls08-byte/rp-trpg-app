@@ -2101,29 +2101,6 @@ const startNewSession = async () => {
     executeMessage(`[💬 감정 판정 완료]\n- 대상: ${targetName}\n- 주사위: 1D6 ➔ ${emotionDiceResult.roll}번 (${emotionDiceResult.name})\n- 획득 감정: ✨ [${selectedEmotion}] 칩을 획득했습니다!`);
   };
 
-
-// 🌟 [클맥 1] 1~6 플롯 속도 대결 및 버팅(Butting) 처리
-  const executeClimaxPlot = (plotNum) => {
-    if (!activeSession) return;
-    const enemyPlot = Math.floor(Math.random() * 6) + 1;
-    const isBunting = plotNum === enemyPlot;
-    
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-      ...s,
-      sheet: { ...s.sheet, currentPlot: plotNum, enemyPlot: enemyPlot }
-    } : s));
-
-    let msg = `[⚡ 클라이맥스 플롯 선언]\n- 내 플롯 속도: [${plotNum}]\n- 적의 플롯 속도: [${enemyPlot}]`;
-    if (isBunting) {
-      msg += `\n⚠️ [버팅(Butting) 발생!] 속도가 같아 서로의 기도가 정면 충돌했습니다!`;
-    } else if (plotNum > enemyPlot) {
-      msg += `\n✨ 내가 적보다 빠릅니다! [선공권 획득]`;
-    } else {
-      msg += `\n👾 적이 나보다 빠릅니다! [적 선공]`;
-    }
-    executeMessage(msg);
-  };
-
   // 🌟 [클맥 2] 기본 공격 선언 (2D6 공격 판정 ➔ 적 회피 ➔ 적 HP 차감)
   const executeClimaxAttack = () => {
     if (!activeSession) return;
