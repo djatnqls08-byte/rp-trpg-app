@@ -2680,7 +2680,7 @@ const startNewSession = async () => {
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)...`;
 
     executeMessage(text);
-   
+   };
 // 🌟 [클맥 3] 봉인 의식 판정
   const executeClimaxRitual = (stepIdx) => {
     if (!activeSession) return;
