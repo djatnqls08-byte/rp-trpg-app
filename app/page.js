@@ -8144,29 +8144,85 @@ const quoteText = npc.statusMessage
               </button>
             </div>
             
-            <div style={{ fontSize: "0.78rem", color: theme.textMuted }}>
-              부여할 감정의 극성을 선택해 주십시오:
-            </div>
+           {/* 🎯 감정 대상 인물 선택 & 극성 결정 UI */}
+    {(() => {
+      const npcList = (activeSession?.sheet?.npcs && activeSession.sheet.npcs.length > 0) 
+        ? activeSession.sheet.npcs 
+        : (activeSession?.sheet?.kpcList || []);
+      const selectedIdx = emotionModal.selectedTargetIdx ?? 0;
+      const selectedNpc = npcList[selectedIdx] || npcList[0];
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <button
-                type="button"
-                onClick={() => handleSelectEmotion(activeSession.sheet?.npcs?.[0], emotionModal.pair.pos)}
-                style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px solid ${theme.success}`, borderRadius: "10px", color: theme.success, fontWeight: "800", cursor: "pointer", fontSize: "0.82rem" }}
-              >
-                {emotionModal.pair.pos}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectEmotion(activeSession.sheet?.npcs?.[0], emotionModal.pair.neg)}
-                style={{ padding: "10px", backgroundColor: theme.panelAlt, border: `1.5px solid ${theme.danger}`, borderRadius: "10px", color: theme.danger, fontWeight: "800", cursor: "pointer", fontSize: "0.82rem" }}
-              >
-                {emotionModal.pair.neg}
-              </button>
-            </div>
+      return (
+        <>
+          {/* 1. 대상 인물 선택 드롭다운 */}
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", fontSize: "0.78rem", color: theme.textMuted, marginBottom: "6px", fontWeight: "700" }}>
+              🎯 감정을 부여할 대상 (인물 선택):
+            </label>
+            <select
+              value={selectedIdx}
+              onChange={(e) => setEmotionModal(prev => ({ ...prev, selectedTargetIdx: Number(e.target.value) }))}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                backgroundColor: theme.inputBg || "#24242a",
+                border: `1px solid ${theme.border}`,
+                borderRadius: "6px",
+                color: theme.text,
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                cursor: "pointer"
+              }}
+            >
+              {npcList.map((npc, idx) => (
+                <option key={npc.id || idx} value={idx}>
+                  {npc.name ? `${npc.name} (${npc.job || "등장인물"})` : `인물 ${idx + 1}`}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          {/* 2. 극성 선택 안내 */}
+          <div style={{ fontSize: "0.78rem", color: theme.textMuted, marginBottom: "6px" }}>
+            부여할 감정의 극성을 선택해 주십시오:
+          </div>
+
+          {/* 3. 극성 버튼 (선택된 인물에게 전달) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => handleSelectEmotion(selectedNpc, emotionModal.pair.pos)}
+              style={{ 
+                padding: "10px", 
+                backgroundColor: theme.panelAlt, 
+                border: `1.5px solid ${theme.success}`, 
+                borderRadius: "6px", 
+                color: theme.text, 
+                fontWeight: "bold", 
+                cursor: "pointer" 
+              }}
+            >
+              {emotionModal.pair.pos}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectEmotion(selectedNpc, emotionModal.pair.neg)}
+              style={{ 
+                padding: "10px", 
+                backgroundColor: theme.panelAlt, 
+                border: `1.5px solid ${theme.danger}`, 
+                borderRadius: "6px", 
+                color: theme.text, 
+                fontWeight: "bold", 
+                cursor: "pointer" 
+              }}
+            >
+              {emotionModal.pair.neg}
+            </button>
+          </div>
+        </>
+      );
+    })()}
 
 {/* 🌟 3. 조사 판정 전용 모달 (대상 및 특기 선택 ➔ 2D6 자동 계산) */}
       {investigationModal && (
