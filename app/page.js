@@ -87,6 +87,117 @@ const INSANE_SCENE_TABLE_2D6 = {
 
 const INSANE_SCENE_TABLE = INSANE_SCENE_TABLE_2D6;
 
+// 🌟 인세인 배경 맞춤형 프라이즈 & 3단계 의식 자동 생성기
+const generateInsaneThemeAssets = (scenarioTitle = "", scenarioText = "") => {
+  const text = `${scenarioTitle} ${scenarioText}`.toLowerCase();
+
+  // 1. 극장 / 예술
+  if (text.includes("극장") || text.includes("무대") || text.includes("오페라") || text.includes("배우") || text.includes("커튼콜") || text.includes("음악")) {
+    return {
+      prize: {
+        id: "prize_" + Date.now(),
+        title: "[프라이즈] 진홍의 오페라 글라스",
+        desc: "무대 위 숨겨진 괴이의 실체를 간파할 수 있는 기묘한 망원경입니다. (보유 시 회상 판정 주사위 +1 보너스)",
+        revealed: true,
+        type: "prize"
+      },
+      rituals: [
+        { id: 1, name: "1단계: 무대 조명과 기계 장치 강제 정지", skill: "도구", completed: false },
+        { id: 2, name: "2단계: 절망에 찬 영혼을 달래는 진혼의 공명", skill: "소리", completed: false },
+        { id: 3, name: "3단계: 마지막 비극의 커튼 강제 폐막", skill: "슬픔", completed: false }
+      ]
+    };
+  }
+
+  // 2. 병원 / 의학 / 연구소
+  if (text.includes("병원") || text.includes("의사") || text.includes("약") || text.includes("실험") || text.includes("감염") || text.includes("바이러스")) {
+    return {
+      prize: {
+        id: "prize_" + Date.now(),
+        title: "[프라이즈] 정제된 시제 백신 앰플",
+        desc: "괴이의 침식과 부식을 억제할 수 있는 최후의 약제입니다. (보유 시 광기 획득 1회 방어)",
+        revealed: true,
+        type: "prize"
+      },
+      rituals: [
+        { id: 1, name: "1단계: 오염 차단 격리벽 폐쇄", skill: "기계", completed: false },
+        { id: 2, name: "2단계: 기괴한 생체 변이 조직 중화", skill: "의학", completed: false },
+        { id: 3, name: "3단계: 오염체 코어 강제 소각", skill: "파괴", completed: false }
+      ]
+    };
+  }
+
+  // 3. 고택 / 저택 / 신사 / 오컬트
+  if (text.includes("저택") || text.includes("신사") || text.includes("사당") || text.includes("가문") || text.includes("제물") || text.includes("의식") || text.includes("피")) {
+    return {
+      prize: {
+        id: "prize_" + Date.now(),
+        title: "[프라이즈] 가문의 저주받은 곡옥",
+        desc: "불길한 원혼의 한이 서려 있는 부적입니다. (보유 시 괴이 특기 판정 목표치 -1 완화)",
+        revealed: true,
+        type: "prize"
+      },
+      rituals: [
+        { id: 1, name: "1단계: 핏빛 주술 결계진 파괴", skill: "종교", completed: false },
+        { id: 2, name: "2단계: 어둠 속에 응축된 악의 정화", skill: "어둠", completed: false },
+        { id: 3, name: "3단계: 심연의 원혼 영구 봉인", skill: "영감", completed: false }
+      ]
+    };
+  }
+
+  // 4. 학교 / 폐교 / 청춘
+  if (text.includes("학교") || text.includes("교실") || text.includes("동아리") || text.includes("학생") || text.includes("옥상") || text.includes("괴담")) {
+    return {
+      prize: {
+        id: "prize_" + Date.now(),
+        title: "[프라이즈] 피 묻은 교환 일기장",
+        desc: "잊혀진 그날의 진실이 적힌 마지막 일기입니다. (보유 시 클라이맥스 공격 피해 +1)",
+        revealed: true,
+        type: "prize"
+      },
+      rituals: [
+        { id: 1, name: "1단계: 괴담의 발원지 구교사 문 개방", skill: "열쇠", completed: false },
+        { id: 2, name: "2단계: 왜곡된 소문과 기억의 교정", skill: "소문", completed: false },
+        { id: 3, name: "3단계: 서글픈 원혼을 향한 마지막 구원", skill: "정열", completed: false }
+      ]
+    };
+  }
+
+  // 5. 심연 / 바다 / 코스믹 호러
+  if (text.includes("심연") || text.includes("바다") || text.includes("섬") || text.includes("안개") || text.includes("외계") || text.includes("악몽")) {
+    return {
+      prize: {
+        id: "prize_" + Date.now(),
+        title: "[프라이즈] 별의 잔해 나침반",
+        desc: "우주적 공포 앞에서도 정신의 북극성을 가리켜 주는 나침반입니다.",
+        revealed: true,
+        type: "prize"
+      },
+      rituals: [
+        { id: 1, name: "1단계: 차원의 일그러진 균열 차단", skill: "물리", completed: false },
+        { id: 2, name: "2단계: 태고의 부름에 대한 정신 결속", skill: "단념", completed: false },
+        { id: 3, name: "3단계: 심연의 괴이 영구 추방", skill: "심연", completed: false }
+      ]
+    };
+  }
+
+  // 6. 기본 범용 (현대 도시 괴담 / 스릴러)
+  return {
+    prize: {
+      id: "prize_" + Date.now(),
+      title: "[프라이즈] 결정적 단서가 담긴 녹음기",
+      desc: "사건의 모든 진실을 담고 있는 결정적 물증입니다.",
+      revealed: true,
+      type: "prize"
+    },
+    rituals: [
+      { id: 1, name: "1단계: 흑막의 도주로 및 퇴로 차단", skill: "추적", completed: false },
+      { id: 2, name: "2단계: 기괴한 흉기 무력화", skill: "결박", completed: false },
+      { id: 3, name: "3단계: 일그러진 집착의 사념 파괴", skill: "사랑", completed: false }
+    ]
+  };
+};
+
 // 🌟 66개 격자 맨해튼 거리 기반 대용 난이도 계산기 (Zero-API Cost)
 function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityCategory = "") {
   if (learnedSkills.includes(targetSkill)) return 5;
@@ -341,6 +452,9 @@ export default function App() {
  
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
+ // 🌟 클라이맥스 라운드 및 턴 진행 상태 ("plot": 플롯 선택 대기, "action": 행동 선택 대기)
+  const [climaxRound, setClimaxRound] = useState(1);
+  const [climaxStep, setClimaxStep] = useState("plot"); // "plot" 또는 "action"
  // 🌟 감정 판정 모달 전용 상태
   const [emotionModalOpen, setEmotionModalOpen] = useState(false);
   const [emotionTargetNpc, setEmotionTargetNpc] = useState(null);
@@ -1981,17 +2095,42 @@ const startNewSession = async () => {
     }
     const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[초기 배경/서막]\n${openingScene}\n\n[키퍼 전용 기밀/진상]\n${hiddenTruth}`;
 
-    const newId = Date.now();
+   const newId = Date.now();
+
+    // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
+    let sessionSheet = { ...(initialSheet || {}) };
+    if (wizardMode === "insane") {
+      const generated = generateInsaneThemeAssets(sessionTitle, fullScenarioContext);
+      
+      // 1. 프라이즈가 없으면 배경에 어울리는 프라이즈 자동 추가
+      const handouts = sessionSheet.handouts || [];
+      const hasPrize = handouts.some(h => h.type === "prize" || h.title?.includes("프라이즈"));
+      if (!hasPrize && generated.prize) {
+        sessionSheet.handouts = [...handouts, generated.prize];
+      }
+
+      // 2. 의식이 비어있으면 배경 맞춤형 3단계 의식 자동 장착
+      if (!sessionSheet.rituals || sessionSheet.rituals.length === 0) {
+        sessionSheet.rituals = generated.rituals;
+      }
+    }
+
     const newSession = {
-      id: newId, title: sessionTitle, ruleMode: wizardMode, preference: playPreference.trim(),
-      scenarioText: fullScenarioContext, sheet: initialSheet, messages: [], suggestedActions: [],
-      investigationSpots: [], pendingCheck: null
+      id: newId,
+      title: sessionTitle,
+      ruleMode: wizardMode,
+      preference: playPreference.trim(),
+      scenarioText: fullScenarioContext,
+      sheet: sessionSheet,
+      messages: [],
+      suggestedActions: [],
+      investigationSpots: [],
+      pendingCheck: null
     };
 
     setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
     setIsLoading(true);
-
    let openingPrompt = "";
     if (wizardMode === "dating") {
       // 🌸 1. 소설형 비주얼 노벨 서막
@@ -2134,6 +2273,11 @@ const startNewSession = async () => {
         }
       }
     }
+   // 🔔 행동 종료 ➔ 다음 라운드 플롯 단계로 전환!
+    setClimaxRound(prev => prev + 1);
+    setClimaxStep("plot");
+    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
+
     executeMessage(text);
   };
 
@@ -2167,6 +2311,11 @@ const startNewSession = async () => {
         text += `\n\n🎉 [모든 의식 완성!] 마침내 성스러운 의식이 완료되어 괴이가 봉인되었습니다! 에필로그로 향합니다.`;
       }
     }
+   // 🔔 의식 판정 완료 ➔ 다음 라운드 플롯 단계로 전환!
+    setClimaxRound(prev => prev + 1);
+    setClimaxStep("plot");
+    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
+
     executeMessage(text);
   };
 
@@ -2699,10 +2848,10 @@ currentPhase === "클라이맥스" ? `
     executeMessage(`[💊 진통제 복용] 고통을 가라앉힙니다. (1D6 ➔ ${healRoll} 회복 / HP: ${curHp} ➔ ${newHp})`);
   };
 
-  // ⚔️ 클라이맥스 1~6 플롯 선택 & 버팅(Butting) 연산
+// ⚔️ 클라이맥스 1~6 플롯 선택 & 버팅(Butting) 연산
   const executeClimaxPlot = (playerPlot) => {
     if (!activeSession) return;
-    playDiceSound();
+    playDiceSound?.();
     const enemyPlot = Math.floor(Math.random() * 6) + 1;
     const isButting = playerPlot === enemyPlot;
     let buttingText = "";
@@ -2713,22 +2862,30 @@ currentPhase === "클라이맥스" ? `
       buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
     }
 
-    const orderText = playerPlot > enemyPlot 
-      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공` 
-      : playerPlot < enemyPlot 
-      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공` 
+    const orderText = playerPlot > enemyPlot
+      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
+      : playerPlot < enemyPlot
+      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
       : `동시 행동 (버팅)`;
 
-    const playerDodgeTarget = playerPlot + 4; // 회피 목표치: 속도 + 4
-
+    // 시트 상태 반영
     setSessions(prev => prev.map(s => s.id === activeSessionId ? {
       ...s,
-      sheet: { ...s.sheet, hp: updatedPlayerHp }
+      sheet: {
+        ...s.sheet,
+        hp: updatedPlayerHp,
+        currentPlot: playerPlot,
+        enemyPlot: enemyPlot
+      }
     } : s));
 
-    executeMessage(`[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerDodgeTarget})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n행동 선언을 이어가십시오.`);
-  };
+    // 🌟 [핵심] 플롯 선택 완료 ➔ 버튼을 '행동(공격/의식)' 단계로 열어줌!
+    setClimaxStep("action");
 
+    const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
+
+    executeMessage(plotMsg);
+  };
   // 🗝️ 회상 발동 (세션 1회 한정)
   const triggerFlashback = (bonusType) => {
     if (!activeSession || activeSession.sheet.flashbackUsed) return;
@@ -3981,24 +4138,92 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
                   {/* 내 턴 결전 액션 버튼: 공격 or 의식 진행 */}
                   <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
-                    <button
-                      type="button"
-                      onClick={executeClimaxAttack}
-                      style={{ flex: 1, padding: "7px 0", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800", cursor: "pointer" }}
-                    >
-                      ⚔️ 기본 공격 (2D6)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const firstUndone = (activeSession.sheet?.rituals || []).findIndex(r => !r.completed);
-                        if (firstUndone !== -1) executeClimaxRitual(firstUndone);
-                        else alert("이미 모든 의식이 완료되었습니다!");
-                      }}
-                      style={{ flex: 1, padding: "7px 0", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontSize: "0.74rem", fontWeight: "800", cursor: "pointer" }}
-                    >
-                      📜 의식 진행 (다음 단계)
-                    </button>
+                   <button
+    type="button"
+    disabled={climaxStep !== "action"} // 👈 행동 단계가 아니면 잠금!
+    onClick={executeClimaxAttack}
+    style={{
+      flex: 1,
+      padding: "8px",
+      backgroundColor: theme.danger,
+      color: "#fff",
+      border: "none",
+      borderRadius: "6px",
+      fontWeight: "800",
+      opacity: climaxStep === "action" ? 1 : 0.35, // 잠기면 흐리게
+      cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+    }}
+  >
+                     {/* 1. 기본 공격 버튼 */}
+            <button
+              type="button"
+              disabled={climaxStep !== "action"}
+              onClick={executeClimaxAttack}
+              style={{
+                flex: 1,
+                padding: "8px",
+                backgroundColor: theme.danger,
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                fontWeight: "800",
+                fontSize: "0.78rem",
+                opacity: climaxStep === "action" ? 1 : 0.35,
+                cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+              }}
+            >
+              ⚔️ 기본 공격 (2D6)
+            </button>
+
+            {/* 2. 📜 의식 진행 버튼 (시나리오 배경 맞춤형 자동 연동) */}
+            <button
+              type="button"
+              disabled={climaxStep !== "action"}
+              onClick={() => {
+                if (!activeSession) return;
+
+                // 시트에 의식이 없으면 시나리오 배경 맞춤형 테마 의식 자동 불러오기!
+                let rituals = activeSession.sheet?.rituals;
+                if (!rituals || rituals.length === 0) {
+                  const generated = typeof generateInsaneThemeAssets === "function"
+                    ? generateInsaneThemeAssets(activeSession.title, activeSession.scenarioText)
+                    : null;
+                  
+                  rituals = generated?.rituals || [
+                    { id: 1, name: "1단계: 무대 결계 파괴", skill: "파괴", completed: false },
+                    { id: 2, name: "2단계: 진혼의 공명", skill: "소리", completed: false },
+                    { id: 3, name: "3단계: 괴이 심연 봉인", skill: "영감", completed: false }
+                  ];
+
+                  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                    ...s,
+                    sheet: { ...s.sheet, rituals }
+                  } : s));
+                }
+
+                const nextIdx = rituals.findIndex(r => !r.completed);
+                if (nextIdx === -1) {
+                  alert("🎉 모든 봉인 의식이 이미 완수되었습니다! 에필로그로 진행할 수 있습니다.");
+                  return;
+                }
+
+                executeClimaxRitual(nextIdx);
+              }}
+              style={{
+                flex: 1,
+                padding: "8px",
+                backgroundColor: "#374151",
+                color: "#fff",
+                border: "none",
+                borderRadius: "6px",
+                fontWeight: "800",
+                fontSize: "0.78rem",
+                opacity: climaxStep === "action" ? 1 : 0.35,
+                cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+              }}
+            >
+              📜 의식 진행 (다음 단계)
+            </button>
                   </div>
                 </div>
               )}
@@ -5698,7 +5923,6 @@ const quoteText = npc.statusMessage
                 </div>
               )}
 
-              {/* 🌟 [인앱 선물 선택 모달 (바닥 쳐박힘 해결 -> 화면 중앙 플로팅 카드!)] */}
 {/* 🌟 [인앱 취향 수첩 모달 (화면 중앙 플로팅 카드)] */}
               {clueModalNpc && (
                 <div 
