@@ -2241,7 +2241,7 @@ const startNewSession = async () => {
     executeMessage(`[💬 감정 판정 완료]\n- 대상: ${targetName}\n- 주사위: 1D6 ➔ ${emotionDiceResult.roll}번 (${emotionDiceResult.name})\n- 획득 감정: ✨ [${selectedEmotion}] 칩을 획득했습니다!`);
   };
 
- // 🌟 [클맥 2] 기본 공격 선언 (플레이어 공격 ➔ 적 생존 시 반격 ➔ 플레이어 회피 판정)
+ // 🌟 [클맥 2] 기본 공격 선언
   const executeClimaxAttack = () => {
     if (!activeSession) return;
     playDiceSound?.();
@@ -2251,13 +2251,19 @@ const startNewSession = async () => {
     const playerPlot = activeSession.sheet?.currentPlot ?? 3;
     const enemyPlot = activeSession.sheet?.enemyPlot ?? 3;
 
-    // 1. 내 공격 판정
+    // 공격 주사위 판정 (회상 보너스 적용)
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
-    const sum = d1 + d2;
-    const isHit = sum >= 5;
+    const baseSum = d1 + d2;
+    const bonus = activeSession.sheet?.flashbackBonus || 0;
+    const totalSum = baseSum + bonus;
+    const isHit = totalSum >= 5;
 
-    let text = `[⚔️ 클라이맥스 공격 선언]\n- 공격 명중 판정: ${d1}+${d2}=${sum} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
+    const rollDetail = bonus > 0 
+      ? `${d1}+${d2} (+회상 3) = ${totalSum}` 
+      : `${d1}+${d2} = ${totalSum}`;
+
+    let text = `[⚔️ 클라이맥스 공격 선언]\n- 공격 명중 판정: ${rollDetail} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
 
     if (isHit) {
       const enemyDodgeTarget = enemyPlot + 4;
@@ -2274,54 +2280,45 @@ const startNewSession = async () => {
       }
     }
 
-    // 2. 적 사망 시 즉시 승리
+    // 상태 반영 & 보너스 초기화(0)
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { 
+        ...s.sheet, 
+        enemyHp: curEnemyHp,
+        flashbackBonus: 0 
+      }
+    } : s));
+
     if (curEnemyHp <= 0) {
       text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
-    } else if (playerPlot > enemyPlot) {
-      // 3. 플레이어 선공이었고 적이 생존했다면: 적의 후공 반격
+      executeMessage(text);
+      return;
+    }
+
+    if (playerPlot > enemyPlot) {
       const ea1 = Math.floor(Math.random() * 6) + 1;
       const ea2 = Math.floor(Math.random() * 6) + 1;
       const enemyHit = (ea1 + ea2) >= 5;
 
-      text += `\n\n👾 [적의 반격!] 적이 거친 반격을 시도합니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})`;
-
       if (enemyHit) {
-        const dodgeTarget = playerPlot + 4;
-        const pd1 = Math.floor(Math.random() * 6) + 1;
-        const pd2 = Math.floor(Math.random() * 6) + 1;
-        const playerDodgeSum = pd1 + pd2;
-        const isDodged = playerDodgeSum >= dodgeTarget;
-
-        if (isDodged) {
-          text += `\n🛡️ [회피 성공!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 반격을 완벽히 흘려보냈습니다!`;
-        } else {
-          curPlayerHp = Math.max(0, curPlayerHp - 1);
-          text += `\n💥 [회피 실패!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 반격에 1점 피해를 입었습니다! (내 HP: ${curPlayerHp}/${activeSession.sheet?.maxHp ?? 6})`;
-        }
+        setClimaxStep("dodge");
+        text += `\n\n👾 [적의 반격!] 적이 거친 반격을 시도해 옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 아래 [회피 판정] 버튼을 눌러 반격을 피하십시오!`;
+        executeMessage(text);
+        return;
       } else {
-        text += `\n💨 적의 반격이 허공을 갈랐습니다!`;
+        text += `\n\n💨 [적 반격 빗나감!] 적이 발악하며 휘두른 일격이 빗나갔습니다!`;
       }
     }
 
-    // 상태 반영
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-      ...s,
-      sheet: {
-        ...s.sheet,
-        hp: curPlayerHp,
-        enemyHp: curEnemyHp
-      }
-    } : s));
-
-    // 라운드 종료 및 다음 플롯 단계로 전환
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
-    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
+    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)을 선택해 주십시오.`;
 
     executeMessage(text);
   };
 
-  // 🌟 [클맥 3] 봉인 의식 판정
+// 🌟 [클맥 3] 봉인 의식 판정
   const executeClimaxRitual = (stepIdx) => {
     if (!activeSession) return;
     const ritual = activeSession.sheet?.rituals?.[stepIdx];
@@ -2331,27 +2328,48 @@ const startNewSession = async () => {
     const targetVal = typeof calculateInsaneTargetNumber === "function"
       ? calculateInsaneTargetNumber(ritual.skill, activeSession.sheet?.insaneSkills || [], activeSession.sheet?.insaneCuriosity || "")
       : 7;
+
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
-    const sum = d1 + d2;
-    const isSuccess = sum >= targetVal;
+    const baseSum = d1 + d2;
+    
+    // 회상 보너스 확인
+    const bonus = activeSession.sheet?.flashbackBonus || 0;
+    const totalSum = baseSum + bonus;
+    const isSuccess = totalSum >= targetVal;
 
-    let text = `[📜 의식 판정: ${stepIdx + 1}단계 - ${ritual.name}]\n- 판정 특기: 《${ritual.skill}》(목표치 ${targetVal})\n- 주사위 결과: ${d1}+${d2}=${sum} ➔ ${isSuccess ? "성공!" : "실패!"}`;
+    const rollDetail = bonus > 0 
+      ? `${d1}+${d2} (+회상 3) = ${totalSum}` 
+      : `${d1}+${d2} = ${totalSum}`;
+
+    let text = `[📜 의식 판정: ${stepIdx + 1}단계 - ${ritual.name}]\n- 판정 특기: 《${ritual.skill}》(목표치 ${targetVal})\n- 주사위 결과: ${rollDetail} ➔ ${isSuccess ? "성공!" : "실패!"}`;
 
     if (isSuccess) {
       const updatedRituals = (activeSession.sheet?.rituals || []).map((r, i) => i === stepIdx ? { ...r, completed: true } : r);
       const allDone = updatedRituals.every(r => r.completed);
 
+      // 의식 완료 반영 & 보너스 초기화(0)
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-        ...s, sheet: { ...s.sheet, rituals: updatedRituals }
+        ...s, 
+        sheet: { 
+          ...s.sheet, 
+          rituals: updatedRituals,
+          flashbackBonus: 0 
+        }
       } : s));
 
       text += `\n✨ [의식 단계 완료 ✔️] 결계가 한 꺼풀 벗겨졌습니다!`;
       if (allDone) {
         text += `\n\n🎉 [모든 의식 완성!] 마침내 성스러운 의식이 완료되어 괴이가 봉인되었습니다! 에필로그로 향합니다.`;
       }
+    } else {
+      // 실패 시에도 보너스 초기화
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s, 
+        sheet: { ...s.sheet, flashbackBonus: 0 }
+      } : s));
     }
-   // 🔔 의식 판정 완료 ➔ 다음 라운드 플롯 단계로 전환!
+
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
@@ -3011,16 +3029,23 @@ const executePlayerDodge = () => {
   executeMessage(text);
 };
  
-  // 🗝️ 회상 발동 (세션 1회 한정)
+ // 🗝️ 회상 발동 (세션 1회 한정)
   const triggerFlashback = (bonusType) => {
-    if (!activeSession || activeSession.sheet.flashbackUsed) return;
+    if (!activeSession || activeSession.sheet?.flashbackUsed) return;
+    
+    // 시트에 회상 사용 처리 및 다음 판정에 쓸 +3 보너스 저장
     setSessions(prev => prev.map(s => s.id === activeSessionId ? {
       ...s,
-      sheet: { ...s.sheet, flashbackUsed: true }
+      sheet: { 
+        ...s.sheet, 
+        flashbackUsed: true,
+        flashbackBonus: 3 // 🌟 다음 판정에 합산할 보너스 저장!
+      }
     } : s));
-    const secretText = activeSession.sheet.secret || "감춰둔 진실";
+
+    const secretText = activeSession.sheet?.secret || "감춰둔 진실";
     const bonusText = bonusType === "check" ? "판정 달성치 +3 수정" : "데미지 +1D6 가산";
-    executeMessage(`[🗝️ 회상 선언]\n"……${secretText}"\n가슴속 비밀을 밝히며 온 힘을 다합니다. (효과: ${bonusText})`);
+    executeMessage(`[🗝️ 회상 선언]\n"……${secretText}"\n가슴속 비밀을 밝히며 온 힘을 다합니다. (효과: 다음 판정 달성치 +3 보너스 부여)`);
   };
 
 // 🌟 인세인 핸드아웃 뒤집기 (대화 기록 조사 성공 이력 자동 감지 및 즉시 해금)
