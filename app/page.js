@@ -85,6 +85,8 @@ const INSANE_SCENE_TABLE_2D6 = {
   12: "밝은 빛을 받았을 때 안도의 한숨. 하지만 빛이 강할수록 그림자도 더 짙어진다……."
 };
 
+const INSANE_SCENE_TABLE = INSANE_SCENE_TABLE_2D6;
+
 // 🌟 66개 격자 맨해튼 거리 기반 대용 난이도 계산기 (Zero-API Cost)
 function calculateInsaneTargetNumber(targetSkill, learnedSkills = [], curiosityCategory = "") {
   if (learnedSkills.includes(targetSkill)) return 5;
@@ -240,7 +242,9 @@ export default function App() {
         setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
       }
     } else {
-      resultDetail = `\n[조사 실패] 경계가 삼엄하여 핵심 정보를 알아내지 못했습니다.`;
+      resultDetail = targetType === "location"
+  ? `\n[거처 확보 실패] 인물의 흔적을 놓쳐 거처와 활동 경로를 파악하지 못했습니다.`
+  : `\n[비밀 조사 실패] 경계가 삼엄하여 핵심 정보를 알아내지 못했습니다.`;
       setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, actionUsed: true } } : s));
     }
 
@@ -337,6 +341,10 @@ export default function App() {
  
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
+ // 🌟 감정 판정 모달 전용 상태
+  const [emotionModalOpen, setEmotionModalOpen] = useState(false);
+  const [emotionTargetNpc, setEmotionTargetNpc] = useState(null);
+  const [emotionDiceResult, setEmotionDiceResult] = useState(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -2051,6 +2059,152 @@ const startNewSession = async () => {
     }
   };
 
+// 🌟 [감정 판정 1단계] 팝업 열기
+  const openEmotionModal = () => {
+    if (!activeSession) return;
+    setEmotionTargetNpc(null);
+    setEmotionDiceResult(null);
+    setEmotionModalOpen(true);
+  };
+
+  // 🌟 [감정 판정 2단계] 대상 선택 후 주사위 굴리기
+  const startEmotionRoll = (npc) => {
+    setEmotionTargetNpc(npc);
+    playDiceSound?.();
+    const d = Math.floor(Math.random() * 6) + 1;
+    const table = {
+      1: { pos: "공감(+)", neg: "불신(-)", name: "공감 / 불신" },
+      2: { pos: "우정(+)", neg: "분노(-)", name: "우정 / 분노" },
+      3: { pos: "동경(+)", neg: "질투(-)", name: "동경 / 질투" },
+      4: { pos: "집착(+)", neg: "경멸(-)", name: "집착 / 경멸" },
+      5: { pos: "연정(+)", neg: "의혹(-)", name: "연정 / 의혹" },
+      6: { pos: "광신(+)", neg: "살의(-)", name: "광신 / 살의" }
+    };
+    setEmotionDiceResult({ roll: d, ...table[d] });
+  };
+
+  // 🌟 [감정 판정 3단계] 감정 확정 및 시트 반영
+  const confirmEmotion = (selectedEmotion) => {
+    if (!activeSession || !emotionTargetNpc || !emotionDiceResult) return;
+    const targetName = emotionTargetNpc.name;
+
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        npcs: (s.sheet.npcs || []).map(n => n.name === targetName ? { ...n, emotion: selectedEmotion } : n)
+      }
+    } : s));
+
+    setEmotionModalOpen(false);
+
+    executeMessage(`[💬 감정 판정 완료]\n- 대상: ${targetName}\n- 주사위: 1D6 ➔ ${emotionDiceResult.roll}번 (${emotionDiceResult.name})\n- 획득 감정: ✨ [${selectedEmotion}] 칩을 획득했습니다!`);
+  };
+
+
+// 🌟 [클맥 1] 1~6 플롯 속도 대결 및 버팅(Butting) 처리
+  const executeClimaxPlot = (plotNum) => {
+    if (!activeSession) return;
+    const enemyPlot = Math.floor(Math.random() * 6) + 1;
+    const isBunting = plotNum === enemyPlot;
+    
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: { ...s.sheet, currentPlot: plotNum, enemyPlot: enemyPlot }
+    } : s));
+
+    let msg = `[⚡ 클라이맥스 플롯 선언]\n- 내 플롯 속도: [${plotNum}]\n- 적의 플롯 속도: [${enemyPlot}]`;
+    if (isBunting) {
+      msg += `\n⚠️ [버팅(Butting) 발생!] 속도가 같아 서로의 기도가 정면 충돌했습니다!`;
+    } else if (plotNum > enemyPlot) {
+      msg += `\n✨ 내가 적보다 빠릅니다! [선공권 획득]`;
+    } else {
+      msg += `\n👾 적이 나보다 빠릅니다! [적 선공]`;
+    }
+    executeMessage(msg);
+  };
+
+  // 🌟 [클맥 2] 기본 공격 선언 (2D6 공격 판정 ➔ 적 회피 ➔ 적 HP 차감)
+  const executeClimaxAttack = () => {
+    if (!activeSession) return;
+    playDiceSound?.();
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const isHit = sum >= 5;
+
+    let text = `[⚔️ 클라이맥스 공격 선언]\n- 공격 명중 판정: ${d1}+${d2}=${sum} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
+    
+    if (isHit) {
+      const enemyDodgeTarget = (activeSession.sheet?.enemyPlot || 3) + 4;
+      const ed1 = Math.floor(Math.random() * 6) + 1;
+      const ed2 = Math.floor(Math.random() * 6) + 1;
+      const enemyDodgeSum = ed1 + ed2;
+      const enemyDodged = enemyDodgeSum >= enemyDodgeTarget;
+
+      if (enemyDodged) {
+        text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
+      } else {
+        const curHp = activeSession.sheet?.enemyHp ?? 6;
+        const newEnemyHp = Math.max(0, curHp - 1);
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          ...s, sheet: { ...s.sheet, enemyHp: newEnemyHp }
+        } : s));
+        text += `\n- 적 회피 실패! (${ed1}+${ed2}=${enemyDodgeSum} / 목표치 ${enemyDodgeTarget})\n💥 적에게 1점의 치명상을 입혔습니다! (적 HP: ${newEnemyHp}/${activeSession.sheet?.maxEnemyHp || 6})`;
+
+        if (newEnemyHp <= 0) {
+          text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
+        }
+      }
+    }
+    executeMessage(text);
+  };
+
+  // 🌟 [클맥 3] 봉인 의식 판정
+  const executeClimaxRitual = (stepIdx) => {
+    if (!activeSession) return;
+    const ritual = activeSession.sheet?.rituals?.[stepIdx];
+    if (!ritual || ritual.completed) return;
+
+    playDiceSound?.();
+    const targetVal = typeof calculateInsaneTargetNumber === "function"
+      ? calculateInsaneTargetNumber(ritual.skill, activeSession.sheet?.insaneSkills || [], activeSession.sheet?.insaneCuriosity || "")
+      : 7;
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const isSuccess = sum >= targetVal;
+
+    let text = `[📜 의식 판정: ${stepIdx + 1}단계 - ${ritual.name}]\n- 판정 특기: 《${ritual.skill}》(목표치 ${targetVal})\n- 주사위 결과: ${d1}+${d2}=${sum} ➔ ${isSuccess ? "성공!" : "실패!"}`;
+
+    if (isSuccess) {
+      const updatedRituals = (activeSession.sheet?.rituals || []).map((r, i) => i === stepIdx ? { ...r, completed: true } : r);
+      const allDone = updatedRituals.every(r => r.completed);
+
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s, sheet: { ...s.sheet, rituals: updatedRituals }
+      } : s));
+
+      text += `\n✨ [의식 단계 완료 ✔️] 결계가 한 꺼풀 벗겨졌습니다!`;
+      if (allDone) {
+        text += `\n\n🎉 [모든 의식 완성!] 마침내 성스러운 의식이 완료되어 괴이가 봉인되었습니다! 에필로그로 향합니다.`;
+      }
+    }
+    executeMessage(text);
+  };
+
+  // 🌟 장면표 굴림 함수 (INSANE_SCENE_TABLE 연동)
+  const rollSceneTable = () => {
+    if (!activeSession) return;
+    playDiceSound?.();
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const sum = d1 + d2;
+    const desc = INSANE_SCENE_TABLE[sum] || "알 수 없는 기묘한 기운이 주변을 맴돕니다.";
+    executeMessage(`[🎬 2D6 공포 장면표: 주사위 ${d1}+${d2}=${sum}]\n"${desc}"`);
+  };
+
+ 
 // 🌟 [복구] 메시지 전송 및 클라이맥스 즉시 워프 치트키
   const sendMessage = () => {
     if (!input || !input.trim()) return;
@@ -3883,17 +4037,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   >
                     🔍 조사 판정(자율)
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const d = Math.floor(Math.random() * 6) + 1;
-                      const emo = { 1: "공감(+) / 불신(-)", 2: "우정(+) / 분노(-)", 3: "애정(+) / 질투(-)", 4: "충성(+) / 모멸(-)", 5: "동경(+) / 열등감(-)", 6: "광신(+) / 살의(-)" };
-                      setInput(`[주요 행동: 감정 판정 선언] (1D6 ➔ ${d}번: ${emo[d]} 중 선택) `);
-                    }}
-                    style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.accent, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
-                  >
-                    💬 감정 판정 (1D6)
-                  </button>
+<button
+  type="button"
+  onClick={openEmotionModal}
+  style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", color: theme.text, cursor: "pointer" }}
+>
+  💬 감정 판정 (1D6)
+</button>
                   <button
                     type="button"
                     onClick={() => setInput(`[주요 행동: 회복 판정 선언] 흐트러진 정신과 상처를 추스릅니다. `)}
@@ -6626,7 +6776,7 @@ const quoteText = npc.statusMessage
             {investigationModal.step === "selectSkill" && (
               <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
                 <label style={{ fontSize: "0.75rem", fontWeight: "700", color: theme.warning, display: "block", marginBottom: "6px" }}>
-                  2. 조사에 사용할 특기 선택 (목표치 자동 계산):
+                 2. [{investigationModal.targetType === "location" ? "🏠 거처 확보" : "🔓 비밀 파헤치기"}]에 사용할 특기 선택:
                 </label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {(activeSession?.sheet?.insaneSkills || []).map((sk, sIdx) => (
