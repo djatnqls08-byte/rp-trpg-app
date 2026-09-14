@@ -2910,43 +2910,13 @@ currentPhase === "클라이맥스" ? `
       buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
     }
 
-    let enemyFirstAttackLog = "";
-
-    // 2) 적 선공인 경우 (적 플롯 > 플레이어 플롯)
-    if (enemyPlot > playerPlot && !isButting) {
-      // 적 공격 판정 (2D6 >= 5 성공)
-      const ea1 = Math.floor(Math.random() * 6) + 1;
-      const ea2 = Math.floor(Math.random() * 6) + 1;
-      const enemyHit = (ea1 + ea2) >= 5;
-
-      enemyFirstAttackLog = `\n\n⚡ [적 선공 개시!] 괴이가 속도(${enemyPlot}) 우위로 먼저 덮쳐옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})`;
-
-      if (enemyHit) {
-        // 플레이어 회피 판정 (목표치: 내 플롯 + 4)
-        const dodgeTarget = playerPlot + 4;
-        const pd1 = Math.floor(Math.random() * 6) + 1;
-        const pd2 = Math.floor(Math.random() * 6) + 1;
-        const playerDodgeSum = pd1 + pd2;
-        const isDodged = playerDodgeSum >= dodgeTarget;
-
-        if (isDodged) {
-          enemyFirstAttackLog += `\n🛡️ [회피 성공!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 일격을 날렵하게 피했습니다!`;
-        } else {
-          updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
-          enemyFirstAttackLog += `\n💥 [회피 실패!] 주사위 ${pd1}+${pd2}=${playerDodgeSum} (목표치 ${dodgeTarget}) ➔ 적의 공격을 피하지 못하고 1점 피해를 입었습니다! (내 HP: ${updatedPlayerHp}/${activeSession.sheet?.maxHp ?? 6})`;
-        }
-      } else {
-        enemyFirstAttackLog += `\n💨 적의 공격이 빗나갔습니다!`;
-      }
-    }
-
     const orderText = playerPlot > enemyPlot
       ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
       : playerPlot < enemyPlot
       ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
       : `동시 행동 (버팅)`;
 
-    // 상태 반영
+    // 2) 상태 반영
     setSessions(prev => prev.map(s => s.id === activeSessionId ? {
       ...s,
       sheet: {
@@ -2958,12 +2928,77 @@ currentPhase === "클라이맥스" ? `
       }
     } : s));
 
+    // 3) 적 선공인 경우 (적 플롯 > 플레이어 플롯)
+    if (enemyPlot > playerPlot && !isButting) {
+      const ea1 = Math.floor(Math.random() * 6) + 1;
+      const ea2 = Math.floor(Math.random() * 6) + 1;
+      const enemyHit = (ea1 + ea2) >= 5;
+
+      if (enemyHit) {
+        // 적 공격 적중 ➔ 플레이어 회피 단계 진입!
+        setClimaxStep("dodge");
+        const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}\n\n⚡ [적 선공 개시!] 괴이가 속도(${enemyPlot}) 우위로 먼저 날카로운 공격을 가해옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 아래 [회피 판정] 버튼을 눌러 공격을 피하십시오!`;
+        executeMessage(plotMsg);
+        return;
+      } else {
+        // 적 공격 빗나감 ➔ 플레이어 행동 단계로
+        setClimaxStep("action");
+        const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}\n\n💨 [적 선공 빗나감!] 괴이가 덮쳐왔으나 공격이 허공을 갈랐습니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 [내 턴] 아래 [기본 공격] 또는 [의식 진행] 버튼을 누르세요.`;
+        executeMessage(plotMsg);
+        return;
+      }
+    }
+
+    // 플레이어 선공이거나 버팅인 경우 ➔ 바로 공격/의식 단계로
     setClimaxStep("action");
-
-    const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}${enemyFirstAttackLog}\n\n👉 [행동 선언 단계] 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
-
+    const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
     executeMessage(plotMsg);
   };
+
+// 🛡️ 플레이어 회피 판정 실행 (2D6 굴림 ➔ 목표치: 내 플롯 + 4)
+const executePlayerDodge = () => {
+  if (!activeSession) return;
+  playDiceSound?.();
+
+  const playerPlot = activeSession.sheet?.currentPlot ?? 3;
+  const enemyPlot = activeSession.sheet?.enemyPlot ?? 3;
+  const dodgeTarget = playerPlot + 4;
+
+  const pd1 = Math.floor(Math.random() * 6) + 1;
+  const pd2 = Math.floor(Math.random() * 6) + 1;
+  const dodgeSum = pd1 + pd2;
+  const isDodged = dodgeSum >= dodgeTarget;
+
+  let curPlayerHp = activeSession.sheet?.hp ?? 6;
+  let text = `[🛡️ 회피 판정 선언]\n- 주사위 2D6: ${pd1}+${pd2}=${dodgeSum} (목표치: ${dodgeTarget})\n`;
+
+  if (isDodged) {
+    text += `✨ [회피 성공!] 공격 궤도를 간파하여 피해를 완전히 흘려보냈습니다!`;
+  } else {
+    curPlayerHp = Math.max(0, curPlayerHp - 1);
+    text += `💥 [회피 실패!] 피하지 못하고 1점의 피해를 입었습니다! (내 HP: ${curPlayerHp}/${activeSession.sheet?.maxHp ?? 6})`;
+  }
+
+  // 시트 상태 반영
+  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+    ...s,
+    sheet: { ...s.sheet, hp: curPlayerHp }
+  } : s));
+
+  // 적 선공이었으면 회피 후 플레이어의 반격 차례
+  if (enemyPlot > playerPlot) {
+    setClimaxStep("action");
+    text += `\n\n👉 [내 반격 차례] 적의 공격이 끝났습니다. 아래 [기본 공격] 또는 [의식 진행] 버튼을 누르세요.`;
+  } else {
+    // 후공 반격에 회피한 것이라면 라운드 종료
+    setClimaxRound(prev => prev + 1);
+    setClimaxStep("plot");
+    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)을 선택해 주십시오.`;
+  }
+
+  executeMessage(text);
+};
+ 
   // 🗝️ 회상 발동 (세션 1회 한정)
   const triggerFlashback = (bonusType) => {
     if (!activeSession || activeSession.sheet.flashbackUsed) return;
