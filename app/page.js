@@ -4214,7 +4214,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               )}
 
-              {/* ⚔️ 클라이맥스 1~6 플롯 대결 & 결전 액션 바 */}
+{/* ⚔️ 클라이맥스 1~6 플롯 대결 & 결전 액션 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "클라이맥스" && (
                 <div style={{ backgroundColor: "rgba(214, 56, 87, 0.12)", border: `1.5px solid ${theme.danger}`, borderRadius: "10px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                   {/* 상단: 적 HP vs 내 HP */}
@@ -4253,83 +4253,108 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     ))}
                   </div>
 
-{/* 🌟 📜 봉인 의식 3단계 실시간 현황 게이지 바 */}
-            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-              {(activeSession.sheet?.rituals || [
-                { id: 1, name: "1단계: 무대 조명 정지", skill: "도구" },
-                { id: 2, name: "2단계: 진혼의 공명", skill: "소리" },
-                { id: 3, name: "3단계: 마지막 커튼 강제 폐막", skill: "슬픔" }
-              ]).map((r, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    flex: 1,
-                    padding: "5px 4px",
-                    borderRadius: "6px",
-                    textAlign: "center",
-                    backgroundColor: r.completed ? "rgba(98, 214, 129, 0.2)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${r.completed ? theme.success : theme.border}`,
-                    color: r.completed ? theme.success : theme.textMuted,
-                    fontSize: "0.7rem",
-                    fontWeight: "800"
-                  }}
-                >
-                  {r.completed ? `✔️ ${idx + 1}단계 완료` : `${idx + 1}단계: 《${r.skill}》`}
+                  {/* 🌟 📜 봉인 의식 3단계 실시간 현황 게이지 바 */}
+                  <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+                    {(activeSession.sheet?.rituals || [
+                      { id: 1, name: "1단계: 무대 조명 정지", skill: "도구" },
+                      { id: 2, name: "2단계: 진혼의 공명", skill: "소리" },
+                      { id: 3, name: "3단계: 마지막 커튼 강제 폐막", skill: "슬픔" }
+                    ]).map((r, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          flex: 1,
+                          padding: "5px 4px",
+                          borderRadius: "6px",
+                          textAlign: "center",
+                          backgroundColor: r.completed ? "rgba(98, 214, 129, 0.2)" : "rgba(255,255,255,0.05)",
+                          border: `1px solid ${r.completed ? theme.success : theme.border}`,
+                          color: r.completed ? theme.success : theme.textMuted,
+                          fontSize: "0.7rem",
+                          fontWeight: "800"
+                        }}
+                      >
+                        {r.completed ? `✔️ ${idx + 1}단계 완료` : `${idx + 1}단계: 《${r.skill}》`}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 🌟 결전 액션 버튼: 회피 or 공격/의식 */}
+                  <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+                    {climaxStep === "dodge" ? (
+                      <button
+                        type="button"
+                        onClick={executePlayerDodge}
+                        style={{
+                          flex: 1,
+                          padding: "10px",
+                          backgroundColor: theme.warning,
+                          color: "#000",
+                          border: "none",
+                          borderRadius: "6px",
+                          fontWeight: "900",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          boxShadow: "0 2px 10px rgba(229, 169, 60, 0.4)"
+                        }}
+                      >
+                        🛡️ 회피 판정 굴리기 (2D6 / 목표치: {(activeSession.sheet?.currentPlot ?? 3) + 4})
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          disabled={climaxStep === "plot"}
+                          onClick={executeClimaxAttack}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            backgroundColor: theme.danger,
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontWeight: "800",
+                            fontSize: "0.78rem",
+                            opacity: climaxStep === "plot" ? 0.35 : 1,
+                            cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          ⚔️ 기본 공격 (2D6)
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={climaxStep === "plot"}
+                          onClick={() => {
+                            if (!activeSession) return;
+                            let rituals = activeSession.sheet?.rituals || [];
+                            const nextIdx = rituals.findIndex(r => !r.completed);
+                            if (nextIdx === -1) {
+                              alert("🎉 모든 봉인 의식이 이미 완수되었습니다!");
+                              return;
+                            }
+                            executeClimaxRitual(nextIdx);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: "8px",
+                            backgroundColor: "#374151",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontWeight: "800",
+                            fontSize: "0.78rem",
+                            opacity: climaxStep === "plot" ? 0.35 : 1,
+                            cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          📜 의식 진행 (다음 단계)
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-
-           {/* 🌟 결전 액션 버튼: 공격 or 의식 */}
-            <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-              <button
-                type="button"
-                disabled={climaxStep === "plot"}
-                onClick={executeClimaxAttack}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  backgroundColor: theme.danger,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: "800",
-                  fontSize: "0.78rem",
-                  opacity: climaxStep === "plot" ? 0.35 : 1,
-                  cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
-                }}
-              >
-                ⚔️ 기본 공격 (2D6)
-              </button>
-
-              <button
-                type="button"
-                disabled={climaxStep === "plot"}
-                onClick={() => {
-                  if (!activeSession) return;
-                  let rituals = activeSession.sheet?.rituals || [];
-                  const nextIdx = rituals.findIndex(r => !r.completed);
-                  if (nextIdx === -1) {
-                    alert("🎉 모든 봉인 의식이 이미 완수되었습니다!");
-                    return;
-                  }
-                  executeClimaxRitual(nextIdx);
-                }}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  backgroundColor: "#374151",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontWeight: "800",
-                  fontSize: "0.78rem",
-                  opacity: climaxStep === "plot" ? 0.35 : 1,
-                  cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
-                }}
-              >
-                📜 의식 진행 (다음 단계)
-              </button>
-            </div>
+              )}
 
               {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
