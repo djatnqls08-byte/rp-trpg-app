@@ -5906,9 +5906,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       </>
                     )}
                   </div>
+                </div>
 
-
-                  {/* 2. 중앙: 테두리 없는 투명 textarea */}
+                {/* 2. 중앙: 테두리 없는 투명 textarea */}
                 <textarea 
                   value={input} 
                   onChange={e => {
