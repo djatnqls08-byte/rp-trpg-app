@@ -2524,7 +2524,7 @@ const startNewSession = async () => {
     }));
   };
 
- // 🌟 [클맥 2] 기본 공격 선언 (무기/부적 인터럽트 & 턴 통합)
+// 🌟 [클맥 2] 기본 공격 선언 (무기/부적 인터럽트 & 턴 통합)
   const executeClimaxAttack = (isWeaponReroll = false, inheritedBonus = null) => {
     if (!activeSession) return;
     playDiceSound?.();
@@ -2539,7 +2539,6 @@ const startNewSession = async () => {
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const baseSum = d1 + d2;
-    // 🌟 넘겨받은 상속 보너스가 있으면 그것을 최우선 적용!
     const bonus = inheritedBonus !== null ? inheritedBonus : (activeSession.sheet?.flashbackBonus || 0);
     const totalSum = baseSum + bonus;
     const isHit = totalSum >= 5;
@@ -2550,10 +2549,9 @@ const startNewSession = async () => {
 
     let text = `${isWeaponReroll ? "[⚔️ 무기 재굴림 발동!]\n" : "[⚔️ 클라이맥스 공격 선언]\n"}- 공격 명중 판정: ${rollDetail} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
 
-    // ⚔️ [무기 인터럽트] 공격 실패 시 (단, 이미 무기로 재굴림한 상태가 아닐 때만 1회 허용)
+    // ⚔️ [무기 인터럽트] 공격 실패 시 (재굴림 미사용 시 1회 허용)
     const weaponItem = items.find(i => (i.name === "무기" || i.type === "reroll_self") && i.count > 0);
     if (!isHit && weaponItem && !isWeaponReroll) {
-      // 🌟 당시 공격에 적용되었던 보너스 값 기억
       const currentRollBonus = bonus;
 
       setWeaponRerollModal({
@@ -2563,15 +2561,23 @@ const startNewSession = async () => {
         onConfirm: () => {
           consumeItem("무기");
           setWeaponRerollModal(null);
-          executeClimaxAttack(true, currentRollBonus); // 👈 보너스를 상속하며 재굴림 실행!
+          executeClimaxAttack(true, currentRollBonus);
         },
         onCancel: () => {
           setWeaponRerollModal(null);
           finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text);
         }
       });
-      return; // 팝업 응답 대기
+      return;
     }
+
+    // 명중 성공 시 적의 회피 판정 진행
+    if (isHit) {
+      const ed1 = Math.floor(Math.random() * 6) + 1;
+      const ed2 = Math.floor(Math.random() * 6) + 1;
+      const enemyDodgeSum = ed1 + ed2;
+      const enemyDodgeTarget = enemyPlot + 4;
+      const enemyDodged = enemyDodgeSum >= enemyDodgeTarget;
 
       if (enemyDodged) {
         text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
@@ -2590,7 +2596,7 @@ const startNewSession = async () => {
     let curEnemyHp = startEnemyHp;
     let curPlayerHp = startPlayerHp;
     let text = currentText;
-    const partnerName = activeSession.partnerName;
+    const partnerName = activeSession?.partnerName || activeSession?.sheet?.npcs?.[0]?.name;
 
     // 🤝 1. [파트너 협공]
     if (curEnemyHp > 0 && partnerName) {
@@ -2636,7 +2642,6 @@ const startNewSession = async () => {
 
     // 4. 승패 및 상태 분기
     if (curEnemyHp <= 0) {
-      // 🏆 적 격파 (승리)
       text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
       const aiPrompt = `${text}\n[🚨 결전 종결 수칙] 괴이의 HP가 0이 되어 소멸했습니다. 전투를 완전히 마무리하고 승리의 여운과 두 인물의 에필로그를 서술하십시오. 지문 끝에 [Happy End: 새벽의 온기] 형태의 엔딩 태그를 출력하십시오.`;
       executeMessage(text, aiPrompt);
@@ -2644,7 +2649,6 @@ const startNewSession = async () => {
     }
 
     if (curPlayerHp <= 0) {
-      // 💊 플레이어 빈사 (진통제 체크)
       const healItem = (activeSession?.sheet?.items || []).find(
         it => (it.type === "heal" || it.name?.includes("진통제") || it.name?.includes("약")) && (it.count > 0 || it.quantity > 0)
       );
@@ -2667,12 +2671,11 @@ const startNewSession = async () => {
       return;
     }
 
-// 🔔 5. 적/아군 모두 생존 시 다음 라운드 진행
-    // ⏱️ [최대 5라운드 제한] 5라운드가 끝났다면 더 이상 라운드를 올리지 않고 종료!
+    // 5. 적/아군 모두 생존 시 다음 라운드 진행
     if (climaxRound >= 5) {
       text += `\n\n⚠️ [제 ${climaxRound}라운드 종료] 리미트 도달! 극장의 나락이 붕괴하며 결말을 맞이합니다.`;
       executeMessage(text);
-      return; // 👈 6, 7, 8라운드로 넘어가지 않고 여기서 진행을 멈춥니다!
+      return;
     }
 
     setClimaxRound(prev => prev + 1);
@@ -2680,8 +2683,9 @@ const startNewSession = async () => {
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)...`;
 
     executeMessage(text);
-   };
-// 🌟 [클맥 3] 봉인 의식 판정
+  };
+
+  // 🌟 [클맥 3] 봉인 의식 판정
   const executeClimaxRitual = (stepIdx) => {
     if (!activeSession) return;
     const ritual = activeSession.sheet?.rituals?.[stepIdx];
@@ -2696,7 +2700,6 @@ const startNewSession = async () => {
     const d2 = Math.floor(Math.random() * 6) + 1;
     const baseSum = d1 + d2;
     
-    // 회상 보너스 확인
     const bonus = activeSession.sheet?.flashbackBonus || 0;
     const totalSum = baseSum + bonus;
     const isSuccess = totalSum >= targetVal;
@@ -2711,14 +2714,13 @@ const startNewSession = async () => {
       const updatedRituals = (activeSession.sheet?.rituals || []).map((r, i) => i === stepIdx ? { ...r, completed: true } : r);
       const allDone = updatedRituals.every(r => r.completed);
 
-      // 🏆 1) 모든 의식 완성 시: 즉시 에필로그 페이즈로 전환하고 플롯 창 닫기!
       if (allDone) {
         setSessions(prev => prev.map(s => s.id === activeSessionId ? {
           ...s,
           sheet: {
             ...s.sheet,
             rituals: updatedRituals,
-            phase: "에필로그", // 🌟 페이즈를 에필로그로 바꿔 플롯 창을 즉시 제거!
+            phase: "에필로그",
             enemyHp: 0,
             flashbackBonus: 0
           }
@@ -2729,10 +2731,9 @@ const startNewSession = async () => {
 
         const aiPrompt = `${text}\n[🚨 결전 종결 수칙] 모든 의식이 완수되어 괴이가 영구히 봉인되었습니다. 전투를 종료하고, 긴장이 풀린 두 인물의 애틋하고 평온한 후일담(에필로그)으로 자연스럽게 이어가십시오. 지문 끝에 [True End: 영원한 앙코르] 형태의 엔딩 태그를 출력하십시오.`;
         executeMessage(text, aiPrompt);
-        return; // 👈 🛑 여기서 함수를 끝내야 '제 4라운드 개막' 문구가 안 뜹니다!
+        return;
       }
 
-      // 2) 아직 단계가 남아있을 때
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, 
         sheet: { 
@@ -2744,14 +2745,12 @@ const startNewSession = async () => {
 
       text += `\n✨ [의식 단계 완료 ✔️] 결계가 한 꺼풀 벗겨졌습니다!`;
     } else {
-      // 실패 시 보너스 초기화
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, 
         sheet: { ...s.sheet, flashbackBonus: 0 }
       } : s));
     }
 
-    // 다음 라운드로 진행
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
@@ -7422,61 +7421,6 @@ const quoteText = npc.statusMessage
                 style={{ flex: 1.5, padding: "9px 0", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}
               >
                 저장하기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-{/* 🌟 대화 취소 / 롤백 확인 인앱 모달 */}
-      {pendingRollback && (
-        <div
-          onClick={() => setPendingRollback(null)}
-          style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 140, padding: "20px" }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            className="glass-card"
-            style={{ width: "100%", maxWidth: "320px", padding: "22px 18px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", textAlign: "center", boxShadow: "0 14px 36px rgba(0,0,0,0.35)" }}
-          >
-            <span style={{ fontSize: "2rem", lineHeight: 1 }}>⎌</span>
-            <div>
-              <div style={{ fontWeight: "800", fontSize: "0.95rem", marginBottom: "4px" }}>마지막 대화 취소</div>
-              <div style={{ fontSize: "0.75rem", color: theme.textMuted, lineHeight: "1.5" }}>
-                마지막 대사를 취소하고 입력창에 불러올까요?<br />
-                직전 턴의 상태(호감도, 선물함)로 롤백됩니다.
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "8px", width: "100%", marginTop: "6px" }}>
-              <button
-                type="button"
-                onClick={() => setPendingRollback(null)}
-                style={{ flex: 1, padding: "10px 0", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}
-              >
-                닫기
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const { text, index, prevSheet } = pendingRollback;
-                  setInput(text);
-                  setSessions(prev => prev.map(s => {
-                    if (s.id !== activeSessionId) return s;
-                    const newMsgs = s.messages.slice(0, index);
-                    return {
-                      ...s,
-                      sheet: prevSheet ? prevSheet : s.sheet,
-                      messages: newMsgs,
-                      suggestedActions: [],
-                      pendingCheck: null
-                    };
-                  }));
-                  setPendingRollback(null);
-                }}
-                style={{ flex: 1, padding: "10px 0", backgroundColor: theme.danger, color: "#fff", border: "none", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}
-              >
-                되돌리기
               </button>
             </div>
           </div>
