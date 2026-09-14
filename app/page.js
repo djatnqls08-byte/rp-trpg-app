@@ -899,10 +899,6 @@ useEffect(() => {
   const [lobbySaveModal, setLobbySaveModal] = useState(null); // 🌟 로비 세팅 저장 모달
   const [lobbySaveInput, setLobbySaveInput] = useState("");
 
-  const triggerToast = (msg) => {
-    setAppToast(msg);
-    setTimeout(() => setAppToast(null), 3000);
-  };
   const [phoneInput, setPhoneInput] = useState("");
   const [isPhoneSending, setIsPhoneSending] = useState(false);
   const [phoneSuggestions, setPhoneSuggestions] = useState([]);
@@ -8328,7 +8324,7 @@ const quoteText = npc.statusMessage
                     </div>
                   </div>
 
-                  {/* 📦 최초 버전 v1.0.0 */}
+{/* 📦 최초 버전 v1.0.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
                       📦 v1.0.0 정식 배포
@@ -8337,12 +8333,35 @@ const quoteText = npc.statusMessage
                       • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드 추가.<br/>
                       • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 서브 NPC 사명/비밀 분리 생성 및 핸드아웃 카드 완성.<br/>
                       • <strong>온보딩 가이드 & 세이브 백업:</strong> 가이드 모달과 JSON 백업/복원 기능 탑재.
-</div>
-    )}
-  </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-  {/* 🌟 인세인 66개 특기 대용 판정 팝업 */}
-  {showSkillMatrixModal && (
+            {/* 모달 하단 푸터 (7일간 보지 않기 & 닫기 버튼) */}
+            <div style={{ padding: "12px 16px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: theme.textMuted, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={hideNoticeCheckbox}
+                  onChange={(e) => setHideNoticeCheckbox(e.target.checked)}
+                />
+                7일 동안 보지 않기
+              </label>
+              <button
+                type="button"
+                onClick={handleCloseNotice}
+                style={{ padding: "8px 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", fontSize: "0.82rem", cursor: "pointer" }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 인세인 66개 특기 대용 판정 팝업 */}
       {showSkillMatrixModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 160, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "620px", maxHeight: "88vh", display: "flex", flexDirection: "column", padding: "16px", borderRadius: "16px", overflow: "hidden" }}>
@@ -8407,6 +8426,6 @@ const quoteText = npc.statusMessage
           </div>
         </div>
       )}
-</div>
+    </div>
   );
 }
