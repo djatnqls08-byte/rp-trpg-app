@@ -2751,10 +2751,15 @@ currentPhase === "클라이맥스" ? `
         sheet: {
           ...s.sheet,
           ...newSheet,
+          // 👇 여기서 최신 HP와 플롯을 newSheet가 덮어쓰지 못하게 지켜줍니다!
+          hp: s.sheet?.hp ?? newSheet.hp,
+          enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
+          currentPlot: s.sheet?.currentPlot ?? newSheet.currentPlot,
+          enemyPlot: s.sheet?.enemyPlot ?? newSheet.enemyPlot,
           handouts: s.sheet?.handouts || newSheet.handouts,
-npcs: s.sheet?.npcs || newSheet.npcs,
-rituals: s.sheet?.rituals || newSheet.rituals, // 👈 이 한 줄 추가!
-cycle: s.sheet?.cycle ?? newSheet.cycle,
+          npcs: s.sheet?.npcs || newSheet.npcs,
+          rituals: s.sheet?.rituals || newSheet.rituals,
+          cycle: s.sheet?.cycle ?? newSheet.cycle,
           scene: s.sheet?.scene ?? newSheet.scene,
           phase: s.sheet?.phase ?? newSheet.phase,
           actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
@@ -2850,43 +2855,46 @@ cycle: s.sheet?.cycle ?? newSheet.cycle,
   };
 
 // ⚔️ 클라이맥스 1~6 플롯 선택 & 버팅(Butting) 연산
-  const executeClimaxPlot = (playerPlot) => {
-    if (!activeSession) return;
-    playDiceSound?.();
-    const enemyPlot = Math.floor(Math.random() * 6) + 1;
-    const isButting = playerPlot === enemyPlot;
-    let buttingText = "";
-    let updatedPlayerHp = activeSession.sheet.hp;
+const executeClimaxPlot = (playerPlot) => {
+  if (!activeSession) return;
+  playDiceSound?.();
+  const enemyPlot = Math.floor(Math.random() * 6) + 1;
+  const isButting = playerPlot === enemyPlot;
+  let buttingText = "";
+  let updatedPlayerHp = activeSession.sheet?.hp ?? 6;
+  let updatedEnemyHp = activeSession.sheet?.enemyHp ?? 6; // 🌟 적 현재 HP 가져오기
 
-    if (isButting) {
-      updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
-      buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
+  if (isButting) {
+    updatedPlayerHp = Math.max(0, updatedPlayerHp - 1);
+    updatedEnemyHp = Math.max(0, updatedEnemyHp - 1); // 🌟 버팅 시 적 HP도 1 차감
+    buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
+  }
+
+  const orderText = playerPlot > enemyPlot
+    ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
+    : playerPlot < enemyPlot
+    ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
+    : `동시 행동 (버팅)`;
+
+  // 시트 상태 반영
+  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+    ...s,
+    sheet: {
+      ...s.sheet,
+      hp: updatedPlayerHp,
+      enemyHp: updatedEnemyHp, // 🌟 차감된 적 HP 반영
+      currentPlot: playerPlot,
+      enemyPlot: enemyPlot
     }
+  } : s));
 
-    const orderText = playerPlot > enemyPlot
-      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
-      : playerPlot < enemyPlot
-      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
-      : `동시 행동 (버팅)`;
+  // 🌟 플롯 선택 완료 ➔ 행동(공격/의식) 단계 열기
+  setClimaxStep("action");
 
-    // 시트 상태 반영
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-      ...s,
-      sheet: {
-        ...s.sheet,
-        hp: updatedPlayerHp,
-        currentPlot: playerPlot,
-        enemyPlot: enemyPlot
-      }
-    } : s));
+  const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
 
-    // 🌟 [핵심] 플롯 선택 완료 ➔ 버튼을 '행동(공격/의식)' 단계로 열어줌!
-    setClimaxStep("action");
-
-    const plotMsg = `[⚔️ 클라이맥스 플롯 공개]\n- 내 플롯: [${playerPlot}] (회피 목표치: ${playerPlot + 4})\n- 적의 플롯: [${enemyPlot}]\n- 순서: ${orderText}${buttingText}\n\n👉 [행동 선언 단계] 플롯이 확정되었습니다! 아래 [기본 공격] 또는 [의식 진행] 버튼을 눌러 행동을 선언하세요.`;
-
-    executeMessage(plotMsg);
-  };
+  executeMessage(plotMsg);
+};
   // 🗝️ 회상 발동 (세션 1회 한정)
   const triggerFlashback = (bonusType) => {
     if (!activeSession || activeSession.sheet.flashbackUsed) return;
@@ -4934,6 +4942,29 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               </details>
             </div>
+
+            {/* 🌟 클라이맥스 전용: 적(에너미) 체력 게이지 카드 */}
+            {activeSession.sheet?.phase === "클라이맥스" && (
+              <div className="glass-card" style={{ padding: "12px", borderRadius: "10px", border: `1.5px solid ${theme.danger}`, backgroundColor: "rgba(214, 56, 87, 0.08)", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: "800", fontSize: "0.82rem", color: theme.danger }}>
+                    👾 {activeSession.sheet?.enemyName || "괴이 (적)"}
+                  </span>
+                  <strong style={{ fontSize: "0.85rem", color: theme.danger }}>
+                    HP {activeSession.sheet?.enemyHp ?? 6} / {activeSession.sheet?.maxEnemyHp ?? 6}
+                  </strong>
+                </div>
+                {/* 체력 게이지 바 */}
+                <div style={{ width: "100%", height: "6px", backgroundColor: theme.panelAlt, borderRadius: "3px", overflow: "hidden" }}>
+                  <div style={{
+                    width: `${Math.max(0, Math.min(100, ((activeSession.sheet?.enemyHp ?? 6) / (activeSession.sheet?.maxEnemyHp ?? 6)) * 100))}%`,
+                    height: "100%",
+                    backgroundColor: theme.danger,
+                    transition: "width 0.3s ease"
+                  }} />
+                </div>
+              </div>
+            )}
    
             {/* 🌟 미연시 모드일 때는 호감도 대형 바, TRPG일 때는 SAN/HP 표시 */}
             {activeSession.ruleMode?.startsWith("dating") ? (
