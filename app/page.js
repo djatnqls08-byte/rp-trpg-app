@@ -245,6 +245,12 @@ export default function App() {
   const [showInsaneGuideModal, setShowInsaneGuideModal] = useState(false); // 인게임 룰북 모달
   const [investigationModal, setInvestigationModal] = useState(null); // 조사 대상 선택 모달
   const [emotionModal, setEmotionModal] = useState(null); // 감정 판정 및 선택 모달
+ // 💊 체력 0 도달 시 긴급 회복 모달 상태
+  const [reviveModalOpen, setReviveModalOpen] = useState(false);
+  const [usableHealItem, setUsableHealItem] = useState(null);
+ // ⚔️ 무기 재굴림 모달 상태 (재굴림 대상 정보 보관)
+  const [weaponRerollModal, setWeaponRerollModal] = useState(null);
+ 
 
   // 1. 2D6 정규 판정기 (12 스페셜 / 2 펌블 자동 연동)
   const rollInsaneCheck = (skillName, overrideTarget = null, actionType = "판정") => {
@@ -326,11 +332,31 @@ export default function App() {
         setSessions(prev => prev.map(s => {
           if (s.id !== activeSessionId) return s;
 
+          // 🌟 이번에 밝혀진 비밀 텍스트 확보
+          const currentSecret = targetObj.secret || (s.sheet?.handouts || []).find(h => 
+            (targetObj.id && (h.id === targetObj.id || h.npcId === targetObj.id)) || (targetObj.title && h.title === targetObj.title)
+          )?.secret || "";
+
+         // 🌟 의식/봉인/제단 관련 진실이 드러났다면 의식 시트 자동 해금!
+          const hasRitualClue = /의식|봉인|결계\s*파괴|진혼|구마|제단|퇴치법/i.test(currentSecret) || /의식|봉인/i.test(targetObj.name || targetObj.title || "");
+          const isRitualNowDiscovered = s.sheet?.isRitualDiscovered || hasRitualClue;
+
           const hList = (s.sheet?.handouts || []).map(h => {
             const isMatch = (targetObj.id && (h.id === targetObj.id || h.npcId === targetObj.id))
               || (targetObj.name && h.title?.includes(targetObj.name))
               || (targetObj.title && h.title === targetObj.title);
-            return isMatch ? { ...h, revealed: true, isFlipped: true } : h;
+
+            // 1. 현재 조사 성공한 핸드아웃: 비밀 해금 및 노출
+            if (isMatch) {
+              return { ...h, revealed: true, isFlipped: true, discovered: true };
+            }
+
+            // 2. 다른 핸드아웃: 비밀 내용에 이름이 언급되어 있다면 연계 잠금 해제(발견)!
+            if (currentSecret && currentSecret.includes(h.title)) {
+              return { ...h, discovered: true };
+            }
+
+            return h;
           });
 
           const nList = (s.sheet?.npcs || []).map(n => {
@@ -338,8 +364,23 @@ export default function App() {
             return isMatch ? { ...n, secretRevealed: true } : n;
           });
 
-          return { ...s, sheet: { ...s.sheet, handouts: hList, npcs: nList, actionUsed: true } };
+         return {
+          ...s,
+          sheet: {
+            ...s.sheet,
+            handouts: hList,
+            npcs: nList,                            
+            isRitualDiscovered: isRitualNowDiscovered
+          }
+        };
         }));
+       // 🍞 [시스템 토스트 알림 발동]
+      if (isRitualNowDiscovered && !activeSession.sheet?.isRitualDiscovered) {
+        triggerToast("봉인 의식 단서 발견!", "클라이맥스 봉인 의식을 실행할 수 있게 되었습니다.", "🔮");
+      } else {
+        const targetName = targetObj.title || targetObj.name || "핸드아웃";
+        triggerToast("비밀 열람 완료", `[${targetName}]의 숨겨진 진실이 밝혀졌습니다.`, "🗝️");
+      }
       } else if (targetType === "location") {
         resultDetail = `\n[조사 성공: 거처 확보] 《${targetDisplayName}》의 거처와 활동 경로를 확보했습니다! (메인 페이즈 전투 신청 가능)`;
         setSessions(prev => prev.map(s => {
@@ -383,6 +424,61 @@ export default function App() {
     executeMessage(`[주요 행동: 감정 맺기 완료]\n${npc.name}와(과) ${relationDesc}`);
   };
 
+// 💊 [긴급 회복약 사용 선택 시]
+  const handleUseReviveItem = () => {
+    if (!usableHealItem) return;
+
+    // 인세인 정규 룰: 진통제는 1D6 생명력 회복
+    const healRoll = Math.floor(Math.random() * 6) + 1;
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeSessionId) return s;
+
+      // 보유 아이템 수량 1 차감
+      const nextItems = (s.sheet?.items || []).map(it => {
+        if (it.id === usableHealItem.id || it.name === usableHealItem.name) {
+          const curCount = it.count ?? it.quantity ?? 1;
+          return { ...it, count: Math.max(0, curCount - 1), quantity: Math.max(0, curCount - 1) };
+        }
+        return it;
+      });
+
+      return {
+        ...s,
+        sheet: {
+          ...s.sheet,
+          hp: healRoll, // 주사위 결과값으로 체력 복구
+          items: nextItems
+        }
+      };
+    }));
+
+    setReviveModalOpen(false);
+    setUsableHealItem(null);
+
+    triggerToast("긴급 회복 성공!", `${usableHealItem.name}을(를) 복용하여 체력 ${healRoll}을(를) 회복했습니다!`, "💊");
+    if (typeof executeMessage === "function") {
+      executeMessage(`[긴급 회복] 💊 의식을 잃기 직전, ${usableHealItem.name}을(를) 꺼내 삼켰습니다! (1D6 회복 굴림: ${healRoll} 회복)`);
+    }
+  };
+
+  // 💀 [포기(사용 안 함) 선택 시 -> 배드엔딩 확정]
+  const handleDeclineRevive = () => {
+    setReviveModalOpen(false);
+    setUsableHealItem(null);
+
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        hp: 0,
+        phase: "배드엔딩"
+      }
+    } : s));
+
+    triggerToast("게임 오버", "어둠 속으로 의식이 가라앉았습니다...", "💀");
+  };
+ 
 // 4. 장면 닫기 (Scene Close) 실행 ➔ 화면 로그와 AI 지시문 분리
   const handleSceneClose = () => {
     setIsActionDrawerOpen(false);
@@ -457,6 +553,11 @@ export default function App() {
   const [climaxStep, setClimaxStep] = useState("plot"); // "plot" 또는 "action"
  // 🌟 감정 판정 모달 전용 상태
   const [emotionModalOpen, setEmotionModalOpen] = useState(false);
+ // 🍞 [시스템 토스트 알림 상태]
+  const [toast, setToast] = useState(null); // { title, message, icon }
+ const triggerToast = (title, message, icon = "✨") => {
+    setToast({ title, message, icon });
+  };
   const [emotionTargetNpc, setEmotionTargetNpc] = useState(null);
   const [emotionDiceResult, setEmotionDiceResult] = useState(null);
   const [input, setInput] = useState("");
@@ -828,6 +929,31 @@ useEffect(() => {
   const [insaneFear, setInsaneFear] = useState("죽음");
   const [generatedHandouts, setGeneratedHandouts] = useState([]);
   const [generatedItems, setGeneratedItems] = useState([]); // 🌟 AI/파일로부터 자동 기획된 소지품 목록
+ // 🎒 인세인 초기 아이템 선택 상태 (기본값: 진통제 2개)
+  const [insaneItems, setInsaneItems] = useState({
+    "진통제": 2,
+    "무기": 0,
+    "부적": 0
+  });
+
+  // 아이템 수량 변경 (최대 2개 제한)
+  const handleItemCountChange = (itemName, delta) => {
+    const totalCount = Object.values(insaneItems).reduce((a, b) => a + b, 0);
+    const currentCount = insaneItems[itemName] || 0;
+
+    if (delta > 0 && totalCount >= 2) {
+      if (typeof triggerToast === "function") {
+        triggerToast("아이템 제한", "초기 아이템은 최대 2개까지만 선택할 수 있습니다.", "⚠️");
+      }
+      return;
+    }
+    if (delta < 0 && currentCount <= 0) return;
+
+    setInsaneItems(prev => ({
+      ...prev,
+      [itemName]: currentCount + delta
+    }));
+  };
 
   // KPC(파트너) 상태
   const [kpcList, setKpcList] = useState([
@@ -1504,34 +1630,40 @@ useEffect(() => {
         }
       }
 
-      // ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
+// ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
       let parsedNpcList = [];
 
-      // 파트너 KPC
-      const kpcSection = rawText.match(/(?:\[파트너\s*KPC\]|파트너\s*KPC)([\s\S]*?)(?=\n\s*(?:\[서브\s*NPC|서브\s*NPC|###\s*3\.|\[시나리오))/i);
+      // 1. 파트너 KPC (소괄호, 대괄호, 일반 텍스트 모두 대응)
+      const kpcSection = rawText.match(/(?:[\(\[]\s*파트너\s*KPC[^\)\]]*[\)\]]|파트너\s*KPC)([\s\S]*?)(?=\n\s*(?:[\(\[]\s*서브\s*NPC|서브\s*NPC|###\s*3\.|\[시나리오|$))/i);
       if (kpcSection) {
         const kText = kpcSection[1];
         const kName = (kText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "파트너";
         const kJob = (kText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
-        // 🌟 '외모 및 관계성', '외모 및 성격', '외모' 등 모든 수식어 완벽 수용!
-        const kDetail = (kText.match(/(?:외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        let kDetail = (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
         
-        const kSecMatch = rawText.match(/(?:\[(?:파트너\s*)?KPC\s*비밀[^\]]*\]|\[이\s*인물의\s*비밀\])\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[서브|서브\s*NPC|###|\[|\n\n-|$))/i);
+        // 상태 메시지 및 좋아하는 것(취향) 추출
+        const kStatus = (kText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
+        const kLikes = (kText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        if (kLikes) kDetail += `\n[취향]: ${kLikes.trim()}`;
+
+        const kSecMatch = rawText.match(/(?:\[(?:파트너\s*)?KPC\s*비밀[^\]]*\]|\[이\s*인물의\s*비밀\])\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[서브|\(서브|###|\[|\n\n-|$))/i);
         const kSecret = kSecMatch ? cleanVal(kSecMatch[1]) : "";
 
         parsedNpcList.push({
-          id: 1,
+          id: Date.now(),
           name: kName.trim(),
           job: kJob.trim(),
-          desc: kDetail.trim(),    // 🌟 로비와 시트가 찾는 원래 이름표!
-          detail: kDetail.trim(),  // 🌟 안전장치
+          desc: kDetail.trim(),
+          detail: kDetail.trim(),
           secret: kSecret,
+          statusMessage: kStatus.trim(),
+          affection: 10,
           portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(kName.trim()) : "",
           showSecret: false
         });
       }
 
-      // 서브 NPC (1~9명)
+      // 2. 서브 NPC (1~9명)
       const subNpcRegex = /(?:\(서브\s*NPC\s*(\d+)\)|\[서브\s*NPC\s*(\d+)\])([\s\S]*?)(?=\n\s*(?:\(서브\s*NPC|\[서브\s*NPC|###\s*3\.|\[시나리오|$))/gi;
       let match;
       while ((match = subNpcRegex.exec(rawText)) !== null) {
@@ -1540,21 +1672,35 @@ useEffect(() => {
 
         const sName = (sText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || `NPC ${idx}`;
         const sJob = (sText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
-        // 🌟 서브 NPC도 '외모 및 관계성' 완벽 추출!
-        const sDetail = (sText.match(/(?:외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        let sDetail = (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
 
-        const sSecReg = new RegExp(`(?:\\[서브\\s*NPC\\s*${idx}\\s*비밀[^\\]]*\\]|\\[이\\s*인물의\\s*비밀\\])\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\[서브|\\(서브|###|\\[|\\n\\n-|$))`, "i");
-        const sSecMatch = rawText.match(sSecReg);
-        const sSecret = sSecMatch ? cleanVal(sSecMatch[1]) : "";
+        // 상태 메시지 및 좋아하는 것(취향) 추출
+        const sStatus = (sText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
+        const sLikes = (sText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+        if (sLikes) sDetail += `\n[취향]: ${sLikes.trim()}`;
 
+        // 비밀 추출 (본문 블록 내부 우선 검색, 없을 시 전체 검색)
+        const inBlockSecret = sText.match(/\[[^\]]*(?:비밀|사명|진상)[^\]]*\]\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i);
+        let sSecret = "";
+        if (inBlockSecret) {
+          sSecret = cleanVal(inBlockSecret[1]);
+        } else {
+          const sSecReg = new RegExp(`(?:\\[서브\\s*NPC\\s*${idx}\\s*비밀[^\\]]*\\]|\\[이\\s*인물의\\s*비밀\\])\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:\\[서브|\\(서브|###|\\[|\\n\\n-|$))`, "i");
+          const sSecMatch = rawText.match(sSecReg);
+          sSecret = sSecMatch ? cleanVal(sSecMatch[1]) : "";
+        }
+
+        // ✅ 올바른 서브 NPC 변수(sName, sJob, sDetail, sSecret) 및 고유 ID 적용
         parsedNpcList.push({
-          id: 1,
-          name: kName.trim(),
-          job: kJob.trim(),
-          desc: kDetail.trim(),    // 🌟 로비와 시트가 찾는 원래 이름표!
-          detail: kDetail.trim(),  // 🌟 안전장치
-          secret: kSecret,
-          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(kName.trim()) : "",
+          id: Date.now() + Math.random(),
+          name: sName.trim(),
+          job: sJob.trim(),
+          desc: sDetail.trim(),
+          detail: sDetail.trim(),
+          secret: sSecret,
+          statusMessage: sStatus.trim(),
+          affection: 10,
+          portraitUrl: typeof getPortraitUrl === "function" ? getPortraitUrl(sName.trim()) : "",
           showSecret: false
         });
       }
@@ -1562,27 +1708,45 @@ useEffect(() => {
       if (parsedNpcList.length > 0) {
         setKpcList(parsedNpcList);
       }
-      // ── [5. 핸드아웃(조사 구역 및 단서) 강력 추출] ──
+// ── [5. 핸드아웃(조사 구역, 단서, 프라이스) 강력 추출] ──
       let extractedHandouts = [];
 
-      // [-*■•]? [조사구역 이름] 형태로 시작하는 모든 블록을 안전하게 캡처
+      // [-*■•]? [조사구역 이름] 형태로 시작하는 모든 블록 캡처
       const handoutRegex = /(?:^|\n)\s*[-*■•]?\s*\[([^\]]+)\]\s*\n([\s\S]*?)(?=(?:\n\s*[-*■•]?\s*\[[^\]]+\]|\n\s*#+|$))/g;
       let hMatch;
+
       while ((hMatch = handoutRegex.exec(rawText)) !== null) {
         const hTitle = hMatch[1].trim();
         const hBody = hMatch[2];
 
-        // 단서/비밀 내용 다중 라인까지 통째로 캡처
-        const secretMatch = hBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
+        // 🌟 1. NPC 비밀, 서막, 시놉시스, 진상 등 조사 구역이 아닌 태그는 건너뛰기
+        if (
+          /^(?:파트너|서브\s*NPC|NPC|KPC|시놉시스|서막|도입|진상|키퍼|엔딩|개요|사명)/i.test(hTitle) ||
+          hTitle.includes("비밀") ||
+          hTitle.includes("사명")
+        ) {
+          continue;
+        }
 
-        // 구역 분위기 및 개요가 있으면 앞면에 예쁘게 배치
-        const overviewMatch = hBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명)\s*[:：]\s*([^\n\r]+)/i);
+        // 🌟 2. 비밀/단서 내용 다중 라인까지 통째로 캡처
+        const secretMatch = hBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실|효과|기능)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
 
-        if (secretMatch) {
+        // 🌟 3. 구역 분위기 및 개요 다중 라인 지원
+        const overviewMatch = hBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명|앞면)\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:획득|비밀|단서|조사|진실|효과|$))/i);
+
+        // 비밀 내용이나 단서가 기재되어 있는 유효한 핸드아웃/프라이스인 경우
+        if (secretMatch || overviewMatch) {
+          const finalOverview = overviewMatch
+            ? cleanVal(overviewMatch[1])
+            : cleanVal(hBody.slice(0, 150));
+          const finalSecret = secretMatch ? cleanVal(secretMatch[1]) : "";
+
           extractedHandouts.push({
+            id: `ho_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, // 👈 고유 ID 부여
             title: hTitle,
-            overview: overviewMatch ? overviewMatch[1].trim() : `[조사 구역: ${hTitle}] 탐색 및 조사 단서입니다.`,
-            secret: secretMatch[1].trim()
+            overview: finalOverview || `[조사 구역: ${hTitle}] 탐색 및 조사 단서입니다.`,
+            secret: finalSecret,
+            revealed: false // 👈 기본 상태는 미해금(비공개)
           });
         }
       }
@@ -2115,22 +2279,28 @@ const startNewSession = async () => {
         sessionSheet.rituals = generated.rituals;
       }
     }
+// 🎒 3단계: 특기표에서 선택한 초기 소지품(최대 2개)을 시트에 주입
+  sessionSheet.items = [
+    { id: "item_painkiller", name: "진통제", type: "heal", count: insaneItems["진통제"] || 0, desc: "생명력 또는 이성치 1 회복" },
+    { id: "item_weapon", name: "무기", type: "reroll_self", count: insaneItems["무기"] || 0, desc: "전투 중 자신의 판정 재굴림" },
+    { id: "item_amulet", name: "부적", type: "reroll_other", count: insaneItems["부적"] || 0, desc: "타인의 판정 재굴림" }
+  ].filter(it => it.count > 0); // 1개 이상 챙긴 아이템만 가방에 등록
 
-    const newSession = {
-      id: newId,
-      title: sessionTitle,
-      thumbnail: "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg", // 🌟 기본 썸네일 지정
-      ruleMode: wizardMode,
-      preference: playPreference.trim(),
-      scenarioText: fullScenarioContext,
-      sheet: sessionSheet,
-      messages: [],
-      suggestedActions: [],
-      investigationSpots: [],
-      pendingCheck: null
-    };
- 
-    setSessions([newSession, ...sessions]);
+  const newSession = {
+    id: newId,
+    title: sessionTitle,
+    thumbnail: "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
+    ruleMode: wizardMode,
+    preference: playPreference.trim(),
+    scenarioText: fullScenarioContext,
+    sheet: sessionSheet,
+    messages: [],
+    suggestedActions: [],
+    investigationSpots: [],
+    pendingCheck: null
+  };
+
+  setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
     setIsLoading(true);
    let openingPrompt = "";
@@ -2242,8 +2412,18 @@ const startNewSession = async () => {
     executeMessage(`[💬 감정 판정 완료]\n- 대상: ${targetName}\n- 주사위: 1D6 ➔ ${emotionDiceResult.roll}번 (${emotionDiceResult.name})\n- 획득 감정: ✨ [${selectedEmotion}] 칩을 획득했습니다!`);
   };
 
- // 🌟 [클맥 2] 기본 공격 선언
-  const executeClimaxAttack = () => {
+// 🎒 가방 아이템 1개 차감 공통 함수
+  const consumeItem = (itemName) => {
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeSessionId) return s;
+      const curItems = s.sheet?.items || [];
+      const updated = curItems.map(it => it.name === itemName ? { ...it, count: Math.max(0, it.count - 1) } : it);
+      return { ...s, sheet: { ...s.sheet, items: updated } };
+    }));
+  };
+
+  // 🌟 [클맥 2] 기본 공격 선언 (무기/부적 인터럽트 & 턴 통합)
+  const executeClimaxAttack = (isWeaponReroll = false) => {
     if (!activeSession) return;
     playDiceSound?.();
 
@@ -2251,8 +2431,9 @@ const startNewSession = async () => {
     let curPlayerHp = activeSession.sheet?.hp ?? 6;
     const playerPlot = activeSession.sheet?.currentPlot ?? 3;
     const enemyPlot = activeSession.sheet?.enemyPlot ?? 3;
+    const items = activeSession.sheet?.items || [];
 
-    // 공격 주사위 판정 (회상 보너스 적용)
+    // 1. 공격 주사위 판정 (2D6 + 회상 보너스)
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const baseSum = d1 + d2;
@@ -2264,14 +2445,68 @@ const startNewSession = async () => {
       ? `${d1}+${d2} (+회상 3) = ${totalSum}` 
       : `${d1}+${d2} = ${totalSum}`;
 
-    let text = `[⚔️ 클라이맥스 공격 선언]\n- 공격 명중 판정: ${rollDetail} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
+    let text = `${isWeaponReroll ? "[⚔️ 무기 재굴림 발동!]\n" : "[⚔️ 클라이맥스 공격 선언]\n"}- 공격 명중 판정: ${rollDetail} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
 
+    // ⚔️ [무기 인터럽트] 공격 실패 시 (단, 이미 무기로 재굴림한 상태가 아닐 때만 1회 허용)
+    const weaponItem = items.find(i => (i.name === "무기" || i.type === "reroll_self") && i.count > 0);
+    if (!isHit && weaponItem && !isWeaponReroll) {
+      setWeaponRerollModal({
+        type: "weapon",
+        title: "⚔️ 무기 사용 (자신 판정 재굴림)",
+        desc: `공격이 빗나갔습니다 (${totalSum} / 목표치 5).\n소지품의 [무기]를 1개 소모하여 주사위를 다시 굴리시겠습니까? (남은 무기: ${weaponItem.count}개)`,
+        onConfirm: () => {
+          consumeItem("무기");
+          setWeaponRerollModal(null);
+          executeClimaxAttack(true); // 무기 1개 소모 후 재굴림!
+        },
+        onCancel: () => {
+          setWeaponRerollModal(null);
+          finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text); // 포기하고 보스 턴 진행
+        }
+      });
+      return; // 팝업 응답 대기
+    }
+
+    // 2. 적중 시 적 회피 판정
     if (isHit) {
       const enemyDodgeTarget = enemyPlot + 4;
       const ed1 = Math.floor(Math.random() * 6) + 1;
       const ed2 = Math.floor(Math.random() * 6) + 1;
       const enemyDodgeSum = ed1 + ed2;
       const enemyDodged = enemyDodgeSum >= enemyDodgeTarget;
+
+      // 🧿 [부적 인터럽트] 괴이가 회피 성공 시 가방에 부적이 있으면 발동
+      const amuletItem = items.find(i => (i.name === "부적" || i.type === "reroll_other") && i.count > 0);
+      if (enemyDodged && amuletItem) {
+        setWeaponRerollModal({
+          type: "amulet",
+          title: "🧿 부적 사용 (상대 판정 재굴림)",
+          desc: `괴이가 공격을 피했습니다! (${enemyDodgeSum} / 목표치 ${enemyDodgeTarget})\n소지품의 [부적]을 던져 괴이가 회피 주사위를 다시 굴리게 하시겠습니까? (남은 부적: ${amuletItem.count}개)`,
+          onConfirm: () => {
+            consumeItem("부적");
+            setWeaponRerollModal(null);
+            // 부적으로 적 회피 강제 재굴림
+            const red1 = Math.floor(Math.random() * 6) + 1;
+            const red2 = Math.floor(Math.random() * 6) + 1;
+            const rSum = red1 + red2;
+            const rDodged = rSum >= enemyDodgeTarget;
+            let amuletText = text + `\n\n[🧿 부적 발동!] 부적이 번쩍이며 괴이의 균형을 무너뜨립니다!\n- 적 회피 재굴림: ${red1}+${red2}=${rSum} (목표치 ${enemyDodgeTarget})`;
+            if (rDodged) {
+              amuletText += ` ➔ 괴이가 균형을 되찾고 여전히 공격을 피했습니다!`;
+            } else {
+              curEnemyHp = Math.max(0, curEnemyHp - 1);
+              amuletText += ` ➔ 적 회피 실패!\n💥 적에게 1점의 치명상을 입혔습니다! (적 HP: ${curEnemyHp}/${activeSession.sheet?.maxEnemyHp || 6})`;
+            }
+            finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, amuletText);
+          },
+          onCancel: () => {
+            setWeaponRerollModal(null);
+            text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
+            finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text);
+          }
+        });
+        return; // 팝업 응답 대기
+      }
 
       if (enemyDodged) {
         text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
@@ -2281,55 +2516,99 @@ const startNewSession = async () => {
       }
     }
 
-    // 상태 반영 & 보너스 초기화(0)
+    // 인터럽트 조건이 없으면 바로 턴 마무리 진행
+    finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text);
+  };
+
+  // 🌟 턴 마무리 공통 로직 (파트너 협공 + 괴이 반격 + 라운드 전환)
+  const finishClimaxTurn = (startEnemyHp, startPlayerHp, playerPlot, currentText) => {
+    let curEnemyHp = startEnemyHp;
+    let curPlayerHp = startPlayerHp;
+    let text = currentText;
+    const partnerName = activeSession.partnerName;
+
+    // 🤝 1. [파트너 협공]
+    if (curEnemyHp > 0 && partnerName) {
+      const pd1 = Math.floor(Math.random() * 6) + 1;
+      const pd2 = Math.floor(Math.random() * 6) + 1;
+      const partnerSum = pd1 + pd2;
+      if (partnerSum >= 6) {
+        curEnemyHp = Math.max(0, curEnemyHp - 1);
+        text += `\n\n[🤝 파트너 협공] ${partnerName}의 엄호 사격 적중! (${pd1}+${pd2}=${partnerSum})\n💥 괴이에게 1점의 치명상을 입혔습니다! (적 HP: ${curEnemyHp})`;
+      } else {
+        text += `\n\n[🤝 파트너 협공] ${partnerName}의 엄호 사격이 빗나갔습니다. (${pd1}+${pd2}=${partnerSum})`;
+      }
+    }
+
+    // 👹 2. [괴이의 반격]
+    if (curEnemyHp > 0) {
+      text += `\n\n[👹 괴이의 반격] 적이 플레이어를 향해 맹렬한 일격을 가합니다!`;
+      const playerDodgeTarget = playerPlot + 4;
+      const pDodge1 = Math.floor(Math.random() * 6) + 1;
+      const pDodge2 = Math.floor(Math.random() * 6) + 1;
+      const pDodgeSum = pDodge1 + pDodge2;
+      const playerDodged = pDodgeSum >= playerDodgeTarget;
+
+      if (playerDodged) {
+        text += `\n- 플레이어 회피 성공! (${pDodge1}+${pDodge2}=${pDodgeSum} / 목표치 ${playerDodgeTarget}) 가볍게 피했습니다!`;
+      } else {
+        curPlayerHp = Math.max(0, curPlayerHp - 1);
+        text += `\n- 플레이어 회피 실패! (${pDodge1}+${pDodge2}=${pDodgeSum} / 목표치 ${playerDodgeTarget})\n🩸 괴이의 반격에 1점의 피해를 입었습니다! (내 남은 HP: ${curPlayerHp})`;
+      }
+    }
+
+    // 3. 시트 상태 저장
     setSessions(prev => prev.map(s => s.id === activeSessionId ? {
       ...s,
-      sheet: { 
-        ...s.sheet, 
+      sheet: {
+        ...s.sheet,
         enemyHp: curEnemyHp,
-        flashbackBonus: 0 
+        hp: curPlayerHp,
+        flashbackBonus: 0,
+        phase: curEnemyHp <= 0 ? "에필로그" : s.sheet?.phase
       }
     } : s));
 
+    // 4. 승패 및 상태 분기
     if (curEnemyHp <= 0) {
-      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-        ...s,
-        sheet: {
-          ...s.sheet,
-          enemyHp: 0,
-          phase: "에필로그", // 🌟 공격으로 적 처치 시에도 플롯 창 즉시 닫기!
-          flashbackBonus: 0
-        }
-      } : s));
-
+      // 🏆 적 격파 (승리)
       text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
-      
       const aiPrompt = `${text}\n[🚨 결전 종결 수칙] 괴이의 HP가 0이 되어 소멸했습니다. 전투를 완전히 마무리하고 승리의 여운과 두 인물의 에필로그를 서술하십시오. 지문 끝에 [Happy End: 새벽의 온기] 형태의 엔딩 태그를 출력하십시오.`;
       executeMessage(text, aiPrompt);
       return;
     }
-    if (playerPlot > enemyPlot) {
-      const ea1 = Math.floor(Math.random() * 6) + 1;
-      const ea2 = Math.floor(Math.random() * 6) + 1;
-      const enemyHit = (ea1 + ea2) >= 5;
 
-      if (enemyHit) {
-        setClimaxStep("dodge");
-        text += `\n\n👾 [적의 반격!] 적이 거친 반격을 시도해 옵니다! (적 명중: ${ea1}+${ea2}=${ea1 + ea2})\n👉 아래 [회피 판정] 버튼을 눌러 반격을 피하십시오!`;
-        executeMessage(text);
-        return;
+    if (curPlayerHp <= 0) {
+      // 💊 플레이어 빈사 (진통제 체크)
+      const healItem = (activeSession?.sheet?.items || []).find(
+        it => (it.type === "heal" || it.name?.includes("진통제") || it.name?.includes("약")) && (it.count > 0 || it.quantity > 0)
+      );
+
+      if (healItem) {
+        setUsableHealItem(healItem);
+        setReviveModalOpen(true);
+        text += `\n\n🚨 [치명상!] 생명력이 0이 되었습니다! 의식을 잃어가지만 품 속에 [${healItem.name}]이(가) 남아있습니다...`;
       } else {
-        text += `\n\n💨 [적 반격 빗나감!] 적이 발악하며 휘두른 일격이 빗나갔습니다!`;
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          ...s,
+          sheet: { ...s.sheet, hp: 0, phase: "배드엔딩" }
+        } : s));
+        text += `\n\n💀 [게임 오버: 사망] 끝내 치명상을 버티지 못하고 시야가 암전됩니다...`;
+        if (typeof triggerToast === "function") {
+          triggerToast("캐릭터 사망", "생명력이 소진되어 의식을 잃었습니다.", "💀");
+        }
       }
+      executeMessage(text);
+      return;
     }
 
+    // 🔔 5. 적/아군 모두 생존 시 다음 라운드 진행
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)을 선택해 주십시오.`;
 
     executeMessage(text);
   };
-
 // 🌟 [클맥 3] 봉인 의식 판정
   const executeClimaxRitual = (stepIdx) => {
     if (!activeSession) return;
@@ -2851,7 +3130,7 @@ currentPhase === "클라이맥스" ? `
           cycle: s.sheet?.cycle ?? newSheet.cycle,
           scene: s.sheet?.scene ?? newSheet.scene,
           phase: s.sheet?.phase ?? newSheet.phase,
-          actionUsed: textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false)
+          actionUsed: s.sheet?.phase === "도입" ? false : (textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false))
         },
         messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId }],
         suggestedActions: parsedData.suggActions,
@@ -3994,6 +4273,100 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     <input type="text" value={insaneFear} onChange={e => setInsaneFear(e.target.value)} placeholder="예: 죽음, 피" style={{ width: "100%", padding: "6px", marginTop: "2px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px" }} />
                   </label>
                 </div>
+                {/* 🎒 [인세인 초기 소지 아이템 선택기] */}
+    <div style={{ marginTop: "12px", borderTop: `1px dashed ${theme.border}`, paddingTop: "10px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent }}>
+          🎒 초기 소지 아이템 선택 (최대 2개)
+        </span>
+        <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>
+          선택: <strong style={{ color: Object.values(insaneItems).reduce((a, b) => a + b, 0) === 2 ? theme.success || "#4ade80" : theme.accent }}>
+            {Object.values(insaneItems).reduce((a, b) => a + b, 0)}
+          </strong> / 2개
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+        {[
+          { name: "진통제", icon: "💊", desc: "생명력 또는 이성치 1점 회복" },
+          { name: "무기", icon: "⚔️", desc: "전투 중 자신의 판정 재굴림" },
+          { name: "부적", icon: "🧿", desc: "타인의 판정 주사위 재굴림" }
+        ].map(item => {
+          const count = insaneItems[item.name] || 0;
+          return (
+            <div
+              key={item.name}
+              style={{
+                backgroundColor: count > 0 ? "rgba(234, 179, 8, 0.08)" : theme.panelAlt,
+                border: `1px solid ${count > 0 ? theme.accent : theme.border}`,
+                borderRadius: "8px",
+                padding: "8px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between"
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: "700", fontSize: "0.78rem", color: count > 0 ? theme.accent : theme.text, display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span>{item.icon}</span>
+                  <span>{item.name}</span>
+                </div>
+                <div style={{ fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", lineHeight: "1.3" }}>
+                  {item.desc}
+                </div>
+              </div>
+
+              {/* 수량 조절 버튼 */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleItemCountChange(item.name, -1)}
+                  disabled={count <= 0}
+                  style={{
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "4px",
+                    border: `1px solid ${theme.border}`,
+                    backgroundColor: theme.panel,
+                    color: theme.text,
+                    cursor: count <= 0 ? "not-allowed" : "pointer",
+                    opacity: count <= 0 ? 0.3 : 1,
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  -
+                </button>
+                <span style={{ fontSize: "0.82rem", fontWeight: "800", color: count > 0 ? theme.accent : theme.textMuted }}>
+                  {count}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleItemCountChange(item.name, 1)}
+                  style={{
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "4px",
+                    border: `1px solid ${theme.border}`,
+                    backgroundColor: theme.panel,
+                    color: theme.text,
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>       
               </div>
             )}
 
@@ -4079,6 +4452,382 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
           /* 플레이 룸 */
           <>
             {/* 테이블탑 오버레이 (비밀 스포 완벽 차단) */}
+{/* 🍞 상단 시스템 알림 (바깥 클릭 또는 ✕ 버튼으로 닫기) */}
+      {toast && (
+        <>
+          {/* 1. 화면 바깥 터치 감지 레이어 (클릭 시 닫힘) */}
+          <div
+            onClick={() => setToast(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9998,
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
+              backdropFilter: "blur(2px)"
+            }}
+          />
+
+          {/* 2. 상단 알림 배너 본체 */}
+          <div
+            style={{
+              position: "fixed",
+              top: "24px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 9999,
+              backgroundColor: "rgba(18, 20, 26, 0.96)",
+              border: `1.5px solid ${theme.accent || "#6366f1"}`,
+              borderRadius: "14px",
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "14px",
+              boxShadow: "0 12px 35px rgba(0, 0, 0, 0.7)",
+              color: "#fff",
+              maxWidth: "90%",
+              width: "360px"
+            }}
+          >
+            {/* 아이콘 및 알림 문구 */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: "1.5rem", flexShrink: 0 }}>{toast.icon}</span>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.accent || "#818cf8" }}>
+                  {toast.title}
+                </span>
+                <span style={{ fontSize: "0.8rem", color: "#e2e8f0", marginTop: "2px", lineHeight: "1.3" }}>
+                  {toast.message}
+                </span>
+              </div>
+            </div>
+
+            {/* 우측 ✕ 닫기 버튼 */}
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              title="알림 닫기"
+              style={{
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "none",
+                borderRadius: "50%",
+                width: "24px",
+                height: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#94a3b8",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                flexShrink: 0
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </>
+      )}
+
+{/* 🚨 체력 0 도달 시 긴급 회복 선택 모달 */}
+      {reviveModalOpen && usableHealItem && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10001,
+            backgroundColor: "rgba(0, 0, 0, 0.82)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(5px)"
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "rgba(20, 24, 33, 0.98)",
+              border: `2px solid ${theme.danger || "#ef4444"}`,
+              borderRadius: "16px",
+              padding: "24px 20px",
+              width: "320px",
+              textAlign: "center",
+              boxShadow: "0 12px 40px rgba(239, 68, 68, 0.35)",
+              color: "#fff"
+            }}
+          >
+            <div style={{ fontSize: "2.2rem", marginBottom: "8px" }}>🚨</div>
+            <div style={{ fontWeight: "800", fontSize: "1.05rem", color: theme.danger || "#ef4444", marginBottom: "8px" }}>
+              치명상! 의식을 잃어갑니다
+            </div>
+            <p style={{ fontSize: "0.8rem", color: "#cbd5e1", lineHeight: "1.5", margin: "0 0 18px 0" }}>
+              생명력이 0이 되었습니다.<br />
+              보유 중인 <strong>[{usableHealItem.name}]</strong>을(를) 사용하여<br />
+              버텨내시겠습니까?
+              <br />
+              <span style={{ fontSize: "0.74rem", color: "#94a3b8", marginTop: "4px", display: "inline-block" }}>
+                (남은 수량: {usableHealItem.count ?? usableHealItem.quantity ?? 1}개)
+              </span>
+            </p>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={handleDeclineRevive}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: "8px",
+                  color: "#94a3b8",
+                  fontSize: "0.8rem",
+                  cursor: "pointer"
+                }}
+              >
+                포기하기
+              </button>
+              <button
+                type="button"
+                onClick={handleUseReviveItem}
+                style={{
+                  flex: 1.4,
+                  padding: "10px",
+                  backgroundColor: theme.accent || "#6366f1",
+                  border: "none",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontWeight: "800",
+                  fontSize: "0.8rem",
+                  cursor: "pointer"
+                }}
+              >
+                💊 {usableHealItem.name} 복용
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+ {/* ⚔️ / 🧿 무기 & 부적 전투 재굴림 모달 */}
+      {weaponRerollModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "20px"
+        }}>
+          <div className="glass-card" style={{
+            maxWidth: "380px",
+            width: "100%",
+            backgroundColor: theme.panel || "#1e1e24",
+            border: `1px solid ${weaponRerollModal.type === "weapon" ? (theme.danger || "#ef4444") : (theme.warning || "#eab308")}`,
+            borderRadius: "12px",
+            padding: "20px",
+            textAlign: "center",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
+          }}>
+            <h3 style={{ 
+              fontSize: "1.1rem", 
+              fontWeight: "800", 
+              marginBottom: "12px", 
+              color: weaponRerollModal.type === "weapon" ? (theme.danger || "#ef4444") : (theme.warning || "#eab308") 
+            }}>
+              {weaponRerollModal.title}
+            </h3>
+            <p style={{ fontSize: "0.85rem", lineHeight: "1.5", color: theme.text || "#fff", whiteSpace: "pre-wrap", marginBottom: "20px" }}>
+              {weaponRerollModal.desc}
+            </p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={weaponRerollModal.onConfirm}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  backgroundColor: weaponRerollModal.type === "weapon" ? (theme.danger || "#ef4444") : (theme.warning || "#eab308"),
+                  color: "#fff",
+                  fontWeight: "800",
+                  fontSize: "0.85rem",
+                  cursor: "pointer"
+                }}
+              >
+                소모하고 재굴림
+              </button>
+              <button
+                type="button"
+                onClick={weaponRerollModal.onCancel}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: `1px solid ${theme.border || "#444"}`,
+                  backgroundColor: theme.panelAlt || "#2a2a32",
+                  color: theme.textMuted || "#aaa",
+                  fontWeight: "700",
+                  fontSize: "0.85rem",
+                  cursor: "pointer"
+                }}
+              >
+                넘어가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {emotionModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            backdropFilter: "blur(4px)"
+          }}
+        >
+          <div
+            className="glass-panel"
+            style={{
+              width: "90%",
+              maxWidth: "420px",
+              backgroundColor: theme.panel,
+              border: `1.5px solid ${theme.border}`,
+              borderRadius: "16px",
+              padding: "20px",
+              color: theme.text,
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)"
+            }}
+          >
+            {/* 상단 헤더 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div style={{ fontWeight: "800", fontSize: "1.1rem" }}>💬 인세인 감정 판정</div>
+              <button
+                type="button"
+                onClick={() => setEmotionModalOpen(false)}
+                style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.2rem", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 1단계: 대상 선택 (파트너 + 시트의 모든 NPC) */}
+            {!emotionTargetNpc ? (
+              <div>
+                <div style={{ fontSize: "0.85rem", color: theme.textMuted, marginBottom: "12px" }}>
+                  감정을 맺을 대상을 선택하십시오. (1D6 주사위가 굴러갑니다)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "240px", overflowY: "auto" }}>
+                  {/* 파트너 버튼 */}
+                  {activeSession.partnerName && (
+                    <button
+                      type="button"
+                      onClick={() => startEmotionRoll({ name: activeSession.partnerName, id: "partner" })}
+                      style={{
+                        padding: "12px",
+                        backgroundColor: theme.panelAlt,
+                        border: `1px solid ${theme.primary}`,
+                        borderRadius: "10px",
+                        color: theme.text,
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between"
+                      }}
+                    >
+                      <span>🤝 {activeSession.partnerName}</span>
+                      <span style={{ fontSize: "0.75rem", color: theme.primary }}>파트너</span>
+                    </button>
+                  )}
+
+                  {/* 서브 NPC들 (강이솔, 윤설영 등) */}
+                  {(activeSession.sheet?.npcs || [])
+                    .filter(n => n.name !== activeSession.partnerName)
+                    .map(npc => (
+                      <button
+                        key={npc.id || npc.name}
+                        type="button"
+                        onClick={() => startEmotionRoll(npc)}
+                        style={{
+                          padding: "12px",
+                          backgroundColor: theme.panelAlt,
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: "10px",
+                          color: theme.text,
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          display: "flex",
+                          justifyContent: "space-between"
+                        }}
+                      >
+                        <span>👤 {npc.name}</span>
+                        <span style={{ fontSize: "0.75rem", color: theme.textMuted }}>{npc.role || "등장인물"}</span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            ) : (
+              /* 2단계: 주사위 결과 확인 및 긍정/부정 감정 선택 */
+              <div>
+                <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "0.85rem", color: theme.textMuted }}>대상: <b>{emotionTargetNpc.name}</b></div>
+                  <div style={{ fontSize: "1.8rem", fontWeight: "900", margin: "10px 0", color: theme.accent }}>
+                    🎲 1D6 = {emotionDiceResult?.roll}
+                  </div>
+                  <div style={{ fontSize: "1rem", fontWeight: "800", color: theme.text }}>
+                    [{emotionDiceResult?.name}]
+                  </div>
+                </div>
+
+                <div style={{ fontSize: "0.8rem", color: theme.textMuted, textAlign: "center", marginBottom: "12px" }}>
+                  품을 감정의 방향(속성)을 하나 선택하세요:
+                </div>
+
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => confirmEmotion(emotionDiceResult.pos)}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      backgroundColor: "rgba(34, 197, 94, 0.2)",
+                      border: "1.5px solid rgb(34, 197, 94)",
+                      borderRadius: "10px",
+                      color: theme.text,
+                      fontWeight: "800",
+                      cursor: "pointer"
+                    }}
+                  >
+                    💖 긍정 ({emotionDiceResult?.pos})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => confirmEmotion(emotionDiceResult.neg)}
+                    style={{
+                      flex: 1,
+                      padding: "12px",
+                      backgroundColor: "rgba(239, 68, 68, 0.2)",
+                      border: "1.5px solid rgb(239, 68, 68)",
+                      borderRadius: "10px",
+                      color: theme.text,
+                      fontWeight: "800",
+                      cursor: "pointer"
+                    }}
+                  >
+                    💔 부정 ({emotionDiceResult?.neg})
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
             {activeSession.ruleMode === "insane" && isTabletopOpen && (
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: "75px", backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", zIndex: 40, padding: "20px", display: "flex", flexDirection: "column", gap: "20px", overflowY: "auto" }}>
                 <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff" }}>
@@ -4089,10 +4838,42 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 <div>
                   <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.accent, marginBottom: "10px" }}>📜 시나리오 핸드아웃 (조사 성공 시 비밀 해금)</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
-                    {(activeSession.sheet.handouts || []).map(card => {
-                      const isPcCard = card.id === "pc_base" || card.title.includes(activeSession.sheet?.name || "주인공");
-                      const canShowSecret = card.revealed || isPcCard;
-                      const isShowingSecret = canShowSecret && card.isFlipped;
+{(activeSession.sheet.handouts || []).map((card, idx) => {
+        const isPcCard = card.id === "pc_base" || card.title.includes(activeSession.sheet?.name || "주인공");
+        const canShowSecret = card.revealed || isPcCard;
+        const isShowingSecret = canShowSecret && card.isFlipped;
+
+        // 🌟 미발견 구역 자물쇠 카드 판정 (PC/파트너 및 기본 3개는 처음부터 열림)
+        const isDiscovered = card.discovered ?? (isPcCard || idx < 3);
+
+        if (!isDiscovered) {
+          return (
+            <div
+              key={card.id || idx}
+              style={{
+                width: "170px",
+                minHeight: "220px",
+                borderRadius: "12px",
+                border: `1.5px dashed ${theme.border}`,
+                backgroundColor: "rgba(255, 255, 255, 0.02)",
+                padding: "14px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center",
+                color: theme.textMuted,
+                boxSizing: "border-box"
+              }}
+            >
+              <div style={{ fontSize: "1.8rem", marginBottom: "8px" }}>🔒</div>
+              <div style={{ fontWeight: "800", fontSize: "0.82rem", color: theme.textMuted }}>미발견 조사 구역</div>
+              <div style={{ fontSize: "0.68rem", marginTop: "6px", lineHeight: "1.3", opacity: 0.7 }}>
+                조사나 단서를 통해<br/>실마리를 찾아야 합니다.
+              </div>
+            </div>
+          );
+        }
 
                       return (
                         <div 
@@ -4341,34 +5122,12 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                       </div>
                     ))}
                   </div>
+<div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
 
-                  {/* 🌟 결전 액션 버튼: 회피 or 공격/의식 */}
-                  <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
-                    {climaxStep === "dodge" ? (
-                      <button
-                        type="button"
-                        onClick={executePlayerDodge}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          backgroundColor: theme.warning,
-                          color: "#000",
-                          border: "none",
-                          borderRadius: "6px",
-                          fontWeight: "900",
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          boxShadow: "0 2px 10px rgba(229, 169, 60, 0.4)"
-                        }}
-                      >
-                        🛡️ 회피 판정 굴리기 (2D6 / 목표치: {(activeSession.sheet?.currentPlot ?? 3) + 4})
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          disabled={climaxStep === "plot"}
-                          onClick={executeClimaxAttack}
+  <button
+    type="button"
+    disabled={climaxStep === "plot"}
+    onClick={executeClimaxAttack}
                           style={{
                             flex: 1,
                             padding: "8px",
@@ -4387,9 +5146,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
                           <button
                           type="button"
-                          disabled={climaxStep === "plot"}
+                          disabled={climaxStep === "plot" || !activeSession.sheet?.isRitualDiscovered}
                           onClick={() => {
-                            if (!activeSession) return;
+                           if (!activeSession) return;
+                           if (!activeSession.sheet?.isRitualDiscovered) return; // 👈 요기 딱 한 줄 추가!
+                           
 
                             // 1. 의식 목록이 비어있으면 배경 맞춤 의식으로 자동 복원
                             let rituals = activeSession.sheet?.rituals;
@@ -4441,16 +5202,64 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
                           }}
                         >
-                          📜 의식 진행 (다음 단계)
+                          {activeSession.sheet?.isRitualDiscovered ? "📜 의식 진행 (2D6)" : "⚠️ 봉인 단서 미확인"}
                         </button>
-                      </>
-                    )}
                   </div>
                 </div>
               )}
 
+{/* 🌟 1. 도입 페이즈 전용 액션 바 */}
+            {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase === "도입" && (
+              <div style={{ display: "flex", gap: "6px", overflowX: "auto", padding: "4px 0", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInput("상황을 조용히 지켜보며 주변을 살핀다.");
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    backgroundColor: theme.panelAlt,
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: "6px",
+                    color: theme.text,
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    cursor: "pointer"
+                  }}
+                >
+                  💬 상황 반응하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("도입 페이즈를 종료하고 제 1사이클을 개막하시겠습니까?")) {
+                      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                        ...s,
+                        sheet: { ...s.sheet, phase: "메인", cycle: 1, scene: 1, actionUsed: false }
+                      } : s));
+                      setInput("도입 페이즈를 종료하고 제 1사이클을 개막합니다. 플레이어의 첫 번째 장면을 열어주십시오.");
+                    }
+                  }}
+                  style={{
+                    flex: 1.2,
+                    padding: "8px 10px",
+                    backgroundColor: theme.primary,
+                    border: "none",
+                    borderRadius: "6px",
+                    color: "#fff",
+                    fontSize: "0.8rem",
+                    fontWeight: "800",
+                    cursor: "pointer"
+                  }}
+                >
+                  🚀 도입 종료 (제 1사이클 개막)
+                </button>
+              </div>
+            )}
+
               {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
-              {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
+              {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && activeSession.sheet?.phase !== "도입" && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", padding: "4px 0", whiteSpace: "nowrap" }}>
                   <span style={{ fontSize: "0.72rem", color: theme.warning, fontWeight: "800", alignSelf: "center" }}>🎯 주요 행동:</span>
                   <button
@@ -5072,18 +5881,48 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none" }}>
                   📖 내 캐릭터 백스토리 & 비밀
                 </summary>
-                <div style={{ marginTop: "8px", fontSize: "0.74rem", lineHeight: "1.5", color: theme.text, borderTop: `1px dashed ${theme.border}`, paddingTop: "6px" }}>
-                  <div style={{ marginBottom: "6px", whiteSpace: "pre-wrap" }}>
-                    <strong style={{ color: theme.textMuted }}>[성격 및 백스토리]</strong><br />
-                    {activeSession.sheet.background || "기재된 설정이 없습니다."}
-                  </div>
-                  {activeSession.sheet.secret && (
-                    <div style={{ color: theme.danger, whiteSpace: "pre-wrap" }}>
-                      <strong>[🔒 숨겨진 비밀/사명]</strong><br />
-                      {activeSession.sheet.secret}
-                    </div>
-                  )}
-                </div>
+                <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
+  {/* 📜 [성격 및 백스토리] 박스 */}
+  <div
+    style={{
+      padding: "10px 12px",
+      backgroundColor: "rgba(255, 255, 255, 0.03)",
+      borderRadius: "8px",
+      fontSize: "0.8rem",
+      lineHeight: "1.7",
+      color: theme.textSecondary || "#cbd5e1",
+      whiteSpace: "pre-wrap",
+      wordBreak: "keep-all"
+    }}
+  >
+    <div style={{ fontWeight: "800", color: theme.accent, marginBottom: "6px", fontSize: "0.82rem" }}>
+      📜 성격 및 백스토리
+    </div>
+    {(activeSession.sheet?.background || "기재된 설정이 없습니다.").replace(/\*\*/g, "")}
+  </div>
+
+  {/* 🔒 [숨겨진 비밀/사명] 박스 */}
+  {activeSession.sheet?.secret && (
+    <div
+      style={{
+        padding: "10px 12px",
+        backgroundColor: "rgba(239, 68, 68, 0.06)",
+        border: "1px solid rgba(239, 68, 68, 0.2)",
+        borderRadius: "8px",
+        fontSize: "0.8rem",
+        lineHeight: "1.7",
+        color: "#f87171",
+        whiteSpace: "pre-wrap",
+        wordBreak: "keep-all"
+      }}
+    >
+      <div style={{ fontWeight: "800", marginBottom: "6px", fontSize: "0.82rem", color: "#f87171" }}>
+        🔒 숨겨진 비밀 / 사명
+      </div>
+      {activeSession.sheet.secret.replace(/\*\*/g, "")}
+    </div>
+  )}
+</div>
               </details>
             </div>
 
@@ -5346,7 +6185,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 <div className="glass-card" style={{ padding: "10px", borderRadius: "8px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
           <span style={{ fontWeight: "800", fontSize: "0.78rem", color: theme.accent }}>
-            주요 등장인물 (파트너)
+            주요 등장인물
           </span>
           <button
             type="button"
@@ -5421,36 +6260,77 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 const isUnlocked = npc.secretRevealed || isHandoutUnlocked || isChatUnlocked || isScenarioEnded;
 
 return (
-  <>
-    {/* 🌟 1. 캐릭터 외모/성격/상세 프로필 상자 (복구 완료!) */}
-    {(npc.desc || npc.detail) && (
-      <div style={{ 
-        fontSize: "0.74rem", 
-        color: theme.text, 
-        lineHeight: "1.5", 
-        marginBottom: "8px", 
-        padding: "6px 8px", 
-        backgroundColor: theme.panel, 
-        borderRadius: "6px",
-        whiteSpace: "pre-wrap"
-      }}>
-        {npc.desc || npc.detail}
+  <div
+    style={{
+      padding: "10px 12px",
+      borderTop: `1px solid ${theme.border}`,
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      backgroundColor: "rgba(0, 0, 0, 0.12)"
+    }}
+  >
+    {/* 1. 파트너 백스토리 및 설정 (가독성 최적화 & 소제목 자동 줄바꿈) */}
+    <div
+      style={{
+        fontSize: "0.8rem",
+        lineHeight: "1.75",
+        color: theme.textSecondary || "#cbd5e1",
+        whiteSpace: "pre-wrap",
+        wordBreak: "keep-all"
+      }}
+    >
+      {(() => {
+        const raw = npc.desc || npc.detail;
+        if (!raw) return "등록된 상세 설정이 없습니다.";
+        let clean = raw.replace(/\*\*/g, ""); // ** 볼드 기호 제거
+        // 문장 끝 뒤에 붙는 항목명(예: '설정 및 지위:', '계약의 계기:') 앞에 엔터 2번 + 📌 배지 자동 삽입
+        clean = clean.replace(/([.!?"]\s*)([가-힣\w\s()]{2,25}:)/g, "$1\n\n📌 $2\n");
+        return clean.trim();
+      })()}
+    </div>
+
+    {/* 2. 비밀 구역 (해금 여부에 따른 동적 UI) */}
+    {isUnlocked ? (
+      <div
+        style={{
+          padding: "10px 12px",
+          backgroundColor: "rgba(239, 68, 68, 0.08)",
+          border: "1px solid rgba(239, 68, 68, 0.3)",
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          lineHeight: "1.7",
+          color: "#fca5a5",
+          whiteSpace: "pre-wrap",
+          wordBreak: "keep-all"
+        }}
+      >
+        <div style={{ fontWeight: "800", marginBottom: "6px", fontSize: "0.82rem", color: "#f87171" }}>
+          🔓 밝혀진 비밀 / 진심
+        </div>
+        {(npc.secret || "밝혀진 비밀 내용이 기재되어 있지 않습니다.").replace(/\*\*/g, "")}
+      </div>
+    ) : (
+      <div
+        style={{
+          padding: "9px 12px",
+          backgroundColor: "rgba(255, 255, 255, 0.03)",
+          border: `1px dashed ${theme.border}`,
+          borderRadius: "8px",
+          fontSize: "0.76rem",
+          color: theme.textMuted,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}
+      >
+        <span>🔒</span>
+        <span>
+          <strong style={{ color: theme.danger }}>[숨겨진 비밀/진심]</strong> 아직 서사 속에서 밝혀지지 않은 비밀입니다. (조사 필요)
+        </span>
       </div>
     )}
-
-    {/* 🌟 2. 숨겨진 비밀/진심 상자 */}
-    <div style={{ backgroundColor: isUnlocked ? "rgba(214, 56, 87, 0.12)" : "rgba(214, 56, 87, 0.08)", padding: "8px", borderRadius: "6px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong style={{ color: theme.danger, fontSize: "0.74rem" }}>
-          {isUnlocked ? "🔓 [숨겨진 비밀/진심]" : "[🔒 숨겨진 비밀/진심]"}
-        </strong>
-        {isUnlocked && <span style={{ fontSize: "0.62rem", color: theme.danger, fontWeight: "700" }}>해금 완료</span>}
-      </div>
-      <div style={{ marginTop: "4px", color: isUnlocked ? theme.danger : theme.textMuted, fontSize: "0.72rem", lineHeight: "1.4" }}>
-        {isUnlocked ? (npc.secret || "숨겨진 비밀이 없습니다.") : (npc.secret ? "🔒 아직 서사 속에서 밝혀지지 않은 비밀입니다." : "숨겨진 비밀이 없습니다.")}
-      </div>
-    </div>
-  </>
+  </div>
 );
               })()}
             </details>
@@ -6882,7 +7762,6 @@ const quoteText = npc.statusMessage
                                 style={{ 
                                   padding: "10px 12px", 
                                   backgroundColor: theme.panelAlt, 
-                                  border: `1px solid ${theme.border}`, 
                                   borderRadius: "10px", 
                                   display: "flex", 
                                   justifyContent: "space-between", 
@@ -6899,25 +7778,32 @@ const quoteText = npc.statusMessage
                                   </div>
                                 </div>
 
-                                <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => exportSingleLobbyPreset(p)}
-                                    title="이 시나리오만 JSON 파일로 저장"
-                                    style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700", whiteSpace: "nowrap" }}
-                                  >
-                                    📥 저장
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleLoadLobbyPreset(p)}
-                                    style={{ padding: "5px 12px", backgroundColor: theme.accent, border: "none", borderRadius: "6px", color: "#fff", fontSize: "0.72rem", cursor: "pointer", fontWeight: "800", whiteSpace: "nowrap" }}
-                                  >
-                                    적용 ➔
-                                  </button>
-                                </div>
-                              </div>
-                            );
+
+<div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => handleLoadLobbyPreset(p)}
+        title="시나리오 바로 적용"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "34px",
+          height: "34px",
+          backgroundColor: theme.accent,
+          border: "none",
+          borderRadius: "6px",
+          color: "#fff",
+          fontSize: "0.95rem",
+          fontWeight: "900",
+          cursor: "pointer"
+        }}
+      >
+        {">"}
+      </button>
+    </div>
+  </div>
+);
                           })}
                         </div>
 
@@ -7317,12 +8203,14 @@ const quoteText = npc.statusMessage
                   </div>
                 </div>
               ) : (
-                /* 업데이트 노트 탭 */
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+/* 업데이트 노트 탭 */
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  
+                  {/* 🚀 최신 버전 v1.2.0 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
-                        🚀 v1.1.0 패치 노트
+                        🚀 v1.2.0 패치 노트
                       </h3>
                       <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
                         LATEST
@@ -7331,42 +8219,43 @@ const quoteText = npc.statusMessage
 
                     <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ fontSize: "0.84rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
-                        "탐사자여, 낭만적인 서사에 몰입하려는데 90년대 회색 경고창이 뜨고, 누구든 돋보기부터 챙기던 야만의 시대는 이제 끝났습니다."
+                        "결전의 순간, 공격이 빗나갔다고 절망하지 마십시오. 품 속엔 아직 무기와 부적, 그리고 기적의 알약 한 알이 남아있습니다."
                       </div>
                       <div style={{ fontSize: "0.85rem", lineHeight: "1.7", color: theme.text }}>
-                        • <strong>📱 읽씹 방지 & 스마트폰 풀옵션:</strong> 내가 보낸 말풍선 옆에 노란색 <strong>'1'</strong>이 박히며 상대가 읽으면 즉시 사라집니다. 점 세 개가 톡톡 튀는 <strong>(•••) 타이핑 말풍선</strong>과, 문자가 오면 화면 상단에서 스르륵 내려오는 <strong>푸시 알림 배너</strong>가 장착되었습니다.<br/>
-                        • <strong>🎁 브라우저 경고창 전면 추방:</strong> 화면 분위기를 와장창 깨뜨리던 회색 alert/prompt 창을 모두 압수했습니다. 이제 <strong>[선물하기]</strong>, <strong>[취향 수첩]</strong>, <strong>[로비 세팅 저장]</strong> 모두 화면 중앙에 깔끔한 인앱 모달 카드로 열립니다.<br/>
-                        • <strong>🎒 돋보기의 저주 해제:</strong> 직업과 장르를 불문하고 돋보기와 만년필만 들고 태어나던 탐정병을 치료했습니다. 미연시 모드에서는 <strong>[손수건]</strong>과 <strong>[틴케이스 캔디]</strong>가 지급되며, 대화 중 상대가 흘린 취향은 시스템이 귀신같이 낚아채 수첩에 자동 저장합니다.<br/>
-                        • <strong>🎨 비주얼 대청소 & 실종자 구조:</strong> 헤더 바에 스티커처럼 둥둥 떠다니던 하얀색 박스들을 투명 플랫 아이콘으로 정돈하고, 메신저를 얹느라 잠시 미아가 되었던 CoC/인세인 <strong>[🃏 핸드아웃]</strong>과 <strong>[🎲 다이스]</strong> 버튼을 무사히 구출했습니다.
+                        • <strong>🎒 인세인 3대 소지품(가방) 도입:</strong> 세션 생성 단계에서 생사를 가를 초기 아이템(진통제, 무기, 부적)을 취향껏 2개 골라 챙겨갈 수 있습니다.<br/>
+                        • <strong>⚔️ 찰나의 역전! 인터럽트 개입 (무기 & 부적):</strong> 공격이 빗나갔을 땐 <strong>[무기]</strong>를 쥐어짜 주사위를 다시 굴리고, 약삭빠른 괴이가 공격을 피했을 땐 <strong>[부적]</strong>을 날려 자세를 무너뜨릴 수 있습니다. (공식 룰 준수: 판정당 재굴림 1회 제한 탑재)<br/>
+                        • <strong>💊 칠전팔기 긴급 소생 (진통제):</strong> 괴이의 맹렬한 반격에 생명력이 0이 되어도 포기하지 마세요. 품 속에 진통제가 남아있다면 사망 직전 긴급 복용 팝업이 열려 기적처럼 다시 일어섭니다.<br/>
+                        • <strong>⚡ 결전 액션 쾌속 자동화 & 수동 회피 해방:</strong> 턴마다 번거롭게 누르던 [회피 판정] 버튼을 철거했습니다. 이제 [공격] 버튼 하나로 <em>'내 공격 ➔ 적 회피 ➔ 파트너 협공 ➔ 적 반격 ➔ 내 회피'</em>까지 숨 쉴 틈 없이 한 호흡에 전개됩니다.
                       </div>
                     </div>
                   </div>
 
+                  {/* 📦 이전 버전 v1.1.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.1.0 스마트폰 풀옵션 & 비주얼 대청소
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>읽씹 방지 메신저:</strong> 노란색 '1' 카운트, (•••) 타이핑 애니메이션, 상단 푸시 알림 배너 추가.<br/>
+                      • <strong>브라우저 경고창 추방:</strong> 회색 alert/prompt를 걷어내고 선물하기·취향수첩을 깔끔한 인앱 모달로 전면 개편.<br/>
+                      • <strong>돋보기의 저주 해제:</strong> 미연시 모드 전용 소지품(손수건, 캔디) 지급 및 취향 자동 아카이빙 탑재.<br/>
+                      • <strong>헤더 바 정돈:</strong> 불투명 박스를 투명 플랫 아이콘으로 바꾸고 실종되었던 핸드아웃/다이스 버튼 복구.
+                    </div>
+                  </div>
+
+                  {/* 📦 최초 버전 v1.0.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
                       📦 v1.0.0 정식 배포
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
-                      • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드가 추가되었습니다.<br/>
-                      • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 모든 서브 NPC의 사명/비밀 분리 생성 및 '스스로 밝힐 수 없다' 핸드아웃 카드가 완성되었습니다.<br/>
-                      • <strong>온보딩 가이드 & 세이브 백업:</strong> 신규 사용자를 위한 가이드 모달과 JSON 풀세팅 백업/복원 기능이 탑재되었습니다.
+                      • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드 추가.<br/>
+                      • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 서브 NPC 사명/비밀 분리 생성 및 핸드아웃 카드 완성.<br/>
+                      • <strong>온보딩 가이드 & 세이브 백업:</strong> 가이드 모달과 JSON 백업/복원 기능 탑재.
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
 
-            <div style={{ padding: "12px 20px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", cursor: "pointer", color: theme.textMuted }}>
-                <input type="checkbox" checked={hideNoticeCheckbox} onChange={(e) => setHideNoticeCheckbox(e.target.checked)} />
-                7일간 다시 보지 않기
-              </label>
-              <button onClick={handleCloseNotice} style={{ padding: "6px 16px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "6px", fontWeight: "700", cursor: "pointer", fontSize: "0.84rem" }}>
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
+                </div>
       )}
        {/* 🌟 인세인 66개 특기 대용 판정 팝업 모달 */}
       {showSkillMatrixModal && (
