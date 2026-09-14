@@ -2860,6 +2860,11 @@ currentPhase === "클라이맥스" ? `
           outcome = "실패";
         }
         rollFormatted = `[🎲 2D6 판정: ${d1}+${d2}=${sum} / 목표치: ${targetVal}${skillName ? ` (${skillName})` : ""} ➔ 결과: ${outcome}]`;
+        
+        // 🌟 [추가] 회피 주사위를 굴렸다면 즉시 플레이어 공격/의식 단계로 전환!
+        if (skillName?.includes("회피") || (activeSession.sheet?.phase === "클라이맥스" && climaxStep === "dodge")) {
+          setClimaxStep("action");
+        }
       } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1;
         const targetVal = Number(overrideTarget !== null ? overrideTarget : activeSession.sheet?.san ?? 50);
@@ -2910,11 +2915,11 @@ currentPhase === "클라이맥스" ? `
       buttingText = `\n💥 [버팅 발생!] 속도(${playerPlot})가 겹쳐 플레이어와 적 모두 생명력 -1 피해!`;
     }
 
-    const orderText = playerPlot > enemyPlot
-      ? `플레이어(속도 ${playerPlot}) ➔ 적(속도 ${enemyPlot}) 선공`
+   const orderText = playerPlot > enemyPlot
+      ? `⚔️ 플레이어(속도 ${playerPlot}) 선공 ➔ 적(속도 ${enemyPlot}) 후공`
       : playerPlot < enemyPlot
-      ? `적(속도 ${enemyPlot}) ➔ 플레이어(속도 ${playerPlot}) 선공`
-      : `동시 행동 (버팅)`;
+      ? `⚡ 적(속도 ${enemyPlot}) 선공 ➔ 플레이어(속도 ${playerPlot}) 후공`
+      : `💥 동시 행동 (버팅)`;
 
     // 2) 상태 반영
     setSessions(prev => prev.map(s => s.id === activeSessionId ? {
@@ -4274,11 +4279,11 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               ))}
             </div>
 
-            {/* 🌟 결전 액션 버튼: 공격 or 의식 */}
+           {/* 🌟 결전 액션 버튼: 공격 or 의식 */}
             <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
               <button
                 type="button"
-                disabled={climaxStep !== "action"}
+                disabled={climaxStep === "plot"}
                 onClick={executeClimaxAttack}
                 style={{
                   flex: 1,
@@ -4289,8 +4294,8 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   borderRadius: "6px",
                   fontWeight: "800",
                   fontSize: "0.78rem",
-                  opacity: climaxStep === "action" ? 1 : 0.35,
-                  cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+                  opacity: climaxStep === "plot" ? 0.35 : 1,
+                  cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
                 }}
               >
                 ⚔️ 기본 공격 (2D6)
@@ -4298,34 +4303,15 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
               <button
                 type="button"
-                disabled={climaxStep !== "action"}
+                disabled={climaxStep === "plot"}
                 onClick={() => {
                   if (!activeSession) return;
-
-                  let rituals = activeSession.sheet?.rituals;
-                  if (!rituals || rituals.length === 0) {
-                    const generated = typeof generateInsaneThemeAssets === "function"
-                      ? generateInsaneThemeAssets(activeSession.title, activeSession.scenarioText)
-                      : null;
-                    
-                    rituals = generated?.rituals || [
-                      { id: 1, name: "1단계: 무대 결계 파괴", skill: "파괴", completed: false },
-                      { id: 2, name: "2단계: 진혼의 공명", skill: "소리", completed: false },
-                      { id: 3, name: "3단계: 괴이 심연 봉인", skill: "영감", completed: false }
-                    ];
-
-                    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-                      ...s,
-                      sheet: { ...s.sheet, rituals }
-                    } : s));
-                  }
-
+                  let rituals = activeSession.sheet?.rituals || [];
                   const nextIdx = rituals.findIndex(r => !r.completed);
                   if (nextIdx === -1) {
-                    alert("🎉 모든 봉인 의식이 이미 완수되었습니다! 에필로그로 진행할 수 있습니다.");
+                    alert("🎉 모든 봉인 의식이 이미 완수되었습니다!");
                     return;
                   }
-
                   executeClimaxRitual(nextIdx);
                 }}
                 style={{
@@ -4337,15 +4323,13 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   borderRadius: "6px",
                   fontWeight: "800",
                   fontSize: "0.78rem",
-                  opacity: climaxStep === "action" ? 1 : 0.35,
-                  cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+                  opacity: climaxStep === "plot" ? 0.35 : 1,
+                  cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
                 }}
               >
                 📜 의식 진행 (다음 단계)
               </button>
             </div>
-          </div>
-        )}
 
               {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
