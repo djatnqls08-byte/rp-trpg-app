@@ -2524,8 +2524,8 @@ const startNewSession = async () => {
     }));
   };
 
-  // 🌟 [클맥 2] 기본 공격 선언 (무기/부적 인터럽트 & 턴 통합)
-  const executeClimaxAttack = (isWeaponReroll = false) => {
+ // 🌟 [클맥 2] 기본 공격 선언 (무기/부적 인터럽트 & 턴 통합)
+  const executeClimaxAttack = (isWeaponReroll = false, inheritedBonus = null) => {
     if (!activeSession) return;
     playDiceSound?.();
 
@@ -2535,16 +2535,17 @@ const startNewSession = async () => {
     const enemyPlot = activeSession.sheet?.enemyPlot ?? 3;
     const items = activeSession.sheet?.items || [];
 
-    // 1. 공격 주사위 판정 (2D6 + 회상 보너스)
+    // 1. 공격 주사위 판정 (2D6 + 회상 보너스 상속)
     const d1 = Math.floor(Math.random() * 6) + 1;
     const d2 = Math.floor(Math.random() * 6) + 1;
     const baseSum = d1 + d2;
-    const bonus = activeSession.sheet?.flashbackBonus || 0;
+    // 🌟 넘겨받은 상속 보너스가 있으면 그것을 최우선 적용!
+    const bonus = inheritedBonus !== null ? inheritedBonus : (activeSession.sheet?.flashbackBonus || 0);
     const totalSum = baseSum + bonus;
     const isHit = totalSum >= 5;
 
     const rollDetail = bonus > 0 
-      ? `${d1}+${d2} (+회상 3) = ${totalSum}` 
+      ? `${d1}+${d2} (+회상 ${bonus}) = ${totalSum}` 
       : `${d1}+${d2} = ${totalSum}`;
 
     let text = `${isWeaponReroll ? "[⚔️ 무기 재굴림 발동!]\n" : "[⚔️ 클라이맥스 공격 선언]\n"}- 공격 명중 판정: ${rollDetail} (목표치 5) ➔ ${isHit ? "적중 성공!" : "빗나감!"}`;
@@ -2552,6 +2553,9 @@ const startNewSession = async () => {
     // ⚔️ [무기 인터럽트] 공격 실패 시 (단, 이미 무기로 재굴림한 상태가 아닐 때만 1회 허용)
     const weaponItem = items.find(i => (i.name === "무기" || i.type === "reroll_self") && i.count > 0);
     if (!isHit && weaponItem && !isWeaponReroll) {
+      // 🌟 당시 공격에 적용되었던 보너스 값 기억
+      const currentRollBonus = bonus;
+
       setWeaponRerollModal({
         type: "weapon",
         title: "⚔️ 무기 사용 (자신 판정 재굴림)",
@@ -2559,56 +2563,15 @@ const startNewSession = async () => {
         onConfirm: () => {
           consumeItem("무기");
           setWeaponRerollModal(null);
-          executeClimaxAttack(true); // 무기 1개 소모 후 재굴림!
+          executeClimaxAttack(true, currentRollBonus); // 👈 보너스를 상속하며 재굴림 실행!
         },
         onCancel: () => {
           setWeaponRerollModal(null);
-          finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text); // 포기하고 보스 턴 진행
+          finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text);
         }
       });
       return; // 팝업 응답 대기
     }
-
-    // 2. 적중 시 적 회피 판정
-    if (isHit) {
-      const enemyDodgeTarget = enemyPlot + 4;
-      const ed1 = Math.floor(Math.random() * 6) + 1;
-      const ed2 = Math.floor(Math.random() * 6) + 1;
-      const enemyDodgeSum = ed1 + ed2;
-      const enemyDodged = enemyDodgeSum >= enemyDodgeTarget;
-
-      // 🧿 [부적 인터럽트] 괴이가 회피 성공 시 가방에 부적이 있으면 발동
-      const amuletItem = items.find(i => (i.name === "부적" || i.type === "reroll_other") && i.count > 0);
-      if (enemyDodged && amuletItem) {
-        setWeaponRerollModal({
-          type: "amulet",
-          title: "🧿 부적 사용 (상대 판정 재굴림)",
-          desc: `괴이가 공격을 피했습니다! (${enemyDodgeSum} / 목표치 ${enemyDodgeTarget})\n소지품의 [부적]을 던져 괴이가 회피 주사위를 다시 굴리게 하시겠습니까? (남은 부적: ${amuletItem.count}개)`,
-          onConfirm: () => {
-            consumeItem("부적");
-            setWeaponRerollModal(null);
-            // 부적으로 적 회피 강제 재굴림
-            const red1 = Math.floor(Math.random() * 6) + 1;
-            const red2 = Math.floor(Math.random() * 6) + 1;
-            const rSum = red1 + red2;
-            const rDodged = rSum >= enemyDodgeTarget;
-            let amuletText = text + `\n\n[🧿 부적 발동!] 부적이 번쩍이며 괴이의 균형을 무너뜨립니다!\n- 적 회피 재굴림: ${red1}+${red2}=${rSum} (목표치 ${enemyDodgeTarget})`;
-            if (rDodged) {
-              amuletText += ` ➔ 괴이가 균형을 되찾고 여전히 공격을 피했습니다!`;
-            } else {
-              curEnemyHp = Math.max(0, curEnemyHp - 1);
-              amuletText += ` ➔ 적 회피 실패!\n💥 적에게 1점의 치명상을 입혔습니다! (적 HP: ${curEnemyHp}/${activeSession.sheet?.maxEnemyHp || 6})`;
-            }
-            finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, amuletText);
-          },
-          onCancel: () => {
-            setWeaponRerollModal(null);
-            text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
-            finishClimaxTurn(curEnemyHp, curPlayerHp, playerPlot, text);
-          }
-        });
-        return; // 팝업 응답 대기
-      }
 
       if (enemyDodged) {
         text += `\n- 적 회피 판정: ${ed1}+${ed2}=${enemyDodgeSum} (목표치 ${enemyDodgeTarget}) ➔ 적이 공격을 날렵하게 피했습니다!`;
@@ -4249,68 +4212,160 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
               </div>
 
-              {/* 등장인물 (KPC / 히로인) */}
-              <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+{/* 등장인물 (KPC / 히로인) */}
+              <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.9rem" }}>
-                    {wizardMode.startsWith("dating") ? "히로인 / 공략 상대" : "등장인물 (KPC)"}
-                  </span>
-                  <button onClick={() => setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "", portraitUrl: "", showSecret: false }])} style={{ padding: "4px 10px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text }}>+ 추가</button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>
+                      {wizardMode.startsWith("dating") ? "히로인 / 공략 상대" : "등장인물 (KPC)"}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: theme.textMuted, backgroundColor: theme.panelAlt, padding: "2px 8px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                      {kpcList.length}명
+                    </span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => setKpcList([...kpcList, { id: Date.now(), name: "", job: "", detail: "", secret: "", portraitUrl: "", showSecret: false }])} 
+                    style={{ padding: "5px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.75rem", fontWeight: "700", cursor: "pointer", color: theme.text }}
+                  >
+                    + 인물 추가
+                  </button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1, overflowY: "auto", maxHeight: "250px" }}>
+                {/* 넉넉한 높이 확보 (좌측 PC 카드와 시각적 밸런스 유지) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px", flex: 1, overflowY: "auto", maxHeight: "390px", paddingRight: "4px" }}>
                   {kpcList.map((kpc) => (
-                    <div key={kpc.id} style={{ display: "flex", flexDirection: "column", gap: "6px", border: `1px solid ${theme.border}`, padding: "10px", borderRadius: "8px", position: "relative" }}>
+                    <div 
+                      key={kpc.id} 
+                      style={{ 
+                        display: "flex", 
+                        flexDirection: "column", 
+                        gap: "10px", 
+                        border: `1px solid ${theme.border}`, 
+                        backgroundColor: theme.panelAlt ? `${theme.panelAlt}40` : "rgba(255,255,255,0.02)",
+                        padding: "14px", 
+                        borderRadius: "10px", 
+                        position: "relative" 
+                      }}
+                    >
+                      {/* 삭제 버튼 */}
                       {kpcList.length > 1 && (
-                        <button onClick={() => setKpcList(kpcList.filter(it => it.id !== kpc.id))} style={{ position: "absolute", top: "6px", right: "6px", background: "none", border: "none", color: theme.danger, cursor: "pointer" }}>✕</button>
+                        <button 
+                          type="button"
+                          onClick={() => setKpcList(kpcList.filter(it => it.id !== kpc.id))} 
+                          style={{ position: "absolute", top: "10px", right: "10px", background: "none", border: "none", color: theme.danger, cursor: "pointer", fontSize: "1rem", lineHeight: "1", padding: "2px" }}
+                          title="인물 삭제"
+                        >
+                          ✕
+                        </button>
                       )}
-                      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                        <div onClick={() => { setActivePortraitTarget(kpc.id); openModal(setShowPortraitEditModal); }} style={{ width: "42px", height: "42px", borderRadius: "50%", border: `1.5px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", flexShrink: 0 }}>
-                          {kpc.portraitUrl ? <img src={kpc.portraitUrl} alt="KPC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: "0.68rem", color: theme.textMuted }}>사진</span>}
+
+                      {/* 1. 프로필 이미지 + 이름/직업 (가로 비율 최적화) */}
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <div 
+                          onClick={() => { setActivePortraitTarget(kpc.id); openModal(setShowPortraitEditModal); }} 
+                          style={{ width: "52px", height: "52px", borderRadius: "50%", border: `1.5px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", flexShrink: 0, boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}
+                          title="사진 변경"
+                        >
+                          {kpc.portraitUrl ? (
+                            <img src={kpc.portraitUrl} alt={kpc.name || "KPC"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>사진</span>
+                          )}
                         </div>
-                        <div style={{ flex: 1, display: "flex", gap: "6px" }}>
+
+                        <div style={{ flex: 1, display: "flex", gap: "8px", paddingRight: kpcList.length > 1 ? "24px" : "0" }}>
+                          {/* 이름: 40% 비율, 조금 더 굵은 폰트 */}
                           <input 
                             type="text" 
                             value={kpc.name} 
                             onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
-                            placeholder={wizardMode.startsWith("dating") ? "상대 이름" : "파트너"} 
-                            style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                            placeholder={wizardMode.startsWith("dating") ? "이름" : "이름"} 
+                            style={{ width: "42%", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.85rem", fontWeight: "700" }} 
                           />
+                          {/* 직업/신분: 58% 비율로 넉넉하게 노출 */}
                           <input 
                             type="text" 
                             value={kpc.job} 
                             onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, job: e.target.value } : k))} 
-                            placeholder={wizardMode.startsWith("dating") ? "관계 / 신분 (예: 소꿉친구)" : "조력자"} 
-                            style={{ width: "50%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
+                            placeholder={wizardMode.startsWith("dating") ? "관계 / 신분 (예: 공작 영애)" : "역할 / 직업 (예: 주연 배우)"} 
+                            style={{ width: "58%", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
                           />
                         </div>
                       </div>
-                      <input 
-                        type="text" 
-                        value={kpc.detail} 
-                        onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, detail: e.target.value } : k))} 
-                        placeholder={wizardMode.startsWith("dating") ? "외모, 매력적인 특징, 나와의 미묘한 관계성..." : "외모, 성격, PC와의 관계"} 
-                        style={{ width: "100%", padding: "6px 8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.8rem" }} 
-                      />
+
+                      {/* 2. 외모 및 성격 상세 설정 (textarea로 변경하여 3줄 전체가 보이도록 개선) */}
+                      <div>
+                        <textarea 
+                          rows={3}
+                          value={kpc.detail} 
+                          onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, detail: e.target.value } : k))} 
+                          placeholder={wizardMode.startsWith("dating") ? "외모, 매력적인 특징, 나와의 미묘한 관계성..." : "외모, 성격, PC와의 관계"} 
+                          style={{ 
+                            width: "100%", 
+                            boxSizing: "border-box",
+                            padding: "8px 10px", 
+                            backgroundColor: theme.inputBg, 
+                            border: `1px solid ${theme.border}`, 
+                            borderRadius: "6px", 
+                            color: theme.text, 
+                            fontSize: "0.82rem",
+                            lineHeight: "1.45",
+                            resize: "vertical"
+                          }} 
+                        />
+                      </div>
                       
-                      <button type="button" onClick={() => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, showSecret: !k.showSecret } : k))} style={{ width: "100%", padding: "6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.72rem", fontWeight: "600" }}>
+                      {/* 3. 비밀/진심 토글 버튼 */}
+                      <button 
+                        type="button" 
+                        onClick={() => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, showSecret: !k.showSecret } : k))} 
+                        style={{ 
+                          width: "100%", 
+                          padding: "7px", 
+                          backgroundColor: kpc.showSecret ? `${theme.danger}15` : theme.panelAlt, 
+                          border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, 
+                          borderRadius: "6px", 
+                          color: kpc.showSecret ? theme.danger : theme.text, 
+                          cursor: "pointer", 
+                          fontSize: "0.75rem", 
+                          fontWeight: "700",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px"
+                        }}
+                      >
                         {kpc.showSecret 
-                          ? (wizardMode.startsWith("dating") ? "🔒 진심 닫기" : "🔒 비밀 닫기") 
-                          : (wizardMode.startsWith("dating") ? "👀 이 인물의 숨겨진 진심 열람 및 수정" : "👀 이 인물의 비밀 열람 및 수정")}
+                          ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 비밀 닫기") 
+                          : (wizardMode.startsWith("dating") ? "👀 숨겨진 진심 / 약점 열람" : "👀 이 인물의 비밀 열람 및 수정")}
                       </button>
+
+                      {/* 4. 열린 비밀/속마음 텍스트 영역 */}
                       {kpc.showSecret && (
                         <textarea 
+                          rows={3}
                           value={kpc.secret} 
                           onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, secret: e.target.value } : k))} 
                           placeholder={wizardMode.startsWith("dating") ? "당신에게 쉽게 드러내지 않는 진짜 속마음이나 약점..." : "숨겨진 진심이나 비밀"} 
-                          style={{ width: "100%", height: "50px", padding: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.78rem", resize: "none" }} 
+                          style={{ 
+                            width: "100%", 
+                            boxSizing: "border-box",
+                            padding: "8px 10px", 
+                            backgroundColor: theme.inputBg, 
+                            border: `1px solid ${theme.danger}`, 
+                            borderRadius: "6px", 
+                            color: theme.danger, 
+                            fontSize: "0.8rem", 
+                            lineHeight: "1.4",
+                            resize: "vertical" 
+                          }} 
                         />
                       )}
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
             {/* CoC 스탯 블록 */}
             {wizardMode === "coc" && (
