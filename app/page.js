@@ -2054,13 +2054,17 @@ const startNewSession = async () => {
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
   if (!textToSend.trim() || !activeSession) return;
 
-  // 🌟 [여기에 쏙!] 개발자용 클라이맥스 즉시 워프 치트키
+ // 🌟 개발자용 클라이맥스 즉시 워프 치트키 (락 해제 및 에러 방지 완비)
   if (textToSend.trim() === "/클맥" || textToSend.trim() === "/climax") {
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-      ...s,
-      sheet: { ...s.sheet, phase: "클라이맥스" }
-    } : s));
+    setIsLoading(false); // 🔓 버튼 잠금 즉시 해제!
     setInput("");
+    const targetId = activeSession?.id;
+    if (targetId) {
+      setSessions(prev => prev.map(s => s.id === targetId ? {
+        ...s,
+        sheet: { ...s.sheet, phase: "클라이맥스" }
+      } : s));
+    }
     return;
   }
 
