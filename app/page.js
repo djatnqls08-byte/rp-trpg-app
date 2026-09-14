@@ -2050,6 +2050,35 @@ const startNewSession = async () => {
       setAbortController(null);
     }
   };
+
+// 🌟 [복구] 메시지 전송 및 클라이맥스 즉시 워프 치트키
+  const sendMessage = () => {
+    if (!input || !input.trim()) return;
+    const text = input.trim();
+    setInput("");
+
+    // ⚡ [치트 발동] !클맥, /클맥, 클맥, /climax 등 어떤 걸 쳐도 즉시 클맥으로 워프!
+    if (["/클맥", "!클맥", "클맥", "/climax", "!climax"].includes(text)) {
+      setIsLoading(false);
+      const targetId = activeSession?.id || (typeof activeSessionId !== "undefined" ? activeSessionId : null);
+      if (targetId) {
+        setSessions(prev => prev.map(s => s.id === targetId ? {
+          ...s,
+          sheet: { ...(s.sheet || {}), phase: "클라이맥스" }
+        } : s));
+      }
+      return;
+    }
+
+    if (isLoading) return;
+    executeMessage(text);
+  };
+
+  // 🌟 [복구] 제안 칩(말풍선 추천 버튼) 클릭 처리
+  const handleSuggestionClick = (suggestionText) => {
+    if (!suggestionText || isLoading) return;
+    executeMessage(suggestionText);
+  };
  
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
   if (!textToSend.trim() || !activeSession) return;
