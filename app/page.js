@@ -8223,6 +8223,9 @@ const quoteText = npc.statusMessage
         </>
       );
     })()}
+    </div>
+  </div>
+)}
 
 {/* 🌟 3. 조사 판정 전용 모달 (대상 및 특기 선택 ➔ 2D6 자동 계산) */}
       {investigationModal && (
