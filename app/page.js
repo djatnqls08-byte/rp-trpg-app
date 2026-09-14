@@ -4154,79 +4154,76 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
       cursor: climaxStep === "action" ? "pointer" : "not-allowed"
     }}
   >
-                     {/* 1. 기본 공격 버튼 */}
-            <button
-              type="button"
-              disabled={climaxStep !== "action"}
-              onClick={executeClimaxAttack}
-              style={{
-                flex: 1,
-                padding: "8px",
-                backgroundColor: theme.danger,
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "800",
-                fontSize: "0.78rem",
-                opacity: climaxStep === "action" ? 1 : 0.35,
-                cursor: climaxStep === "action" ? "pointer" : "not-allowed"
-              }}
-            >
-              ⚔️ 기본 공격 (2D6)
-            </button>
+{/* 🌟 결전 액션 버튼: 공격 or 의식 */}
+            <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+              <button
+                type="button"
+                disabled={climaxStep !== "action"}
+                onClick={executeClimaxAttack}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  backgroundColor: theme.danger,
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: "800",
+                  fontSize: "0.78rem",
+                  opacity: climaxStep === "action" ? 1 : 0.35,
+                  cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+                }}
+              >
+                ⚔️ 기본 공격 (2D6)
+              </button>
 
-            {/* 2. 📜 의식 진행 버튼 (시나리오 배경 맞춤형 자동 연동) */}
-            <button
-              type="button"
-              disabled={climaxStep !== "action"}
-              onClick={() => {
-                if (!activeSession) return;
+              <button
+                type="button"
+                disabled={climaxStep !== "action"}
+                onClick={() => {
+                  if (!activeSession) return;
 
-                // 시트에 의식이 없으면 시나리오 배경 맞춤형 테마 의식 자동 불러오기!
-                let rituals = activeSession.sheet?.rituals;
-                if (!rituals || rituals.length === 0) {
-                  const generated = typeof generateInsaneThemeAssets === "function"
-                    ? generateInsaneThemeAssets(activeSession.title, activeSession.scenarioText)
-                    : null;
-                  
-                  rituals = generated?.rituals || [
-                    { id: 1, name: "1단계: 무대 결계 파괴", skill: "파괴", completed: false },
-                    { id: 2, name: "2단계: 진혼의 공명", skill: "소리", completed: false },
-                    { id: 3, name: "3단계: 괴이 심연 봉인", skill: "영감", completed: false }
-                  ];
+                  let rituals = activeSession.sheet?.rituals;
+                  if (!rituals || rituals.length === 0) {
+                    const generated = typeof generateInsaneThemeAssets === "function"
+                      ? generateInsaneThemeAssets(activeSession.title, activeSession.scenarioText)
+                      : null;
+                    
+                    rituals = generated?.rituals || [
+                      { id: 1, name: "1단계: 무대 결계 파괴", skill: "파괴", completed: false },
+                      { id: 2, name: "2단계: 진혼의 공명", skill: "소리", completed: false },
+                      { id: 3, name: "3단계: 괴이 심연 봉인", skill: "영감", completed: false }
+                    ];
 
-                  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-                    ...s,
-                    sheet: { ...s.sheet, rituals }
-                  } : s));
-                }
+                    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                      ...s,
+                      sheet: { ...s.sheet, rituals }
+                    } : s));
+                  }
 
-                const nextIdx = rituals.findIndex(r => !r.completed);
-                if (nextIdx === -1) {
-                  alert("🎉 모든 봉인 의식이 이미 완수되었습니다! 에필로그로 진행할 수 있습니다.");
-                  return;
-                }
+                  const nextIdx = rituals.findIndex(r => !r.completed);
+                  if (nextIdx === -1) {
+                    alert("🎉 모든 봉인 의식이 이미 완수되었습니다! 에필로그로 진행할 수 있습니다.");
+                    return;
+                  }
 
-                executeClimaxRitual(nextIdx);
-              }}
-              style={{
-                flex: 1,
-                padding: "8px",
-                backgroundColor: "#374151",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "800",
-                fontSize: "0.78rem",
-                opacity: climaxStep === "action" ? 1 : 0.35,
-                cursor: climaxStep === "action" ? "pointer" : "not-allowed"
-              }}
-            >
-              📜 의식 진행 (다음 단계)
-            </button>
-                  </div>
-                </div>
-              )}
+                  executeClimaxRitual(nextIdx);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  backgroundColor: "#374151",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: "800",
+                  fontSize: "0.78rem",
+                  opacity: climaxStep === "action" ? 1 : 0.35,
+                  cursor: climaxStep === "action" ? "pointer" : "not-allowed"
+                }}
+              >
+                📜 의식 진행 (다음 단계)
+              </button>
+            </div>
 
               {/* 🎯 인세인 드라마 씬 3대 주요 행동 바 */}
               {activeSession && activeSession.ruleMode === "insane" && activeSession.sheet?.phase !== "마스터씬" && activeSession.sheet?.phase !== "클라이맥스" && (
