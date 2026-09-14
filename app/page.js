@@ -326,16 +326,13 @@ function convertRowToPreset(row, index) {
 
 export default function App() {
   // 🌟 인세인 전용 UI 상태
-  const [isActionDrawerOpen, setIsActionDrawerOpen] = useState(false); // + 서랍 토글
-  const [showInsaneGuideModal, setShowInsaneGuideModal] = useState(false); // 인게임 룰북 모달
-  const [investigationModal, setInvestigationModal] = useState(null); // 조사 대상 선택 모달
-  const [emotionModal, setEmotionModal] = useState(null); // 감정 판정 및 선택 모달
- // 💊 체력 0 도달 시 긴급 회복 모달 상태
+  const [isActionDrawerOpen, setIsActionDrawerOpen] = useState(false);
+  const [showInsaneGuideModal, setShowInsaneGuideModal] = useState(false);
+  const [investigationModal, setInvestigationModal] = useState(null);
+  const [emotionModal, setEmotionModal] = useState(null);
   const [reviveModalOpen, setReviveModalOpen] = useState(false);
   const [usableHealItem, setUsableHealItem] = useState(null);
- // ⚔️ 무기 재굴림 모달 상태 (재굴림 대상 정보 보관)
   const [weaponRerollModal, setWeaponRerollModal] = useState(null);
- 
 
   // 1. 2D6 정규 판정기 (12 스페셜 / 2 펌블 자동 연동)
   const rollInsaneCheck = (skillName, overrideTarget = null, actionType = "판정") => {
@@ -363,7 +360,6 @@ export default function App() {
       if (sum === 12) {
         outcome = "스페셜(대성공)";
         bonusMessage = "\n[체계 알림] 스페셜 달성! 생명력 또는 이성치가 1점 회복됩니다.";
-        // 생명력/이성치 1 자동 회복 (최대치 이내)
         setSessions(prev => prev.map(s => {
           if (s.id !== activeSessionId) return s;
           const curSan = s.sheet?.san ?? 6;
@@ -383,7 +379,6 @@ export default function App() {
       const logText = `[주사위 2D6 ${actionType}: ${d1}+${d2}=${sum} / 목표치: ${targetVal} (${skillName || "임의 판정"}) ➔ 결과: ${outcome}]${bonusMessage}`;
       setIsRolling(false);
 
-      // 이번 장면 주요 행동 완료 처리
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
         sheet: { ...s.sheet, actionUsed: true }
