@@ -2667,13 +2667,20 @@ const startNewSession = async () => {
       return;
     }
 
-    // 🔔 5. 적/아군 모두 생존 시 다음 라운드 진행
+// 🔔 5. 적/아군 모두 생존 시 다음 라운드 진행
+    // ⏱️ [최대 5라운드 제한] 5라운드가 끝났다면 더 이상 라운드를 올리지 않고 종료!
+    if (climaxRound >= 5) {
+      text += `\n\n⚠️ [제 ${climaxRound}라운드 종료] 리미트 도달! 극장의 나락이 붕괴하며 결말을 맞이합니다.`;
+      executeMessage(text);
+      return; // 👈 6, 7, 8라운드로 넘어가지 않고 여기서 진행을 멈춥니다!
+    }
+
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
-    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)을 선택해 주십시오.`;
+    text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드 개막! 새로운 플롯(1~6)...`;
 
     executeMessage(text);
-  };
+   
 // 🌟 [클맥 3] 봉인 의식 판정
   const executeClimaxRitual = (stepIdx) => {
     if (!activeSession) return;
@@ -5281,26 +5288,48 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   </div>
 <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
 
-  <button
-    type="button"
-    disabled={climaxStep === "plot"}
-    onClick={executeClimaxAttack}
-                          style={{
-                            flex: 1,
-                            padding: "8px",
-                            backgroundColor: theme.danger,
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: "6px",
-                            fontWeight: "800",
-                            fontSize: "0.78rem",
-                            opacity: climaxStep === "plot" ? 0.35 : 1,
-                            cursor: climaxStep === "plot" ? "not-allowed" : "pointer"
-                          }}
-                        >
-                          ⚔️ 기본 공격 (2D6)
-                        </button>
+{/* 🛡️ 적 선공 시 노출되는 회피 판정 버튼 */}
+        {climaxStep === "dodge" && (
+          <button
+            type="button"
+            onClick={executeClimaxDodge}
+            style={{
+              flex: 1,
+              padding: "8px",
+              backgroundColor: "#2563eb",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              fontWeight: "800",
+              fontSize: "0.78rem",
+              cursor: "pointer",
+              boxShadow: "0 0 10px rgba(37, 99, 235, 0.5)"
+            }}
+          >
+            🛡️ 회피 판정 (2D6)
+          </button>
+        )}
 
+        {/* ⚔️ 기존 기본 공격 버튼 */}
+        <button
+          type="button"
+          disabled={climaxStep === "plot" || climaxStep === "dodge"}
+          onClick={executeClimaxAttack}
+          style={{
+            flex: 1,
+            padding: "8px",
+            backgroundColor: theme.danger,
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            fontWeight: "800",
+            fontSize: "0.78rem",
+            opacity: (climaxStep === "plot" || climaxStep === "dodge") ? 0.35 : 1,
+            cursor: (climaxStep === "plot" || climaxStep === "dodge") ? "not-allowed" : "pointer"
+          }}
+        >
+          ⚔️ 기본 공격 (2D6)
+        </button>
                           <button
                           type="button"
                           disabled={climaxStep === "plot" || !activeSession.sheet?.isRitualDiscovered}
@@ -6427,14 +6456,16 @@ return (
       backgroundColor: "rgba(0, 0, 0, 0.12)"
     }}
   >
-    {/* 1. 파트너 백스토리 및 설정 (가독성 최적화 & 소제목 자동 줄바꿈) */}
+{/* 1. 파트너 백스토리 및 설정 (가독성 최적화 & 소제목 자동 줄바꿈) */}
     <div
       style={{
-        fontSize: "0.8rem",
-        lineHeight: "1.75",
-        color: theme.textSecondary || "#cbd5e1",
+        fontSize: "0.84rem",
+        lineHeight: "1.7",
+        color: theme.text || "#1e293b", // 👈 선명하고 뚜렷한 글자색으로 수정
+        fontWeight: "500",
         whiteSpace: "pre-wrap",
-        wordBreak: "keep-all"
+        wordBreak: "keep-all",
+        margin: "6px 0 10px 0"
       }}
     >
       {(() => {
@@ -6457,12 +6488,13 @@ return (
           borderRadius: "8px",
           fontSize: "0.8rem",
           lineHeight: "1.7",
-          color: "#fca5a5",
+          color: "#b91c1c", // 밝혀진 비밀 텍스트도 진하게 가독성 확보
+          fontWeight: "500",
           whiteSpace: "pre-wrap",
           wordBreak: "keep-all"
         }}
       >
-        <div style={{ fontWeight: "800", marginBottom: "6px", fontSize: "0.82rem", color: "#f87171" }}>
+        <div style={{ fontWeight: "800", marginBottom: "6px", fontSize: "0.82rem", color: "#dc2626" }}>
           🔓 밝혀진 비밀 / 진심
         </div>
         {(npc.secret || "밝혀진 비밀 내용이 기재되어 있지 않습니다.").replace(/\*\*/g, "")}
@@ -6471,11 +6503,11 @@ return (
       <div
         style={{
           padding: "9px 12px",
-          backgroundColor: "rgba(255, 255, 255, 0.03)",
-          border: `1px dashed ${theme.border}`,
+          backgroundColor: "rgba(0, 0, 0, 0.03)",
+          border: `1px dashed ${theme.border || "#cbd5e1"}`,
           borderRadius: "8px",
           fontSize: "0.76rem",
-          color: theme.textMuted,
+          color: theme.textMuted || "#64748b",
           display: "flex",
           alignItems: "center",
           gap: "8px"
@@ -6483,7 +6515,7 @@ return (
       >
         <span>🔒</span>
         <span>
-          <strong style={{ color: theme.danger }}>[숨겨진 비밀/진심]</strong> 아직 서사 속에서 밝혀지지 않은 비밀입니다. (조사 필요)
+          <strong style={{ color: theme.danger || "#ef4444" }}>[숨겨진 비밀/진심]</strong> 아직 서사 속에서 밝혀지지 않은 비밀입니다. (조사 필요)
         </span>
       </div>
     )}
