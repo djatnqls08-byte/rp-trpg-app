@@ -2291,11 +2291,22 @@ const startNewSession = async () => {
     } : s));
 
     if (curEnemyHp <= 0) {
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s,
+        sheet: {
+          ...s.sheet,
+          enemyHp: 0,
+          phase: "에필로그", // 🌟 공격으로 적 처치 시에도 플롯 창 즉시 닫기!
+          flashbackBonus: 0
+        }
+      } : s));
+
       text += `\n\n🏆 [결전 승리!] 괴이가 단말마의 비명과 함께 소멸합니다! 에필로그로 향합니다.`;
-      executeMessage(text);
+      
+      const aiPrompt = `${text}\n[🚨 결전 종결 수칙] 괴이의 HP가 0이 되어 소멸했습니다. 전투를 완전히 마무리하고 승리의 여운과 두 인물의 에필로그를 서술하십시오. 지문 끝에 [Happy End: 새벽의 온기] 형태의 엔딩 태그를 출력하십시오.`;
+      executeMessage(text, aiPrompt);
       return;
     }
-
     if (playerPlot > enemyPlot) {
       const ea1 = Math.floor(Math.random() * 6) + 1;
       const ea2 = Math.floor(Math.random() * 6) + 1;
@@ -2348,7 +2359,28 @@ const startNewSession = async () => {
       const updatedRituals = (activeSession.sheet?.rituals || []).map((r, i) => i === stepIdx ? { ...r, completed: true } : r);
       const allDone = updatedRituals.every(r => r.completed);
 
-      // 의식 완료 반영 & 보너스 초기화(0)
+      // 🏆 1) 모든 의식 완성 시: 즉시 에필로그 페이즈로 전환하고 플롯 창 닫기!
+      if (allDone) {
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          ...s,
+          sheet: {
+            ...s.sheet,
+            rituals: updatedRituals,
+            phase: "에필로그", // 🌟 페이즈를 에필로그로 바꿔 플롯 창을 즉시 제거!
+            enemyHp: 0,
+            flashbackBonus: 0
+          }
+        } : s));
+
+        text += `\n✨ [의식 단계 완료 ✔️] 결계가 한 꺼풀 벗겨졌습니다!`;
+        text += `\n\n🎉 [모든 의식 완성!] 마침내 성스러운 3단계 봉인 의식이 모두 완수되어 괴이가 완전히 소멸/봉인되었습니다! 결전이 승리로 막을 내립니다.`;
+
+        const aiPrompt = `${text}\n[🚨 결전 종결 수칙] 모든 의식이 완수되어 괴이가 영구히 봉인되었습니다. 전투를 종료하고, 긴장이 풀린 두 인물의 애틋하고 평온한 후일담(에필로그)으로 자연스럽게 이어가십시오. 지문 끝에 [True End: 영원한 앙코르] 형태의 엔딩 태그를 출력하십시오.`;
+        executeMessage(text, aiPrompt);
+        return; // 👈 🛑 여기서 함수를 끝내야 '제 4라운드 개막' 문구가 안 뜹니다!
+      }
+
+      // 2) 아직 단계가 남아있을 때
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, 
         sheet: { 
@@ -2359,17 +2391,15 @@ const startNewSession = async () => {
       } : s));
 
       text += `\n✨ [의식 단계 완료 ✔️] 결계가 한 꺼풀 벗겨졌습니다!`;
-      if (allDone) {
-        text += `\n\n🎉 [모든 의식 완성!] 마침내 성스러운 의식이 완료되어 괴이가 봉인되었습니다! 에필로그로 향합니다.`;
-      }
     } else {
-      // 실패 시에도 보너스 초기화
+      // 실패 시 보너스 초기화
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s, 
         sheet: { ...s.sheet, flashbackBonus: 0 }
       } : s));
     }
 
+    // 다음 라운드로 진행
     setClimaxRound(prev => prev + 1);
     setClimaxStep("plot");
     text += `\n\n🔔 [제 ${climaxRound}라운드 종료] ➔ 제 ${climaxRound + 1}라운드가 개막합니다! 새로운 플롯(1~6)을 선택해 주십시오.`;
