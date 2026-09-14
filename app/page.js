@@ -1040,15 +1040,14 @@ useEffect(() => {
     setCocStats({ ...stats, luck: Math.floor(Math.random() * 50) + 40 });
   };
 
-  const advanceInsaneScene = (sessionId) => {
-   // 🌟 이미 클라이맥스면 메인으로 강제 강등되는 것 방지!
-      if (s.sheet?.phase === "클라이맥스") return s;
+ const advanceInsaneScene = (sessionId) => {
     setSessions(prev => prev.map(s => {
       if (s.id !== sessionId || s.ruleMode !== "insane") return s;
+      if (s.sheet?.phase === "클라이맥스") return s; // 👈 혹시 이 줄 끝에 } 가 붙어있지 않나요?
       let currScene = s.sheet?.scene || 1;
       let currCycle = s.sheet?.cycle || 1;
       const limit = s.sheet?.limit || 4;
-
+     
       if (currScene >= 2) {
         currCycle += 1;
         currScene = 1;
