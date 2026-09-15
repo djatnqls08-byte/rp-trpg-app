@@ -2822,7 +2822,10 @@ const startNewSession = async () => {
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
   if (!textToSend.trim() || !activeSession) return;
 
- // 📵 유저가 전화를 끊는 말을 입력했을 때 즉시 통화 State 강제 해제
+  // 🗺️ 플레이어가 채팅을 치거나 행동을 시작하면 이전 장소 배너 즉시 닫기
+  setLocationCards([]);
+
+  // 📵 유저가 전화를 끊는 말을 입력했을 때 즉시 통화 State 강제 해제
     const endCallKeywords = ["전화끊", "전화 끊", "통화 종료", "끊을게", "끊겠습니다", "끊는다"];
     if (isVoiceCallActive && endCallKeywords.some(k => textToSend.includes(k))) {
       setIsVoiceCallActive(false);
@@ -3062,12 +3065,18 @@ const cgData = JSON.parse(cgMatch[1]);
           const targetName = cData.name || cData.target;
 
           if (targetName) {
-            triggerToast("📱 인연 등록", `[${targetName}]의 연락처가 등록되었습니다!`);
+            const currentUnlocked = activeSession.sheet?.unlockedContacts || [];
+            // 🔍 이미 기본 NPC 목록에 있거나, 이미 연락처가 등록된 인물인지 확인
+            const isAlreadyKnown = (activeSession.sheet?.npcs || []).some(n => n.name === targetName || (n.name && n.name.includes(targetName)));
+            const isAlreadyUnlocked = currentUnlocked.includes(targetName);
 
-            setSessions(prev => prev.map(s => {
-              if (s.id === activeSessionId) {
-                const prevContacts = s.sheet?.unlockedContacts || [];
-                if (!prevContacts.includes(targetName)) {
+            // 🌟 '완전히 새로운 인물'의 연락처를 처음 얻었을 때만 최초 1회 토스트 발동!
+            if (!isAlreadyKnown && !isAlreadyUnlocked) {
+              triggerToast("📱 인연 등록", `[${targetName}]의 연락처가 등록되었습니다!`);
+
+              setSessions(prev => prev.map(s => {
+                if (s.id === activeSessionId) {
+                  const prevContacts = s.sheet?.unlockedContacts || [];
                   return {
                     ...s,
                     sheet: {
@@ -3076,9 +3085,9 @@ const cgData = JSON.parse(cgMatch[1]);
                     }
                   };
                 }
-              }
-              return s;
-            }));
+                return s;
+              }));
+            }
           }
         } catch (e) {
           console.error("연락처 해금 파싱 실패", e);
@@ -5815,12 +5824,15 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 <div
                   key={idx}
                   onClick={() => {
-                    const targetText = `${card.name}(으)로 향한다.`;
-                    setLocationCards([]); // 카드 선택 시 목록 닫기
-                    if (typeof handleSuggestion === "function") {
-                      handleSuggestion(targetText);
+                    // 👤 카드에 인물이 지정되어 있다면 그 인물과 만난다는 지시문까지 함께 전달
+                    const targetText = card.npc 
+                      ? `${card.name}(으)로 향하여 그곳에 있는 [${card.npc}]와(과) 마주친다.`
+                      : `${card.name}(으)로 향한다.`;
+                    setLocationCards([]);
+                    if (typeof handleSuggestionClick === "function") {
+                      handleSuggestionClick(targetText);
                     } else {
-                      setInput(targetText);
+                      executeMessage(targetText);
                     }
                   }}
                   style={{
