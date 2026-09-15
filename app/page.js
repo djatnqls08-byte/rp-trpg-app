@@ -3980,10 +3980,14 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             💾 데이터 관리 (백업/내보내기)
           </button>
           <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}>⚙️ 환경 설정</button>
+</div>
         </div>
-      </div>
+      );
+    })}
+  </div>
 
-      {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
+  {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
+  {isMobile && isSheetOpen && (
       {isMobile && isSheetOpen && (
         <div 
           onClick={() => setIsSheetOpen(false)} 
