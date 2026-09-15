@@ -685,37 +685,6 @@ const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열�
   const [scenarioThumbnail, setScenarioThumbnail] = useState(""); // 🌟 공식 세션 카드 이미지
   const [zoomedCardUrl, setZoomedCardUrl] = useState(null);
 const [showCgDialog, setShowCgDialog] = useState(true); // 🌟 CG 대사창 보이기/숨기기 토글
-
-// 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
-  useEffect(() => {
-    // 세션의 메시지 목록 가져오기
-    const msgs = activeSession?.messages || messages || [];
-    if (!msgs || msgs.length === 0) return;
-
-const introText = (activeSession?.sheet?.scenario || activeSession?.scenarioText || "") + " " + (msgs[0]?.text || "");
-const recentMsgs = msgs.slice(-6);
-const combinedText = introText + " " + recentMsgs.map(m => m.text || "").join(" ");
-
-    let detectedPhase = null;
-    if (/밤까지|자정을|밤이\s*되|어두워|촛불|깊은\s*어둠/.test(combinedText)) {
-      detectedPhase = "밤";
-    } else if (/새벽|심야|푸르스름|동이\s*트기\s*전/.test(combinedText)) {
-      detectedPhase = "새벽";
-    } else if (/아침|기상|눈을\s*뜬|다음\s*날\s*아침/.test(combinedText)) {
-      detectedPhase = "아침";
-    } else if (/저녁|노을|황혼|해질/.test(combinedText)) {
-      detectedPhase = "저녁";
-    } else if (/정오|한낮|대낮/.test(combinedText)) {
-      detectedPhase = "낮";
-    }
-
-    if (detectedPhase && detectedPhase !== currentPhase) {
-      setCurrentPhase(detectedPhase);
-      if (typeof setActiveSession === "function") {
-        setActiveSession(prev => prev ? ({ ...prev, currentPhase: detectedPhase }) : prev);
-      }
-    }
-  }, [activeSession?.id, messages?.length]);
  
 // 📱 전화 수신 감지 시 스마트폰 서랍 자동 열림
   useEffect(() => {
@@ -1149,7 +1118,32 @@ useEffect(() => {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
+ // 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
+  useEffect(() => {
+    if (!activeSession?.messages || activeSession.messages.length === 0) return;
 
+    const msgs = activeSession.messages;
+    const introText = (activeSession?.sheet?.scenario || activeSession?.scenarioText || "") + " " + (msgs[0]?.text || "");
+    const recentMsgs = msgs.slice(-6);
+    const combinedText = introText + " " + recentMsgs.map(m => m.text || "").join(" ");
+
+    let detectedPhase = null;
+    if (/밤까지|자정을|밤이\s*되|어두워|촛불|깊은\s*어둠/.test(combinedText)) {
+      detectedPhase = "밤";
+    } else if (/새벽|심야|푸르스름|동이\s*트기\s*전/.test(combinedText)) {
+      detectedPhase = "새벽";
+    } else if (/아침|기상|눈을\s*뜬|다음\s*날\s*아침/.test(combinedText)) {
+      detectedPhase = "아침";
+    } else if (/저녁|노을|황혼|해질/.test(combinedText)) {
+      detectedPhase = "저녁";
+    } else if (/정오|한낮|대낮/.test(combinedText)) {
+      detectedPhase = "낮";
+    }
+
+    if (detectedPhase && detectedPhase !== currentPhase) {
+      setCurrentPhase(detectedPhase);
+    }
+  }, [activeSession?.id, activeSession?.messages?.length]);
   const [customPresets, setCustomPresets] = useState([]);
 
   // 주사위 및 연출 상태
