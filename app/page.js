@@ -9455,6 +9455,55 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
+{/* 🔍 CG 원본 풀스크린 크게보기 라이트박스 */}
+      {zoomedCardUrl && (
+        <div 
+          onClick={() => setZoomedCardUrl(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999999,
+            backgroundColor: "rgba(0, 0, 0, 0.92)",
+            backdropFilter: "blur(10px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            cursor: "zoom-out"
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              maxWidth: "900px",
+              width: "100%",
+              borderRadius: "14px",
+              overflow: "hidden",
+              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.9)",
+              border: "1px solid rgba(255, 255, 255, 0.2)"
+            }}
+          >
+            <img 
+              src={zoomedCardUrl} 
+              alt="일러스트 크게 보기" 
+              style={{ 
+                width: "100%", 
+                height: "auto", 
+                maxHeight: "82vh", 
+                objectFit: "contain", 
+                display: "block", 
+                margin: "0 auto" 
+              }} 
+            />
+          </div>
+          <span style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: "0.85rem", marginTop: "16px", fontWeight: "bold" }}>
+            화면 아무 곳이나 누르면 닫힙니다 ✕
+          </span>
+        </div>
+      )}
+
       {/* 📱 1. 통화 축소 시 상단 플로팅 미니 바 */}
       {isVoiceCallActive && !isCallModalOpen && (
         <div style={{
