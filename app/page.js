@@ -2822,6 +2822,14 @@ const startNewSession = async () => {
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
   if (!textToSend.trim() || !activeSession) return;
 
+ // 📵 유저가 전화를 끊는 말을 입력했을 때 즉시 통화 State 강제 해제
+    const endCallKeywords = ["전화끊", "전화 끊", "통화 종료", "끊을게", "끊겠습니다", "끊는다"];
+    if (isVoiceCallActive && endCallKeywords.some(k => textToSend.includes(k))) {
+      setIsVoiceCallActive(false);
+      setIsCallModalOpen(false);
+      setVoiceCallNpc(null);
+    }
+
  // 🌟 개발자용 클라이맥스 즉시 워프 치트키 (락 해제 및 에러 방지 완비)
   if (textToSend.trim() === "/클맥" || textToSend.trim() === "/climax") {
     setIsLoading(false); // 🔓 버튼 잠금 즉시 해제!
@@ -2960,8 +2968,10 @@ currentPhase === "클라이맥스" ? `
           playPreference: activeSession.preference,
           currentPhase: currentPhase || "낮",
           recentEvents: recentEvents || [],
+          // 📱 [통화 & 대면 정보 동시 전달]
           isVoiceCall: isVoiceCallActive,
-          targetNpc: typeof targetNpc !== "undefined" ? targetNpc : null,
+          voiceCallNpc: voiceCallNpc?.name || null,
+          facingNpc: partnerNpc?.name || null,
         })
       });
 
@@ -5320,46 +5330,89 @@ if (isCall) {
   }
 
   const callerName = m.callNpc || partnerNpc?.name || "상대방";
+// 통화 중일 때는 메인 타임라인에 표시하지 않고 상단 플로팅/모달에만 집중
+    if (isVoiceCallActive) return null;
+    if (!callBlock || callBlock.length === 0) return null;
 
-  return (
-    <details
-      key={`call-block-${i}`}
-      open={isVoiceCallActive}
-      style={{
-        margin: "12px 0",
-        borderRadius: "12px",
-        border: isVoiceCallActive ? "1.5px solid #f43f5e" : "1px solid rgba(244, 63, 94, 0.3)",
-        backgroundColor: "rgba(30, 41, 59, 0.85)",
-        boxShadow: isVoiceCallActive ? "0 0 12px rgba(244, 63, 94, 0.3)" : "none",
-        overflow: "hidden",
-        transition: "all 0.3s ease"
-      }}
-    >
-      <summary style={{
-        padding: "10px 14px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        fontSize: "0.82rem",
-        fontWeight: "800",
-        color: isVoiceCallActive ? "#fda4af" : "#cbd5e1",
-        userSelect: "none",
-        listStyle: "none"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>📞</span>
-          <span>[{callerName}과의 통화 기록] ({callBlock.length}개 대화)</span>
-          {isVoiceCallActive && (
-            <span style={{ fontSize: "0.65rem", backgroundColor: "#e11d48", color: "#fff", padding: "1px 6px", borderRadius: "8px" }}>
-              🔴 통화 중
-            </span>
-          )}
-        </div>
-        <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
-          {isVoiceCallActive ? "진행 중 ▲" : "펼치기 ▼"}
-        </span>
-      </summary>
+    return (
+      <details
+        key={`call-block-${i}`}
+        style={{
+          margin: "14px 0",
+          borderRadius: "12px",
+          border: `1px solid ${theme.border || "rgba(0,0,0,0.1)"}`,
+          backgroundColor: theme.panelAlt || "rgba(0,0,0,0.03)",
+          overflow: "hidden",
+          transition: "all 0.2s ease"
+        }}
+      >
+     if (!callBlock || callBlock.length === 0) return null;
+
+    return (
+      <details
+        key={`call-block-${i}`}
+        // 통화 중일 때 메인 창을 내리면 1줄로 단정하게 닫힌 상태 유지 (펼쳐짐 방지)
+        style={{
+          margin: "12px 0",
+          borderRadius: "14px",
+          border: isVoiceCallActive 
+            ? "1.5px solid #ef4444" 
+            : `1px solid ${theme.border || "rgba(0,0,0,0.12)"}`,
+          backgroundColor: isVoiceCallActive 
+            ? "rgba(239, 68, 68, 0.05)" 
+            : (theme.panelAlt || "rgba(0,0,0,0.02)"),
+          boxShadow: isVoiceCallActive ? "0 4px 14px rgba(239, 68, 68, 0.15)" : "none",
+          overflow: "hidden",
+          transition: "all 0.2s ease"
+        }}
+      >
+        <summary 
+          onClick={(e) => {
+            // 통화 중일 때 이 바를 누르면 즉시 스마트폰 풀스크린 통화 화면으로 복귀!
+            if (isVoiceCallActive) {
+              e.preventDefault();
+              setIsCallModalOpen(true);
+            }
+          }}
+          style={{
+            padding: "12px 16px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            userSelect: "none"
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "1.1rem" }}>📞</span>
+            <strong style={{ color: theme.text || "#1e293b", fontSize: "0.88rem" }}>
+              [{callerName}과의 {isVoiceCallActive ? "실시간 통화" : "통화 기록"}]
+            </strong>
+            {isVoiceCallActive && (
+              <span style={{
+                fontSize: "0.72rem",
+                backgroundColor: "#ef4444",
+                color: "#ffffff",
+                padding: "2px 8px",
+                borderRadius: "9999px",
+                fontWeight: "bold",
+                animation: "pulse 1.5s infinite"
+              }}>
+                ● 통화 중
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {isVoiceCallActive ? (
+              <span style={{ fontSize: "0.78rem", color: "#2563eb", fontWeight: "bold" }}>
+                통화창 복귀 ↗
+              </span>
+            ) : (
+              <span style={{ fontSize: "0.75rem", color: theme.textMuted || "#64748b" }}>기록 열기 ▼</span>
+            )}
+          </div>
+        </summary>
 
       {/* 통화 로그 본문 */}
       <div style={{
@@ -7355,19 +7408,21 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         <button
           type="button"
           onClick={() => {
-            const target = selectedProfileNpc;
-            setIsPhoneDrawerOpen(false);
-            setSelectedProfileNpc(null);
-            setIsVoiceCallActive(true);
-            setVoiceCallNpc(target);
+    const target = selectedProfileNpc;
+    if (!target) return;
 
-            const callMsg = `${target.name}에게 전화를 건다.`;
-            if (typeof handleSuggestion === "function") {
-              handleSuggestion(callMsg);
-            } else {
-              setInput(callMsg);
-            }
-          }}
+    // 1. 창 상태 정리 및 통화 화면 오픈
+    setIsPhoneDrawerOpen(false);
+    setSelectedProfileNpc(null);
+    setIsVoiceCallActive(true);
+    setVoiceCallNpc(target);
+    setIsCallModalOpen(true);
+    setInput(""); // 입력창을 비워둡니다.
+
+    const callMsg = `${target.name}에게 전화를 건다.`;
+if (typeof executeMessage === "function") {
+  executeMessage(callMsg);
+}
           style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", cursor: "pointer" }}
         >
           <span style={{ fontSize: "1.25rem" }}>📞</span>
@@ -8015,82 +8070,259 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   </div>
                 </div>
               )}
-{/* 📞 별도 통화 전용 화면 (풀스크린 모달) */}
+{/* 📱 [레퍼런스 반영] 리얼 스마트폰 풀스크린 통화 모달 */}
       {isVoiceCallActive && isCallModalOpen && (
-       
         <div style={{
           position: "fixed",
           inset: 0,
-          zIndex: 150,
-          backgroundColor: "rgba(11, 15, 25, 0.96)",
-          backdropFilter: "blur(14px)",
+          zIndex: 180,
+          backgroundColor: "#0d1b1e",
+          background: "linear-gradient(180deg, #134e4a 0%, #042f2e 40%, #021a1a 100%)",
           display: "flex",
           flexDirection: "column",
+          alignItems: "center",
           justifyContent: "space-between",
-          padding: "20px 16px",
+          padding: "50px 24px 36px",
           boxSizing: "border-box",
-          animation: "fadeIn 0.25s ease"
+          color: "#fff",
+          animation: "fadeIn 0.3s ease"
         }}>
-          {/* 1. 상단 헤더 (화면 내리기 ⌄ 버튼 & 상태 표시) */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", height: "44px" }}>
-            <button
+          
+          {/* 1. 상단 바: 최소화(⌄) 버튼 & 통화 상태 */}
+          <div style={{ width: "100%", maxWidth: "420px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button 
               type="button"
               onClick={() => setIsCallModalOpen(false)}
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                background: "rgba(255, 255, 255, 0.12)",
                 border: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
+                borderRadius: "50%",
+                width: "40px",
+                height: "40px",
+                color: "#fff",
+                fontSize: "1.2rem",
                 cursor: "pointer",
-                padding: 0,
-                color: "#ffffff"
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
-              title="통화 화면 내리기"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              ⌄
             </button>
-
+            
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.95rem", fontWeight: "800", color: "#f8fafc" }}>
-                {voiceCallNpc?.name || partnerNpc?.name || "상대방"}
+              <div style={{ fontSize: "0.82rem", color: "#5eead4", fontWeight: "700", letterSpacing: "1px" }}>
+                ● 통화 중
               </div>
-              <div style={{ fontSize: "0.72rem", color: "#10b981", fontWeight: "600", marginTop: "2px" }}>
-                ● 통화 연결 중
+              <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "2px" }}>
+                HD Voice
               </div>
             </div>
 
-            <div style={{ width: "38px" }} />
+            <div style={{ width: "40px" }} />
           </div>
 
-          {/* 2. 중앙 상대방 프로필 & 최근 대사 자막 */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", flex: 1, justifyContent: "center", minHeight: 0, padding: "12px 0" }}>
+          {/* 2. 중앙 프로필 & 펄스 링 */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "420px", marginTop: "10px" }}>
             <div style={{
-              width: isCallInputFocused ? "64px" : "104px",
-              height: isCallInputFocused ? "64px" : "104px",
+              position: "relative",
+              width: "120px",
+              height: "120px",
               borderRadius: "50%",
-              overflow: "hidden",
-              border: "3px solid rgba(16, 185, 129, 0.4)",
-              boxShadow: "0 0 24px rgba(16, 185, 129, 0.3)",
-              transition: "all 0.25s ease"
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "16px"
             }}>
-              {(voiceCallNpc?.portrait || partnerNpc?.portrait) ? (
-                <img 
-                  src={voiceCallNpc?.portrait || partnerNpc?.portrait} 
-                  alt="상대방" 
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-                />
-              ) : (
-                <div style={{ width: "100%", height: "100%", backgroundColor: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem" }}>
-                  👤
-                </div>
-              )}
+              <div style={{
+                position: "absolute",
+                inset: "-12px",
+                borderRadius: "50%",
+                border: "2px solid rgba(94, 234, 212, 0.3)",
+                animation: "pulse 2s infinite"
+              }} />
+              <img 
+                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
+                alt={voiceCallNpc?.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                  border: "2px solid rgba(255, 255, 255, 0.3)"
+                }}
+              />
             </div>
+            
+            <h2 style={{ margin: "0 0 4px", fontSize: "1.4rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
+              {voiceCallNpc?.name || "상대방"}
+            </h2>
+            <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.65)" }}>
+              {voiceCallNpc?.title || "통화 연결 중"}
+            </span>
+
+            {/* 3. 대사 & 지문 분리 자막창 */}
+            <div style={{
+              width: "100%",
+              marginTop: "24px",
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
+              borderRadius: "20px",
+              padding: "18px 20px",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              boxSizing: "border-box",
+              maxHeight: "180px",
+              overflowY: "auto"
+            }}>
+              {(() => {
+                const lastMsg = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
+                const dialogueMatch = lastMsg.match(/"([^"]+)"/);
+                const dialogue = dialogueMatch ? dialogueMatch[1] : null;
+                const narration = lastMsg.replace(/"[^"]+"/g, "").trim();
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {dialogue ? (
+                      <div style={{
+                        fontSize: "1.08rem",
+                        fontWeight: "700",
+                        color: "#f0fdfa",
+                        lineHeight: "1.55",
+                        textAlign: "center",
+                        textShadow: "0 2px 8px rgba(0,0,0,0.5)"
+                      }}>
+                        "{dialogue}"
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "0.95rem", color: "#ccfbf1", textAlign: "center" }}>
+                        {lastMsg || "수화기 너머로 숨소리가 들려옵니다..."}
+                      </div>
+                    )}
+                    
+                    {narration && (
+                      <div style={{
+                        fontSize: "0.78rem",
+                        color: "rgba(255, 255, 255, 0.6)",
+                        lineHeight: "1.6",
+                        textAlign: "center",
+                        borderTop: "1px dashed rgba(255, 255, 255, 0.12)",
+                        paddingTop: "8px"
+                      }}>
+                        {narration}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* 4. 유틸 버튼 그리드 */}
+          <div style={{
+            width: "100%",
+            maxWidth: "340px",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "18px 20px",
+            margin: "16px 0"
+          }}>
+            {[
+              { icon: "🎙️", label: "음소거" },
+              { icon: "⌨️", label: "키패드" },
+              { icon: "🔊", label: "스피커" },
+            ].map((btn, idx) => (
+              <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                <div style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.25rem"
+                }}>
+                  {btn.icon}
+                </div>
+                <span style={{ fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.7)" }}>{btn.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* 5. 하단: 통화 전용 입력창 & 통화 종료 버튼 */}
+          <div style={{ width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!input.trim()) return;
+                const text = input;
+                setInput("");
+                executeMessage(`[전화 통화] "${text}"`);
+              }}
+              style={{ display: "flex", gap: "8px" }}
+            >
+              <input 
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="수화기에 대고 말하기..."
+                style={{
+                  flex: 1,
+                  padding: "12px 18px",
+                  borderRadius: "9999px",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  backgroundColor: "rgba(0, 0, 0, 0.4)",
+                  color: "#fff",
+                  fontSize: "0.9rem",
+                  outline: "none"
+                }}
+              />
+              <button 
+                type="submit"
+                style={{
+                  padding: "0 20px",
+                  borderRadius: "9999px",
+                  border: "none",
+                  backgroundColor: "#0d9488",
+                  color: "#fff",
+                  fontWeight: "700",
+                  fontSize: "0.85rem",
+                  cursor: "pointer"
+                }}
+              >
+                전송
+              </button>
+            </form>
+
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsVoiceCallActive(false);
+                  setIsCallModalOpen(false);
+                  executeMessage(`[통화 종료] 전화를 끊었습니다.`);
+                }}
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ef4444",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.4)"
+                }}
+              >
+                <span style={{ fontSize: "1.7rem", transform: "rotate(135deg)", display: "inline-block" }}>📞</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
 
 {/* 🎬 [공식 시나리오 전용] 16:9 시네마틱 풀스크린 CG 컷씬 모달 */}
       {activeCutsceneCg && (
@@ -9426,14 +9658,14 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   </div>
                 </div>
               ) : (
-/* 업데이트 노트 탭 */
+{/* 업데이트 노트 탭 */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   
-                  {/* 🚀 최신 버전 v1.2.0 */}
+                  {/* 🚀 최신 버전 v1.3.0 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
-                        🚀 v1.2.0 패치 노트
+                        🚀 v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
                       </h3>
                       <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
                         LATEST
@@ -9442,14 +9674,28 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 
                     <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ fontSize: "0.84rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
-                        "결전의 순간, 공격이 빗나갔다고 절망하지 마십시오. 품 속엔 아직 무기와 부적, 그리고 기적의 알약 한 알이 남아있습니다."
+                        "울려 퍼지는 진동과 귓가에 닿는 숨결, 그리고 눈앞에 펼쳐지는 결정적 순간—당신만의 서사가 한층 선명해집니다."
                       </div>
                       <div style={{ fontSize: "0.85rem", lineHeight: "1.7", color: theme.text }}>
-                        • <strong>🎒 인세인 3대 소지품(가방) 도입:</strong> 세션 생성 단계에서 생사를 가를 초기 아이템(진통제, 무기, 부적)을 취향껏 2개 골라 챙겨갈 수 있습니다.<br/>
-                        • <strong>⚔️ 찰나의 역전! 인터럽트 개입 (무기 & 부적):</strong> 공격이 빗나갔을 땐 <strong>[무기]</strong>를 쥐어짜 주사위를 다시 굴리고, 약삭빠른 괴이가 공격을 피했을 땐 <strong>[부적]</strong>을 날려 자세를 무너뜨릴 수 있습니다. (공식 룰 준수: 판정당 재굴림 1회 제한 탑재)<br/>
-                        • <strong>💊 칠전팔기 긴급 소생 (진통제):</strong> 괴이의 맹렬한 반격에 생명력이 0이 되어도 포기하지 마세요. 품 속에 진통제가 남아있다면 사망 직전 긴급 복용 팝업이 열려 기적처럼 다시 일어섭니다.<br/>
-                        • <strong>⚡ 결전 액션 쾌속 자동화 & 수동 회피 해방:</strong> 턴마다 번거롭게 누르던 [회피 판정] 버튼을 철거했습니다. 이제 [공격] 버튼 하나로 <em>'내 공격 ➔ 적 회피 ➔ 파트너 협공 ➔ 적 반격 ➔ 내 회피'</em>까지 숨 쉴 틈 없이 한 호흡에 전개됩니다.
+                        • <strong>📲 스마트폰 실시간 전화 & 다이내믹 아일랜드:</strong> 서랍형 슬라이드 수신 화면과 몰입감 넘치는 풀스크린 통화 모달이 추가되었습니다. 통화 중 상단 `⌄` 버튼으로 최소화해 서사를 읽거나 대화할 수 있는 상단 미니 플로팅 바 및 접이식 통화 요약 카드를 지원합니다.<br/>
+                        • <strong>🎬 이원화 비주얼 시스템 (공식 CG & 실사 스냅):</strong> 공식 시나리오의 결정적 순간에 터져 나오는 <strong>16:9 풀스크린 시네마틱 일러스트 컷씬</strong>과 유저 시나리오 메신저 대화 중 실시간으로 수신되는 <strong>1:1 POV 일상 스냅 사진</strong>이 앨범 갤러리와 완벽 연동됩니다.<br/>
+                        • <strong>👣 발걸음과 만남 (동적 장소 카드):</strong> 대면 서사 퇴장 시 하단에 <strong>[👣 어디로 갈까?]</strong> 추천 장소 카드 3장이 펼쳐집니다. 전날 메신저로 약속을 잡았다면 <strong>[⭐ 약속 장소]</strong> 배지가 직관적으로 안내합니다.<br/>
+                        • <strong>⏳ 시간대 루프 & AI 기억 수첩:</strong> 낮/노을/밤의 시간 흐름과 취침 선언 시스템이 정립되었습니다. 약속 이행, 통화 무시 등 플레이어의 선택과 행적이 실시간 플래그로 박제되어 캐릭터의 태도에 입체적으로 반영됩니다.<br/>
+                        • <strong>🏆 4대 멀티 엔딩 & 맞춤 에필로그:</strong> 호감도와 관계성의 깊이에 따라 <strong>단독 순애 트루 / 수라장 히든 / 깊은 신뢰의 우정 / 차가운 파탄</strong> 엔딩 분기가 자동 판정되며, 각 결말에 특화된 후일담 서사 트리거가 연결됩니다.
                       </div>
+                    </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.2.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.2.0 결전 자동화 & 인세인 3대 소지품
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>인세인 3대 소지품(가방) 도입:</strong> 세션 생성 단계에서 생사를 가를 초기 아이템(진통제, 무기, 부적)을 2개 선택 가능.<br/>
+                      • <strong>인터럽트 개입 (무기 & 부적):</strong> 공격 실패 시 [무기] 재굴림, 회피 성공 적에게 [부적] 판정 방해 지원.<br/>
+                      • <strong>칠전팔기 긴급 소생 (진통제):</strong> 생명력 0 도달 시 진통제 긴급 복용으로 생존.<br/>
+                      • <strong>결전 액션 쾌속 자동화:</strong> 수동 회피를 철거하고 [공격] 원클릭으로 공방 협공 사이클 일괄 전개.
                     </div>
                   </div>
 
@@ -9466,7 +9712,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                     </div>
                   </div>
 
-{/* 📦 최초 버전 v1.0.0 */}
+                  {/* 📦 최초 버전 v1.0.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
                       📦 v1.0.0 정식 배포
