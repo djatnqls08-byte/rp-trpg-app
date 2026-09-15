@@ -876,8 +876,9 @@ useEffect(() => {
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
   const handleLoadLobbyPreset = (p) => {
-    if (p.eventCgs) setScenarioCgs(p.eventCgs); 
-    setScenarioTitle(p.scenarioTitle || "");
+  if (p.eventCgs) setScenarioCgs(p.eventCgs); 
+  if (p.thumbnail) setScenarioThumbnail(p.thumbnail); // 👈 추가
+  setScenarioTitle(p.scenarioTitle || "");
     setPublicSynopsis(p.publicSynopsis || "");
     setOpeningScene(p.openingScene || "");
     setHiddenTruth(p.hiddenTruth || "");
@@ -1960,7 +1961,7 @@ useEffect(() => {
     closeModal(setShowPortraitEditModal);
   };
 
-// 🔄 대화 내역 유지 + 최신 시트 동기화 + CG 소급 해금 (예쁜 인앱 토스트 적용)
+// 🔄 대화 내역 유지 + 현재 시나리오 행 자동 매칭 + 세션카드 및 CG 동기화
   const handleSyncCurrentSheet = async () => {
     if (!activeSession) return;
 
@@ -1973,35 +1974,81 @@ useEffect(() => {
     try {
       setIsLoading(true);
 
-      // 1. 구글 시트 CSV 원본 텍스트 직접 가져오기
+      // 1. 구글 시트 CSV 가져오기
       const res = await fetch(targetUrl);
       const csvText = await res.text();
 
-      // 2. CSV 파싱
-      const parseCSVLine = (text) => {
-        const result = [];
-        let cur = "";
-        let inQuotes = false;
-        for (let i = 0; i < text.length; i++) {
-          const char = text[i];
-          if (char === '"') {
-            if (inQuotes && text[i + 1] === '"') {
-              cur += '"';
-              i++;
-            } else {
-              inQuotes = !inQuotes;
-            }
-          } else if (char === ',' && !inQuotes) {
-            result.push(cur);
-            cur = "";
-          } else {
-            cur += char;
-          }
-        }
-        result.push(cur);
-        return result.map(c => c.trim().replace(/^"|"$/g, ""));
-      };
+      // 2. 줄바꿈 안전 parseCSV 실행
+      const allRows = parseCSV(csvText);
+      if (allRows.length < 2) throw new Error("시트 데이터가 비어 있습니다.");
 
+      const headers = allRows[0];
+      const dataRows = allRows.slice(1);
+
+      // 🌟 현재 플레이 중인 방 제목('달그림자 경매장...')과 일치하는 행을 정확히 탐색
+      const currentTitle = (activeSession.title || "").trim();
+      const matchedRow = dataRows.find(r => r[0] && (r[0].trim() === currentTitle || currentTitle.includes(r[0].trim()) || r[0].trim().includes(currentTitle)))
+        || dataRows.find(r => {
+          const tIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
+          return tIdx !== -1 && r[tIdx]?.trim();
+        })
+        || dataRows[0];
+
+      // 3. 세션 카드 추출 (현재 시나리오 행의 DR열에서 추출)
+      const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
+      const sessionCardImg = thumbIdx !== -1 ? matchedRow[thumbIdx]?.trim() : "";
+
+      // 4. 이벤트 CG 추출 (현재 시나리오 행에서 추출)
+      const eventCgs = [];
+      for (let c = 61; c < matchedRow.length; c += 3) {
+        const cgTitle = matchedRow[c]?.trim();
+        const cgTrigger = matchedRow[c + 1]?.trim();
+        const cgUrl = matchedRow[c + 2]?.trim();
+        if (cgTitle && cgUrl) {
+          eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
+        }
+      }
+
+      // 5. 세션 업데이트
+      setSessions(prev => prev.map(s => {
+        if (s.id === activeSession.id) {
+          const fullChatHistory = (s.messages || []).map(m => m.text || m.content || "").join(" ");
+          const existingUnlocked = new Set(s.unlockedCgs || []);
+
+          eventCgs.forEach(cg => {
+            const triggerKeyword = cg.trigger?.trim();
+            const titleKeyword = cg.title?.trim();
+            if (
+              (triggerKeyword && fullChatHistory.includes(triggerKeyword)) ||
+              (titleKeyword && fullChatHistory.includes(titleKeyword))
+            ) {
+              existingUnlocked.add(cg.title || cg.imageUrl);
+            }
+          });
+
+          return {
+            ...s,
+            sheetUrl: targetUrl,
+            thumbnail: sessionCardImg || s.thumbnail,
+            sheet: {
+              ...(s.sheet || {}),
+              thumbnail: sessionCardImg || s.sheet?.thumbnail,
+              cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs
+            },
+            unlockedCgs: Array.from(existingUnlocked)
+          };
+        }
+        return s;
+      }));
+
+      triggerToast("동기화 완료", sessionCardImg ? "세션 카드 및 최신 시트가 적용되었습니다!" : "최신 시트 데이터가 동기화되었습니다!", "💡");
+
+    } catch (err) {
+      triggerToast("동기화 실패", err.message, "⚠️");
+    } finally {
+      setIsLoading(false);
+    }
+  };
       const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
       if (lines.length < 2) throw new Error("시트 데이터가 비어 있습니다.");
 
@@ -2540,7 +2587,7 @@ const startNewSession = async () => {
   const newSession = {
     id: newId,
     title: sessionTitle,
-    thumbnail: sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
+    thumbnail: scenarioThumbnail || sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
     ruleMode: wizardMode,
     preference: playPreference.trim(),
     scenarioText: fullScenarioContext,
@@ -4011,6 +4058,52 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               </div>
             );
           })}
+        </div>
+       {/* ⚙️ 좌측 사이드바 하단 버튼 (환경설정 & 데이터 관리) */}
+        <div style={{ padding: "10px 12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "6px", backgroundColor: theme.sidebar, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => openModal(setShowSettingsModal)}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              backgroundColor: theme.panelAlt,
+              border: `1px solid ${theme.border}`,
+              borderRadius: "8px",
+              color: theme.text,
+              fontSize: "0.78rem",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>⚙️</span>
+            <span>환경 설정</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openModal(setShowExportModal)}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              backgroundColor: theme.panelAlt,
+              border: `1px solid ${theme.border}`,
+              borderRadius: "8px",
+              color: theme.text,
+              fontSize: "0.78rem",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px"
+            }}
+          >
+            <span>💾</span>
+            <span>데이터 관리</span>
+          </button>
         </div>
       </div>
 
