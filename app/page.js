@@ -2971,7 +2971,7 @@ currentPhase === "클라이맥스" ? `
           // 📱 [통화 & 대면 정보 동시 전달]
           isVoiceCall: isVoiceCallActive,
           voiceCallNpc: voiceCallNpc?.name || null,
-          facingNpc: partnerNpc?.name || null,
+          facingNpc: currentContact?.name || null,
         })
       });
 
