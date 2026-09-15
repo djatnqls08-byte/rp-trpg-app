@@ -7391,25 +7391,26 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   {/* 🌟 플로팅 액션 바 (1:1 대화 / 선물하기 / 취향 수첩) */}
                   <div style={{ margin: "0 16px 16px 16px", zIndex: 5, backgroundColor: activePhoneSkin.panelAlt, borderRadius: "20px", border: `1px solid ${activePhoneSkin.border}`, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", display: "flex", justifyContent: "space-around", padding: "12px 8px" }}>
                   
-                   {/* 📞 1. 전화 걸기 (맨 앞 배치) */}
+                 {/* 📞 1. 전화 걸기 (맨 앞 배치) */}
         <button
           type="button"
           onClick={() => {
-    const target = selectedProfileNpc;
-    if (!target) return;
+            const target = selectedProfileNpc;
+            if (!target) return;
 
-    // 1. 창 상태 정리 및 통화 화면 오픈
-    setIsPhoneDrawerOpen(false);
-    setSelectedProfileNpc(null);
-    setIsVoiceCallActive(true);
-    setVoiceCallNpc(target);
-    setIsCallModalOpen(true);
-    setInput(""); // 입력창을 비워둡니다.
+            // 1. 창 상태 정리 및 통화 화면 오픈
+            setIsPhoneDrawerOpen(false);
+            setSelectedProfileNpc(null);
+            setIsVoiceCallActive(true);
+            setVoiceCallNpc(target);
+            setIsCallModalOpen(true);
+            setInput(""); // 입력창을 비워둡니다.
 
-    const callMsg = `${target.name}에게 전화를 건다.`;
-if (typeof executeMessage === "function") {
-  executeMessage(callMsg);
-}
+            const callMsg = `${target.name}에게 전화를 건다.`;
+            if (typeof executeMessage === "function") {
+              executeMessage(callMsg);
+            }
+          }}
           style={{ background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", cursor: "pointer" }}
         >
           <span style={{ fontSize: "1.25rem" }}>📞</span>
