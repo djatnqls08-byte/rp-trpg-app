@@ -6211,7 +6211,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         )}
 
                         {/* 3. 🌸 미연시 방일 때 */}
-                        {activeSession?.ruleMode?.startsWith("dating") && (
+                        {(activeSession?.ruleMode?.startsWith("dating") || activeSession?.ruleMode?.includes("free")) && (
                           <>
                             <button
                               type="button"
