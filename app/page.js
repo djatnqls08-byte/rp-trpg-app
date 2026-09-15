@@ -7974,15 +7974,18 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   {/* 상태 메시지 텍스트 */}
                   <div style={{ fontSize: "0.73rem", color: activePhoneSkin.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {quoteText}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-                      })}
-                    </div>
-                  )}
+              );
+            })}
+          </>
+        );
+      })()}
+    </div>
+  )}
 
-                  {/* [탭 2: 대화 / 서신 목록] */}
+  {/* [탭 2: 대화 / 서신 목록] */}
     {phoneNavTab === "chats" && (() => {
       // 1. 실제로 대화(chats)를 주고받은 기록이 1개 이상 있는 인물만 필터링
       const activeChatNpcs = (activeSession?.sheet?.npcs || []).filter(npc => {
