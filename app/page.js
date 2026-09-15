@@ -1157,7 +1157,7 @@ useEffect(() => {
     }
   }, [activeSession?.id, activeSession?.messages?.length]);
 
-// 🎨 [과거 기록 전수 조사] 시작 직후 오해금 방지 및 정상 CG만 수집
+  // 🎨 [과거 기록 전수 조사] 시작 직후 오해금 방지 및 정상 CG만 수집
   useEffect(() => {
     if (!activeSession || !activeSession.messages || activeSession.messages.length === 0) return;
 
@@ -1169,7 +1169,7 @@ useEffect(() => {
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
 
-    // 🚨 게임 시작 극초반(1~2턴)이라면 무조건 1번 프롤로그 CG 1개만 남기고 초기화
+    // 🚨 게임 시작 극초반(1~2턴)이라면 1번 프롤로그 CG만 남김
     if (isBeginning) {
       const firstCg = allScenarioCgs[0] || (currentUnlocked.length > 0 ? currentUnlocked[0] : null);
       const resetList = firstCg ? [{ ...firstCg, unlockedAt: Date.now() }] : [];
@@ -1247,16 +1247,6 @@ useEffect(() => {
       } : s));
     }
   }, [activeSession?.id, activeSession?.messages?.length, currentPhase]);
-
-    const uniqueUnlocked = Array.from(new Map(properlyUnlocked.map(c => [c.title || c.imageUrl, c])).values());
-    if (uniqueUnlocked.length !== currentUnlocked.length) {
-      setSessions(prev => prev.map(s => s.id === activeSession.id ? {
-        ...s,
-        sheet: { ...s.sheet, unlockedCgs: uniqueUnlocked }
-      } : s));
-    }
-  }, [activeSession?.id, activeSession?.messages?.length]);
-
 // 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
   const PHONE_SKINS = {
     default: {
@@ -3102,6 +3092,66 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
       setVoiceCallNpc(null);
     }
 
+ // 📞 [부재중 전화 자동 처리] 전화가 오는 중에 전화를 안 받고 일반 채팅을 쳤을 때!
+  let missedCallNotice = "";
+  if (incomingCall) {
+    const caller = incomingCall.caller || incomingCall;
+    const callerName = caller.name || "상대방";
+    const callerNpc = (activeSession.sheet?.npcs || []).find(n => n.name === callerName) || activeSession.sheet?.npcs?.[0];
+    const callerId = callerNpc?.id || 1;
+    const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+
+    // 1. 메신저(phoneChats)에 [부재중 전화] 알림 말풍선 박제
+    const missedCallBubble = {
+      id: Date.now() + Math.random(),
+      sender: "npc",
+      text: `📞 [부재중 전화] ${callerName} 님이 건 전화를 받지 못했습니다.`,
+      time: currentTime,
+      unread: true,
+      isMissedCall: true
+    };
+
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeSessionId) return s;
+      const currentChats = s.sheet?.phoneChats || {};
+      const contactMsgs = currentChats[callerId] || [];
+      return {
+        ...s,
+        sheet: {
+          ...s.sheet,
+          phoneChats: {
+            ...currentChats,
+            [callerId]: [...contactMsgs, missedCallBubble]
+          },
+          // 2. AI 기억 수첩(recentEvents)에도 '전화 무시함' 플래그 저장
+          recentEvents: [...(s.sheet?.recentEvents || []), `${callerName}의 전화를 받지 않고 무시함`]
+        }
+      };
+    }));
+
+    // 3. 화면 상단에 부재중 알림 토스트 띄우기 & 전화 수신창 닫기
+    triggerToast("📞 부재중 전화 1건", `${callerName}님의 전화를 받지 않았습니다.`, "📵");
+    setIncomingCall(null);
+
+  // 4. 인물 성격에 따른 부재중 후속 반응 지시문 (집착 폭풍 문자 vs 쿨한 무반응)
+    missedCallNotice = `
+[🚨 부재중 전화 발생 및 인물 성격별 후속 수칙]
+방금 울리던 '${callerName}'의 전화를 플레이어가 받지 않고 무시했습니다.
+'${callerName}'의 성격과 관계성 설정([${callerNpc?.detail || "성격 미정"}])을 엄격히 분석하여 아래 기준에 따라 대처하십시오:
+
+1. 집착/불안/질투/광기 성향인 경우:
+- 전화를 안 받자 불안감과 집착이 폭발하여 곧바로 문자를 2~4개 연달아 쏟아붓게 하십시오.
+- 구분자(||)를 사용하여 지문 끝에 아래처럼 연속 문자를 반드시 출력하십시오:
+  <!-- PHONE_MSG: {"from": "${callerName}", "text": "왜 안 받아? 바빠? || 지금 누구랑 있어? || 문자 보면 바로 연락 줘. 기다릴게."} -->
+
+2. 쿨함/자존심 강함/냉정/무덤덤한 성향인 경우:
+- 문자를 일절 남기지 않거나, 혹은 짧은 용건 1줄만 남기고 신경을 끄십시오. (무반응일 경우 PHONE_MSG 태그 생략 가능)
+  <!-- PHONE_MSG: {"from": "${callerName}", "text": "통화 가능할 때 회신 바랍니다."} -->
+
+3. 소심/걱정 많은 성향인 경우:
+- "혹시 무슨 일 생긴 건 아니지...?" 같은 조심스러운 안부 문자 1줄만 전송하십시오.`;
+  }
+
  // 🌟 개발자용 클라이맥스 즉시 워프 치트키 (락 해제 및 에러 방지 완비)
   if (textToSend.trim() === "/클맥" || textToSend.trim() === "/climax") {
     setIsLoading(false); // 🔓 버튼 잠금 즉시 해제!
@@ -3172,11 +3222,19 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   - 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
 
 4. [장면 순환 및 다자간 인물 조우 강제 수칙]
-  - [독점 방지]: 동일한 인물과의 대화가 10~20턴 이상 이어지면, 인물이 일정을 언급하며 대화를 자연스럽게 마무리짓게 하십시오.
+  - [독점 방지]: 동일한 인물과의 대화가 10~15턴 이상 이어지면, 인물이 일정을 언급하며 대화를 자연스럽게 마무리짓게 하십시오.
   - [타 인물 존재감 유출]: 현재 공간에 없는 다른 등장인물의 동선(발소리, 소문, 기척, 전언 등)을 지문 속에 1문장 자연스럽게 흘리십시오.
   - [선택지 필수 배분]: 지문 끝의 <!-- SUGGESTIONS: ["선택지1", "선택지2", "선택지3"] --> 중 최소 1개는 반드시 "다른 구역으로 이동하거나 다른 인물을 찾아가는 행동"으로 제시하십시오.
   - [장소 이동 배너]: 대면이 일단락될 때는 반드시 시나리오 배경에 맞는 이동 가능한 장소 2~3곳을 아래 형식의 태그로 출력하십시오:
-  <!-- LOCATION_CARDS: [{"name": "장소명", "npc": "머물고있는인물명", "desc": "장소 분위기 설명"}] -->`;
+  <!-- LOCATION_CARDS: [{"name": "장소명", "npc": "머물고있는인물명", "desc": "장소 분위기 설명"}] -->
+
+5. [부재중 NPC의 메신저 선톡 및 일상 사진 전송 수칙]
+- 플레이어가 현재 인물과 대화를 4~8턴 이상 주고받았을 때, **다른 장소에 있는 다른 NPC(연락처가 있는 인물)**가 플레이어에게 안부, 용건, 질투, 혹은 비밀스러운 선톡을 1회 발송하게 하십시오.
+- **[자동 사진 전송]** 유저가 요청하지 않아도, NPC의 현재 상황에 맞춰 자연스럽게 자신의 주변 풍경 사진을 함께 첨부해 보낼 수 있습니다.
+- 형식:
+  <!-- PHONE_MSG: {"from": "발신NPC이름", "text": "선톡 내용 (1~2줄)"} -->
+  <!-- SNAP_PHOTO: {"prompt": "1girl, solo, looking at viewer, casual clothes, anime masterpiece", "caption": "사진 한 줄 설명"} -->
+- prompt는 고화질 일러스트가 생성될 수 있도록 반드시 배경이 포함된 영문(English) 키워드로 작성하십시오.`;
   // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
       const currentPhase = activeSession.sheet?.phase || "도입";
@@ -3270,7 +3328,7 @@ currentPhase === "클라이맥스" ? `
         signal: controller.signal,
         body: JSON.stringify({
           messages: messagesForAi,
-          scenarioText: (activeSession.scenarioText || "") + dynamicRules + currentNpcPrompt,
+          scenarioText: (activeSession.scenarioText || "") + dynamicRules + currentNpcPrompt + missedCallNotice,
           playerSheet: typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet,
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference,
@@ -3606,7 +3664,7 @@ currentPhase === "클라이맥스" ? `
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-      // [선톡 자동 수신]
+      // [선톡 자동 수신 & 스냅 사진 동시 감지]
       let newPhoneMsg = null;
       const phoneRegex = /<!--\s*PHONE_MSG:\s*(\{.*?\})\s*-->/gs;
       let phoneMatch;
@@ -3615,6 +3673,17 @@ currentPhase === "클라이맥스" ? `
       }
       rawText = rawText.replace(phoneRegex, "");
 
+      // 📷 선톡에 사진이 포함되어 있는지 확인
+      let autoSnapPhotoUrl = null;
+      const autoSnapMatch = rawText.match(/<!--\s*SNAP_PHOTO:\s*(\{.*?\})\s*-->/i);
+      if (autoSnapMatch) {
+        try {
+          const snapData = JSON.parse(autoSnapMatch[1]);
+          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(snapData.prompt)}?width=800&height=1000&nologo=true`;
+        } catch (e) {}
+        rawText = rawText.replace(autoSnapMatch[0], "");
+      }
+     
 // [호감도 변화 추출 - value 및 delta 둘 다 완벽 지원]
       let affChanges = [];
       const affRegex = /<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/gs;
@@ -3696,7 +3765,8 @@ currentPhase === "클라이맥스" ? `
           sender: "npc",
           text: t,
           time: currentTime,
-          unread: true
+          unread: true,
+          photo: idx === 0 ? autoSnapPhotoUrl : null // 👈 첫 번째 말풍선에 사진 주소 연결!
         }));
 
         if (incomingMsgs.length > 0) {
@@ -3705,8 +3775,9 @@ currentPhase === "클라이맥스" ? `
             [contactId]: [...contactMsgs, ...incomingMsgs]
           };
           if (typeof triggerVibration === "function") triggerVibration();
+          // 📱 화면 상단에 카톡처럼 푸시 알림 배너 띄우기
+          triggerToast("📱 새 메시지 도착", `${targetSenderName}: "${incomingMsgs[0]?.text}"`, "💬");
         }
-      }
 
       // [선물하기 아이템 자동 차감]
       const giftMatch = textToSend.match(/\[(.*?) 선물하기\]/);
@@ -7567,6 +7638,8 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 - [절대 금지]: '상태 메시지', '프로필' 같은 현대적 단어는 절대 입에 담지 마십시오!
 - [표현 지침]: 대신 "통신석에 띄워두신 글귀", "마도구 너머로 비친 그대의 심경", "남겨두신 전언" 등의 격조 높은 표현을 사용하십시오.
 - 주인공이 남겨둔 전언에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.`;
+
+
            
             const res = await fetch("/api/chat", {
               method: "POST",
@@ -8233,9 +8306,21 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                               </div>
                             )}
                             <div style={{ backgroundColor: isUser ? activePhoneSkin.userBubbleBg : activePhoneSkin.npcBubbleBg, color: isUser ? activePhoneSkin.userBubbleText : activePhoneSkin.npcBubbleText, border: isUser ? "none" : `1px solid ${activePhoneSkin.npcBubbleBorder}`, padding: "9px 13px", borderRadius: isUser ? "14px 2px 14px 14px" : "2px 14px 14px 14px", fontSize: "0.84rem", lineHeight: "1.5", whiteSpace: "pre-wrap", wordBreak: "break-word", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                              
+                              {/* 📷 NPC가 보낸 일상 스냅 사진 렌더링 (클릭 시 크게보기) */}
+                              {m.photo && (
+                                <div 
+                                  onClick={() => setZoomedPortrait(m.photo)} 
+                                  style={{ marginBottom: "8px", borderRadius: "10px", overflow: "hidden", cursor: "zoom-in", border: `1px solid ${activePhoneSkin.border}` }}
+                                >
+                                  <img src={m.photo} alt="전송된 사진" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} />
+                                </div>
+                              )}
+
                               {m.text}
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", gap: "2px", flexShrink: 0, marginBottom: "2px" }}>
+
+                             <div style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", gap: "2px", flexShrink: 0, marginBottom: "2px" }}>
                               {isUser && !isRead && (
                                 <span style={{ fontSize: "0.68rem", color: "#fee500", fontWeight: "800", lineHeight: 1 }}>1</span>
                               )}
