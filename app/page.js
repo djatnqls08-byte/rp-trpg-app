@@ -3987,7 +3987,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   </div>
 
   {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
-  {isMobile && isSheetOpen && (
       {isMobile && isSheetOpen && (
         <div 
           onClick={() => setIsSheetOpen(false)} 
