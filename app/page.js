@@ -3979,7 +3979,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "3px" : "5px", flexShrink: 0 }}>
             
             {/* 1. 📱 스마트폰 메신저 */}
-            {activeSession && activeSession.ruleMode?.startsWith("dating") && (() => {
+            {activeSession && (activeSession.ruleMode?.startsWith("dating") || activeSession.ruleMode?.includes("free")) && (() => {
               const phoneChats = activeSession.sheet?.phoneChats || {};
               let unreadCount = 0;
               Object.values(phoneChats).forEach(msgs => {
@@ -6211,7 +6211,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                         )}
 
                         {/* 3. 🌸 미연시 방일 때 */}
-                        {(activeSession?.ruleMode?.startsWith("dating") || activeSession?.ruleMode?.includes("free")) && (
+                        {activeSession?.ruleMode?.startsWith("dating") && (
                           <>
                             <button
                               type="button"
