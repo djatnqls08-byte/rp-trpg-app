@@ -5414,47 +5414,42 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
                           }}
                         >
-{/* 🖼️ 지문 속에 해금된 이벤트 CG 배너 */}
+{/* 🖼️ 지문 속에 해금된 이벤트 CG 배너 (깔끔한 인라인 뷰) */}
         {m.cg && (
           <div 
-            onClick={() => {
-              if (typeof setZoomedCardUrl === "function") {
-                setZoomedCardUrl(m.cg.imageUrl || m.cg.url);
-              }
-            }}
             style={{
               marginBottom: "14px",
               borderRadius: "10px",
               overflow: "hidden",
-              boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              cursor: "zoom-in",
               position: "relative"
             }}
-            title="클릭하여 원본 크게 보기"
           >
             <img 
               src={m.cg.imageUrl || m.cg.url} 
               alt={m.cg.title || "이벤트 CG"} 
-              style={{ width: "100%", maxHeight: "380px", objectFit: "cover", display: "block" }} 
+              style={{ 
+                width: "100%", 
+                maxHeight: "380px", 
+                objectFit: "cover", 
+                display: "block" 
+              }} 
             />
-            <div style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "8px 12px",
-              background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)",
-              color: "#fff",
-              fontSize: "0.8rem",
-              fontWeight: "800",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <span>✨ {m.cg.title || "이벤트 일러스트"}</span>
-              <span style={{ fontSize: "0.7rem", opacity: 0.85 }}>🔍 터치하여 크게 보기</span>
-            </div>
+            {m.cg.title && (
+              <div style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: "8px 12px",
+                background: "linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 100%)",
+                color: "#ffffff",
+                fontSize: "0.78rem",
+                fontWeight: "700",
+                letterSpacing: "-0.02em"
+              }}>
+                ✨ {m.cg.title}
+              </div>
+            )}
           </div>
         )}
                           {m.text}
@@ -9426,24 +9421,25 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 }}
               >
                 <div style={{ height: "95px", backgroundColor: "#1e293b" }}>
-                  {cg.imageUrl && (
-                    <img 
-                      src={cg.imageUrl} 
-                      alt={cg.title} 
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-                    />
-                  )}
+                {cg.imageUrl && (
+                  <img
+                    src={cg.imageUrl}
+                    alt={cg.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                )}
+              </div>
+              <div style={{ padding: "8px 10px", backgroundColor: "#1e293b" }}>
+                {/* 🌟 흰색으로 또렷하게 표시 */}
+                <div style={{ fontSize: "0.78rem", fontWeight: "bold", color: "#ffffff", lineHeight: 1.35 }}>
+                  {cg.title}
                 </div>
-                <div style={{ padding: "6px 8px" }}>
-                  <div style={{ fontSize: "0.75rem", fontWeight: "bold" }}>
-                    {cg.title}
+                {(cg.desc || cg.trigger) && (
+                  <div style={{ fontSize: "0.7rem", color: "#cbd5e1", marginTop: "4px", lineHeight: 1.3 }}>
+                    {cg.desc || cg.trigger}
                   </div>
-                  {cg.desc && (
-                    <div style={{ fontSize: "0.68rem", opacity: 0.7, marginTop: "2px" }}>
-                      {cg.desc}
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
               </div>
             ))
               )}
