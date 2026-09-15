@@ -325,6 +325,10 @@ function convertRowToPreset(row, index) {
 }
 
 export default function App() {
+ const [showMemoryModal, setShowMemoryModal] = useState(false);
+  const [showCgAlbumModal, setShowCgAlbumModal] = useState(false);
+  const [parsedEnemyName, setCharEnemyName] = useState("");
+  const [parsedPrizes, setParsedPrizes] = useState([]);
   // 🌟 인세인 전용 UI 상태
   const [isActionDrawerOpen, setIsActionDrawerOpen] = useState(false);
   const [showInsaneGuideModal, setShowInsaneGuideModal] = useState(false);
@@ -3617,6 +3621,7 @@ const executePlayerDodge = () => {
     try { localStorage.setItem("rp_hub_sessions", JSON.stringify(sessions)); } catch (e) {}
   }, [sessions, isLoaded]);
 
+const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
 const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
 // ☀️ [엔딩 감지 로직] 4대 분기(트루/히든/배드/노멀) 및 서브 타이틀 추출
@@ -5295,184 +5300,94 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 const partnerNpc = activeSession.sheet?.npcs?.[0];
 
 // ── [📞 통화 기록 접이식 1줄 카드 처리] ──
-        const isCall = m.isCall || m.isVoiceCall;
-        if (isCall) {
-          // 이전 메시지도 통화 메시지라면 이미 카드 안에 묶였으므로 중복 렌더링 방지
-          const prevMsg = activeSession.messages[i - 1];
-          if (prevMsg && (prevMsg.isCall || prevMsg.isVoiceCall)) {
-            return null;
-          }
+const isCall = m.isCall || m.isVoiceCall;
+if (isCall) {
+  // 이전 메시지도 통화 메시지라면 이미 카드 안에 묶였으므로 중복 렌더링 방지
+  const prevMsg = activeSession.messages[i - 1];
+  if (prevMsg && (prevMsg.isCall || prevMsg.isVoiceCall)) {
+    return null;
+  }
 
-          // 현재부터 연속된 통화 메시지들을 하나로 묶기
-          const callBlock = [];
-          for (let j = i; j < activeSession.messages.length; j++) {
-            const cur = activeSession.messages[j];
-            if (cur.isCall || cur.isVoiceCall) {
-              callBlock.push(cur);
-            } else {
-              break;
-            }
-          }
+  // 현재부터 연속된 통화 메시지들을 하나로 묶기
+  const callBlock = [];
+  for (let j = i; j < activeSession.messages.length; j++) {
+    const cur = activeSession.messages[j];
+    if (cur.isCall || cur.isVoiceCall) {
+      callBlock.push(cur);
+    } else {
+      break;
+    }
+  }
 
-          const callerName = m.callNpc || partnerNpc?.name || "상대방";
+  const callerName = m.callNpc || partnerNpc?.name || "상대방";
 
-          return (
-           {/* 🟢 통화 진행 중 상단 플로팅 미니 바 (창이 닫혀 있을 때만 노출) */}
-{isVoiceCallActive && !isCallModalOpen && (
-  <div 
-    onClick={() => setIsCallModalOpen(true)}
-    style={{
-      position: "sticky",
-      top: "8px",
-      zIndex: 50,
-      margin: "8px auto",
-      maxWidth: "92%",
-      padding: "8px 14px",
-      backgroundColor: "rgba(15, 23, 42, 0.92)",
-      backdropFilter: "blur(8px)",
-      border: "1.5px solid #10b981",
-      borderRadius: "24px",
-      boxShadow: "0 4px 16px rgba(16, 185, 129, 0.25)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      cursor: "pointer",
-      animation: "fadeIn 0.3s ease"
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <span style={{
-        display: "inline-block",
-        width: "8px",
-        height: "8px",
-        borderRadius: "50%",
-        backgroundColor: "#10b981",
-        boxShadow: "0 0 8px #10b981"
-      }} />
-      <span style={{ fontSize: "0.78rem", fontWeight: "800", color: "#f8fafc" }}>
-        {(voiceCallNpc?.name || callerName || "상대방")}와(과) 통화 중 (터치하여 열기)
-      </span>
-    </div>
-
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation(); // 미니 바 클릭(통화창 열림) 방지
-        setIsVoiceCallActive(false);
-        setIsCallModalOpen(false);
-        triggerToast("📞 통화 종료", `${voiceCallNpc?.name || callerName || "상대방"}와의 통화가 종료되었습니다.`);
-      }}
+  return (
+    <details
+      key={`call-block-${i}`}
+      open={isVoiceCallActive}
       style={{
-        padding: "4px 10px",
-        borderRadius: "14px",
-        backgroundColor: "#ef4444",
-        border: "none",
-        color: "#fff",
-        fontSize: "0.72rem",
-        fontWeight: "800",
+        margin: "12px 0",
+        borderRadius: "12px",
+        border: isVoiceCallActive ? "1.5px solid #f43f5e" : "1px solid rgba(244, 63, 94, 0.3)",
+        backgroundColor: "rgba(30, 41, 59, 0.85)",
+        boxShadow: isVoiceCallActive ? "0 0 12px rgba(244, 63, 94, 0.3)" : "none",
+        overflow: "hidden",
+        transition: "all 0.3s ease"
+      }}
+    >
+      <summary style={{
+        padding: "10px 14px",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
-        gap: "4px"
-      }}
-    >
-      <span>📵</span>
-      <span>종료</span>
-    </button>
-  </div>
-)}
-
-    <button
-      type="button"
-      onClick={() => {
-        setIsVoiceCallActive(false);
-        triggerToast("📞 통화 종료", `${callerName}와의 통화가 종료되었습니다.`);
-      }}
-      style={{
-        padding: "4px 10px",
-        borderRadius: "14px",
-        backgroundColor: "#ef4444",
-        border: "none",
-        color: "#fff",
-        fontSize: "0.72rem",
+        justifyContent: "space-between",
+        fontSize: "0.82rem",
         fontWeight: "800",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px"
-      }}
-    >
-      <span>📵</span>
-      <span>통화 종료</span>
-    </button>
-  </div>
-)}
-            <details
-              key={`call-block-${i}`}
-              open={isVoiceCallActive} // 통화 중엔 열려 있고, 종료되면 자동으로 접힘
-              style={{
-                margin: "12px 0",
-                borderRadius: "12px",
-                border: isVoiceCallActive ? "1.5px solid #f43f5e" : "1px solid rgba(244, 63, 94, 0.3)",
-                backgroundColor: "rgba(30, 41, 59, 0.85)",
-                boxShadow: isVoiceCallActive ? "0 0 12px rgba(244, 63, 94, 0.3)" : "none",
-                overflow: "hidden",
-                transition: "all 0.3s ease"
-              }}
-            >
-              <summary style={{
-                padding: "10px 14px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                fontSize: "0.82rem",
-                fontWeight: "800",
-                color: isVoiceCallActive ? "#fda4af" : "#cbd5e1",
-                userSelect: "none",
-                listStyle: "none"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span>📞</span>
-                  <span>[{callerName}과의 통화 기록] ({callBlock.length}개 대화)</span>
-                  {isVoiceCallActive && (
-                    <span style={{ fontSize: "0.65rem", backgroundColor: "#e11d48", color: "#fff", padding: "1px 6px", borderRadius: "8px" }}>
-                      🔴 통화 중
-                    </span>
-                  )}
-                </div>
-                <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
-                  {isVoiceCallActive ? "진행 중 ▲" : "펼치기 ▼"}
-                </span>
-              </summary>
+        color: isVoiceCallActive ? "#fda4af" : "#cbd5e1",
+        userSelect: "none",
+        listStyle: "none"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span>📞</span>
+          <span>[{callerName}과의 통화 기록] ({callBlock.length}개 대화)</span>
+          {isVoiceCallActive && (
+            <span style={{ fontSize: "0.65rem", backgroundColor: "#e11d48", color: "#fff", padding: "1px 6px", borderRadius: "8px" }}>
+              🔴 통화 중
+            </span>
+          )}
+        </div>
+        <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+          {isVoiceCallActive ? "진행 중 ▲" : "펼치기 ▼"}
+        </span>
+      </summary>
 
-              {/* 통화 로그 본문 */}
-              <div style={{
-                padding: "12px 14px",
-                borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-                backgroundColor: "rgba(15, 23, 42, 0.7)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px"
-              }}>
-                {callBlock.map((cm, cIdx) => (
-                  <div key={cIdx} style={{
-                    fontSize: "0.82rem",
-                    lineHeight: "1.5",
-                    color: cm.role === "user" ? "#93c5fd" : "#e2e8f0",
-                    paddingLeft: "8px",
-                    borderLeft: cm.role === "user" ? "2px solid #60a5fa" : "2px solid #f43f5e"
-                  }}>
-                    <strong style={{ fontSize: "0.74rem", display: "block", marginBottom: "2px", color: cm.role === "user" ? "#60a5fa" : "#fb7185" }}>
-                      {cm.role === "user" ? (activeSession?.sheet?.userName || "나") : callerName}
-                    </strong>
-                    {cm.text}
-                  </div>
-                ))}
-              </div>
-            </details>
-          );
-        }
+      {/* 통화 로그 본문 */}
+      <div style={{
+        padding: "12px 14px",
+        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(15, 23, 42, 0.7)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px"
+      }}>
+        {callBlock.map((cm, cIdx) => (
+          <div key={cIdx} style={{
+            fontSize: "0.82rem",
+            lineHeight: "1.5",
+            color: cm.role === "user" ? "#93c5fd" : "#e2e8f0",
+            paddingLeft: "8px",
+            borderLeft: cm.role === "user" ? "2px solid #60a5fa" : "2px solid #f43f5e"
+          }}>
+            <strong style={{ fontSize: "0.74rem", display: "block", marginBottom: "2px", color: cm.role === "user" ? "#60a5fa" : "#fb7185" }}>
+              {cm.role === "user" ? (activeSession?.sheet?.userName || "나") : callerName}
+            </strong>
+            {cm.text}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
   // ── [통화가 아닌 일반 대면 대화는 기존 코드 그대로 진행] ──
                
                 return (
