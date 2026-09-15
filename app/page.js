@@ -7889,13 +7889,17 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 {/* 👥 대화 기록에 등장한 인물 자동 인식 목록 추출 */}
               {(() => {
                 const fullChat = (activeSession.messages || []).map(m => m.content || "").join(" ");
-                const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => 
-                  npc.hasContact || 
-                  npc.unlocked || 
-                  ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) ||
-                  (npc.name && fullChat.includes(npc.name)) // ✨ 대화에 등장했다면 자동 등록!
-                );
+                const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
+                  if (npc.hasContact || npc.unlocked) return true;
+                  if ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) return true;
 
+                  // 대화 속 풀네임이나 첫 단어(이름/성)가 한 번이라도 불렸다면 즉시 해금
+                  const npcFirstName = npc.name?.split(" ")[0];
+                  return (
+                    (npc.name && fullChat.includes(npc.name)) ||
+                    (npcFirstName && npcFirstName.length > 1 && fullChat.includes(npcFirstName))
+                  );
+                });
                 return (
                   <>
                     <div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
