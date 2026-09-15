@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 const FALLBACK_MODELS = [
   "gemini-3.5-flash-lite",
