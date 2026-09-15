@@ -5330,29 +5330,16 @@ if (isCall) {
   }
 
   const callerName = m.callNpc || partnerNpc?.name || "상대방";
-// 통화 중일 때는 메인 타임라인에 표시하지 않고 상단 플로팅/모달에만 집중
-    if (isVoiceCallActive) return null;
-    if (!callBlock || callBlock.length === 0) return null;
 
-    return (
-      <details
-        key={`call-block-${i}`}
-        style={{
-          margin: "14px 0",
-          borderRadius: "12px",
-          border: `1px solid ${theme.border || "rgba(0,0,0,0.1)"}`,
-          backgroundColor: theme.panelAlt || "rgba(0,0,0,0.03)",
-          overflow: "hidden",
-          transition: "all 0.2s ease"
-        }}
-      >
-     if (!callBlock || callBlock.length === 0) return null;
+  // 통화 중일 때는 메인 타임라인에 표시하지 않고 상단 플로팅/모달에만 집중
+  if (isVoiceCallActive) return null;
+  if (!callBlock || callBlock.length === 0) return null;
 
-    return (
-      <details
-        key={`call-block-${i}`}
-        // 통화 중일 때 메인 창을 내리면 1줄로 단정하게 닫힌 상태 유지 (펼쳐짐 방지)
-        style={{
+  return (
+    <details
+      key={`call-block-${i}`}
+      // 통화 중일 때 메인 창을 내리면 1줄로 단정하게 닫힌 상태 유지 (펼쳐짐 방지)
+      style={{
           margin: "12px 0",
           borderRadius: "14px",
           border: isVoiceCallActive 
