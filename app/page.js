@@ -9406,7 +9406,6 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 </div>
               ) : (
                 activeSession.sheet.unlockedCgs.map((cg, idx) => (
-                  activeSession.sheet.unlockedCgs.map((cg, idx) => (
               <div 
                 key={idx}
                 onClick={() => {
