@@ -266,6 +266,8 @@ function parseCSV(text) {
   return r;
 }
 
+
+
 function convertRowToPreset(row, index) {
   const [
     title, rule, tags, synopsis, opening, truth,
@@ -299,6 +301,17 @@ function convertRowToPreset(row, index) {
     }
   });
 
+// 🌟 BJ열(61번 인덱스)부터 3개씩 묶어 CG1~CG10 자동 추출
+  const eventCgs = [];
+  for (let c = 61; c < row.length; c += 3) {
+    const cgTitle = row[c]?.trim();
+    const cgTrigger = row[c + 1]?.trim();
+    const cgUrl = row[c + 2]?.trim();
+    if (cgTitle && cgUrl) {
+      eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
+    }
+  }
+ 
   return {
     id: 9000000000000 + index,
     presetTitle: title || "새 시나리오",
@@ -320,7 +333,8 @@ function convertRowToPreset(row, index) {
     insaneCuriosity: curiosity || "정서",
     insaneFear: fear || "죽음",
     insaneLimit: 3,
-    kpcList: kpcList
+    kpcList: kpcList,
+    eventCgs: eventCgs // 👈 이 줄 추가!
   };
 }
 
