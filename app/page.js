@@ -3051,8 +3051,9 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 3. [시스템 태그 연동 수칙]
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
+- 번호/연락처/마도구 파장을 교환하면 맨 끝에 <!-- UNLOCK_CONTACT: {"name": "인물명"} -->
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->
-- 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->`;
+- 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
 
     // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
@@ -3223,22 +3224,28 @@ const cgData = JSON.parse(cgMatch[1]);
 
           if (targetName) {
             const currentUnlocked = activeSession.sheet?.unlockedContacts || [];
-            // 🔍 이미 기본 NPC 목록에 있거나, 이미 연락처가 등록된 인물인지 확인
-            const isAlreadyKnown = (activeSession.sheet?.npcs || []).some(n => n.name === targetName || (n.name && n.name.includes(targetName)));
-            const isAlreadyUnlocked = currentUnlocked.includes(targetName);
+            const isAlreadyUnlocked = currentUnlocked.includes(targetName) || 
+              (activeSession.sheet?.npcs || []).some(n => (n.name === targetName || n.name?.includes(targetName)) && n.hasContact);
 
-            // 🌟 '완전히 새로운 인물'의 연락처를 처음 얻었을 때만 최초 1회 토스트 발동!
-            if (!isAlreadyKnown && !isAlreadyUnlocked) {
-              triggerToast("📱 인연 등록", `[${targetName}]의 연락처가 등록되었습니다!`);
+            // 아직 연락처를 튼 적이 없는 인물이면 상단 알림 팝업 및 시트 해금
+            if (!isAlreadyUnlocked) {
+              triggerToast("📱 인연 등록", `[${targetName}]의 연락처가 등록되었습니다!`, "📱");
 
               setSessions(prev => prev.map(s => {
                 if (s.id === activeSessionId) {
                   const prevContacts = s.sheet?.unlockedContacts || [];
+                  const updatedNpcs = (s.sheet?.npcs || []).map(n => 
+                    (n.name === targetName || n.name?.includes(targetName) || targetName.includes(n.name))
+                      ? { ...n, hasContact: true, unlocked: true }
+                      : n
+                  );
+
                   return {
                     ...s,
                     sheet: {
                       ...s.sheet,
-                      unlockedContacts: [...prevContacts, targetName]
+                      npcs: updatedNpcs,
+                      unlockedContacts: Array.from(new Set([...prevContacts, targetName]))
                     }
                   };
                 }
@@ -7888,18 +7895,20 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 
 {/* 👥 대화 기록에 등장한 인물 자동 인식 목록 추출 */}
               {(() => {
-                const fullChat = (activeSession.messages || []).map(m => m.content || "").join(" ");
-                const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
-                  if (npc.hasContact || npc.unlocked) return true;
-                  if ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) return true;
+                const fullChat = (activeSession.messages || []).map(m => m.text || m.content || "").join(" ");
+const unlockedList = activeSession.sheet?.unlockedContacts || [];
+const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
+  if (npc.hasContact || npc.unlocked) return true;
+  if (unlockedList.includes(npc.name) || unlockedList.some(u => npc.name?.includes(u))) return true;
+  if ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) return true;
 
-                  // 대화 속 풀네임이나 첫 단어(이름/성)가 한 번이라도 불렸다면 즉시 해금
-                  const npcFirstName = npc.name?.split(" ")[0];
-                  return (
-                    (npc.name && fullChat.includes(npc.name)) ||
-                    (npcFirstName && npcFirstName.length > 1 && fullChat.includes(npcFirstName))
-                  );
-                });
+  // 대화 기록에 풀네임이나 첫 단어가 등장했거나 번호 교환 시 즉시 등록
+  const npcFirstName = npc.name?.split(" ")[0];
+  return (
+    (npc.name && fullChat.includes(npc.name)) ||
+    (npcFirstName && npcFirstName.length > 1 && fullChat.includes(npcFirstName))
+  );
+});
                 return (
                   <>
                     <div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
