@@ -16,6 +16,7 @@ export async function POST(req) {
       playerSheet = {},
       ruleMode = "coc",
       playPreference = "",
+      isPhoneChat = false,    // 👈 [복구] 이 한 줄이 빠져서 에러가 났었습니다!
       isVoiceCall = false,
       voiceCallNpc = null,
       facingNpc = null,
@@ -138,6 +139,10 @@ ${isFacingSame ? `
 - 호감도 변동 시: <!-- AFFECTION: {"name": "${curVoiceNpc}", "value": 변경후수치} -->
 - 통화 종료 시: <!-- END_CALL: {"reason": "종료사유"} -->
 - 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
+
+          // 📱 통화 모드 프롬프트 AI에게 주입
+          formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
+          formattedContents.push({ role: "model", parts: [{ text: `네, ${curVoiceNpc}와의 실시간 음성 통화 지침을 준수하여 현장과 연동해 진행하겠습니다.` }] });
 
         } else if (isPhoneChat) {
           // 📱 [B. 1:1 메신저 모드]
