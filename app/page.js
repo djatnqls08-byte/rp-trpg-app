@@ -3941,7 +3941,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                     <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
                   </div>
 
-                  {/* 하단 날짜 + 🔄 동기화 버튼 (a 위치) */}
+                  {/* 하단 날짜 + 🔄 동기화 버튼 */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
                     <div>{dateDisplay ? `🕒 ${dateDisplay}` : ""}</div>
                     <button
@@ -3975,23 +3975,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
         </div>
 
         {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
-       <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
-          <button 
-            onClick={() => {
-              setSelectedExportSessionIds(activeSessionId ? [activeSessionId] : sessions.map(s => s.id));
-              openModal(setShowExportModal);
-            }} 
-            style={{ width: "100%", padding: "9px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}
-          >
-            💾 데이터 관리 (백업/내보내기)
-          </button>
-          <button onClick={() => openModal(setShowSettingsModal)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, cursor: "pointer", fontSize: "0.8rem", fontWeight: "700" }}>⚙️ 환경 설정</button>
-</div>
-        </div>
-      );
-    })}
-  </div>
-
   {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
       {isMobile && isSheetOpen && (
         <div 
