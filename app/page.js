@@ -3141,7 +3141,29 @@ currentPhase === "클라이맥스" ? `
 - 감춰둔 비밀/진심: [${currentContact.secret || "비밀 없음"}]
 절대 다른 사람의 입장에서 말하지 마십시오! 오직 '${partnerName}' 본인의 말투와 감정선으로만 톡 답장을 1~3줄 보내십시오.`;
     }
+ 
+// ⏰ 유저 대사에서 5단계 시간대 감지 및 암전 애니메이션 트리거
+    const lastUserText = messagesForAi[messagesForAi.length - 1]?.text || input || "";
+    let updatedPhase = currentPhase || "낮";
 
+    if (/새벽|동이\s*트기\s*전|푸르스름/.test(lastUserText)) {
+      updatedPhase = "새벽";
+    } else if (/아침까지|잠에서\s*깨|눈을\s*뜬다|기상|다음\s*날\s*아침/.test(lastUserText)) {
+      updatedPhase = "아침";
+    } else if (/정오|점심|한낮/.test(lastUserText)) {
+      updatedPhase = "낮";
+    } else if (/저녁까지|해질|노을|황혼/.test(lastUserText)) {
+      updatedPhase = "저녁";
+    } else if (/밤까지|자정을|밤이\s*되|어두워질|잠에\s*든다|잠을\s*잔다/.test(lastUserText)) {
+      updatedPhase = "밤";
+    }
+
+    if (updatedPhase !== currentPhase) {
+      setCurrentPhase(updatedPhase);
+      setTimeTransition(updatedPhase);
+      setTimeout(() => setTimeTransition(null), 2200);
+    }
+ 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
