@@ -9551,7 +9551,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   </div>
                 </div>
               ) : (
-{/* 업데이트 노트 탭 */}
+
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   
                   {/* 🚀 최신 버전 v1.3.0 */}
