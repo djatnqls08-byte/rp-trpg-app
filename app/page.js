@@ -1960,16 +1960,17 @@ useEffect(() => {
     closeModal(setShowPortraitEditModal);
   };
 
-// 🔄 기존 대화 내역은 유지하면서 시트(일러스트, 인물 등)만 최신으로 갱신
+// 🔄 대화 내역 유지 + 최신 시트 동기화 + 지난 대화 기반 CG 소급 해금
   const handleSyncCurrentSheet = async () => {
     if (!activeSession) return;
 
-    let targetUrl = activeSession.sheetUrl || activeSession.sheet?.url;
+    let targetUrl = activeSession.sheetUrl || activeSession.sheet?.url || GOOGLE_SHEET_CSV_URL;
     if (!targetUrl) {
-      targetUrl = prompt("동기화할 구글 시트 주소(URL)를 입력해주세요:", "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv");
+      targetUrl = prompt("동기화할 구글 시트 주소(URL)를 입력해주세요:", GOOGLE_SHEET_CSV_URL);
+      if (!targetUrl) return;
     }
 
-    if (!confirm("현재 대화 내역은 그대로 유지되며, 최신 일러스트와 NPC 설정을 다시 불러옵니다. 진행할까요?")) return;
+    if (!confirm("대화 내역을 유지하며 최신 일러스트를 불러옵니다. 지난 대화와 일치하는 CG도 자동 해금됩니다. 진행할까요?")) return;
 
     try {
       setIsLoading(true);
@@ -1984,17 +1985,38 @@ useEffect(() => {
 
       setSessions(prev => prev.map(s => {
         if (s.id === activeSession.id) {
+          // 1. 지금까지 나눈 모든 대화 텍스트 하나로 합치기
+          const fullChatHistory = (s.messages || []).map(m => m.content || "").join(" ");
+
+          // 2. 기존 해금 목록 가져오기
+          const existingUnlocked = new Set(s.unlockedCgs || []);
+
+          // 3. 시트의 CG 목록 중 대화에 트리거/제목이 언급된 CG 찾아 자동 해금
+          (updatedSheet.cgs || []).forEach(cg => {
+            const triggerKeyword = cg.trigger?.trim();
+            const titleKeyword = cg.title?.trim();
+
+            // 대화 속에 트리거 문구나 CG 제목이 한 번이라도 등장했다면 해금 대상으로 판정
+            if (
+              (triggerKeyword && fullChatHistory.includes(triggerKeyword)) ||
+              (titleKeyword && fullChatHistory.includes(titleKeyword))
+            ) {
+              existingUnlocked.add(cg.title || cg.imageUrl);
+            }
+          });
+
           return {
             ...s,
             sheetUrl: targetUrl,
             thumbnail: updatedSheet.thumbnail || updatedSheet.sessionCard || s.thumbnail,
-            sheet: updatedSheet
+            sheet: updatedSheet,
+            unlockedCgs: Array.from(existingUnlocked) // 소급 해금된 CG 목록 반영
           };
         }
         return s;
       }));
 
-      alert("✨ 최신 시트 데이터(일러스트/설정)가 성공적으로 동기화되었습니다!");
+      alert("✨ 최신 데이터 동기화 및 이전 대화의 CG 소급 해금이 완료되었습니다!");
     } catch (err) {
       alert("시트 동기화 실패: " + err.message);
     } finally {
