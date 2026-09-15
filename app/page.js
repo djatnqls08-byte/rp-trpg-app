@@ -9478,7 +9478,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-{/* 🔍 CG 원본 풀스크린 라이트박스 + 💬 미연시 대사창 & UI 숨김 토글 */}
+{/* 🔍 CG 원본 풀스크린 라이트박스 + 💬 미연시 대사창 & 줄바꿈 & UI 숨김 토글 */}
       {zoomedCardUrl && (() => {
         const isObj = typeof zoomedCardUrl === "object" && zoomedCardUrl !== null;
         const imgUrl = isObj ? (zoomedCardUrl.imageUrl || zoomedCardUrl.url) : zoomedCardUrl;
@@ -9523,7 +9523,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 backgroundColor: "#0b0f19"
               }}
             >
-              {/* 👁️ 텍스트 UI 숨기기/보이기 토글 버튼 */}
+              {/* 👁️ 텍스트 숨기기 / 보기 토글 버튼 */}
               {hasTextContent && (
                 <button
                   type="button"
@@ -9563,7 +9563,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 }} 
               />
 
-              {/* 💬 미연시 스타일 하단 대사창 (showCgDialog 상태에 따라 노출) */}
+              {/* 💬 미연시 스타일 하단 대사창 */}
               {hasTextContent && showCgDialog && (
                 <div style={{
                   position: "absolute",
@@ -9573,10 +9573,9 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   padding: "16px 22px",
                   background: "linear-gradient(to top, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.82) 75%, transparent 100%)",
                   borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#f8fafc",
-                  animation: "fadeIn 0.2s ease"
+                  color: "#f8fafc"
                 }}>
-                  {/* 화자 이름 */}
+                  {/* 화자 이름 태그 */}
                   <div style={{
                     display: "inline-block",
                     padding: "2px 10px",
@@ -9592,7 +9591,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                     {speaker || isObj.title}
                   </div>
 
-                  {/* 대사 */}
+                  {/* 인물 대사 (줄바꿈 & 단어 보존 스타일 적용) */}
                   {quote && (
                     <div style={{
                       fontSize: "0.95rem",
@@ -9608,21 +9607,23 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                     </div>
                   )}
 
-                  {/* 대사 */}
-                  {quote && (
+                  {/* 장면 묘사 (줄바꿈 & 단어 보존 스타일 적용) */}
+                  {sceneDesc && (
                     <div style={{
-                      fontSize: "0.95rem",
-                      fontWeight: "600",
-                      lineHeight: 1.6,
-                      color: "#ffffff",
-                      letterSpacing: "-0.02em",
-                      textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+                      fontSize: "0.78rem",
+                      color: "#94a3b8",
+                      marginTop: "6px",
+                      lineHeight: 1.5,
+                      fontStyle: "italic",
                       whiteSpace: "pre-wrap",
                       wordBreak: "keep-all"
                     }}>
-                      {quote}
+                      {sceneDesc}
                     </div>
                   )}
+                </div>
+              )}
+            </div>
 
             <span style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.82rem", marginTop: "14px" }}>
               화면 아무 곳이나 누르면 닫힙니다 ✕
