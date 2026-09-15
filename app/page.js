@@ -3973,8 +3973,8 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
             );
           })}
         </div>
+      </div>
 
-        {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
   {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
       {isMobile && isSheetOpen && (
         <div 
@@ -7886,33 +7886,41 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                         <span style={{ fontSize: "0.8rem", color: activePhoneSkin.textMuted }}>〉</span>
                       </div>
 
-<div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
-                교류 중인 인물 ({ (activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).length })
-              </div>
+{/* 👥 대화 기록에 등장한 인물 자동 인식 목록 추출 */}
+              {(() => {
+                const fullChat = (activeSession.messages || []).map(m => m.content || "").join(" ");
+                const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => 
+                  npc.hasContact || 
+                  npc.unlocked || 
+                  ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) ||
+                  (npc.name && fullChat.includes(npc.name)) // ✨ 대화에 등장했다면 자동 등록!
+                );
 
-              {/* 📭 해금된 연락처가 없을 때 띄울 안내문 */}
-              {(activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).length === 0 && (
-                <div style={{ padding: "36px 16px", textAlign: "center", color: activePhoneSkin.textMuted, fontSize: "0.78rem", lineHeight: 1.6 }}>
-                  📭 아직 등록된 연락처가 없습니다.<br />
-                  서사 속에서 인물과 만나 연락처를 교환해 보세요.
-                </div>
-              )}
+                return (
+                  <>
+                    <div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
+                      교류 중인 인물 ({ metNpcs.length })
+                    </div>
 
-              {/* 👥 연락처가 해금되었거나 대화 이력이 있는 인물만 노출 */}
-              {(activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).map(npc => {
-                        const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
-                        const lastMsg = chats[chats.length - 1];
-                        // ── 1. 상태 메시지 깔끔 정리 (외모 설명 제거하고 순수 상태메시지만 노출) ──
-// 🌟 1. 인물 데이터(시트)에 적힌 정보 우선 활용 (이름 하드코딩 X)
-        // statusMessage(진행 중 바뀐 상태) -> quote(시트의 인물 대사) -> personality(성격) -> role(직책/신분) 순으로 표시
-        const initialStatus = npc.quote 
-          ? `"${npc.quote}"`
-          : npc.personality 
-            ? `${npc.personality}`
-            : npc.role 
-              ? `${npc.role}`
-              : "연락 가능";
+                    {/* 📭 해금된 연락처가 없을 때 띄울 안내문 */}
+                    {metNpcs.length === 0 && (
+                      <div style={{ padding: "36px 16px", textAlign: "center", color: activePhoneSkin.textMuted, fontSize: "0.78rem", lineHeight: 1.6 }}>
+                        📭 아직 등록된 연락처가 없습니다.<br />
+                        서사 속에서 인물과 만나 연락처를 교환해 보세요.
+                      </div>
+                    )}
 
+                    {/* 👥 교류 중인 인물 목록 노출 */}
+                    {metNpcs.map(npc => {
+                      const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
+                      const lastMsg = chats[chats.length - 1];
+                      const initialStatus = npc.quote 
+                        ? `"${npc.quote}"`
+                        : npc.personality 
+                          ? `${npc.personality}`
+                          : npc.role 
+                            ? `${npc.role}`
+                            : "연락 가능";
         // 서사 진행 중 AI가 바꿔준 statusMessage가 있으면 그걸 쓰고, 없으면 시트 기본 정보 노출
         const quoteText = npc.statusMessage ? `"${npc.statusMessage}"` : initialStatus;
 
