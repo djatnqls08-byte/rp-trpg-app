@@ -1193,11 +1193,10 @@ useEffect(() => {
         return;
       }
 
-      // ② 대상 인물 동적 감지 (현재 세션의 NPC 명단에서 조건문에 적힌 이름을 자동으로 탐색)
+      // ② 대상 인물 및 호감도 동적 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const targetNpcName = targetNpc?.name;
 
-      // 호감도 조건 검사 (예: 호감도 40, 호감도: 50% 등)
       const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
       const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
 
@@ -1209,19 +1208,28 @@ useEffect(() => {
         return;
       }
 
-      // ③ 서사 조건 동적 검사 (하드코딩 완전 제거: 어떤 시나리오든 자동 대응)
-      // 조건문에 캐릭터 이름이 있다면 대화록에 등장했는지 대조
+      // ③ 서사 조건: 5단계 시간대 및 핵심 키워드 동적 검사
       const passNpc = targetNpcName ? fullHistory.includes(targetNpcName) : true;
-      const passTime = triggerCond.includes("밤") ? (currentPhase === "밤") : true;
 
-      // 불필요한 조사/특수문자를 걷어내고 조건문 속 2글자 이상 핵심 상황 단어만 추출
+      let passTime = true;
+      if (/새벽|심야/.test(triggerCond)) {
+        passTime = (currentPhase === "새벽");
+      } else if (/아침|오전/.test(triggerCond)) {
+        passTime = (currentPhase === "아침");
+      } else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
+        passTime = (currentPhase === "낮");
+      } else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
+        passTime = (currentPhase === "저녁");
+      } else if (/밤|자정|야간/.test(triggerCond)) {
+        passTime = (currentPhase === "밤");
+      }
+
       const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
       const cleanedWords = triggerCond
         .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
         .split(/\s+/)
         .filter(w => w.length >= 2 && !stopWords.includes(w));
 
-      // 추출된 상황 키워드 중 하나라도 전체 대화록에 기록되어 있다면 통과
       const passAction = cleanedWords.length > 0
         ? cleanedWords.some(kw => fullHistory.includes(kw))
         : true;
@@ -1229,8 +1237,16 @@ useEffect(() => {
       if (passNpc && passTime && passAction) {
         properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
       }
-      }
     });
+
+    const uniqueUnlocked = Array.from(new Map(properlyUnlocked.map(c => [c.title || c.imageUrl, c])).values());
+    if (uniqueUnlocked.length !== currentUnlocked.length) {
+      setSessions(prev => prev.map(s => s.id === activeSession.id ? {
+        ...s,
+        sheet: { ...s.sheet, unlockedCgs: uniqueUnlocked }
+      } : s));
+    }
+  }, [activeSession?.id, activeSession?.messages?.length, currentPhase]);
 
     const uniqueUnlocked = Array.from(new Map(properlyUnlocked.map(c => [c.title || c.imageUrl, c])).values());
     if (uniqueUnlocked.length !== currentUnlocked.length) {
