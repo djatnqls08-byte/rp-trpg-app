@@ -9431,7 +9431,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
             </div>
           </div>
         </div>
-{/* 📱 [레퍼런스 반영] 리얼 스마트폰 풀스크린 통화 모달 */}
+
       {isVoiceCallActive && isCallModalOpen && (
         <div style={{
           position: "fixed",
@@ -9503,7 +9503,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 animation: "pulse 2s infinite"
               }} />
               <img 
-                src={voiceCallNpc?.portrait || voiceCallNpc?.portraitUrl || voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
+                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
                 alt={voiceCallNpc?.name}
                 style={{
                   width: "100%",
@@ -9520,7 +9520,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               {voiceCallNpc?.name || "상대방"}
             </h2>
             <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.65)" }}>
-              {voiceCallNpc?.title || voiceCallNpc?.job || "통화 연결 중"}
+              {voiceCallNpc?.title || "통화 연결 중"}
             </span>
 
             {/* 3. 대사 & 지문 분리 자막창 */}
@@ -9662,7 +9662,6 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 onClick={() => {
                   setIsVoiceCallActive(false);
                   setIsCallModalOpen(false);
-                  setVoiceCallNpc(null);
                   executeMessage(`[통화 종료] 전화를 끊었습니다.`);
                 }}
                 style={{
@@ -9686,7 +9685,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-      {/* 🎬 [공식 시나리오 전용] 16:9 시네마틱 풀스크린 CG 컷씬 모달 */}
+{/* 🎬 [공식 시나리오 전용] 16:9 시네마틱 풀스크린 CG 컷씬 모달 */}
       {activeCutsceneCg && (
         <div 
           onClick={() => setActiveCutsceneCg(null)}
@@ -9706,6 +9705,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
             animation: "fadeIn 0.5s ease"
           }}
         >
+          {/* 16:9 비율 일러스트 프레임 */}
           <div 
             style={{
               position: "relative",
@@ -9730,6 +9730,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               }} 
             />
 
+            {/* 하단 서정적 자막 그라데이션 */}
             {(activeCutsceneCg.title || activeCutsceneCg.caption) && (
               <div style={{
                 position: "absolute",
