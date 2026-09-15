@@ -3053,7 +3053,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
 - 번호/연락처/마도구 파장을 교환하면 맨 끝에 <!-- UNLOCK_CONTACT: {"name": "인물명"} -->
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->
-- 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
+- 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->`;
 
     // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
