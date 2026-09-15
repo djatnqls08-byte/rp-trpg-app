@@ -3192,12 +3192,14 @@ currentPhase === "클라이맥스" ? `
       const data = await res.json();
       let rawText = data.text || "";
 
-     // 시간대 자동 전환 감지 (낮 / 노을 / 밤)
-const phaseMatch = rawText.match(/<!--\s*(?:PHASE|TIME_PHASE):\s*"([^"]+)"\s*-->/);
-if (phaseMatch) {
-  setCurrentPhase(phaseMatch[1]);
-  rawText = rawText.replace(phaseMatch[0], "").trim();
-}
+     // 🕒 AI 응답 태그 감지 및 5단계 시간대 자동 동기화 (새벽 / 아침 / 낮 / 저녁 / 밤)
+    const phaseMatch = rawText.match(/<!--\s*(?:PHASE|TIME_PHASE):\s*["']?(새벽|아침|낮|저녁|노을|밤)["']?\s*-->/i);
+    if (phaseMatch) {
+      const nextPhase = phaseMatch[1] === "노을" ? "저녁" : phaseMatch[1];
+      setCurrentPhase(nextPhase);
+      setActiveSession(prev => prev ? ({ ...prev, currentPhase: nextPhase }) : prev);
+      rawText = rawText.replace(phaseMatch[0], "").trim();
+    }
 
      // ── [신규 태그 파싱: 미연시 & 이벤트 처리] ──
       // 1. 동적 장소 카드 감지
