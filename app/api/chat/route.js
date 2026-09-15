@@ -28,13 +28,13 @@ export async function POST(req) {
       currentPhase = "낮",
     } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // 🔑 여러 개 등록된 키 분리 (대소문자 모두 호환)
+    const rawKeys = process.env.GEMINI_API_KEY || process.env.Gemini_API_Key || "";
+    const apiKeys = rawKeys.split(",").map(k => k.trim()).filter(Boolean);
 
-    if (!apiKey) {
+    if (apiKeys.length === 0) {
       return new Response(JSON.stringify({ error: "API 키가 등록되지 않았습니다." }), { status: 400 });
     }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
     const msgList = Array.isArray(messages) ? messages : [];
     const lastMessageText = msgList.length > 0 ? (msgList[msgList.length - 1]?.text || "") : "";
     const isScenarioGen = lastMessageText.includes("순수 JSON 포맷으로만 응답하십시오");
@@ -308,23 +308,32 @@ ${eventsSummary}
     let responseText = null;
     let lastError = null;
 
-    for (const modelName of FALLBACK_MODELS) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent({
-          contents: formattedContents,
-          generationConfig: { temperature: isScenarioGen ? 0.7 : 0.6 }
-        });
-        responseText = result.response.text();
-        if (responseText) break;
-      } catch (err) {
-        console.warn(`[API Fallback] ${modelName} 호출 실패 (${err.message}). 다음 모델로 전환.`);
-        lastError = err;
+    // 🎲 등록된 키들을 무작위로 섞어 요청 분산
+    const shuffledKeys = [...apiKeys].sort(() => Math.random() - 0.5);
+
+    // 🔄 키 순회 (특정 키가 429 한도 초과 시 다음 키로 자동 전환)
+    for (const currentKey of shuffledKeys) {
+      const genAI = new GoogleGenerativeAI(currentKey);
+
+      for (const modelName of FALLBACK_MODELS) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent({
+            contents: formattedContents,
+            generationConfig: { temperature: isScenarioGen ? 0.7 : 0.6 }
+          });
+          responseText = result.response.text();
+          if (responseText) break;
+        } catch (err) {
+          console.warn(`[API Fallback] 키(${currentKey.slice(0, 6)}...) - ${modelName} 실패 (${err.message}). 다음 전환.`);
+          lastError = err;
+        }
       }
+
+      if (responseText) break;
     }
 
-    if (!responseText) throw lastError || new Error("모든 예비 모델의 한도가 초과되었습니다.");
-
+    if (!responseText) throw lastError || new Error("모든 API 키 및 예비 모델의 한도가 초과되었습니다.");
     // 메신저 모드 괄호 묘사 강제 제거
     if (isPhoneChat && responseText) {
       responseText = responseText
