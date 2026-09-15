@@ -682,7 +682,8 @@ const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열�
   const [unlockedCgList, setUnlockedCgList] = useState([]); // 해금되어 앨범에 저장된 CG 목록
  const [scenarioCgs, setScenarioCgs] = useState([]); // 🌟 시나리오 전용 CG 목록
   const [scenarioThumbnail, setScenarioThumbnail] = useState(""); // 🌟 공식 세션 카드 이미지
-  const [zoomedCardUrl, setZoomedCardUrl] = useState(null); // 🌟 세션 카드 원본 크게보기 팝업
+  const [zoomedCardUrl, setZoomedCardUrl] = useState(null);
+const [showCgDialog, setShowCgDialog] = useState(true); // 🌟 CG 대사창 보이기/숨기기 토글
 // 📱 전화 수신 감지 시 스마트폰 서랍 자동 열림
   useEffect(() => {
     if (incomingCall) {
@@ -2944,7 +2945,8 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 3. [시스템 태그 연동 수칙]
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
-- 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->`;
+- 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->
+- 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->`;
 
     // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
@@ -7767,14 +7769,35 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                         <span style={{ fontSize: "0.8rem", color: activePhoneSkin.textMuted }}>〉</span>
                       </div>
 
-                      <div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "700" }}>교류 중인 인물 ({(activeSession.sheet?.npcs || []).length})</div>
-                      {(activeSession.sheet?.npcs || []).map(npc => {
+<div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
+                교류 중인 인물 ({ (activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).length })
+              </div>
+
+              {/* 📭 해금된 연락처가 없을 때 띄울 안내문 */}
+              {(activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).length === 0 && (
+                <div style={{ padding: "36px 16px", textAlign: "center", color: activePhoneSkin.textMuted, fontSize: "0.78rem", lineHeight: 1.6 }}>
+                  📭 아직 등록된 연락처가 없습니다.<br />
+                  서사 속에서 인물과 만나 연락처를 교환해 보세요.
+                </div>
+              )}
+
+              {/* 👥 연락처가 해금되었거나 대화 이력이 있는 인물만 노출 */}
+              {((activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).map(npc => {
                         const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
                         const lastMsg = chats[chats.length - 1];
                         // ── 1. 상태 메시지 깔끔 정리 (외모 설명 제거하고 순수 상태메시지만 노출) ──
-            const quoteText = npc.statusMessage
-              ? `"${npc.statusMessage}"`
-              : (npc.quote ? `"${npc.quote}"` : "상태 메시지가 없습니다.");
+// 🌟 1. 인물 데이터(시트)에 적힌 정보 우선 활용 (이름 하드코딩 X)
+        // statusMessage(진행 중 바뀐 상태) -> quote(시트의 인물 대사) -> personality(성격) -> role(직책/신분) 순으로 표시
+        const initialStatus = npc.quote 
+          ? `"${npc.quote}"`
+          : npc.personality 
+            ? `${npc.personality}`
+            : npc.role 
+              ? `${npc.role}`
+              : "연락 가능";
+
+        // 서사 진행 중 AI가 바꿔준 statusMessage가 있으면 그걸 쓰고, 없으면 시트 기본 정보 노출
+        const quoteText = npc.statusMessage ? `"${npc.statusMessage}"` : initialStatus;
 
             // ── 2. 호감도 차오름 계산 (-100 ~ 100) ──
             const aff = Number(npc.affection ?? 0);
@@ -7858,7 +7881,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 style={{ color: activePhoneSkin.accent, fontWeight: "bold", textDecoration: "underline", cursor: "pointer" }}
               >
                 [인연]
-              </span> 아직 대화를 나눈 적 없습니다.
+              </span>과 아직 대화를 나눈 적 없습니다.
             </div>
           ) : (
             /* 대화 기록이 있는 인물들만 출력 */
@@ -9421,7 +9444,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 key={idx}
                 onClick={() => {
                   // 🌟 앨범 카드 터치 시 16:9 풀스크린 컷씬 창으로 원본 크게 띄우기
-                 setZoomedCardUrl(cg.imageUrl || cg.url);
+                 setZoomedCardUrl(cg);
                 }}
                 title="클릭하여 원본 일러스트 크게 보기"
                 style={{ 
@@ -9455,54 +9478,156 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-{/* 🔍 CG 원본 풀스크린 크게보기 라이트박스 */}
-      {zoomedCardUrl && (
-        <div 
-          onClick={() => setZoomedCardUrl(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 999999,
-            backgroundColor: "rgba(0, 0, 0, 0.92)",
-            backdropFilter: "blur(10px)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-            cursor: "zoom-out"
-          }}
-        >
+{/* 🔍 CG 원본 풀스크린 라이트박스 + 💬 미연시 대사창 & UI 숨김 토글 */}
+      {zoomedCardUrl && (() => {
+        const isObj = typeof zoomedCardUrl === "object" && zoomedCardUrl !== null;
+        const imgUrl = isObj ? (zoomedCardUrl.imageUrl || zoomedCardUrl.url) : zoomedCardUrl;
+        const rawText = isObj ? (zoomedCardUrl.trigger || zoomedCardUrl.desc || zoomedCardUrl.condition || "") : "";
+
+        // 대사와 화자, 장면 묘사 자동 추출
+        const dialogMatch = rawText.match(/([가-힣\w\s]+):\s*"([^"]+)"/);
+        const speaker = dialogMatch ? dialogMatch[1].trim() : (isObj ? zoomedCardUrl.title : "");
+        const quote = dialogMatch ? `"${dialogMatch[2]}"` : null;
+
+        const descMatch = rawText.match(/장면 묘사:\s*([^\n\r]+)/);
+        const sceneDesc = descMatch ? descMatch[1].trim() : null;
+        const hasTextContent = Boolean(quote || isObj?.title || sceneDesc);
+
+        return (
           <div 
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setZoomedCardUrl(null)}
             style={{
-              position: "relative",
-              maxWidth: "900px",
-              width: "100%",
-              borderRadius: "14px",
-              overflow: "hidden",
-              boxShadow: "0 25px 60px rgba(0, 0, 0, 0.9)",
-              border: "1px solid rgba(255, 255, 255, 0.2)"
+              position: "fixed",
+              inset: 0,
+              zIndex: 999999,
+              backgroundColor: "rgba(0, 0, 0, 0.92)",
+              backdropFilter: "blur(10px)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+              cursor: "zoom-out"
             }}
           >
-            <img 
-              src={zoomedCardUrl} 
-              alt="일러스트 크게 보기" 
-              style={{ 
-                width: "100%", 
-                height: "auto", 
-                maxHeight: "82vh", 
-                objectFit: "contain", 
-                display: "block", 
-                margin: "0 auto" 
-              }} 
-            />
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "relative",
+                maxWidth: "880px",
+                width: "100%",
+                borderRadius: "14px",
+                overflow: "hidden",
+                boxShadow: "0 25px 60px rgba(0, 0, 0, 0.9)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                backgroundColor: "#0b0f19"
+              }}
+            >
+              {/* 👁️ 텍스트 UI 숨기기/보이기 토글 버튼 */}
+              {hasTextContent && (
+                <button
+                  type="button"
+                  onClick={() => setShowCgDialog(prev => !prev)}
+                  style={{
+                    position: "absolute",
+                    top: "12px",
+                    right: "12px",
+                    zIndex: 10,
+                    padding: "6px 12px",
+                    borderRadius: "20px",
+                    backgroundColor: "rgba(0, 0, 0, 0.65)",
+                    border: "1px solid rgba(255, 255, 255, 0.25)",
+                    color: "#f1f5f9",
+                    fontSize: "0.75rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    backdropFilter: "blur(4px)",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {showCgDialog ? "👁️ 텍스트 숨기기" : "💬 텍스트 보기"}
+                </button>
+              )}
+
+              <img 
+                src={imgUrl} 
+                alt="이벤트 일러스트" 
+                style={{ 
+                  width: "100%", 
+                  height: "auto", 
+                  maxHeight: (hasTextContent && showCgDialog) ? "68vh" : "82vh", 
+                  objectFit: "contain", 
+                  display: "block", 
+                  margin: "0 auto",
+                  transition: "max-height 0.25s ease"
+                }} 
+              />
+
+              {/* 💬 미연시 스타일 하단 대사창 (showCgDialog 상태에 따라 노출) */}
+              {hasTextContent && showCgDialog && (
+                <div style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "16px 22px",
+                  background: "linear-gradient(to top, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.82) 75%, transparent 100%)",
+                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+                  color: "#f8fafc",
+                  animation: "fadeIn 0.2s ease"
+                }}>
+                  {/* 화자 이름 */}
+                  <div style={{
+                    display: "inline-block",
+                    padding: "2px 10px",
+                    borderRadius: "4px",
+                    backgroundColor: "rgba(217, 119, 6, 0.25)",
+                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    color: "#fbbf24",
+                    fontSize: "0.82rem",
+                    fontWeight: "800",
+                    marginBottom: "8px",
+                    letterSpacing: "-0.01em"
+                  }}>
+                    {speaker || isObj.title}
+                  </div>
+
+                  {/* 대사 */}
+                  {quote && (
+                    <div style={{
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      lineHeight: 1.5,
+                      color: "#ffffff",
+                      letterSpacing: "-0.02em",
+                      textShadow: "0 2px 4px rgba(0,0,0,0.8)"
+                    }}>
+                      {quote}
+                    </div>
+                  )}
+
+                  {/* 장면 묘사 */}
+                  {sceneDesc && (
+                    <div style={{
+                      fontSize: "0.78rem",
+                      color: "#94a3b8",
+                      marginTop: "6px",
+                      lineHeight: 1.4,
+                      fontStyle: "italic"
+                    }}>
+                      {sceneDesc}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <span style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.82rem", marginTop: "14px" }}>
+              화면 아무 곳이나 누르면 닫힙니다 ✕
+            </span>
           </div>
-          <span style={{ color: "rgba(255, 255, 255, 0.75)", fontSize: "0.85rem", marginTop: "16px", fontWeight: "bold" }}>
-            화면 아무 곳이나 누르면 닫힙니다 ✕
-          </span>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 📱 1. 통화 축소 시 상단 플로팅 미니 바 */}
       {isVoiceCallActive && !isCallModalOpen && (
