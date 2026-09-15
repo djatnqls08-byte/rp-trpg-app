@@ -313,7 +313,7 @@ function convertRowToPreset(row, index, headers = []) {
   }
 
 // 🌟 헤더에서 '세션카드' 열 찾아 이미지 주소 가져오기
-  const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h));
+const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
   const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
  
   return {
@@ -772,7 +772,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
   ]);
 
 // 🌟 구글 스프레드시트 CSV 웹 게시 링크
-  const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv";
+  const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv;
 
   useEffect(() => {
     if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL.trim() !== "" && !GOOGLE_SHEET_CSV_URL.includes("여기에")) {
@@ -1959,7 +1959,50 @@ useEffect(() => {
     setCustomPortraitPrompt("");
     closeModal(setShowPortraitEditModal);
   };
-  
+
+// 🔄 기존 대화 내역은 유지하면서 시트(일러스트, 인물 등)만 최신으로 갱신
+  const handleSyncCurrentSheet = async () => {
+    if (!activeSession) return;
+
+    let targetUrl = activeSession.sheetUrl || activeSession.sheet?.url;
+    if (!targetUrl) {
+      targetUrl = prompt("https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv);
+      if (!targetUrl) return;
+    }
+
+    if (!confirm("현재 대화 내역은 그대로 유지되며, 최신 일러스트와 NPC 설정을 다시 불러옵니다. 진행할까요?")) return;
+
+    try {
+      setIsLoading(true);
+
+      const res = await fetch(`/api/sheet?url=${encodeURIComponent(targetUrl)}`);
+      const data = await res.json();
+      const updatedSheet = data.sheet || data;
+
+      if (!updatedSheet) {
+        throw new Error("시트 데이터를 올바르게 가져오지 못했습니다.");
+      }
+
+      setSessions(prev => prev.map(s => {
+        if (s.id === activeSession.id) {
+          return {
+            ...s,
+            sheetUrl: targetUrl,
+            thumbnail: updatedSheet.thumbnail || updatedSheet.sessionCard || s.thumbnail,
+            sheet: updatedSheet
+          };
+        }
+        return s;
+      }));
+
+      alert("✨ 최신 시트 데이터(일러스트/설정)가 성공적으로 동기화되었습니다!");
+    } catch (err) {
+      alert("시트 동기화 실패: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+ 
 // 🌟 [추가] 세션 카드 컴퓨터 이미지 파일 업로드 & 자동 압축
   const handleSessionCardUpload = (sessionId, e) => {
     const file = e.target.files[0];
@@ -2435,11 +2478,12 @@ const startNewSession = async () => {
   const newSession = {
     id: newId,
     title: sessionTitle,
-    thumbnail: "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
+    thumbnail: sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
     ruleMode: wizardMode,
     preference: playPreference.trim(),
     scenarioText: fullScenarioContext,
     sheet: sessionSheet,
+   sheetUrl: sheetUrl || activeSheetUrl || sessionSheet?.url || "",
     messages: [],
     suggestedActions: [],
     investigationSpots: [],
@@ -4037,6 +4081,29 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </button>
               );
             })()}
+             
+{/* 🔄 구글 시트 최신화 동기화 버튼 */}
+        <button
+          type="button"
+          onClick={handleSyncCurrentSheet}
+          title="구글 시트 최신 데이터 동기화 (일러스트/설정 갱신)"
+          style={{
+            height: isMobile ? "32px" : "36px",
+            padding: "0 10px",
+            borderRadius: "8px",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            backgroundColor: "rgba(30, 41, 59, 0.7)",
+            color: "#e2e8f0",
+            fontSize: "0.8rem",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "5px",
+            cursor: "pointer",
+            backdropFilter: "blur(4px)"
+          }}
+        >
+          🔄 <span style={{ fontSize: "0.75rem", fontWeight: "600" }}>시트 동기화</span>
+        </button>
 
             {/* 2. 🃏 테이블탑 핸드아웃 버튼 (흰 배경 없는 깔끔한 플랫 스타일) */}
             {activeSession && activeSession.ruleMode === "insane" && (
@@ -9555,7 +9622,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 style={{ 
                   width: "100%", 
                   height: "auto", 
-                  maxHeight: (hasTextContent && showCgDialog) ? "68vh" : "82vh", 
+                  maxHeight: isMobile ? (showCgDialog ? "42vh" : "75vh") : ((hasTextContent && showCgDialog) ? "68vh" : "82vh"),
                   objectFit: "contain", 
                   display: "block", 
                   margin: "0 auto",
@@ -9565,16 +9632,18 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 
               {/* 💬 미연시 스타일 하단 대사창 */}
               {hasTextContent && showCgDialog && (
-                <div style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: "16px 22px",
-                  background: "linear-gradient(to top, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.82) 75%, transparent 100%)",
-                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#f8fafc"
-                }}>
+               <div style={{
+    position: isMobile ? "relative" : "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: isMobile ? "12px 14px" : "16px 22px",
+    background: isMobile 
+      ? "rgba(15, 23, 42, 0.98)" 
+      : "linear-gradient(to top, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.82) 75%, transparent 100%)",
+    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+    color: "#f8fafc"
+  }}>
                   {/* 화자 이름 태그 */}
                   <div style={{
                     display: "inline-block",
