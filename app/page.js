@@ -669,6 +669,7 @@ export default function App() {
 
 // ── [미연시 & 통합 서사 신규 State] ──
   const [currentPhase, setCurrentPhase] = useState("낮"); // 시간대 (낮 / 노을 / 밤)
+ const [timeTransition, setTimeTransition] = useState(null); // ⏳ 시간 경과 암전 연출 상태
   const [recentEvents, setRecentEvents] = useState([]); // AI 기억 수첩 (사건 플래그)
   const [locationCards, setLocationCards] = useState([]); // 동적 장소 선택지
   const [incomingCall, setIncomingCall] = useState(null); // 실시간 전화 수신 정보 ({ caller, urgent })
@@ -684,6 +685,38 @@ const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열�
   const [scenarioThumbnail, setScenarioThumbnail] = useState(""); // 🌟 공식 세션 카드 이미지
   const [zoomedCardUrl, setZoomedCardUrl] = useState(null);
 const [showCgDialog, setShowCgDialog] = useState(true); // 🌟 CG 대사창 보이기/숨기기 토글
+
+// 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
+  useEffect(() => {
+    // 세션의 메시지 목록 가져오기
+    const msgs = activeSession?.messages || messages || [];
+    if (!msgs || msgs.length === 0) return;
+
+const introText = (activeSession?.sheet?.scenario || activeSession?.scenarioText || "") + " " + (msgs[0]?.text || "");
+const recentMsgs = msgs.slice(-6);
+const combinedText = introText + " " + recentMsgs.map(m => m.text || "").join(" ");
+
+    let detectedPhase = null;
+    if (/밤까지|자정을|밤이\s*되|어두워|촛불|깊은\s*어둠/.test(combinedText)) {
+      detectedPhase = "밤";
+    } else if (/새벽|심야|푸르스름|동이\s*트기\s*전/.test(combinedText)) {
+      detectedPhase = "새벽";
+    } else if (/아침|기상|눈을\s*뜬|다음\s*날\s*아침/.test(combinedText)) {
+      detectedPhase = "아침";
+    } else if (/저녁|노을|황혼|해질/.test(combinedText)) {
+      detectedPhase = "저녁";
+    } else if (/정오|한낮|대낮/.test(combinedText)) {
+      detectedPhase = "낮";
+    }
+
+    if (detectedPhase && detectedPhase !== currentPhase) {
+      setCurrentPhase(detectedPhase);
+      if (typeof setActiveSession === "function") {
+        setActiveSession(prev => prev ? ({ ...prev, currentPhase: detectedPhase }) : prev);
+      }
+    }
+  }, [activeSession?.id, messages?.length]);
+ 
 // 📱 전화 수신 감지 시 스마트폰 서랍 자동 열림
   useEffect(() => {
     if (incomingCall) {
@@ -3125,7 +3158,7 @@ currentPhase === "클라이맥스" ? `
           playerSheet: typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet,
           ruleMode: activeSession.ruleMode,
           playPreference: activeSession.preference,
-          currentPhase: currentPhase || "낮",
+          currentPhase: updatedPhase || currentPhase || "낮",
           recentEvents: recentEvents || [],
           // 📱 [통화 & 대면 정보 동시 전달]
           isVoiceCall: isVoiceCallActive,
@@ -4117,24 +4150,39 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 
                   {activeSession ? activeSession.title : "로비 (세션 생성)"}
                 </span>
-                {/* ☀️ 현재 시간대 표시 배지 (낮 / 노을 / 밤) */}
-      {activeSession && (
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "11px",
-          padding: "2px 7px",
-          borderRadius: "10px",
-          backgroundColor: currentPhase === "밤" ? "#2d1b4e" : currentPhase === "노을" ? "#4a2818" : "#1e3a5f",
-          color: currentPhase === "밤" ? "#d8b4fe" : currentPhase === "노을" ? "#fdba74" : "#93c5fd",
-          fontWeight: "bold",
-          flexShrink: 0,
-        }}>
-          <span>{currentPhase === "밤" ? "🌙" : currentPhase === "노을" ? "🌇" : "☀️"}</span>
-          <span>{currentPhase || "낮"}</span>
-        </div>
-      )}
+{/* 🕒 5단계 시간대 연동 배지 (새벽 / 아침 / 낮 / 저녁 / 밤) */}
+            {activeSession && (() => {
+              const curPhase = currentPhase || activeSession?.currentPhase || "낮";
+              
+              // 5가지 시간대별 아이콘 및 테마 색상 지정
+              const phaseTheme = {
+                "새벽": { icon: "🌌", bg: "#1e1b4b", color: "#c7d2fe" },
+                "아침": { icon: "🌅", bg: "#431407", color: "#fed7aa" },
+                "낮":   { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" },
+                "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
+                "노을": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
+                "밤":   { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" },
+              }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
+
+              return (
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  padding: "2px 7px",
+                  borderRadius: "10px",
+                  backgroundColor: phaseTheme.bg,
+                  color: phaseTheme.color,
+                  fontWeight: "bold",
+                  flexShrink: 0,
+                }}>
+                  <span>{phaseTheme.icon}</span>
+                  <span>{curPhase}</span>
+                </div>
+              );
+            })()}
+             
                 {activeSession && activeSession.ruleMode === "insane" && (
                   <span style={{ 
                     padding: "2px 7px", 
@@ -10214,7 +10262,34 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               </button>
             </div>
           </div>
-
+        </div>
+      )}
+       {/* ⏳ 2초 시간 경과 암전 오버레이 연출 */}
+      {timeTransition && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "rgba(0, 0, 0, 0.88)",
+          backdropFilter: "blur(6px)",
+          transition: "all 0.5s ease-in-out",
+          userSelect: "none"
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "38px", marginBottom: "16px", animation: "spin 2s linear infinite" }}>
+              ⏳
+            </div>
+            <div style={{ color: "#d6d3d1", fontSize: "14px", letterSpacing: "2px", opacity: 0.85, fontFamily: "serif" }}>
+              고요히 흐르는 시간 속에 머무는 중……
+            </div>
+            <div style={{ color: "#fde68a", fontSize: "17px", fontWeight: "bold", letterSpacing: "3px", marginTop: "10px" }}>
+              [ {timeTransition} ]
+            </div>
+          </div>
         </div>
       )}
     </div>
