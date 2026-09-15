@@ -3052,7 +3052,10 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
 - 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
 - 번호/연락처/마도구 파장을 교환하면 맨 끝에 <!-- UNLOCK_CONTACT: {"name": "인물명"} -->
+// dynamicRules 내부의 호감도 규칙을 아래처럼 보완
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "value": 최종수치} -->
+  * 상대방의 심기를 거스르거나, 예의 없는 요구, 질투 유발, 배신감, 도를 넘은 변덕을 부릴 경우 현실적인 인격체로서 가차 없이 호감도를 1~3점 차감하십시오.
+  * 맹목적으로 플레이어에게 호의를 베풀지 말고, 독립적인 기준에 따라 불쾌한 상황에서는 차가운 태도와 함께 호감도를 깎으십시오.
 - 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->`;
 
     // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
@@ -3324,7 +3327,7 @@ const cgData = JSON.parse(cgMatch[1]);
       }
       rawText = rawText.replace(phoneRegex, "");
 
-      // [호감도 변화 추출]
+// [호감도 변화 추출]
       let affChanges = [];
       const affRegex = /<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/gs;
       let affMatch;
@@ -3337,20 +3340,46 @@ const cgData = JSON.parse(cgMatch[1]);
       }
       rawText = rawText.replace(affRegex, "");
 
+      // 💬 [상태메시지(STATUS) 추출 & 본문 지문(-[ ... ]) 자동 감지 Fallback]
+      let statusChanges = [];
+      const statusRegex = /<!--\s*STATUS:\s*(\{.*?\})\s*-->/gs;
+      let statMatch;
+      while ((statMatch = statusRegex.exec(rawText)) !== null) {
+        try {
+          const statObj = JSON.parse(statMatch[1]);
+          const msg = statObj.msg || statObj.status || statObj.message;
+          if (statObj.name && msg) {
+            statusChanges.push({ name: statObj.name.trim(), msg: msg.trim() });
+          }
+        } catch (e) {}
+      }
+      rawText = rawText.replace(statusRegex, "");
+
+      // AI가 태그 대신 소설 본문에 -[ 문구 ]로만 작성했을 때도 실시간 포착
+      const screenMatch = rawText.match(/-\[\s*([^\]\r\n]+)\s*\]/);
+      if (screenMatch) {
+        const detectedMsg = screenMatch[1].trim();
+        const targetNpcName = currentContact?.name || partnerName || "발렌틴";
+        statusChanges.push({ name: targetNpcName, msg: detectedMsg });
+      }
+
       const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
       
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
-      // [인세인 페이즈 자동 전환]
+      // 🌟 [핵심 1: 인세인 게임 페이즈 완벽 자동 전환 로직]
       if (activeSession.ruleMode === "insane") {
+        // 1) 서막이 끝나고 첫 대화를 나누면 도입 ➔ 메인 1사이클 1장면으로 자동 개막
         if (activeSession.sheet?.phase === "도입") {
           newSheet.phase = "메인";
           newSheet.cycle = 1;
           newSheet.scene = 1;
         }
+        // 2) AI가 마스터 씬 태그를 발행했을 때 마스터씬으로 진입
         if (parsedData.triggerMasterScene) {
           newSheet.phase = "마스터씬";
-        } else if (parsedData.endMasterScene && newSheet.phase === "마스터씬") {
+        } else if (parsedData.endMasterScene && (newSheet.phase === "마스터씬" || activeSession.sheet?.phase === "마스터씬")) {
+          // 3) 마스터 씬 종료 태그 수신 시 다시 메인 페이즈로 복귀
           newSheet.phase = "메인";
         }
       }
@@ -3402,20 +3431,23 @@ const cgData = JSON.parse(cgMatch[1]);
         newSheet.clues = [...(newSheet.clues || []), ...uniqueClues];
       }
 
-      // [NPC 목록 및 호감도 동기화]
+      // [NPC 목록 및 호감도/상태메시지 동기화]
       const currentNpcs = activeSession.sheet?.npcs || [];
       let mergedNpcs = currentNpcs.map(cNpc => {
         const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
-       let affVal = cNpc.affection ?? 0;
-if (affTarget) {
-  const incomingRaw = Number(affTarget.value);
-  const currentAff = Number(cNpc.affection ?? 0);
-  const rawDiff = incomingRaw - currentAff;
-  const maxGain = textToSend.includes("선물하기") ? 5 : 3;
-  const safeDiff = Math.max(-5, Math.min(maxGain, rawDiff));
-  // ── 호감도 최소값을 -100으로 확장 (혐오/냉담/경계 구현) ──
-  affVal = Math.max(-100, Math.min(100, currentAff + safeDiff));
-}
+        let affVal = cNpc.affection ?? 0;
+        if (affTarget) {
+          const incomingRaw = Number(affTarget.value);
+          const currentAff = Number(cNpc.affection ?? 0);
+          const rawDiff = incomingRaw - currentAff;
+          const maxGain = textToSend.includes("선물하기") ? 5 : 3;
+          const safeDiff = Math.max(-5, Math.min(maxGain, rawDiff));
+          affVal = Math.max(-100, Math.min(100, currentAff + safeDiff));
+        }
+
+        // ✨ 상태메시지 갱신 반영
+        const statTarget = statusChanges.find(s => s.name === cNpc.name || s.name.includes(cNpc.name) || cNpc.name.includes(s.name));
+        const finalStatus = statTarget ? statTarget.msg : cNpc.statusMessage;
 
         if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
           const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
@@ -3423,12 +3455,13 @@ if (affTarget) {
             return {
               ...cNpc,
               affection: updatedNpc.affection !== undefined ? affVal : cNpc.affection,
+              statusMessage: finalStatus || updatedNpc.statusMessage || cNpc.statusMessage,
               title: updatedNpc.title || cNpc.title,
               secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
             };
           }
         }
-        return { ...cNpc, affection: affVal };
+        return { ...cNpc, affection: affVal, statusMessage: finalStatus || cNpc.statusMessage };
       });
 
       if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
@@ -3465,11 +3498,11 @@ if (affTarget) {
       }
       newSheet.npcs = mergedNpcs;
 
-// ── [신규 추가] 시간대 및 사건 기억 수첩 영구 보존 ──
-    newSheet.currentPhase = currentPhase || "낮";
-    newSheet.recentEvents = (typeof eventMatch !== "undefined" && eventMatch)
-      ? [...(recentEvents || []), eventMatch[1]]
-      : (recentEvents || []);
+      // 🌟 [핵심 2: 시간대 페이즈(낮/노을/밤) & 사건 기억 보존]
+      newSheet.currentPhase = (typeof phaseMatch !== "undefined" && phaseMatch) ? phaseMatch[1] : (currentPhase || "낮");
+      newSheet.recentEvents = (typeof eventMatch !== "undefined" && eventMatch)
+        ? [...(recentEvents || []), eventMatch[1]]
+        : (recentEvents || []);
      
       // [광기 및 핸드아웃 처리]
       if (parsedData.triggeredMadness) {
@@ -3502,7 +3535,9 @@ if (affTarget) {
       }
 
       // [세션 상태 최종 반영]
-      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          cycle: newSheet.cycle ?? s.sheet?.cycle,
+          scene: newSheet.scene ?? s.sheet?.scene,
+          phase: newSheet.phase || s.sheet?.phase, // ✨ newSheet.phase가 최우선으로 들어갑니다!
         ...s,
         sheet: {
           ...s.sheet,
