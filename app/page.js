@@ -3312,15 +3312,18 @@ const cgData = JSON.parse(cgMatch[1]);
       }
       rawText = rawText.replace(phoneRegex, "");
 
-// [호감도 변화 추출]
+// [호감도 변화 추출 - value 및 delta 둘 다 완벽 지원]
       let affChanges = [];
       const affRegex = /<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/gs;
       let affMatch;
       while ((affMatch = affRegex.exec(rawText)) !== null) {
         try {
           const affObj = JSON.parse(affMatch[1]);
-          const val = affObj.value !== undefined ? affObj.value : affObj.affection;
-          if (affObj.name && val !== undefined) affChanges.push({ name: affObj.name, value: Number(val) });
+          const targetName = (affObj.name || "").trim();
+          if (targetName) {
+            const rawVal = affObj.delta !== undefined ? affObj.delta : (affObj.value !== undefined ? affObj.value : affObj.affection);
+            affChanges.push({ name: targetName, rawVal: Number(rawVal), isDelta: affObj.delta !== undefined });
+          }
         } catch (e) {}
       }
       rawText = rawText.replace(affRegex, "");
@@ -3416,17 +3419,19 @@ const cgData = JSON.parse(cgMatch[1]);
         newSheet.clues = [...(newSheet.clues || []), ...uniqueClues];
       }
 
-      // [NPC 목록 및 호감도/상태메시지 동기화]
-      const currentNpcs = activeSession.sheet?.npcs || [];
-      let mergedNpcs = currentNpcs.map(cNpc => {
+let mergedNpcs = currentNpcs.map(cNpc => {
         const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
         let affVal = cNpc.affection ?? 0;
         if (affTarget) {
-          const incomingRaw = Number(affTarget.value);
           const currentAff = Number(cNpc.affection ?? 0);
-          const rawDiff = incomingRaw - currentAff;
-          const maxGain = textToSend.includes("선물하기") ? 5 : 3;
-          const safeDiff = Math.max(-5, Math.min(maxGain, rawDiff));
+          const rawVal = affTarget.rawVal !== undefined ? affTarget.rawVal : Number(affTarget.value || 0);
+          let safeDiff = 0;
+          if (affTarget.isDelta) {
+            safeDiff = Math.max(-5, Math.min(5, rawVal));
+          } else {
+            const rawDiff = rawVal - currentAff;
+            safeDiff = Math.max(-5, Math.min(5, rawDiff));
+          }
           affVal = Math.max(-100, Math.min(100, currentAff + safeDiff));
         }
 
@@ -3439,7 +3444,7 @@ const cgData = JSON.parse(cgMatch[1]);
           if (updatedNpc) {
             return {
               ...cNpc,
-              affection: updatedNpc.affection !== undefined ? affVal : cNpc.affection,
+              affection: affVal,
               statusMessage: finalStatus || updatedNpc.statusMessage || cNpc.statusMessage,
               title: updatedNpc.title || cNpc.title,
               secretRevealed: updatedNpc.secretRevealed !== undefined ? updatedNpc.secretRevealed : cNpc.secretRevealed
@@ -3529,8 +3534,8 @@ const cgData = JSON.parse(cgMatch[1]);
           enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
           currentPlot: s.sheet?.currentPlot ?? newSheet.currentPlot,
           enemyPlot: s.sheet?.enemyPlot ?? newSheet.enemyPlot,
-          handouts: s.sheet?.handouts || newSheet.handouts,
-          npcs: s.sheet?.npcs || newSheet.npcs,
+          handouts: newSheet.handouts || s.sheet?.handouts,
+          npcs: newSheet.npcs || s.sheet?.npcs, // ✨ 새로 계산된 호감도/상메가 정상 저장됩니다!
           rituals: s.sheet?.rituals || newSheet.rituals,
           cycle: newSheet.cycle ?? s.sheet?.cycle,
           scene: newSheet.scene ?? s.sheet?.scene,
