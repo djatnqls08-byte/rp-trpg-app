@@ -6956,7 +6956,7 @@ return (
 
 {/* 🌟 하단 팝업 메신저 서랍 (내 프로필 / 인앱 선물 모달 / 감성 상태메시지 완결본) */}
       {(() => {
-        if (!isPhoneDrawerOpen || !activeSession || activeSession.ruleMode !== "dating") return null;
+        if (!isPhoneDrawerOpen || !activeSession || (!activeSession.ruleMode?.startsWith("dating") && !activeSession.ruleMode?.includes("free"))) return null;
 
         const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === activePhoneContactId);
         const partnerName = currentContact?.name || "상대방";
