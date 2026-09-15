@@ -2854,9 +2854,12 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     // 🌟 화면 말풍선에는 주석 태그(<!-- -->)를 제거한 깨끗한 텍스트만 저장
     const cleanDisplayText = textToSend.replace(/<!--[\s\S]*?-->/g, "").trim();
 
+    // 📞 통화 팝업창에서 말한 것만 통화 태그를 달고, 일반 채팅창 입력은 일반 대화로 유지
+    const isDirectCallSpeech = textToSend.startsWith("[전화 통화]");
+
     const updatedMessages = [
       ...(activeSession.messages || []), 
-      { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
+      { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
     ];
 
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
@@ -2970,7 +2973,7 @@ currentPhase === "클라이맥스" ? `
           recentEvents: recentEvents || [],
           // 📱 [통화 & 대면 정보 동시 전달]
           isVoiceCall: isVoiceCallActive,
-          voiceCallNpc: voiceCallNpc?.name || null,
+          voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
           facingNpc: currentContact?.name || null,
         })
       });
@@ -3344,7 +3347,7 @@ if (affTarget) {
           phase: s.sheet?.phase ?? newSheet.phase,
           actionUsed: s.sheet?.phase === "도입" ? false : (textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false))
         },
-        messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId, isCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }],
+        messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
