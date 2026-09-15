@@ -268,7 +268,7 @@ function parseCSV(text) {
 
 
 
-function convertRowToPreset(row, index) {
+function convertRowToPreset(row, index, headers = []) {
   const [
     title, rule, tags, synopsis, opening, truth,
     pcName, pcJob, pcAgeGender, pcBg, pcMission, pcSecret, pcImg,
@@ -311,11 +311,16 @@ function convertRowToPreset(row, index) {
       eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
     }
   }
+
+// 🌟 헤더에서 '세션카드' 열 찾아 이미지 주소 가져오기
+  const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h));
+  const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
  
   return {
     id: 9000000000000 + index,
     presetTitle: title || "새 시나리오",
     scenarioTitle: title || "새 시나리오",
+   thumbnail: sessionCardImg,
     wizardMode: (rule || "insane").toLowerCase().trim(),
     playPreference: tags || "",
     publicSynopsis: synopsis || "",
@@ -334,7 +339,7 @@ function convertRowToPreset(row, index) {
     insaneFear: fear || "죽음",
     insaneLimit: 3,
     kpcList: kpcList,
-    eventCgs: eventCgs // 👈 이 줄 추가!
+    eventCgs: eventCgs 
   };
 }
 
@@ -675,7 +680,9 @@ const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열�
 // 🎬 시네마틱 CG 및 컷씬 상태
   const [activeCutsceneCg, setActiveCutsceneCg] = useState(null); // 현재 화면에 뜬 16:9 CG { url, title, caption }
   const [unlockedCgList, setUnlockedCgList] = useState([]); // 해금되어 앨범에 저장된 CG 목록
- 
+ const [scenarioCgs, setScenarioCgs] = useState([]); // 🌟 시나리오 전용 CG 목록
+  const [scenarioThumbnail, setScenarioThumbnail] = useState(""); // 🌟 공식 세션 카드 이미지
+  const [zoomedCardUrl, setZoomedCardUrl] = useState(null); // 🌟 세션 카드 원본 크게보기 팝업
 // 📱 전화 수신 감지 시 스마트폰 서랍 자동 열림
   useEffect(() => {
     if (incomingCall) {
@@ -772,9 +779,10 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
         .then(res => res.text())
         .then(csvText => {
           const rows = parseCSV(csvText);
+          const headers = rows[0] || [];
           const sheetPresets = rows.slice(1)
             .filter(r => r[0] && r[0].trim())
-            .map((row, idx) => convertRowToPreset(row, idx));
+            .map((row, idx) => convertRowToPreset(row, idx, headers)); // 👈 headers 추가
 
           if (sheetPresets.length > 0) {
             setOfficialPresets(sheetPresets);
@@ -867,6 +875,7 @@ useEffect(() => {
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
   const handleLoadLobbyPreset = (p) => {
+    if (p.eventCgs) setScenarioCgs(p.eventCgs); 
     setScenarioTitle(p.scenarioTitle || "");
     setPublicSynopsis(p.publicSynopsis || "");
     setOpeningScene(p.openingScene || "");
@@ -2490,8 +2499,34 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
+      // 🌟 [서막 첫 CG 자동 해금: 시트 조건이 '프롤로그/시작'이거나 AI가 태그를 주었을 때]
+      const currentCgs = (typeof scenarioCgs !== "undefined" && scenarioCgs.length > 0) 
+        ? scenarioCgs 
+        : (initialSheet?.scenarioCgs || []);
+      const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
+      const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
+      
+      let unlockedCgObj = null;
+      if (cgMatch) {
+        try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
+      } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
+        // 조건이 '프롤로그/시작'이면 첫 대면 시 무조건 자동 발동!
+        unlockedCgObj = firstCg;
+      }
+
+      if (unlockedCgObj) {
+        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
+        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
+      }
+
       setSessions(prev => prev.map(s => s.id === newId ? {
-        ...s, sheet: { ...initialSheet, ...parsedData.newSheetVars },
+        ...s, 
+        sheet: { 
+          ...initialSheet, 
+          ...parsedData.newSheetVars,
+          scenarioCgs: currentCgs,
+          unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
+        },
         messages: [{ role: "model", text: cleanText }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
