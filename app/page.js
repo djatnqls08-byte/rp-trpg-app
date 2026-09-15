@@ -1978,14 +1978,14 @@ useEffect(() => {
       const res = await fetch(targetUrl);
       const csvText = await res.text();
 
-      // 2. 줄바꿈 안전 parseCSV 실행
+      // 2. CSV 파싱
       const allRows = parseCSV(csvText);
       if (allRows.length < 2) throw new Error("시트 데이터가 비어 있습니다.");
 
       const headers = allRows[0];
       const dataRows = allRows.slice(1);
 
-      // 🌟 현재 플레이 중인 방 제목('달그림자 경매장...')과 일치하는 행을 정확히 탐색
+      // 3. 현재 시나리오 행 찾기
       const currentTitle = (activeSession.title || "").trim();
       const matchedRow = dataRows.find(r => r[0] && (r[0].trim() === currentTitle || currentTitle.includes(r[0].trim()) || r[0].trim().includes(currentTitle)))
         || dataRows.find(r => {
@@ -1994,11 +1994,11 @@ useEffect(() => {
         })
         || dataRows[0];
 
-      // 3. 세션 카드 추출 (현재 시나리오 행의 DR열에서 추출)
+      // 4. 세션 카드 추출
       const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
       const sessionCardImg = thumbIdx !== -1 ? matchedRow[thumbIdx]?.trim() : "";
 
-      // 4. 이벤트 CG 추출 (현재 시나리오 행에서 추출)
+      // 5. 이벤트 CG 추출
       const eventCgs = [];
       for (let c = 61; c < matchedRow.length; c += 3) {
         const cgTitle = matchedRow[c]?.trim();
@@ -2009,7 +2009,7 @@ useEffect(() => {
         }
       }
 
-      // 5. 세션 업데이트
+      // 6. 세션 업데이트
       setSessions(prev => prev.map(s => {
         if (s.id === activeSession.id) {
           const fullChatHistory = (s.messages || []).map(m => m.text || m.content || "").join(" ");
@@ -2042,68 +2042,6 @@ useEffect(() => {
       }));
 
       triggerToast("동기화 완료", sessionCardImg ? "세션 카드 및 최신 시트가 적용되었습니다!" : "최신 시트 데이터가 동기화되었습니다!", "💡");
-
-    } catch (err) {
-      triggerToast("동기화 실패", err.message, "⚠️");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-      const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
-      if (lines.length < 2) throw new Error("시트 데이터가 비어 있습니다.");
-
-      const headers = parseCSVLine(lines[0]);
-      const row = parseCSVLine(lines[1]);
-
-      // 3. 세션 카드 추출
-      const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
-      const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
-
-      // 4. 이벤트 CG 추출
-      const eventCgs = [];
-      for (let c = 61; c < row.length; c += 3) {
-        const cgTitle = row[c]?.trim();
-        const cgTrigger = row[c + 1]?.trim();
-        const cgUrl = row[c + 2]?.trim();
-        if (cgTitle && cgUrl) {
-          eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
-        }
-      }
-
-      // 5. 세션 업데이트 & CG 소급 해금
-      setSessions(prev => prev.map(s => {
-        if (s.id === activeSession.id) {
-          const fullChatHistory = (s.messages || []).map(m => m.content || "").join(" ");
-          const existingUnlocked = new Set(s.unlockedCgs || []);
-
-          eventCgs.forEach(cg => {
-            const triggerKeyword = cg.trigger?.trim();
-            const titleKeyword = cg.title?.trim();
-            if (
-              (triggerKeyword && fullChatHistory.includes(triggerKeyword)) ||
-              (titleKeyword && fullChatHistory.includes(titleKeyword))
-            ) {
-              existingUnlocked.add(cg.title || cg.imageUrl);
-            }
-          });
-
-          return {
-            ...s,
-            sheetUrl: targetUrl,
-            thumbnail: sessionCardImg || s.thumbnail,
-            sheet: {
-              ...(s.sheet || {}),
-              thumbnail: sessionCardImg || s.sheet?.thumbnail,
-              cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs
-            },
-            unlockedCgs: Array.from(existingUnlocked)
-          };
-        }
-        return s;
-      }));
-
-      // ✨ 기존에 만들어두신 인앱 토스트 팝업 띄우기!
-      triggerToast("동기화 완료", "최신 시트 및 지난 CG가 해금되었습니다!", "💡");
 
     } catch (err) {
       triggerToast("동기화 실패", err.message, "⚠️");
