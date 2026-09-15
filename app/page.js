@@ -9750,7 +9750,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 )}
                 {activeCutsceneCg.caption && (
                   <span style={{ fontSize: "0.85rem", color: "#e2e8f0", lineHeight: "1.5", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-                    {activeCutsceneCg.caption}
+                  {activeCutsceneCg.caption}
                   </span>
                 )}
               </div>
@@ -9764,4 +9764,3 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
       )}
     </div>
   );
-}
