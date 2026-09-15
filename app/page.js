@@ -3426,7 +3426,8 @@ const cgData = JSON.parse(cgMatch[1]);
         newSheet.clues = [...(newSheet.clues || []), ...uniqueClues];
       }
 
-let mergedNpcs = currentNpcs.map(cNpc => {
+const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
+      let mergedNpcs = currentNpcs.map(cNpc => {
         const affTarget = affChanges.find(a => a.name === cNpc.name || a.name.includes(cNpc.name) || cNpc.name.includes(a.name));
         let affVal = cNpc.affection ?? 0;
         if (affTarget) {
@@ -3446,7 +3447,7 @@ let mergedNpcs = currentNpcs.map(cNpc => {
         const statTarget = statusChanges.find(s => s.name === cNpc.name || s.name.includes(cNpc.name) || cNpc.name.includes(s.name));
         const finalStatus = statTarget ? statTarget.msg : cNpc.statusMessage;
 
-        if (parsedData.newSheetVars.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
+        if (parsedData.newSheetVars?.npcs && Array.isArray(parsedData.newSheetVars.npcs)) {
           const updatedNpc = parsedData.newSheetVars.npcs.find(a => a.name === cNpc.name || a.id === cNpc.id);
           if (updatedNpc) {
             return {
