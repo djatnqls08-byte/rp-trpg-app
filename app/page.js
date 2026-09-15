@@ -1966,7 +1966,7 @@ useEffect(() => {
 
     let targetUrl = activeSession.sheetUrl || activeSession.sheet?.url;
     if (!targetUrl) {
-      targetUrl = prompt("동기화할 구글 시트 주소(URL)를 입력해주세요:", "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv");
+      targetUrl = prompt("동기화할 구글 시트 주소(URL)를 입력해주세요:", "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv);
     }
 
     if (!confirm("현재 대화 내역은 그대로 유지되며, 최신 일러스트와 NPC 설정을 다시 불러옵니다. 진행할까요?")) return;
