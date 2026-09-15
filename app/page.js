@@ -31,14 +31,14 @@ const COC_STAT_LABELS = { str: "근력", con: "건강", siz: "크기", dex: "민
 const COC_MADNESS_TABLE = [
   { roll: 1, name: "기절 및 의식 상실", desc: "극심한 충격으로 눈앞이 아득해지며 바닥에 쓰러져 의식을 잃습니다." },
   { roll: 2, name: "통제 불능 비명", desc: "이성을 잃고 목이 쉴 때까지 원초적인 비명을 내지릅니다." },
-  { roll: 3, name: "급성 공포증 (Phobia)", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
+  { roll: 3, name: "급성 공포증", desc: "특정 사물이나 기괴한 현상에 극단적인 공포를 느껴 접근을 거부합니다." },
   { roll: 4, name: "편집증 및 피해망상", desc: "주변의 모든 존재가 자신을 해치려 한다는 의심에 사로잡힙니다." },
-  { roll: 5, name: "맹목적 도주 (Flee)", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
+  { roll: 5, name: "맹목적 도주", desc: "이유를 불문하고 반대 방향을 향해 무작정 질주합니다." },
   { roll: 6, name: "히스테리성 실성", desc: "통제할 수 없는 기괴한 웃음과 눈물을 동시에 쏟아냅니다." },
   { roll: 7, name: "신체 이상 (마비/실어증)", desc: "말을 전혀 할 수 없거나 온몸이 사시나무 떨듯 마비됩니다." },
   { roll: 8, name: "심인성 기억상실", desc: "직전 목격한 공포스러운 진실에 대한 기억이 완전히 지워집니다." },
   { roll: 9, name: "파괴 충동", desc: "주변의 사물을 닥치는 대로 부수거나 집어던집니다." },
-  { roll: 10, name: "긴장증 (Catatonia)", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
+  { roll: 10, name: "긴장증", desc: "넋이 완전히 나가 석상처럼 굳어버립니다." }
 ];
 
 // 인세인 6대 분야 66개 특기표
@@ -62,12 +62,12 @@ const INSANE_EMOTIONS_TABLE = {
 };
 
 const INSANE_MADNESS_TABLE = [
-  { roll: 1, name: "의혹 (Suspicion)", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
-  { roll: 2, name: "망상 (Delusion)", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
-  { roll: 3, name: "강박증 (Obsession)", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." },
-  { roll: 4, name: "패닉 (Panic)", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
-  { roll: 5, name: "폭력 충동 (Impulse)", desc: "위협을 제거하기 위해 수단 방법을 가리지 않는 공격성을 드러냅니다." },
-  { roll: 6, name: "쇼크 (Shock)", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
+  { roll: 1, name: "의혹", desc: "동행자의 사명과 대사를 신뢰하지 못하고 숨겨진 적의가 있다고 확신합니다." },
+  { roll: 2, name: "망상", desc: "현실에 존재하지 않는 환청과 그림자를 보며 그것에 집착합니다." },
+  { roll: 3, name: "강박증", desc: "소지품을 확인하거나 문을 잠그는 행동을 병적으로 반복합니다." },
+  { roll: 4, name: "패닉", desc: "이성적 사고가 마비되어 위험 상황에서 무작정 몸을 숨깁니다." },
+  { roll: 5, name: "폭력 충동", desc: "위협을 제거하기 위해 수단 방법을 가리지 않는 공격성을 드러냅니다." },
+  { roll: 6, name: "쇼크", desc: "정신적 붕괴로 인해 다음 씬 동안 행동 선언이 극도로 제한됩니다." }
 ];
 
 // 인세인 정규 2D6 장면표 (2~12번 총 11종)
@@ -3931,44 +3931,50 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                   </label>
                 </div>
 
-                {/* 하단 정보 영역 */}
-<div style={{ padding: "8px 10px" }}>
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "4px" }}>
-      <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
-      <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
-    </div>
-    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
-  </div>
-  
-  {/* 하단 날짜 + 🔄 동기화 버튼 (a 위치) */}
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
-    <div>{dateDisplay ? `🕒 ${dateDisplay}` : ""}</div>
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation(); // 카드 클릭(방 입장) 방지
-        setActiveSessionId(s.id);
-        handleSyncCurrentSheet();
-      }}
-      title="시트 최신 데이터 동기화 (일러스트/설정)"
-      style={{
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: "0 2px",
-        fontSize: "0.75rem",
-        lineHeight: 1,
-        opacity: 0.7,
-        transition: "opacity 0.2s"
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
-      onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
-    >
-      🔄
-    </button>
-  </div>
-</div>
+              {/* 하단 정보 영역 */}
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "4px" }}>
+                      <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
+                      <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
+                  </div>
+
+                  {/* 하단 날짜 + 🔄 동기화 버튼 (a 위치) */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+                    <div>{dateDisplay ? `🕒 ${dateDisplay}` : ""}</div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveSessionId(s.id);
+                        handleSyncCurrentSheet();
+                      }}
+                      title="시트 최신 데이터 동기화"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0 2px",
+                        fontSize: "0.75rem",
+                        lineHeight: 1,
+                        opacity: 0.7,
+                        transition: "opacity 0.2s"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+                    >
+                      🔄
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 🌟 모바일 시트 열렸을 때 바깥 누르면 닫히는 어두운 배경 */}
        <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
           <button 
             onClick={() => {
