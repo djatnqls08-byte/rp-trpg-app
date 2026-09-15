@@ -4255,44 +4255,45 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
     return () => window.removeEventListener("popstate", handlePopState);
   }, [activeSessionId, isPhoneDrawerOpen, isTabletopOpen, isSheetOpen, isSidebarOpen]);
  
-  return (
-    <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
+return (
+  <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
+    <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
-        /* 마루부리 웹폰트 직접 등록 (브라우저 강제 다운로드) */
-        @font-face {
-          font-family: 'MaruBuri';
-          src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Regular.woff') format('woff');
-          font-weight: 400;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'MaruBuri';
-          src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Bold.woff') format('woff');
-          font-weight: 700;
-          font-style: normal;
-        }
+      /* 마루부리 웹폰트 직접 등록 (브라우저 강제 다운로드) */
+      @font-face {
+        font-family: 'MaruBuri';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Regular.woff') format('woff');
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'MaruBuri';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Bold.woff') format('woff');
+        font-weight: 700;
+        font-style: normal;
+      }
 
-        /* 전체 UI(버튼, 메뉴 등)는 고딕(프리텐다드) 고정 */
-        *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+      /* 전체 UI(버튼, 메뉴 등)는 고딕(프리텐다드) 고정 */
+      *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
 
-        /* 서사 지문 말풍선(.serif-text)에만 마루부리 명조체 최우선 적용 */
-        .serif-text, .serif-text * { 
-          font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"} !important; 
-          line-height: 1.95; 
-          word-break: keep-all; 
-          letter-spacing: -0.01em; 
-        }
+      /* 서사 지문 말풍선(.serif-text)에만 마루부리 명조체 최우선 적용 */
+      .serif-text, .serif-text * { 
+        font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"} !important; 
+        line-height: 1.95; 
+        word-break: keep-all; 
+        letter-spacing: -0.01em; 
+      }
 
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
-        .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
-        .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid ${theme.border}; }
-        @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
-        .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
-        @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.3; } 30% { transform: translateY(-5px); opacity: 1; } }
-        .typing-dot { animation: typingBounce 1.3s infinite ease-in-out; }
-      {showInsanityFlash && <div style={{ position: "fixed", inset: 0, zIndex: 120, backgroundColor: "rgba(220, 20, 60, 0.35)", pointerEvents: "none" }} />}
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
+      .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
+      .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid${theme.border}; }
+      @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+      .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
+      @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.3; } 30% { transform: translateY(-5px); opacity: 1; } }
+      .typing-dot { animation: typingBounce 1.3s infinite ease-in-out; }
+    `}</style>
 
       {/* 🌟 모바일 사이드바 닫기용 터치 영역 */}
       {isMobile && isSidebarOpen && (
@@ -9080,7 +9081,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     onClick={() => setFontChoice("maru")} 
                     style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "maru" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "maru" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "maru" ? "800" : "400" }}
                   >
-                    📖 마루 부리 (명조체)
+                    📖 마루부리 (명조체)
                   </button>
                   <button 
                     type="button" 
