@@ -7782,7 +7782,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               )}
 
               {/* 👥 연락처가 해금되었거나 대화 이력이 있는 인물만 노출 */}
-              {((activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).map(npc => {
+              {(activeSession.sheet?.npcs || []).filter(npc => npc.hasContact || npc.unlocked || ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0)).map(npc => {
                         const chats = (activeSession.sheet?.phoneChats || {})[npc.id] || [];
                         const lastMsg = chats[chats.length - 1];
                         // ── 1. 상태 메시지 깔끔 정리 (외모 설명 제거하고 순수 상태메시지만 노출) ──
