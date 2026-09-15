@@ -9538,13 +9538,12 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-      {/* 📱 2. 리얼 스마트폰 풀스크린 통화 모달 */}
+{/* 📱 2. 리얼 스마트폰 풀스크린 통화 모달 (문법 에러 완벽 해결본) */}
       {isVoiceCallActive && isCallModalOpen && (
         <div style={{
           position: "fixed",
           inset: 0,
           zIndex: 9998,
-          // 🛡️ [비침 완벽 차단] 100% 불투명 솔리드 다크 + 테마 앰비언트 글로우
           backgroundColor: "#090d16",
           backgroundImage: `radial-gradient(circle at 50% 15%, ${theme.accent || "#38bdf8"}44 0%, #090d16 70%)`,
           display: "flex",
@@ -9605,28 +9604,40 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 animation: "pulse 2s infinite"
               }} />
               {(() => {
-                const targetObj = (activeSession?.npcs || []).find(n => n.name === (voiceCallNpc?.name || voiceCallNpc)) || voiceCallNpc;
-                const realImg = targetObj?.image || targetObj?.avatar || targetObj?.photo;
+                const npcName = voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "상대방");
+                const foundNpc = (activeSession?.npcs || []).find(n => n.name === npcName);
+                const realImg = foundNpc?.image || foundNpc?.avatar || foundNpc?.photo || voiceCallNpc?.image || voiceCallNpc?.avatar;
+                
                 return realImg ? (
                   <img src={realImg} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255, 255, 255, 0.3)" }} />
                 ) : (
-                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", backgroundColor: "rgba(255, 255, 255, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid rgba(255, 255, 255, 0.25)" }}>
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="rgba(255, 255, 255, 0.7)">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
+                  <div style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0d9488 0%, #0284c7 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                    fontWeight: "800",
+                    fontSize: "2.4rem",
+                    border: "2px solid rgba(255, 255, 255, 0.3)"
+                  }}>
+                    {npcName.slice(0, 1)}
                   </div>
                 );
               })()}
             </div>
             
             <h2 style={{ margin: "0 0 4px", fontSize: "1.45rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
-              {voiceCallNpc?.name || voiceCallNpc || "상대방"}
+              {voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "상대방")}
             </h2>
             <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.65)" }}>
               {voiceCallNpc?.title || "통화 연결 중"}
             </span>
 
-            {/* 🌟 3. 대사 상단 고정 + 지문만 스크롤되는 스마트 카드 */}
+            {/* 3. 대사 상단 고정 + 지문만 독립 스크롤 카드 */}
             <div style={{
               width: "100%",
               marginTop: "20px",
@@ -9638,7 +9649,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               maxHeight: "330px",
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden", // 겉 상자는 절대 스크롤되지 않음!
+              overflow: "hidden",
               boxShadow: "0 12px 36px rgba(0, 0, 0, 0.5)"
             }}>
               {(() => {
@@ -9649,7 +9660,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
 
                 return (
                   <>
-                    {/* 📌 [A] 상단 고정 대사: 스크롤해도 절대 움직이지 않고 상단에 박제 */}
+                    {/* 상단 고정 대사 */}
                     {dialogue ? (
                       <div style={{
                         padding: "18px 20px 14px",
@@ -9674,7 +9685,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                       </div>
                     )}
 
-                    {/* 📜 [B] 하단 서술 지문: 대사는 그대로 두고 이 영역만 부드럽게 스크롤 */}
+                    {/* 하단 지문 독립 스크롤 */}
                     {narration && (
                       <div style={{
                         padding: "16px 20px 20px",
@@ -9695,6 +9706,84 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
             </div>
           </div>
 
+          {/* 4. 하단 입력창 & 순백색 SVG 통화 종료 버튼 */}
+          <div style={{ width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!input.trim()) return;
+                const text = input;
+                setInput("");
+                executeMessage(`[전화 통화] "${text}"`);
+              }}
+              style={{ display: "flex", gap: "8px" }}
+            >
+              <input 
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="수화기에 대고 말하기..."
+                style={{
+                  flex: 1,
+                  padding: "13px 20px",
+                  borderRadius: "9999px",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  backgroundColor: "rgba(0, 0, 0, 0.45)",
+                  color: "#fff",
+                  fontSize: "0.92rem",
+                  outline: "none"
+                }}
+              />
+              <button 
+                type="submit"
+                style={{
+                  padding: "0 22px",
+                  borderRadius: "9999px",
+                  border: "none",
+                  backgroundColor: theme.accent || "#0d9488",
+                  color: "#fff",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
+              >
+                전송
+              </button>
+            </form>
+
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsVoiceCallActive(false);
+                  setIsCallModalOpen(false);
+                  setVoiceCallNpc(null);
+                  if (typeof executeMessage === "function") {
+                    executeMessage(`[통화 종료] 전화를 끊었습니다.`);
+                  }
+                }}
+                style={{
+                  width: "66px",
+                  height: "66px",
+                  borderRadius: "50%",
+                  backgroundColor: "#ef4444",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)"
+                }}
+                title="통화 종료"
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(135deg)" }}>
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      )}
             <div style={{ width: "42px" }} />
           </div>
 
