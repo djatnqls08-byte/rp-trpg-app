@@ -3152,11 +3152,11 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   - 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
 
 4. [장면 순환 및 다자간 인물 조우 강제 수칙]
-- [독점 방지]: 동일한 인물과의 대화가 3~4턴 이상 이어지면, 인물이 시계를 보거나 공무/일정을 언급하며 대화를 자연스럽게 마무리하게 하십시오.
-- [타 인물 존재감 유출]: 지문 속에 다른 NPC(율리안, 카시엘 등)의 동선(복도 너머 발소리, 서고의 불빛, 정원의 그림자)을 1문장 이상 흘리십시오.
-- [선택지 필수 배분]: 지문 끝의 <!-- SUGGESTIONS: ["선택지1", "선택지2", "선택지3"] --> 중 최소 1개는 반드시 "다른 구역으로 이동하여 다른 인물 찾아가기"로 제시하십시오. (예: "서고로 향해 율리안과 조우한다", "정원으로 나가 카시엘의 기척을 살핀다")
-- [장소 이동 배너]: 대면이 일단락될 때는 반드시 아래 태그로 이동 가능한 장소 2~3곳을 출력하십시오:
-<!-- LOCATION_CARDS: [{"name": "수석 서고", "npc": "율리안", "desc": "고문서 냄새가 짙은 금빛 서고"}, {"name": "달빛 정원", "npc": "카시엘", "desc": "서늘한 밤공기가 맴도는 회랑"}] -->
+  - [독점 방지]: 동일한 인물과의 대화가 3~4턴 이상 이어지면, 인물이 시계를 보거나 공무/일정을 언급하며 대화를 자연스럽게 마무리하게 하십시오.
+  - [타 인물 존재감 유출]: 지문 속에 다른 NPC(율리안, 카시엘 등)의 동선(복도 너머 발소리, 서고의 불빛, 정원의 그림자)을 1문장 이상 흘리십시오.
+  - [선택지 필수 배분]: 지문 끝의 <!-- SUGGESTIONS: ["선택지1", "선택지2", "선택지3"] --> 중 최소 1개는 반드시 "다른 구역으로 이동하여 다른 인물 찾아가기"로 제시하십시오. (예: "서고로 향해 율리안과 조우한다", "정원으로 나가 카시엘의 기척을 살핀다")
+  - [장소 이동 배너]: 대면이 일단락될 때는 반드시 아래 태그로 이동 가능한 장소 2~3곳을 출력하십시오:
+  <!-- LOCATION_CARDS: [{"name": "수석 서고", "npc": "율리안", "desc": "고문서 냄새가 짙은 금빛 서고"}, {"name": "달빛 정원", "npc": "카시엘", "desc": "서늘한 밤공기가 맴도는 회랑"}] -->`;
 
   // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
@@ -9944,45 +9944,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
         </div>
       )}
 
-      {/* ── 🖼️ CG 앨범 갤러리 모달 ── */}
-      {showCgAlbumModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
-          <div style={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "14px", width: "100%", maxWidth: "520px", maxHeight: "85vh", display: "flex", flexDirection: "column", padding: "18px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>
-              <div style={{ fontWeight: "bold", fontSize: "1rem", color: "#f8fafc" }}>
-                🖼️ 이벤트 CG 앨범 ({activeSession?.sheet?.unlockedCgs?.length || 0})
-              </div>
-
-              {/* 🔄 100턴 지난 세션도 원클릭 전수 복구 버튼 */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allCgs = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
-                    const curAff = Math.max(...(activeSession.sheet?.npcs || []).map(n => n.affection || 0), 0);
-                    
-                    // 호감도 조건(40 등)을 달성했거나 기본 이벤트인 CG 전체 강제 해금
-                    const eligible = allCgs.filter(cg => {
-                      const favMatch = (cg.trigger || cg.condition || "").match(/호감도\s*(\d+)/);
-                      const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
-                      return reqFav === 0 || curAff >= reqFav;
-                    });
-
-                    setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-                      ...s,
-                      sheet: { ...s.sheet, unlockedCgs: eligible }
-                    } : s));
-                    triggerToast("✨ 앨범 동기화", `${eligible.length}장의 일러스트가 복구되었습니다!`);
-                  }}
-                  style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "6px", color: "#fde68a", padding: "3px 8px", fontSize: "0.72rem", cursor: "pointer", fontWeight: "bold" }}
-                >
-                  🔄 놓친 CG 복구
-                </button>
-                <button type="button" onClick={() => setShowCgAlbumModal(false)} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>✕</button>
-              </div>
-            </div>
-        </div>
-      )}
 
 {/* 🔍 CG 원본 풀스크린 라이트박스 + 💬 미연시 대사창 & 줄바꿈 & UI 숨김 토글 */}
       {zoomedCardUrl && (() => {
