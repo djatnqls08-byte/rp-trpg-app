@@ -3535,14 +3535,11 @@ const cgData = JSON.parse(cgMatch[1]);
       }
 
       // [세션 상태 최종 반영]
-          cycle: newSheet.cycle ?? s.sheet?.cycle,
-          scene: newSheet.scene ?? s.sheet?.scene,
-          phase: newSheet.phase || s.sheet?.phase, // ✨ newSheet.phase가 최우선으로 들어갑니다!
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
         sheet: {
           ...s.sheet,
           ...newSheet,
-          // 👇 여기서 최신 HP와 플롯을 newSheet가 덮어쓰지 못하게 지켜줍니다!
           hp: s.sheet?.hp ?? newSheet.hp,
           enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
           currentPlot: s.sheet?.currentPlot ?? newSheet.currentPlot,
@@ -3550,9 +3547,9 @@ const cgData = JSON.parse(cgMatch[1]);
           handouts: s.sheet?.handouts || newSheet.handouts,
           npcs: s.sheet?.npcs || newSheet.npcs,
           rituals: s.sheet?.rituals || newSheet.rituals,
-          cycle: s.sheet?.cycle ?? newSheet.cycle,
-          scene: s.sheet?.scene ?? newSheet.scene,
-          phase: s.sheet?.phase ?? newSheet.phase,
+          cycle: newSheet.cycle ?? s.sheet?.cycle,
+          scene: newSheet.scene ?? s.sheet?.scene,
+          phase: newSheet.phase || s.sheet?.phase,
           actionUsed: s.sheet?.phase === "도입" ? false : (textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false))
         },
         messages: [...updatedMessages, { role: "model", text: cleanText, contactId: currentContactId, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }],
