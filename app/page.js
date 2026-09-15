@@ -4258,10 +4258,20 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   return (
     <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
       <style>{`
-        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-        @import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
-        *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
-        .serif-text { font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"}; line-height: 1.95; word-break: keep-all; letter-spacing: -0.01em; }
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
+@import url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri.css');
+
+*, *::before, *::after { box-sizing: border-box; }
+body, input, textarea, button { font-family: 'Pretendard', sans-serif; }
+
+/* 마루부리 클래스 내부의 모든 텍스트에 최우선 강제 적용 */
+.serif-text, .serif-text * { 
+  font-family: ${fontChoice === "maru" ? "'MaruBuri', 'MaruBuriOTF', serif" : "'Pretendard', sans-serif"} !important; 
+  line-height: 1.95; 
+  word-break: keep-all; 
+  letter-spacing: -0.01em; 
+}
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
         .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
