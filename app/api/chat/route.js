@@ -21,7 +21,7 @@ export async function POST(req) {
       targetNpc = null,          // 🎯 현재 대화 상대 NPC 객체
       lastStoryContext = "",
       recentEvents = [],         // 🧠 기억 수첩 (사건 플래그)
-      currentPhase = "낮",       // ☀️ 현재 시간대 (낮, 노을, 밤, 심야)
+      currentPhase = "낮",       // ☀️ 현재 시간대
     } = body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -47,7 +47,7 @@ export async function POST(req) {
       const pName = playerSheet?.name || "주인공";
       const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
       
-      // 🎯 [1번 NPC 고정 버그 완벽 해결] 클릭된 targetNpc를 최우선으로 지정
+      // 🎯 [1번 NPC 고정 문제 완벽 해결] 클릭된 targetNpc를 최우선으로 지정
       const activePartner = targetNpc || playerSheet?.npcs?.[0] || { name: "상대", job: "조력자" };
       const partnerName = activePartner.name || "상대";
       const currentAffinity = activePartner.affinity ?? activePartner.affection ?? 0;
@@ -57,7 +57,7 @@ export async function POST(req) {
         ? recentEvents.map(e => `  * ${e}`).join("\n")
         : "  * 특별히 기록된 사건 없음";
 
-     // 🌸 [관계성 및 서사 미학 원칙] (GL / BL / HL 태그 및 캐릭터 시트 동적 반영)
+      // 🌸 [관계성 및 서사 미학 원칙] (GL / BL / HL 태그 및 시트 설정 동적 반영)
       const prefText = `${playPreference || ""} ${scenarioText || ""}`;
       const isGL = prefText.includes("#GL") || prefText.includes("#백합");
       const isBL = prefText.includes("#BL");
@@ -112,6 +112,7 @@ ${lastStoryContext || "현재 방 안에서 조용히 통화 중입니다."}
 
 [태그 규칙]
 - 호감도 변동 시: <!-- AFFINITY: {"name": "${partnerName}", "value": 변경후수치} -->
+- 통화 마무리 후 인물이 먼저 끊을 때: <!-- END_CALL: {"reason": "종료 사유"} -->
 - 통화 중 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
@@ -150,9 +151,6 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
 
         } else {
           // 📖 [C. 대면 비주얼 노벨 소설 서사]
-          const npcListStr = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
-
-          // 📱 메신저 최근 대화 내역 추출
           let recentPhoneSummary = "";
           if (playerSheet?.phoneChats) {
             const phoneLogs = [];
@@ -191,7 +189,7 @@ ${recentPhoneSummary}
    - 플러스: 서서히 마음의 빗장을 열며 깊어지는 유대감
 3. 지문 구성: [현장 공기감과 인물의 미세한 반응 묘사 2~3문단] + [${partnerName}의 직접 대사 혹은 필담]
 
-[🚨 필수 시스템 태그 규칙 (상황에 맞게 지문 맨 끝에 출력)]
+[🚨 필수 시스템 태그 규칙 (상황에 맞게 지문 맨 끝에 단독 출력)]
 1. 호감도 변동 시: <!-- AFFINITY: {"name": "${partnerName}", "value": 변경후수치} -->
 2. 인물이 헤어지거나 자리를 뜰 때 (장소 선택지 3개):
    <!-- LOCATION_CARDS: [{"name": "장소명", "desc": "분위기 묘사", "npc": "그곳에 있을 인물"}] -->
@@ -200,10 +198,10 @@ ${recentPhoneSummary}
 5. 서사 도중 다른 인물에게서 전화가 걸려오는 돌발 상황 연출 시: <!-- INCOMING_CALL: {"caller": "발신인물명", "urgent": false} -->
 6. 중요한 사건/실수/더블부킹이 발생해 AI가 기억해야 할 때: <!-- EVENT_FLAG: "사건 요약문" -->
 7. 새로운 인물 최초 등장 시: <!-- NEW_NPC: {"name": "인물명", "job": "역할", "detail": "외모/성격"} -->
-8. 주인공의 선택지 3개: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
+8. 주인공의 선택지 3개: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->
 9. 공식 시나리오의 결정적 이벤트 장면 도달 시: <!-- UNLOCK_CG: {"id": "CG고유ID", "title": "CG제목"} -->
 10. 통화 서사 중 대화가 마무리되어 전화를 끊을 때: <!-- END_CALL: {"reason": "종료사유"} -->
-11. 이야기의 최종 결말에 도달했을 때: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->
+11. 이야기의 최종 결말에 도달했을 때: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
           formattedContents.push({ role: "model", parts: [{ text: `네, 1번 NPC 고정 없이 현재 상대인 [${partnerName}]과의 대면 서사에 몰입하며 시간 스킵 없이 정갈하게 진행하겠습니다.` }] });
@@ -278,24 +276,11 @@ ${eventsSummary}
         formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 시간 스킵 없이 정규 룰을 준수하여 진행하겠습니다." }] });
       }
 
-// 🌟 [최적화] 대화가 길어져도 튕기지 않도록 최근 20턴만 선별 (기억 수첩/상황 요약이 있으므로 문맥 유지 완벽)
+      // 🌟 [최적화] 대화가 길어져도 튕기지 않도록 최근 20턴만 선별
       const recentHistory = msgList.slice(-20);
 
       // 대화 히스토리 구성
       for (const m of recentHistory) {
-        const role = m.role === "user" ? "user" : "model";
-        const text = (m.text || "").trim();
-        if (!text) continue;
-
-        if (formattedContents.length > 0 && formattedContents[formattedContents.length - 1].role === role) {
-          formattedContents[formattedContents.length - 1].parts[0].text += "\n\n" + text;
-        } else {
-          formattedContents.push({ role, parts: [{ text }] });
-        }
-      }
-      
-      // 대화 히스토리 구성
-      for (const m of msgList) {
         const role = m.role === "user" ? "user" : "model";
         const text = (m.text || "").trim();
         if (!text) continue;
