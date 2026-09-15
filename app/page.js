@@ -5970,16 +5970,32 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
         )}
               {/* 제안 칩 */}
               {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && (
-                <div 
-                  onTouchStart={(e) => e.stopPropagation()}
-                  onTouchMove={(e) => e.stopPropagation()}
-                  onTouchEnd={(e) => e.stopPropagation()}
-                  style={{ display: "flex", gap: "6px", overflowX: "auto", whiteSpace: "nowrap" }}
-                >
-                  <span style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "700", alignSelf: "center" }}>💡 제안:</span>
-                  {activeSession.suggestedActions.map((sugg, idx) => (
-                    <button key={idx} onClick={() => handleSuggestionClick(sugg)} style={{ padding: "3px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.text, fontSize: "0.72rem", cursor: "pointer" }}>{sugg}</button>
-                  ))}
+                <div
+        ref={(el) => {
+          if (!el) return;
+          const stop = (e) => e.stopPropagation();
+          el.addEventListener("touchstart", stop, { passive: true });
+          el.addEventListener("touchmove", stop, { passive: true });
+          el.addEventListener("touchend", stop, { passive: true });
+        }}
+        onTouchStartCapture={(e) => e.stopPropagation()}
+        onTouchMoveCapture={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerMove={(e) => e.stopPropagation()}
+        style={{ 
+          display: "flex", 
+          gap: "6px", 
+          overflowX: "auto",
+          overscrollBehaviorX: "contain",
+          touchAction: "pan-x",
+          WebkitOverflowScrolling: "touch",
+          padding: "4px 0",
+          alignItems: "center"
+        }}
+      >
                 </div>
               )}
             </div>
@@ -9405,11 +9421,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 key={idx}
                 onClick={() => {
                   // 🌟 앨범 카드 터치 시 16:9 풀스크린 컷씬 창으로 원본 크게 띄우기
-                  if (typeof setActiveCutsceneCg === "function") {
-                    setActiveCutsceneCg(cg);
-                  } else if (typeof setZoomedCardUrl === "function") {
-                    setZoomedCardUrl(cg.imageUrl || cg.url);
-                  }
+                 setZoomedCardUrl(cg.imageUrl || cg.url);
                 }}
                 title="클릭하여 원본 일러스트 크게 보기"
                 style={{ 
@@ -9434,11 +9446,6 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 <div style={{ fontSize: "0.78rem", fontWeight: "bold", color: "#ffffff", lineHeight: 1.35 }}>
                   {cg.title}
                 </div>
-                {(cg.desc || cg.trigger) && (
-                  <div style={{ fontSize: "0.7rem", color: "#cbd5e1", marginTop: "4px", lineHeight: 1.3 }}>
-                    {cg.desc || cg.trigger}
-                  </div>
-                )}
               </div>
               </div>
             ))
