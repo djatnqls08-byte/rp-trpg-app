@@ -5329,13 +5329,11 @@ if (isCall) {
     }
   }
 
-  const callerName = m.callNpc || partnerNpc?.name || "상대방";
+const callerName = m.callNpc || partnerNpc?.name || "상대방";
 
-  // 통화 중일 때는 메인 타임라인에 표시하지 않고 상단 플로팅/모달에만 집중
-  if (isVoiceCallActive) return null;
-  if (!callBlock || callBlock.length === 0) return null;
+if (!callBlock || callBlock.length === 0) return null;
 
-  return (
+return (
     <details
       key={`call-block-${i}`}
       // 통화 중일 때 메인 창을 내리면 1줄로 단정하게 닫힌 상태 유지 (펼쳐짐 방지)
@@ -9434,25 +9432,101 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-      {/* 📱 [레퍼런스 반영] 리얼 스마트폰 풀스크린 통화 모달 */}
+      {/* 📱 1. 통화 축소 시 화면 상단 미니 팝업 (레퍼런스 스타일 플로팅 바) */}
+      {isVoiceCallActive && !isCallModalOpen && (
+        <div style={{
+          position: "fixed",
+          top: "14px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 160,
+          width: "calc(100% - 28px)",
+          maxWidth: "430px",
+          backgroundColor: "rgba(22, 27, 34, 0.95)",
+          backdropFilter: "blur(16px)",
+          borderRadius: "20px",
+          padding: "12px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+          boxSizing: "border-box",
+          animation: "slideDown 0.3s ease"
+        }}>
+          {/* 좌측: 아바타 + 이름 + HD 통화 상태 */}
+          <div 
+            onClick={() => setIsCallModalOpen(true)}
+            style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", flex: 1 }}
+          >
+            <div style={{ position: "relative", width: "42px", height: "42px" }}>
+              <img 
+                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
+                alt={voiceCallNpc?.name}
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+              />
+              <span style={{
+                position: "absolute", bottom: "-1px", right: "-1px",
+                width: "11px", height: "11px", borderRadius: "50%",
+                backgroundColor: "#22c55e", border: "2px solid #161b22"
+              }} />
+            </div>
+            <div>
+              <div style={{ color: "#f8fafc", fontSize: "0.95rem", fontWeight: "700" }}>
+                {voiceCallNpc?.name || "상대방"}
+              </div>
+              <div style={{ color: "#38bdf8", fontSize: "0.76rem", fontWeight: "600", marginTop: "1px" }}>
+                HD+ 통화 중 ⤢ 터치하여 복귀
+              </div>
+            </div>
+          </div>
+
+          {/* 우측: 빨간 통화 종료 버튼 */}
+          <button 
+            type="button"
+            onClick={() => {
+              setIsVoiceCallActive(false);
+              setIsCallModalOpen(false);
+              setVoiceCallNpc(null);
+              if (typeof executeMessage === "function") {
+                executeMessage(`[통화 종료] 전화를 끊었습니다.`);
+              }
+            }}
+            style={{
+              backgroundColor: "#ef4444",
+              border: "none",
+              borderRadius: "9999px",
+              padding: "8px 16px",
+              color: "#ffffff",
+              fontSize: "0.82rem",
+              fontWeight: "700",
+              cursor: "pointer",
+              boxShadow: "0 2px 10px rgba(239, 68, 68, 0.4)",
+              whiteSpace: "nowrap"
+            }}
+          >
+            종료
+          </button>
+        </div>
+      )}
+
+      {/* 📱 2. 리얼 스마트폰 풀스크린 통화 모달 */}
       {isVoiceCallActive && isCallModalOpen && (
         <div style={{
           position: "fixed",
           inset: 0,
           zIndex: 180,
-          backgroundColor: "#0d1b1e",
-          background: "linear-gradient(180deg, #134e4a 0%, #042f2e 40%, #021a1a 100%)",
+          background: "linear-gradient(180deg, #134e4a 0%, #042f2e 45%, #021a1a 100%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "50px 24px 36px",
+          padding: "48px 24px 34px",
           boxSizing: "border-box",
           color: "#fff",
-          animation: "fadeIn 0.3s ease"
+          animation: "fadeIn 0.25s ease"
         }}>
           
-          {/* 상단 바: 최소화(⌄) 버튼 & 통화 상태 */}
+          {/* 1. 상단 바: 깔끔한 SVG 다운 화살표 & 통화 상태 */}
           <div style={{ width: "100%", maxWidth: "420px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button 
               type="button"
@@ -9461,21 +9535,24 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 background: "rgba(255, 255, 255, 0.12)",
                 border: "none",
                 borderRadius: "50%",
-                width: "40px",
-                height: "40px",
+                width: "42px",
+                height: "42px",
                 color: "#fff",
-                fontSize: "1.2rem",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center"
+                justifyContent: "center",
+                transition: "background 0.2s"
               }}
+              title="화면 내리기"
             >
-              ⌄
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </button>
             
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.82rem", color: "#5eead4", fontWeight: "700", letterSpacing: "1px" }}>
+              <div style={{ fontSize: "0.86rem", color: "#5eead4", fontWeight: "700", letterSpacing: "1px" }}>
                 ● 통화 중
               </div>
               <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "2px" }}>
@@ -9483,30 +9560,30 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               </div>
             </div>
 
-            <div style={{ width: "40px" }} />
+            <div style={{ width: "42px" }} />
           </div>
 
-          {/* 중앙 프로필 & 펄스 링 */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "420px", marginTop: "10px" }}>
+          {/* 2. 중앙 프로필 & 펄스 링 */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "420px", marginTop: "6px" }}>
             <div style={{
               position: "relative",
-              width: "120px",
-              height: "120px",
+              width: "124px",
+              height: "124px",
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: "16px"
+              marginBottom: "14px"
             }}>
               <div style={{
                 position: "absolute",
                 inset: "-12px",
                 borderRadius: "50%",
-                border: "2px solid rgba(94, 234, 212, 0.3)",
+                border: "2px solid rgba(94, 234, 212, 0.35)",
                 animation: "pulse 2s infinite"
               }} />
               <img 
-                src={voiceCallNpc?.portrait || voiceCallNpc?.portraitUrl || voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
+                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
                 alt={voiceCallNpc?.name}
                 style={{
                   width: "100%",
@@ -9519,25 +9596,28 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               />
             </div>
             
-            <h2 style={{ margin: "0 0 4px", fontSize: "1.4rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
+            <h2 style={{ margin: "0 0 4px", fontSize: "1.45rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
               {voiceCallNpc?.name || "상대방"}
             </h2>
             <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.65)" }}>
-              {voiceCallNpc?.title || voiceCallNpc?.job || "통화 연결 중"}
+              {voiceCallNpc?.title || "통화 연결 중"}
             </span>
 
-            {/* 대사 & 지문 분리 자막창 */}
+            {/* 3. 대사 & 서술 분리 (시원한 세로 공간 + 잘림 없는 가독성) */}
             <div style={{
               width: "100%",
-              marginTop: "24px",
-              backgroundColor: "rgba(0, 0, 0, 0.35)",
+              marginTop: "22px",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
               borderRadius: "20px",
-              padding: "18px 20px",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              padding: "20px 22px",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
               boxSizing: "border-box",
-              maxHeight: "180px",
-              overflowY: "auto"
+              maxHeight: "340px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px"
             }}>
               {(() => {
                 const lastMsg = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
@@ -9546,76 +9626,47 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 const narration = lastMsg.replace(/"[^"]+"/g, "").trim();
 
                 return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <>
+                    {/* 수화기 너머 핵심 대사: 상단 고정, 크고 선명하게 */}
                     {dialogue ? (
                       <div style={{
-                        fontSize: "1.08rem",
+                        fontSize: "1.15rem",
                         fontWeight: "700",
-                        color: "#f0fdfa",
-                        lineHeight: "1.55",
+                        color: "#ffffff",
+                        lineHeight: "1.6",
                         textAlign: "center",
-                        textShadow: "0 2px 8px rgba(0,0,0,0.5)"
+                        textShadow: "0 2px 8px rgba(0,0,0,0.6)",
+                        paddingBottom: narration ? "12px" : "0",
+                        borderBottom: narration ? "1px dashed rgba(255, 255, 255, 0.18)" : "none"
                       }}>
                         "{dialogue}"
                       </div>
                     ) : (
-                      <div style={{ fontSize: "0.95rem", color: "#ccfbf1", textAlign: "center" }}>
+                      <div style={{ fontSize: "1.05rem", color: "#ccfbf1", textAlign: "center", fontWeight: "600" }}>
                         {lastMsg || "수화기 너머로 숨소리가 들려옵니다..."}
                       </div>
                     )}
                     
+                    {/* 서술 지문: 눈에 편안한 폰트(0.95rem)와 충분한 줄간격 */}
                     {narration && (
                       <div style={{
-                        fontSize: "0.78rem",
-                        color: "rgba(255, 255, 255, 0.6)",
-                        lineHeight: "1.6",
+                        fontSize: "0.95rem",
+                        color: "rgba(255, 255, 255, 0.88)",
+                        lineHeight: "1.75",
                         textAlign: "center",
-                        borderTop: "1px dashed rgba(255, 255, 255, 0.12)",
-                        paddingTop: "8px"
+                        wordBreak: "keep-all"
                       }}>
                         {narration}
                       </div>
                     )}
-                  </div>
+                  </>
                 );
               })()}
             </div>
           </div>
 
-          {/* 유틸 버튼 그리드 */}
-          <div style={{
-            width: "100%",
-            maxWidth: "340px",
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "18px 20px",
-            margin: "16px 0"
-          }}>
-            {[
-              { icon: "🎙️", label: "음소거" },
-              { icon: "⌨️", label: "키패드" },
-              { icon: "🔊", label: "스피커" },
-            ].map((btn, idx) => (
-              <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-                <div style={{
-                  width: "56px",
-                  height: "56px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(255, 255, 255, 0.12)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.25rem"
-                }}>
-                  {btn.icon}
-                </div>
-                <span style={{ fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.7)" }}>{btn.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* 하단 입력창 및 통화 종료 버튼 */}
-          <div style={{ width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* 4. 하단 말하기 입력창 & 큰 통화 종료 버튼 */}
+          <div style={{ width: "100%", maxWidth: "420px", display: "flex", flexDirection: "column", gap: "16px", marginTop: "14px" }}>
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
@@ -9633,25 +9684,25 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 placeholder="수화기에 대고 말하기..."
                 style={{
                   flex: 1,
-                  padding: "12px 18px",
+                  padding: "13px 20px",
                   borderRadius: "9999px",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  backgroundColor: "rgba(0, 0, 0, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  backgroundColor: "rgba(0, 0, 0, 0.45)",
                   color: "#fff",
-                  fontSize: "0.9rem",
+                  fontSize: "0.92rem",
                   outline: "none"
                 }}
               />
               <button 
                 type="submit"
                 style={{
-                  padding: "0 20px",
+                  padding: "0 22px",
                   borderRadius: "9999px",
                   border: "none",
                   backgroundColor: "#0d9488",
                   color: "#fff",
                   fontWeight: "700",
-                  fontSize: "0.85rem",
+                  fontSize: "0.88rem",
                   cursor: "pointer"
                 }}
               >
@@ -9659,6 +9710,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               </button>
             </form>
 
+            {/* 빨간색 통화 종료 원형 버튼 */}
             <div style={{ display: "flex", justifyContent: "center" }}>
               <button 
                 type="button"
@@ -9666,11 +9718,13 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   setIsVoiceCallActive(false);
                   setIsCallModalOpen(false);
                   setVoiceCallNpc(null);
-                  executeMessage(`[통화 종료] 전화를 끊었습니다.`);
+                  if (typeof executeMessage === "function") {
+                    executeMessage(`[통화 종료] 전화를 끊었습니다.`);
+                  }
                 }}
                 style={{
-                  width: "64px",
-                  height: "64px",
+                  width: "66px",
+                  height: "66px",
                   borderRadius: "50%",
                   backgroundColor: "#ef4444",
                   border: "none",
@@ -9678,10 +9732,11 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.4)"
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)"
                 }}
+                title="통화 종료"
               >
-                <span style={{ fontSize: "1.7rem", transform: "rotate(135deg)", display: "inline-block" }}>📞</span>
+                <span style={{ fontSize: "1.8rem", transform: "rotate(135deg)", display: "inline-block" }}>📞</span>
               </button>
             </div>
           </div>
