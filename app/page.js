@@ -1960,43 +1960,78 @@ useEffect(() => {
     closeModal(setShowPortraitEditModal);
   };
 
-// 🔄 대화 내역 유지 + 최신 시트 동기화 + 지난 대화 기반 CG 소급 해금
+// 🔄 대화 내역 유지 + 최신 시트 동기화 + CG 소급 해금 (예쁜 인앱 토스트 적용)
   const handleSyncCurrentSheet = async () => {
     if (!activeSession) return;
 
-    let targetUrl = activeSession.sheetUrl || activeSession.sheet?.url || GOOGLE_SHEET_CSV_URL;
+    const targetUrl = activeSession.sheetUrl || activeSession.sheet?.url || GOOGLE_SHEET_CSV_URL;
     if (!targetUrl) {
-      targetUrl = prompt("동기화할 구글 시트 주소(URL)를 입력해주세요:", GOOGLE_SHEET_CSV_URL);
-      if (!targetUrl) return;
+      triggerToast("동기화 오류", "시트 URL을 찾을 수 없습니다.", "⚠️");
+      return;
     }
-
-    if (!confirm("대화 내역을 유지하며 최신 일러스트를 불러옵니다. 지난 대화와 일치하는 CG도 자동 해금됩니다. 진행할까요?")) return;
 
     try {
       setIsLoading(true);
 
-      const res = await fetch(`/api/sheet?url=${encodeURIComponent(targetUrl)}`);
-      const data = await res.json();
-      const updatedSheet = data.sheet || data;
+      // 1. 구글 시트 CSV 원본 텍스트 직접 가져오기
+      const res = await fetch(targetUrl);
+      const csvText = await res.text();
 
-      if (!updatedSheet) {
-        throw new Error("시트 데이터를 올바르게 가져오지 못했습니다.");
+      // 2. CSV 파싱
+      const parseCSVLine = (text) => {
+        const result = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+          const char = text[i];
+          if (char === '"') {
+            if (inQuotes && text[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            result.push(cur);
+            cur = "";
+          } else {
+            cur += char;
+          }
+        }
+        result.push(cur);
+        return result.map(c => c.trim().replace(/^"|"$/g, ""));
+      };
+
+      const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== "");
+      if (lines.length < 2) throw new Error("시트 데이터가 비어 있습니다.");
+
+      const headers = parseCSVLine(lines[0]);
+      const row = parseCSVLine(lines[1]);
+
+      // 3. 세션 카드 추출
+      const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
+      const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
+
+      // 4. 이벤트 CG 추출
+      const eventCgs = [];
+      for (let c = 61; c < row.length; c += 3) {
+        const cgTitle = row[c]?.trim();
+        const cgTrigger = row[c + 1]?.trim();
+        const cgUrl = row[c + 2]?.trim();
+        if (cgTitle && cgUrl) {
+          eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
+        }
       }
 
+      // 5. 세션 업데이트 & CG 소급 해금
       setSessions(prev => prev.map(s => {
         if (s.id === activeSession.id) {
-          // 1. 지금까지 나눈 모든 대화 텍스트 하나로 합치기
           const fullChatHistory = (s.messages || []).map(m => m.content || "").join(" ");
-
-          // 2. 기존 해금 목록 가져오기
           const existingUnlocked = new Set(s.unlockedCgs || []);
 
-          // 3. 시트의 CG 목록 중 대화에 트리거/제목이 언급된 CG 찾아 자동 해금
-          (updatedSheet.cgs || []).forEach(cg => {
+          eventCgs.forEach(cg => {
             const triggerKeyword = cg.trigger?.trim();
             const titleKeyword = cg.title?.trim();
-
-            // 대화 속에 트리거 문구나 CG 제목이 한 번이라도 등장했다면 해금 대상으로 판정
             if (
               (triggerKeyword && fullChatHistory.includes(triggerKeyword)) ||
               (titleKeyword && fullChatHistory.includes(titleKeyword))
@@ -2008,17 +2043,23 @@ useEffect(() => {
           return {
             ...s,
             sheetUrl: targetUrl,
-            thumbnail: updatedSheet.thumbnail || updatedSheet.sessionCard || s.thumbnail,
-            sheet: updatedSheet,
-            unlockedCgs: Array.from(existingUnlocked) // 소급 해금된 CG 목록 반영
+            thumbnail: sessionCardImg || s.thumbnail,
+            sheet: {
+              ...(s.sheet || {}),
+              thumbnail: sessionCardImg || s.sheet?.thumbnail,
+              cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs
+            },
+            unlockedCgs: Array.from(existingUnlocked)
           };
         }
         return s;
       }));
 
-      alert("✨ 최신 데이터 동기화 및 이전 대화의 CG 소급 해금이 완료되었습니다!");
+      // ✨ 기존에 만들어두신 인앱 토스트 팝업 띄우기!
+      triggerToast("동기화 완료", "최신 시트 및 지난 CG가 해금되었습니다!", "💡");
+
     } catch (err) {
-      alert("시트 동기화 실패: " + err.message);
+      triggerToast("동기화 실패", err.message, "⚠️");
     } finally {
       setIsLoading(false);
     }
@@ -3891,24 +3932,43 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </div>
 
                 {/* 하단 정보 영역 */}
-                <div style={{ padding: "8px 10px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "4px" }}>
-                      <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
-                      <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
-                    </div>
-                    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
-                  </div>
-                  {dateDisplay && (
-                    <div style={{ fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
-                      🕒 {dateDisplay}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+<div style={{ padding: "8px 10px" }}>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, paddingRight: "4px" }}>
+      <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
+      <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
+    </div>
+    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
+  </div>
+  
+  {/* 하단 날짜 + 🔄 동기화 버튼 (a 위치) */}
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.65rem", color: theme.textMuted, marginTop: "4px", borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+    <div>{dateDisplay ? `🕒 ${dateDisplay}` : ""}</div>
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation(); // 카드 클릭(방 입장) 방지
+        setActiveSessionId(s.id);
+        handleSyncCurrentSheet();
+      }}
+      title="시트 최신 데이터 동기화 (일러스트/설정)"
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: "0 2px",
+        fontSize: "0.75rem",
+        lineHeight: 1,
+        opacity: 0.7,
+        transition: "opacity 0.2s"
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+      onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+    >
+      🔄
+    </button>
+  </div>
+</div>
        <div style={{ padding: "12px", borderTop: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "8px", backgroundColor: theme.sidebar }}>
           <button 
             onClick={() => {
@@ -4102,26 +4162,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                 </button>
               );
             })()}
-             
-{/* 🔄 구글 시트 최신화 동기화 버튼 (순수 아이콘) */}
-<button
-  type="button"
-  onClick={handleSyncCurrentSheet}
-  title="구글 시트 최신 데이터 동기화"
-  style={{
-    background: "none",
-    border: "none",
-    padding: "4px",
-    fontSize: isMobile ? "1.1rem" : "1.2rem",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    lineHeight: 1
-  }}
->
-  🔄
-</button>
 
             {/* 2. 🃏 테이블탑 핸드아웃 버튼 (흰 배경 없는 깔끔한 플랫 스타일) */}
             {activeSession && activeSession.ruleMode === "insane" && (
