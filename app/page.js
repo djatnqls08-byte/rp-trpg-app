@@ -2482,7 +2482,7 @@ const startNewSession = async () => {
     preference: playPreference.trim(),
     scenarioText: fullScenarioContext,
     sheet: sessionSheet,
-   sheetUrl: sheetUrl || activeSheetUrl || sessionSheet?.url || "",
+   sheetUrl: sessionSheet?.url || (typeof GOOGLE_SHEET_CSV_URL !== "undefined" ? GOOGLE_SHEET_CSV_URL : "") || "",
     messages: [],
     suggestedActions: [],
     investigationSpots: [],
@@ -4081,28 +4081,25 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
               );
             })()}
              
-{/* 🔄 구글 시트 최신화 동기화 버튼 */}
-        <button
-          type="button"
-          onClick={handleSyncCurrentSheet}
-          title="구글 시트 최신 데이터 동기화 (일러스트/설정 갱신)"
-          style={{
-            height: isMobile ? "32px" : "36px",
-            padding: "0 10px",
-            borderRadius: "8px",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            backgroundColor: "rgba(30, 41, 59, 0.7)",
-            color: "#e2e8f0",
-            fontSize: "0.8rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
-            cursor: "pointer",
-            backdropFilter: "blur(4px)"
-          }}
-        >
-          🔄 <span style={{ fontSize: "0.75rem", fontWeight: "600" }}>시트 동기화</span>
-        </button>
+{/* 🔄 구글 시트 최신화 동기화 버튼 (순수 아이콘) */}
+<button
+  type="button"
+  onClick={handleSyncCurrentSheet}
+  title="구글 시트 최신 데이터 동기화"
+  style={{
+    background: "none",
+    border: "none",
+    padding: "4px",
+    fontSize: isMobile ? "1.1rem" : "1.2rem",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    lineHeight: 1
+  }}
+>
+  🔄
+</button>
 
             {/* 2. 🃏 테이블탑 핸드아웃 버튼 (흰 배경 없는 깔끔한 플랫 스타일) */}
             {activeSession && activeSession.ruleMode === "insane" && (
