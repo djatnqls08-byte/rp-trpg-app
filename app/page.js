@@ -1118,6 +1118,18 @@ useEffect(() => {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [playPreference, setPlayPreference] = useState("#GL #쌍방구원 #달달");
+  const [customPresets, setCustomPresets] = useState([]);
+
+  // 주사위 및 연출 상태
+  const [isRolling, setIsRolling] = useState(false);
+  const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
+  const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
+  const [showInsanityFlash, setShowInsanityFlash] = useState(false);
+
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
+  const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
+  const theme = isDarkMode ? activePalette.dark : activePalette.light;
+
  // 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
   useEffect(() => {
     if (!activeSession?.messages || activeSession.messages.length === 0) return;
@@ -1144,17 +1156,6 @@ useEffect(() => {
       setCurrentPhase(detectedPhase);
     }
   }, [activeSession?.id, activeSession?.messages?.length]);
-  const [customPresets, setCustomPresets] = useState([]);
-
-  // 주사위 및 연출 상태
-  const [isRolling, setIsRolling] = useState(false);
-  const [rollingDisplayNum, setRollingDisplayNum] = useState(1);
-  const [activeMadnessAlert, setActiveMadnessAlert] = useState(null);
-  const [showInsanityFlash, setShowInsanityFlash] = useState(false);
-
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
-  const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
-  const theme = isDarkMode ? activePalette.dark : activePalette.light;
 
 // 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
   const PHONE_SKINS = {
