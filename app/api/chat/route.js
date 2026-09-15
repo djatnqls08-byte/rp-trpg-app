@@ -16,8 +16,9 @@ export async function POST(req) {
       playerSheet = {},
       ruleMode = "coc",
       playPreference = "",
-      isPhoneChat = false,
       isVoiceCall = false,
+      voiceCallNpc = null,
+      facingNpc = null,
       targetNpc = null,
       lastStoryContext = "",
       recentEvents = [],
@@ -94,29 +95,49 @@ export async function POST(req) {
       // ── [1. 미연시 모드: "dating"] ──
       if (ruleMode === "dating") {
         if (isVoiceCall) {
-          // 📞 [A. 실시간 전화 통화 모드]
-          systemInstruction = `${coreIdentityPrompt}
+// 📱 [통화 & 대면 관계 판별]
+      const curVoiceNpc = (typeof voiceCallNpc !== "undefined" && voiceCallNpc) ? voiceCallNpc : partnerName;
+      const curFacingNpc = (typeof facingNpc !== "undefined" && facingNpc) ? facingNpc : null;
+      const isFacingSame = curFacingNpc && (curFacingNpc === curVoiceNpc);
+      const isLoveTriangle = curFacingNpc && (curFacingNpc !== curVoiceNpc);
+
+      systemInstruction = `${coreIdentityPrompt}
 [1:1 실시간 음성 통화 모드]
-당신은 '${pName}'과 실시간 통화 중인 '${partnerName}'입니다!
-[상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
+- 통화 상대(수화기 너머): '${curVoiceNpc}'
+- 현장 대면 인물(눈앞의 상대): ${curFacingNpc ? `'${curFacingNpc}'` : "없음 (단독)"}
+[상대 정보] 역할: ${activePartner?.job || "인물"}, 현재 호감도: ${currentAffinity}점
 
 [🚨 직전 현장 상황]
 """
 ${lastStoryContext || "현재 조용한 공간에서 통화 중입니다."}
 """
 
-[전화 통화 서술 수칙]
-1. 시각 묘사를 배제하고 '수화기 너머의 소리(숨소리, 침묵, 잡음, 떨림, 한숨)'에만 집중하십시오.
-2. 현장에 다른 인물이 있다면 수화기 틈새로 새어 들어오는 주변 기척을 짧게 묘사하십시오.
-3. 상대방의 직접 대사는 큰따옴표("...")로 출력하십시오.
+[상황별 핵심 연출 수칙]
+${isFacingSame ? `
+★ [대면 중 통화 상황 - 맞은편 상대에게 전화를 건 상태]
+플레이어가 눈앞의 '${curVoiceNpc}'에게 전화를 걸었습니다.
+- 멀리 떨어진 엉뚱한 장소에서 전화를 받는 묘사를 '절대 금지'합니다.
+- 테이블 위나 품속에서 요란하게 울리는 통신구를 내려다보며 어이없어하거나, 흥미롭다는 듯 PC를 빤히 응시하며 전화를 받는 [현장 반응]을 묘사하십시오.
+- 예: "(테이블 위에서 울리는 진동을 내려다보며 피식 웃더니, 시선을 들어 당신을 빤히 마주한다.) '……눈앞에 두고 지금 장난하시는 겁니까?'"
+` : isLoveTriangle ? `
+★ [수라장 / 비밀 통화 상황 - 맞은편 인물 몰래 받는 상태]
+플레이어는 눈앞의 '${curFacingNpc}'와 마주 앉아있는 상태에서 수화기 너머의 '${curVoiceNpc}'와 통화하고 있습니다.
+- 한 지문 안에 [눈앞 '${curFacingNpc}'의 반응]과 [수화기 너머 '${curVoiceNpc}'의 대사]를 반드시 '동시 서술'하십시오.
+- 눈앞의 ${curFacingNpc}: 찻잔을 내려놓고 서늘하게 관찰하거나, 테이블 밑으로 발을 건드리는 등 무언의 압박과 방해를 시도합니다.
+- 수화기 너머 ${curVoiceNpc}: 평소처럼 말하다가 현장의 소음이나 PC의 억눌린 숨소리를 눈치채고 의구심을 품습니다.
+` : `
+★ [단독 원격 통화 상황]
+- 시각 묘사를 배제하고 수화기 너머의 소리(숨소리, 침묵, 잡음, 떨림, 한숨, 옷깃 스치는 소리) 등 청각적 묘사에 집중하십시오.
+`}
+
+[전화 통화 기본 서술 수칙]
+1. 통화 상대의 직접 대사는 큰따옴표("...")로 출력하십시오.
+2. 플레이어가 전화를 끊겠다고 하거나 대화가 마무리되면 지문 끝에 통화 종료 태그를 달고, 즉시 통화 묘사를 중단한 채 현장 상황으로 카메라를 복귀시키십시오.
 
 [태그 규칙]
-- 호감도 변동 시: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
+- 호감도 변동 시: <!-- AFFECTION: {"name": "${curVoiceNpc}", "value": 변경후수치} -->
 - 통화 종료 시: <!-- END_CALL: {"reason": "종료사유"} -->
 - 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
-
-          formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: "수화기 너머의 호흡과 음향에 집중하여 통화 서사를 전개하겠습니다." }] });
 
         } else if (isPhoneChat) {
           // 📱 [B. 1:1 메신저 모드]
