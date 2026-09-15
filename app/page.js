@@ -9604,28 +9604,53 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 border: `2px solid ${theme.accent || "#38bdf8"}55`,
                 animation: "pulse 2s infinite"
               }} />
-              {(() => {
-                const npcName = voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "상대방");
-                const foundNpc = (activeSession?.npcs || []).find(n => n.name === npcName);
-                const realImg = foundNpc?.image || foundNpc?.avatar || foundNpc?.photo || voiceCallNpc?.image || voiceCallNpc?.avatar;
+          {(() => {
+                // 🔍 시트(sheet.npcs)와 세션 전체에서 발렌틴/카시엘 원본 일러스트 탐색
+                const allNpcs = [
+                  ...(activeSession?.sheet?.npcs || []),
+                  ...(activeSession?.npcs || []),
+                  ...(activeSession?.scenario?.npcs || []),
+                  ...(activeSession?.characters || [])
+                ];
                 
+                const targetName = voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "");
+                const foundNpc = allNpcs.find(n => 
+                  n?.name === targetName || 
+                  (targetName && n?.name && (n.name.includes(targetName) || targetName.includes(n.name)))
+                );
+
+                const targetObj = foundNpc || (typeof voiceCallNpc === "object" ? voiceCallNpc : null);
+                const realImg = targetObj?.image || targetObj?.avatar || targetObj?.photo || targetObj?.portrait || targetObj?.profileImage || targetObj?.img;
+
                 return realImg ? (
-                  <img src={realImg} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255, 255, 255, 0.3)" }} />
+                  <img 
+                    src={realImg} 
+                    alt={targetName} 
+                    style={{ 
+                      width: "100%", 
+                      height: "100%", 
+                      borderRadius: "50%", 
+                      objectFit: "cover", 
+                      border: "2px solid rgba(255, 255, 255, 0.35)",
+                      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.5)"
+                    }} 
+                  />
                 ) : (
+                  /* 🎭 이미지가 등록되지 않은 경우: 단일 글자 대신 분위기 있는 실루엣 */
                   <div style={{
                     width: "100%",
                     height: "100%",
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #0d9488 0%, #0284c7 100%)",
+                    backgroundColor: "rgba(255, 255, 255, 0.12)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#ffffff",
-                    fontWeight: "800",
-                    fontSize: "2.4rem",
-                    border: "2px solid rgba(255, 255, 255, 0.3)"
+                    border: "2px solid rgba(255, 255, 255, 0.25)",
+                    backdropFilter: "blur(8px)"
                   }}>
-                    {npcName.slice(0, 1)}
+                    <svg width="56" height="56" viewBox="0 0 24 24" fill="rgba(255, 255, 255, 0.65)">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
                   </div>
                 );
               })()}
