@@ -5333,27 +5333,27 @@ const callerName = m.callNpc || partnerNpc?.name || "상대방";
 
 if (!callBlock || callBlock.length === 0) return null;
 
-return (
-    <details
-      key={`call-block-${i}`}
-      // 통화 중일 때 메인 창을 내리면 1줄로 단정하게 닫힌 상태 유지 (펼쳐짐 방지)
-      style={{
-          margin: "12px 0",
+    return (
+      <details
+        key={`call-block-${i}`}
+        // 🌟 통화 중일 때는 자동으로 펼쳐서(open) 메인 화면에서도 대화가 다 보이게 유지!
+        open={isVoiceCallActive}
+        style={{
+          margin: "14px 0",
           borderRadius: "14px",
           border: isVoiceCallActive 
             ? "1.5px solid #ef4444" 
-            : `1px solid ${theme.border || "rgba(0,0,0,0.12)"}`,
+            : `1px solid ${theme.border || "rgba(0,0,0,0.1)"}`,
           backgroundColor: isVoiceCallActive 
-            ? "rgba(239, 68, 68, 0.05)" 
+            ? (theme.panel || "rgba(0, 0, 0, 0.03)") 
             : (theme.panelAlt || "rgba(0,0,0,0.02)"),
-          boxShadow: isVoiceCallActive ? "0 4px 14px rgba(239, 68, 68, 0.15)" : "none",
           overflow: "hidden",
           transition: "all 0.2s ease"
         }}
       >
         <summary 
           onClick={(e) => {
-            // 통화 중일 때 이 바를 누르면 즉시 스마트폰 풀스크린 통화 화면으로 복귀!
+            // 통화 중 상단 바를 누르면 다시 스마트폰 풀스크린으로 복귀
             if (isVoiceCallActive) {
               e.preventDefault();
               setIsCallModalOpen(true);
@@ -5365,13 +5365,14 @@ return (
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            backgroundColor: isVoiceCallActive ? "rgba(239, 68, 68, 0.08)" : "transparent",
             userSelect: "none"
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "1.1rem" }}>📞</span>
             <strong style={{ color: theme.text || "#1e293b", fontSize: "0.88rem" }}>
-              [{callerName}과의 {isVoiceCallActive ? "실시간 통화" : "통화 기록"}]
+              [{callerName}과의 {isVoiceCallActive ? "실시간 통화 중" : "지난 통화 기록"}]
             </strong>
             {isVoiceCallActive && (
               <span style={{
@@ -5380,23 +5381,16 @@ return (
                 color: "#ffffff",
                 padding: "2px 8px",
                 borderRadius: "9999px",
-                fontWeight: "bold",
-                animation: "pulse 1.5s infinite"
+                fontWeight: "bold"
               }}>
-                ● 통화 중
+                ● LIVE
               </span>
             )}
           </div>
           
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {isVoiceCallActive ? (
-              <span style={{ fontSize: "0.78rem", color: "#2563eb", fontWeight: "bold" }}>
-                통화창 복귀 ↗
-              </span>
-            ) : (
-              <span style={{ fontSize: "0.75rem", color: theme.textMuted || "#64748b" }}>기록 열기 ▼</span>
-            )}
-          </div>
+          <span style={{ fontSize: "0.78rem", color: theme.accent || "#2563eb", fontWeight: "bold" }}>
+            {isVoiceCallActive ? "통화창 복귀 ↗" : "기록 열기 ▼"}
+          </span>
         </summary>
 
       {/* 통화 로그 본문 */}
@@ -9474,9 +9468,10 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               <div style={{ color: "#f8fafc", fontSize: "0.95rem", fontWeight: "700" }}>
                 {voiceCallNpc?.name || "상대방"}
               </div>
-              <div style={{ color: "#38bdf8", fontSize: "0.76rem", fontWeight: "600", marginTop: "1px" }}>
-                HD+ 통화 중 ⤢ 터치하여 복귀
-              </div>
+              // 상단 미니 바의 "HD+ 통화 중" 글자색
+<div style={{ color: theme.accent || "#38bdf8", fontSize: "0.76rem", fontWeight: "600", marginTop: "1px" }}>
+  통화 중 ⤢ 터치하여 복귀
+</div>
             </div>
           </div>
 
@@ -9515,7 +9510,8 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
           position: "fixed",
           inset: 0,
           zIndex: 180,
-          background: "linear-gradient(180deg, #134e4a 0%, #042f2e 45%, #021a1a 100%)",
+          backgroundColor: theme.bg || "#0b0f17",
+background: `radial-gradient(circle at 50% 20%, ${theme.accent || "#38bdf8"}33 0%, ${theme.bg || "#0f172a"} 65%, #020617 100%)`,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -9552,7 +9548,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
             </button>
             
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.86rem", color: "#5eead4", fontWeight: "700", letterSpacing: "1px" }}>
+              <div style={{ fontSize: "0.86rem", color: theme.accent || "#38bdf8", fontWeight: "700", letterSpacing: "1px" }}>
                 ● 통화 중
               </div>
               <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "2px" }}>
@@ -9579,21 +9575,45 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 position: "absolute",
                 inset: "-12px",
                 borderRadius: "50%",
-                border: "2px solid rgba(94, 234, 212, 0.35)",
+                border: `2px solid ${theme.accent || "#38bdf8"}55`,
                 animation: "pulse 2s infinite"
               }} />
-              <img 
-                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
-                alt={voiceCallNpc?.name}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
-                  border: "2px solid rgba(255, 255, 255, 0.3)"
-                }}
-              />
+
+              {(() => {
+                // 세션 내 NPC 목록 전체에서 실제 캐릭터 이미지(image, avatar, photo) 자동 탐색
+                const targetObj = (activeSession?.npcs || []).find(n => n.name === voiceCallNpc?.name) || voiceCallNpc;
+                const realImg = targetObj?.image || targetObj?.avatar || targetObj?.photo || targetObj?.profileImage;
+
+                return realImg ? (
+                  <img 
+                    src={realImg} 
+                    alt={voiceCallNpc?.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+                      border: "2px solid rgba(255, 255, 255, 0.3)"
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "2px solid rgba(255, 255, 255, 0.25)"
+                  }}>
+                    <svg width="54" height="54" viewBox="0 0 24 24" fill="rgba(255, 255, 255, 0.7)">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                  </div>
+                );
+              })()}
             </div>
             
             <h2 style={{ margin: "0 0 4px", fontSize: "1.45rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
@@ -9699,7 +9719,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   padding: "0 22px",
                   borderRadius: "9999px",
                   border: "none",
-                  backgroundColor: "#0d9488",
+                  backgroundColor: theme.accent || "#2563eb",
                   color: "#fff",
                   fontWeight: "700",
                   fontSize: "0.88rem",
@@ -9710,7 +9730,7 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               </button>
             </form>
 
-            {/* 빨간색 통화 종료 원형 버튼 */}
+            {/* 빨간색 통화 종료 원형 버튼 (순백색 수화기 아이콘 적용) */}
             <div style={{ display: "flex", justifyContent: "center" }}>
               <button 
                 type="button"
@@ -9732,11 +9752,14 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)"
+                  boxShadow: "0 6px 20px rgba(239, 68, 68, 0.45)",
+                  transition: "transform 0.15s ease"
                 }}
                 title="통화 종료"
               >
-                <span style={{ fontSize: "1.8rem", transform: "rotate(135deg)", display: "inline-block" }}>📞</span>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(135deg)" }}>
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
               </button>
             </div>
           </div>
