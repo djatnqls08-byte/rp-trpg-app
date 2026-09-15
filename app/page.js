@@ -2527,7 +2527,7 @@ const startNewSession = async () => {
           scenarioCgs: currentCgs,
           unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
         },
-        messages: [{ role: "model", text: cleanText }],
+        messages: [{ role: "model", text: cleanText, cg: unlockedCgObj || null }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
@@ -5414,6 +5414,49 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
                             boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
                           }}
                         >
+{/* 🖼️ 지문 속에 해금된 이벤트 CG 배너 */}
+        {m.cg && (
+          <div 
+            onClick={() => {
+              if (typeof setZoomedCardUrl === "function") {
+                setZoomedCardUrl(m.cg.imageUrl || m.cg.url);
+              }
+            }}
+            style={{
+              marginBottom: "14px",
+              borderRadius: "10px",
+              overflow: "hidden",
+              boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              cursor: "zoom-in",
+              position: "relative"
+            }}
+            title="클릭하여 원본 크게 보기"
+          >
+            <img 
+              src={m.cg.imageUrl || m.cg.url} 
+              alt={m.cg.title || "이벤트 CG"} 
+              style={{ width: "100%", maxHeight: "380px", objectFit: "cover", display: "block" }} 
+            />
+            <div style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              padding: "8px 12px",
+              background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)",
+              color: "#fff",
+              fontSize: "0.8rem",
+              fontWeight: "800",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              <span>✨ {m.cg.title || "이벤트 일러스트"}</span>
+              <span style={{ fontSize: "0.7rem", opacity: 0.85 }}>🔍 터치하여 크게 보기</span>
+            </div>
+          </div>
+        )}
                           {m.text}
                         </div>
 
@@ -9346,7 +9389,6 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
       )}
 
       {/* ── 🖼️ CG 앨범 갤러리 모달 ── */}
-      {/* ── 🖼️ CG 앨범 갤러리 모달 ── */}
       {showCgAlbumModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
           <div style={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "14px", width: "100%", maxWidth: "520px", maxHeight: "85vh", display: "flex", flexDirection: "column", padding: "18px" }}>
@@ -9364,16 +9406,47 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                 </div>
               ) : (
                 activeSession.sheet.unlockedCgs.map((cg, idx) => (
-                  <div key={idx} style={{ backgroundColor: "rgba(30, 41, 59, 0.7)", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    <div style={{ height: "95px", backgroundColor: "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.8rem" }}>
-                      {cg.imageUrl ? <img src={cg.imageUrl} alt={cg.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "🎨"}
-                    </div>
-                    <div style={{ padding: "6px 8px" }}>
-                      <div style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cg.title}</div>
-                      {cg.desc && <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "2px" }}>{cg.desc}</div>}
-                    </div>
+                  activeSession.sheet.unlockedCgs.map((cg, idx) => (
+              <div 
+                key={idx}
+                onClick={() => {
+                  // 🌟 앨범 카드 터치 시 16:9 풀스크린 컷씬 창으로 원본 크게 띄우기
+                  if (typeof setActiveCutsceneCg === "function") {
+                    setActiveCutsceneCg(cg);
+                  } else if (typeof setZoomedCardUrl === "function") {
+                    setZoomedCardUrl(cg.imageUrl || cg.url);
+                  }
+                }}
+                title="클릭하여 원본 일러스트 크게 보기"
+                style={{ 
+                  cursor: "zoom-in",
+                  backgroundColor: "rgba(30, 41, 59, 0.7)", 
+                  borderRadius: "8px", 
+                  overflow: "hidden", 
+                  border: "1px solid rgba(255, 255, 255, 0.1)" 
+                }}
+              >
+                <div style={{ height: "95px", backgroundColor: "#1e293b" }}>
+                  {cg.imageUrl && (
+                    <img 
+                      src={cg.imageUrl} 
+                      alt={cg.title} 
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                    />
+                  )}
+                </div>
+                <div style={{ padding: "6px 8px" }}>
+                  <div style={{ fontSize: "0.75rem", fontWeight: "bold" }}>
+                    {cg.title}
                   </div>
-                ))
+                  {cg.desc && (
+                    <div style={{ fontSize: "0.68rem", opacity: 0.7, marginTop: "2px" }}>
+                      {cg.desc}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
               )}
             </div>
           </div>
