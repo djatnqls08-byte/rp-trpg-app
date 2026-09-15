@@ -5318,42 +5318,47 @@ if (isCall) {
     return null;
   }
 
-  // 현재부터 연속된 통화 메시지들을 하나로 묶기
-  const callBlock = [];
-  for (let j = i; j < activeSession.messages.length; j++) {
-    const cur = activeSession.messages[j];
-    if (cur.isCall || cur.isVoiceCall) {
-      callBlock.push(cur);
-    } else {
-      break;
+// 1. 이미 앞선 통화 블록에 묶여 출력된 메시지는 중복 생성 방지
+    if (i > 0 && (activeSession.messages[i - 1]?.isCall || activeSession.messages[i - 1]?.isVoiceCall)) {
+      return null;
     }
-  }
 
-const callerName = m.callNpc || partnerNpc?.name || "상대방";
+    // 2. 현재부터 연속된 통화 메시지들을 하나로 묶기 (연속 통화 묶음 기능 보존)
+    const callBlock = [];
+    for (let j = i; j < activeSession.messages.length; j++) {
+      const cur = activeSession.messages[j];
+      if (cur.isCall || cur.isVoiceCall) {
+        callBlock.push(cur);
+      } else {
+        break;
+      }
+    }
 
-if (!callBlock || callBlock.length === 0) return null;
+    const callerName = m.callNpc || (typeof voiceCallNpc === "string" ? voiceCallNpc : voiceCallNpc?.name) || partnerNpc?.name || "상대방";
+    if (!callBlock || callBlock.length === 0) return null;
 
     return (
       <details
         key={`call-block-${i}`}
-        // 🌟 통화 중일 때는 자동으로 펼쳐서(open) 메인 화면에서도 대화가 다 보이게 유지!
+        // 🌟 통화 중일 때는 자동으로 펼쳐두고, 통화 종료 후에는 접을 수 있게 유지
         open={isVoiceCallActive}
         style={{
           margin: "14px 0",
           borderRadius: "14px",
           border: isVoiceCallActive 
             ? "1.5px solid #ef4444" 
-            : `1px solid ${theme.border || "rgba(0,0,0,0.1)"}`,
+            : `1px solid ${theme.border || "rgba(0, 0, 0, 0.12)"}`,
           backgroundColor: isVoiceCallActive 
-            ? (theme.panel || "rgba(0, 0, 0, 0.03)") 
-            : (theme.panelAlt || "rgba(0,0,0,0.02)"),
+            ? (theme.panel || "rgba(239, 68, 68, 0.03)") 
+            : (theme.panelAlt || "rgba(0, 0, 0, 0.02)"),
           overflow: "hidden",
+          boxShadow: isVoiceCallActive ? "0 4px 16px rgba(239, 68, 68, 0.12)" : "none",
           transition: "all 0.2s ease"
         }}
       >
         <summary 
           onClick={(e) => {
-            // 통화 중 상단 바를 누르면 다시 스마트폰 풀스크린으로 복귀
+            // 통화 중 상단 바 클릭 시 풀스크린 모달로 복귀
             if (isVoiceCallActive) {
               e.preventDefault();
               setIsCallModalOpen(true);
@@ -5372,7 +5377,7 @@ if (!callBlock || callBlock.length === 0) return null;
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontSize: "1.1rem" }}>📞</span>
             <strong style={{ color: theme.text || "#1e293b", fontSize: "0.88rem" }}>
-              [{callerName}과의 {isVoiceCallActive ? "실시간 통화 중" : "지난 통화 기록"}]
+              [{callerName}과의 {isVoiceCallActive ? "실시간 통화 중" : "지난 통화 기록"} ({callBlock.length}개)]
             </strong>
             {isVoiceCallActive && (
               <span style={{
@@ -5393,32 +5398,45 @@ if (!callBlock || callBlock.length === 0) return null;
           </span>
         </summary>
 
-      {/* 통화 로그 본문 */}
-      <div style={{
-        padding: "12px 14px",
-        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-        backgroundColor: "rgba(15, 23, 42, 0.7)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px"
-      }}>
-        {callBlock.map((cm, cIdx) => (
-          <div key={cIdx} style={{
-            fontSize: "0.82rem",
-            lineHeight: "1.5",
-            color: cm.role === "user" ? "#93c5fd" : "#e2e8f0",
-            paddingLeft: "8px",
-            borderLeft: cm.role === "user" ? "2px solid #60a5fa" : "2px solid #f43f5e"
-          }}>
-            <strong style={{ fontSize: "0.74rem", display: "block", marginBottom: "2px", color: cm.role === "user" ? "#60a5fa" : "#fb7185" }}>
-              {cm.role === "user" ? (activeSession?.sheet?.userName || "나") : callerName}
-            </strong>
-            {cm.text}
-          </div>
-        ))}
-      </div>
-    </details>
-  );
+        {/* 📱 통화 로그 본문 (화자별 색상 구분 + 라이트/다크 모드 가독성 완벽 지원) */}
+        <div style={{
+          padding: "14px 16px",
+          borderTop: `1px solid ${isVoiceCallActive ? "rgba(239, 68, 68, 0.15)" : (theme.border || "rgba(0,0,0,0.08)")}`,
+          backgroundColor: theme.bg ? `${theme.bg}dd` : "rgba(15, 23, 42, 0.6)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px"
+        }}>
+          {callBlock.map((cm, cIdx) => {
+            const isMe = cm.role === "user";
+            return (
+              <div 
+                key={cIdx} 
+                style={{
+                  fontSize: "0.88rem",
+                  lineHeight: "1.6",
+                  color: theme.text || (isMe ? "#93c5fd" : "#e2e8f0"),
+                  paddingLeft: "10px",
+                  borderLeft: isMe ? "3px solid #3b82f6" : "3px solid #f43f5e"
+                }}
+              >
+                <strong style={{
+                  fontSize: "0.76rem",
+                  display: "block",
+                  marginBottom: "3px",
+                  color: isMe ? "#3b82f6" : "#f43f5e"
+                }}>
+                  {isMe ? (activeSession?.sheet?.userName || "나") : callerName}
+                </strong>
+                <div style={{ whiteSpace: "pre-wrap", wordBreak: "keep-all" }}>
+                  {cm.text}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+    );
 }
   // ── [통화가 아닌 일반 대면 대화는 기존 코드 그대로 진행] ──
                
@@ -9426,38 +9444,56 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         </div>
       )}
 
-      {/* 📱 1. 통화 축소 시 화면 상단 미니 팝업 (레퍼런스 스타일 플로팅 바) */}
+      {/* 📱 1. 통화 축소 시 상단 플로팅 미니 바 */}
       {isVoiceCallActive && !isCallModalOpen && (
         <div style={{
           position: "fixed",
-          top: "14px",
+          top: "12px",
           left: "50%",
           transform: "translateX(-50%)",
-          zIndex: 160,
-          width: "calc(100% - 28px)",
-          maxWidth: "430px",
-          backgroundColor: "rgba(22, 27, 34, 0.95)",
-          backdropFilter: "blur(16px)",
-          borderRadius: "20px",
-          padding: "12px 18px",
+          zIndex: 9999,
+          width: "calc(100% - 32px)",
+          maxWidth: "440px",
+          backgroundColor: "#161b22",
+          borderRadius: "18px",
+          padding: "10px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12)",
           boxSizing: "border-box",
-          animation: "slideDown 0.3s ease"
+          animation: "slideDown 0.25s ease"
         }}>
-          {/* 좌측: 아바타 + 이름 + HD 통화 상태 */}
+          {/* 좌측: 터치 시 통화창으로 복귀 */}
           <div 
             onClick={() => setIsCallModalOpen(true)}
             style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", flex: 1 }}
           >
-            <div style={{ position: "relative", width: "42px", height: "42px" }}>
-              <img 
-                src={voiceCallNpc?.avatar || voiceCallNpc?.photo || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400"} 
-                alt={voiceCallNpc?.name}
-                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
-              />
+            <div style={{ position: "relative", width: "40px", height: "40px" }}>
+              {(() => {
+                const npcName = voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "상대방");
+                const foundNpc = (activeSession?.npcs || []).find(n => n.name === npcName);
+                const realImg = foundNpc?.image || foundNpc?.avatar || foundNpc?.photo || voiceCallNpc?.image || voiceCallNpc?.avatar;
+                
+                return realImg ? (
+                  <img src={realImg} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #0d9488 0%, #0284c7 100%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#ffffff",
+                    fontWeight: "800",
+                    fontSize: "1.05rem"
+                  }}>
+                    {npcName.slice(0, 1)}
+                  </div>
+                );
+              })()}
               <span style={{
                 position: "absolute", bottom: "-1px", right: "-1px",
                 width: "11px", height: "11px", borderRadius: "50%",
@@ -9465,13 +9501,12 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               }} />
             </div>
             <div>
-              <div style={{ color: "#f8fafc", fontSize: "0.95rem", fontWeight: "700" }}>
-                {voiceCallNpc?.name || "상대방"}
+              <div style={{ color: "#ffffff", fontSize: "0.92rem", fontWeight: "700" }}>
+                {voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "상대방")}
               </div>
-              // 상단 미니 바의 "HD+ 통화 중" 글자색
-<div style={{ color: theme.accent || "#38bdf8", fontSize: "0.76rem", fontWeight: "600", marginTop: "1px" }}>
-  통화 중 ⤢ 터치하여 복귀
-</div>
+              <div style={{ color: theme.accent || "#38bdf8", fontSize: "0.75rem", fontWeight: "600", marginTop: "1px" }}>
+                ● 통화 중 ⤢ 터치하여 복귀
+              </div>
             </div>
           </div>
 
@@ -9490,13 +9525,12 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
               backgroundColor: "#ef4444",
               border: "none",
               borderRadius: "9999px",
-              padding: "8px 16px",
+              padding: "7px 15px",
               color: "#ffffff",
               fontSize: "0.82rem",
               fontWeight: "700",
               cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(239, 68, 68, 0.4)",
-              whiteSpace: "nowrap"
+              boxShadow: "0 2px 8px rgba(239, 68, 68, 0.4)"
             }}
           >
             종료
@@ -9509,9 +9543,10 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
         <div style={{
           position: "fixed",
           inset: 0,
-          zIndex: 180,
-          backgroundColor: theme.bg || "#0b0f17",
-background: `radial-gradient(circle at 50% 20%, ${theme.accent || "#38bdf8"}33 0%, ${theme.bg || "#0f172a"} 65%, #020617 100%)`,
+          zIndex: 9998,
+          // 🛡️ [비침 완벽 차단] 100% 불투명 솔리드 다크 + 테마 앰비언트 글로우
+          backgroundColor: "#090d16",
+          backgroundImage: `radial-gradient(circle at 50% 15%, ${theme.accent || "#38bdf8"}44 0%, #090d16 70%)`,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -9522,7 +9557,7 @@ background: `radial-gradient(circle at 50% 20%, ${theme.accent || "#38bdf8"}33 0
           animation: "fadeIn 0.25s ease"
         }}>
           
-          {/* 1. 상단 바: 깔끔한 SVG 다운 화살표 & 통화 상태 */}
+          {/* 1. 상단 바: 닫기(⌄) & 통화 상태 */}
           <div style={{ width: "100%", maxWidth: "420px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <button 
               type="button"
@@ -9546,15 +9581,119 @@ background: `radial-gradient(circle at 50% 20%, ${theme.accent || "#38bdf8"}33 0
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "0.86rem", color: theme.accent || "#38bdf8", fontWeight: "700", letterSpacing: "1px" }}>
-                ● 통화 중
-              </div>
-              <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "2px" }}>
-                HD Voice
-              </div>
+              <div style={{ fontSize: "0.86rem", color: theme.accent || "#5eead4", fontWeight: "700", letterSpacing: "1px" }}>● 통화 중</div>
+              <div style={{ fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "2px" }}>HD Voice</div>
             </div>
+            <div style={{ width: "42px" }} />
+          </div>
+
+          {/* 2. 중앙 프로필 & 펄스 링 */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: "420px", marginTop: "6px" }}>
+            <div style={{
+              position: "relative",
+              width: "120px",
+              height: "120px",
+              borderRadius: "50%",
+              marginBottom: "14px"
+            }}>
+              <div style={{
+                position: "absolute",
+                inset: "-12px",
+                borderRadius: "50%",
+                border: `2px solid ${theme.accent || "#38bdf8"}55`,
+                animation: "pulse 2s infinite"
+              }} />
+              {(() => {
+                const targetObj = (activeSession?.npcs || []).find(n => n.name === (voiceCallNpc?.name || voiceCallNpc)) || voiceCallNpc;
+                const realImg = targetObj?.image || targetObj?.avatar || targetObj?.photo;
+                return realImg ? (
+                  <img src={realImg} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255, 255, 255, 0.3)" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", borderRadius: "50%", backgroundColor: "rgba(255, 255, 255, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid rgba(255, 255, 255, 0.25)" }}>
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="rgba(255, 255, 255, 0.7)">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <h2 style={{ margin: "0 0 4px", fontSize: "1.45rem", fontWeight: "800", letterSpacing: "-0.5px" }}>
+              {voiceCallNpc?.name || voiceCallNpc || "상대방"}
+            </h2>
+            <span style={{ fontSize: "0.85rem", color: "rgba(255, 255, 255, 0.65)" }}>
+              {voiceCallNpc?.title || "통화 연결 중"}
+            </span>
+
+            {/* 🌟 3. 대사 상단 고정 + 지문만 스크롤되는 스마트 카드 */}
+            <div style={{
+              width: "100%",
+              marginTop: "20px",
+              backgroundColor: "rgba(22, 27, 34, 0.88)",
+              borderRadius: "20px",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              boxSizing: "border-box",
+              maxHeight: "330px",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden", // 겉 상자는 절대 스크롤되지 않음!
+              boxShadow: "0 12px 36px rgba(0, 0, 0, 0.5)"
+            }}>
+              {(() => {
+                const lastMsg = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
+                const dialogueMatch = lastMsg.match(/"([^"]+)"/);
+                const dialogue = dialogueMatch ? dialogueMatch[1] : null;
+                const narration = lastMsg.replace(/"[^"]+"/g, "").trim();
+
+                return (
+                  <>
+                    {/* 📌 [A] 상단 고정 대사: 스크롤해도 절대 움직이지 않고 상단에 박제 */}
+                    {dialogue ? (
+                      <div style={{
+                        padding: "18px 20px 14px",
+                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                        borderBottom: narration ? "1px dashed rgba(255, 255, 255, 0.18)" : "none",
+                        flexShrink: 0
+                      }}>
+                        <div style={{
+                          fontSize: "1.15rem",
+                          fontWeight: "700",
+                          color: "#ffffff",
+                          lineHeight: "1.55",
+                          textAlign: "center",
+                          textShadow: "0 2px 8px rgba(0,0,0,0.6)"
+                        }}>
+                          "{dialogue}"
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: "16px 20px", fontSize: "1.05rem", color: "#5eead4", textAlign: "center", fontWeight: "600", flexShrink: 0 }}>
+                        {lastMsg || "수화기 너머로 숨소리가 들려옵니다..."}
+                      </div>
+                    )}
+
+                    {/* 📜 [B] 하단 서술 지문: 대사는 그대로 두고 이 영역만 부드럽게 스크롤 */}
+                    {narration && (
+                      <div style={{
+                        padding: "16px 20px 20px",
+                        overflowY: "auto",
+                        flex: 1,
+                        fontSize: "0.95rem",
+                        color: "rgba(255, 255, 255, 0.88)",
+                        lineHeight: "1.75",
+                        textAlign: "center",
+                        wordBreak: "keep-all"
+                      }}>
+                        {narration}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
 
             <div style={{ width: "42px" }} />
           </div>
