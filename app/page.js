@@ -9597,30 +9597,32 @@ const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수�
                     <div style={{
                       fontSize: "0.95rem",
                       fontWeight: "600",
-                      lineHeight: 1.5,
+                      lineHeight: 1.6,
                       color: "#ffffff",
                       letterSpacing: "-0.02em",
-                      textShadow: "0 2px 4px rgba(0,0,0,0.8)"
+                      textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "keep-all"
                     }}>
                       {quote}
                     </div>
                   )}
 
-                  {/* 장면 묘사 */}
-                  {sceneDesc && (
+                  {/* 대사 */}
+                  {quote && (
                     <div style={{
-                      fontSize: "0.78rem",
-                      color: "#94a3b8",
-                      marginTop: "6px",
-                      lineHeight: 1.4,
-                      fontStyle: "italic"
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                      lineHeight: 1.6,
+                      color: "#ffffff",
+                      letterSpacing: "-0.02em",
+                      textShadow: "0 2px 4px rgba(0,0,0,0.8)",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "keep-all"
                     }}>
-                      {sceneDesc}
+                      {quote}
                     </div>
                   )}
-                </div>
-              )}
-            </div>
 
             <span style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.82rem", marginTop: "14px" }}>
               화면 아무 곳이나 누르면 닫힙니다 ✕
