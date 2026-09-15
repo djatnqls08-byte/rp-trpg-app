@@ -17,11 +17,11 @@ export async function POST(req) {
       ruleMode = "coc",
       playPreference = "",
       isPhoneChat = false,
-      isVoiceCall = false,       // 📞 전화 통화(음성 서사) 모드 여부
-      targetNpc = null,          // 🎯 현재 대화 상대 NPC 객체
+      isVoiceCall = false,
+      targetNpc = null,
       lastStoryContext = "",
-      recentEvents = [],         // 🧠 기억 수첩 (사건 플래그)
-      currentPhase = "낮",       // ☀️ 현재 시간대
+      recentEvents = [],
+      currentPhase = "낮",
     } = body;
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -47,17 +47,18 @@ export async function POST(req) {
       const pName = playerSheet?.name || "주인공";
       const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
       
-      // 🎯 [1번 NPC 고정 문제 완벽 해결] 클릭된 targetNpc를 최우선으로 지정
+      // 🎯 대화 상대 확정 (1번 NPC 고정 문제 해결)
       const activePartner = targetNpc || playerSheet?.npcs?.[0] || { name: "상대", job: "조력자" };
       const partnerName = activePartner.name || "상대";
       const currentAffinity = activePartner.affinity ?? activePartner.affection ?? 0;
+      const allNpcNames = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
 
-      // 🧠 최근 기억 및 사건 수첩 텍스트화
+      // 🧠 최근 기억 및 사건 수첩
       const eventsSummary = (recentEvents && recentEvents.length > 0)
         ? recentEvents.map(e => `  * ${e}`).join("\n")
         : "  * 특별히 기록된 사건 없음";
 
-      // 🌸 [관계성 및 서사 미학 원칙] (GL / BL / HL 태그 및 시트 설정 동적 반영)
+      // 🌸 장르 태그 및 관계성 원칙
       const prefText = `${playPreference || ""} ${scenarioText || ""}`;
       const isGL = prefText.includes("#GL") || prefText.includes("#백합");
       const isBL = prefText.includes("#BL");
@@ -65,7 +66,7 @@ export async function POST(req) {
 
       let romanceGenrePrompt = "시나리오 및 캐릭터 시트에 정의된 인물들의 성별, 외모, 관계성 설정을 왜곡 없이 그대로 준수하십시오.";
       if (isGL) {
-        romanceGenrePrompt = "현재 태그 [#GL / #백합] 적용 중: 모든 주요 인물은 여성으로 묘사하며, 섬세한 여성 간의 감정선과 유대를 다룹니다.";
+        romanceGenrePrompt = "현재 태그 [#GL / #백합] 적용 중: 모든 주요 인물은 여성으로 묘사하며, 섬세한 감정선과 유대를 다룹니다.";
       } else if (isBL) {
         romanceGenrePrompt = "현재 태그 [#BL] 적용 중: 중심 인물들은 남성 간의 서사와 감정선을 바탕으로 묘사합니다.";
       } else if (isHL) {
@@ -90,39 +91,38 @@ export async function POST(req) {
 
       let systemInstruction = "";
 
-      // ── [1. 통합 미연시 모드: "dating"] ──
+      // ── [1. 미연시 모드: "dating"] ──
       if (ruleMode === "dating") {
         if (isVoiceCall) {
-          // 📞 [A. 실시간 전화 통화 모드 (청각/음향 서사)]
+          // 📞 [A. 실시간 전화 통화 모드]
           systemInstruction = `${coreIdentityPrompt}
-[1:1 전화 통화(음성 서사) 모드]
-당신은 '${pName}'과 실시간 음성 통화(스마트폰/마도 통신기) 중인 '${partnerName}'입니다!
-[상대 정보] 역할: ${activePartner.job || "인물"}, 성격/설정: ${activePartner.detail || "자연스러운 태도"}, 현재 호감도: ${currentAffinity}점
+[1:1 실시간 음성 통화 모드]
+당신은 '${pName}'과 실시간 통화 중인 '${partnerName}'입니다!
+[상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
 
-[🚨 직전 현장 상황 및 다른 인물 존재 여부]
+[🚨 직전 현장 상황]
 """
-${lastStoryContext || "현재 방 안에서 조용히 통화 중입니다."}
+${lastStoryContext || "현재 조용한 공간에서 통화 중입니다."}
 """
 
-[🚨 전화 통화 전용 서술 수칙]
-1. 눈에 보이는 시각 묘사(표정, 옷차림 등)를 절대 하지 마십시오!
-2. 오직 '수화기 너머로 들려오는 소리'에 집중하십시오. (미세하게 떨리는 숨소리, 옷자락 스치는 소리, 침묵의 길이, 책장 넘기는 소리, 낮은 한숨 등)
-3. 만약 현장에 다른 인물이 있다면, 통화 도중 수화기 너머로 새어 들어오는 현장 소음이나 주변의 서늘한 기척을 짤막하게 한 줄로 서술하십시오.
-4. 상대방의 직접 대사는 큰따옴표("...")로 출력하십시오.
+[전화 통화 서술 수칙]
+1. 시각 묘사를 배제하고 '수화기 너머의 소리(숨소리, 침묵, 잡음, 떨림, 한숨)'에만 집중하십시오.
+2. 현장에 다른 인물이 있다면 수화기 틈새로 새어 들어오는 주변 기척을 짧게 묘사하십시오.
+3. 상대방의 직접 대사는 큰따옴표("...")로 출력하십시오.
 
 [태그 규칙]
-- 호감도 변동 시: <!-- AFFINITY: {"name": "${partnerName}", "value": 변경후수치} -->
-- 통화 마무리 후 인물이 먼저 끊을 때: <!-- END_CALL: {"reason": "종료 사유"} -->
-- 통화 중 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
+- 호감도 변동 시: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
+- 통화 종료 시: <!-- END_CALL: {"reason": "종료사유"} -->
+- 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: `네, 수화기 너머의 목소리와 호흡, 주변 음향에만 집중하여 농밀한 통화 서사를 전개하겠습니다.` }] });
+          formattedContents.push({ role: "model", parts: [{ text: "수화기 너머의 호흡과 음향에 집중하여 통화 서사를 전개하겠습니다." }] });
 
         } else if (isPhoneChat) {
-          // 📱 [B. 1:1 스마트폰 서랍 메신저]
+          // 📱 [B. 1:1 메신저 모드]
           systemInstruction = `${coreIdentityPrompt}
 [1:1 스마트폰 메신저 모드]
-당신은 '${pName}'과 1:1로 메신저 톡을 주고받고 있는 '${partnerName}' 본인입니다!
+당신은 '${pName}'과 1:1 톡을 주고받고 있는 '${partnerName}' 본인입니다!
 [상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
 
 [🚨 직전 현장 상황]
@@ -130,24 +130,21 @@ ${lastStoryContext || "현재 방 안에서 조용히 통화 중입니다."}
 ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다."}
 """
 
-[🚨 괄호 ( ), 지문, 서술 절대 금지]
-1. 괄호 ( ), [ ], 행동 지문, 상황 묘사를 단 한 글자도 출력하지 마십시오!
-2. 상대방 화면에 전송되는 '순수한 문자 텍스트'만 출력하십시오.
-3. 바로 눈앞에 마주 보고 있는 상황이더라도 행동을 괄호로 서술하지 말고, 오직 핀잔이나 반응을 담은 '문자 텍스트'만 보내십시오.
+[🚨 괄호 ( ), 지문 절대 금지]
+1. 괄호 ( ), [ ], 행동 지문, 상황 묘사를 단 한 글자도 출력하지 마십시오.
+2. 오직 스마트폰 화면에 전송되는 '순수한 문자 텍스트'만 출력하십시오.
 
-[🚨 호감도 및 상태메시지 관리 수칙]
+[태그 및 호감도 관리]
 - 호감도 범위: -50 ~ 100점 (현재: ${currentAffinity}점)
-- 일상적 안부로는 호감도가 변하지 않습니다.
-- 진심으로 설레거나 깊은 공감이 형성될 때만 +1~2점 소폭 올리십시오.
-- 무례하거나 경계를 넘으면 -2~-5점 감점하십시오.
-- 호감도 변동 시: <!-- AFFINITY: {"name": "${partnerName}", "value": 변경후수치} -->
-- 상대방의 심경/상태메시지 변경 시: <!-- STATUS_MSG: {"name": "${partnerName}", "text": "한 줄 문구"} -->
-- 대화 중 일상 스냅 사진을 보낼 타이밍: <!-- SNAP_PHOTO: {"caption": "사진 설명", "subject": "영문 사물/풍경 묘사"} -->
-- 상대방의 취향 발견 시: <!-- CLUE: {"name": "${partnerName}의 취향: OOO", "desc": "상세 설명"} -->
+- 진심 어린 유대 형성 시에만 +1~2점, 무례함에는 -2~-5점 감점.
+- 호감도 변동 시: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
+- 상태메시지 변경 시: <!-- STATUS_MSG: {"name": "${partnerName}", "text": "한 줄 문구"} -->
+- 폰카 스냅 전송 시: <!-- SNAP_PHOTO: {"caption": "설명", "subject": "영문 사물/풍경 키워드"} -->
+- 취향 발견 시: <!-- CLUE: {"name": "${partnerName}의 취향: OOO", "desc": "설명"} -->
 - 추천 답장 3개: <!-- SUGGESTIONS: ["답장 1", "답장 2", "답장 3"] -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: `네, 괄호 지문을 완전히 배제하고 오직 상대방의 메신저 텍스트와 사진 태그만 전송하겠습니다.` }] });
+          formattedContents.push({ role: "model", parts: [{ text: "괄호 지문 없이 순수 메신저 텍스트와 사진 태그만 전송하겠습니다." }] });
 
         } else {
           // 📖 [C. 대면 비주얼 노벨 소설 서사]
@@ -163,48 +160,45 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
               });
             });
             if (phoneLogs.length > 0) {
-              recentPhoneSummary = `\n[📱 최근 주고받은 메신저 내역]\n${phoneLogs.join("\n")}`;
+              recentPhoneSummary = `\n[📱 최근 메신저 내역]\n${phoneLogs.join("\n")}`;
             }
           }
 
           systemInstruction = `${coreIdentityPrompt}
 [비주얼 노벨 / 인터랙티브 로맨스 모드]
 당신은 두 사람의 관계를 이끄는 비주얼 노벨 마스터입니다.
-- 주인공(PC): '${pName}' (${pcTone})
-- 현재 대면 상대: '${partnerName}' (${activePartner.job || "인물"}, 설정: ${activePartner.detail || "없음"}, 현재 호감도: ${currentAffinity}점)
+- 주인공: '${pName}' (${pcTone})
+- 현재 대면 상대: '${partnerName}' (${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점)
+- 전체 등장인물 명단: [${allNpcNames}]
 - 현재 시간대: [${currentPhase}]
 - 최근 기억 및 사건 수첩:
 ${eventsSummary}
 ${recentPhoneSummary}
 
-[🚨 제4의 벽 파괴 금지]
-1. 플레이어를 '작가님', '독자님'으로 부르지 마십시오.
-2. 챗봇식 안내 멘트("선택지를 골라주세요" 등)를 쓰지 말고 곧바로 소설 본문으로 들어가십시오.
+[🚨 대면 서사 진행 및 발화 지침]
+1. 상대방 '${partnerName}'은 방관하지 않고 주인공의 말과 행동에 섬세하게 반응하십시오.
+2. [발화 설정 분기]:
+   - 말을 할 수 있는 인물: 반드시 직접 대사("...")로 반응하십시오.
+   - 말을 못 하거나 필담/수어를 쓰는 인물: 억지로 말을 시키지 말고, 메모장 필담('...'), 수어, 미세한 눈빛, 스치는 손길 등 농밀한 비언어적 교감으로 서술하십시오.
+3. 호감도 범위는 -50 ~ 100점입니다.
+4. 지문 구성: [현장 공기감과 인물의 미세 반응 2~3문단] + [${partnerName}의 직접 대사 혹은 필담]
 
-[🚨 대면 서사 진행 및 호감도 수칙]
-1. 현재 상대인 '${partnerName}'은 방관하지 않고 주인공의 말과 행동에 섬세하게 반응해야 합니다.
-2. 호감도 범위는 -50 ~ 100점입니다.
-   - 0점: 정중하고 선을 지키는 태도
-   - 마이너스: 단답, 서늘한 시선, 불편한 기색 (-50점 시 대화 거부)
-   - 플러스: 서서히 마음의 빗장을 열며 깊어지는 유대감
-3. 지문 구성: [현장 공기감과 인물의 미세한 반응 묘사 2~3문단] + [${partnerName}의 직접 대사 혹은 필담]
-
-[🚨 필수 시스템 태그 규칙 (상황에 맞게 지문 맨 끝에 단독 출력)]
-1. 호감도 변동 시: <!-- AFFINITY: {"name": "${partnerName}", "value": 변경후수치} -->
+[🚨 필수 시스템 태그 규칙 (지문 맨 끝에 단독 출력)]
+1. 호감도 변동 시: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
 2. 인물이 헤어지거나 자리를 뜰 때 (장소 선택지 3개):
-   <!-- LOCATION_CARDS: [{"name": "장소명", "desc": "분위기 묘사", "npc": "그곳에 있을 인물"}] -->
-3. 대면 중 다음 날 약속 성립 시: <!-- APPOINTMENT: {"npc": "${partnerName}", "place": "약속 장소", "time": "내일 낮"} -->
-4. 번호/명함을 교환하여 연락처가 해금될 때: <!-- UNLOCK_CONTACT: {"name": "${partnerName}"} -->
-5. 서사 도중 다른 인물에게서 전화가 걸려오는 돌발 상황 연출 시: <!-- INCOMING_CALL: {"caller": "발신인물명", "urgent": false} -->
-6. 중요한 사건/실수/더블부킹이 발생해 AI가 기억해야 할 때: <!-- EVENT_FLAG: "사건 요약문" -->
-7. 새로운 인물 최초 등장 시: <!-- NEW_NPC: {"name": "인물명", "job": "역할", "detail": "외모/성격"} -->
-8. 주인공의 선택지 3개: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->
-9. 공식 시나리오의 결정적 이벤트 장면 도달 시: <!-- UNLOCK_CG: {"id": "CG고유ID", "title": "CG제목"} -->
-10. 통화 서사 중 대화가 마무리되어 전화를 끊을 때: <!-- END_CALL: {"reason": "종료사유"} -->
-11. 이야기의 최종 결말에 도달했을 때: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->`;
+   <!-- LOCATION_CARDS: [{"name": "장소명", "desc": "분위기 묘사", "npc": "등장인물"}] -->
+3. 다음 날 약속 성립 시: <!-- APPOINTMENT: {"npc": "${partnerName}", "place": "약속 장소", "time": "내일 낮"} -->
+4. 번호/명함 교환 시: <!-- UNLOCK_CONTACT: {"name": "${partnerName}"} -->
+5. 비대면 선톡 도착 시: <!-- PHONE_MSG: {"from": "${partnerName}", "text": "짧은 메시지"} -->
+6. 실시간 전화 수신 발동 시: <!-- INCOMING_CALL: {"caller": "발신인물명", "urgent": false} -->
+7. 특이 사건/실수 박제 시: <!-- EVENT_FLAG: "사건 요약문" -->
+8. 신규 인물 첫 등장 시: <!-- NEW_NPC: {"name": "인물명", "job": "역할", "detail": "외모/성격"} -->
+9. 공식 16:9 CG 해금 시: <!-- UNLOCK_CG: {"id": "CG아이디", "title": "제목"} -->
+10. 최종 결말 도달 시: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->
+11. 주인공의 3지선다 선택지: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-          formattedContents.push({ role: "model", parts: [{ text: `네, 1번 NPC 고정 없이 현재 상대인 [${partnerName}]과의 대면 서사에 몰입하며 시간 스킵 없이 정갈하게 진행하겠습니다.` }] });
+          formattedContents.push({ role: "model", parts: [{ text: `네, 1번 NPC 고정 없이 [${partnerName}]과의 대면 서사에 몰입하며 시간 스킵 없이 정갈하게 진행하겠습니다.` }] });
         }
 
       // ── [2. 정통 TRPG 모드 (CoC, inSANe, 자유 서사)] ──
@@ -216,42 +210,31 @@ ${recentPhoneSummary}
 
         let rulePrompt = "";
         if (ruleMode === "coc") {
-          rulePrompt = `[크툴루의 부름 7판 CoC 진행 및 광기 수칙]
-- 단서 탐색이나 조사 선언 시 결과를 미리 서술하지 말고 <!-- CHECK: {"skill": "기능명", "target": 수치, "reason": "이유"} --> 출력 후 서술을 즉시 멈추십시오.
-- 물리적 탐색 구역은 <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] --> 형식으로 출력하십시오.
-- 🚨 이성(SAN) 차감 완급 조절: 경미한 조우는 성공 0 / 실패 1점(최대 2점)으로 제한하십시오. 충격적인 조우 시 <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->를 출력하십시오.
-- 아이템이나 단서 획득 시: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
+          rulePrompt = `[크툴루의 부름 7판 CoC 진행 수칙]
+- 단서 탐색 시 판정 태그 출력 후 서술 중단: <!-- CHECK: {"skill": "기능명", "target": 수치, "reason": "이유"} -->
+- 물리적 탐색 구역: <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] -->
+- 이성(SAN) 체크: <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->
+- 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
         } else if (ruleMode === "insane") {
-          rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 정규 진행 수칙]
-현재 진행 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
-
-[🚨 용어 표기 절대 수칙]
-- 영어 병기를 금지하며, 오직 '성공', '실패', '스페셜', '펌블', '쇼크', '공포 판정', '착란', '현재화' 등 한국어 공식 정규 용어만 단독 표기하십시오.
-
-[🚨 페이즈별 진행 지침]
-1. 도입(INTRO) 페이즈: 판정(CHECK)을 절대로 요구하지 마십시오! 오프닝 서술에 집중하십시오.
-2. 클라이맥스(CLIMAX) 페이즈: 최종 결전과 사명이 충돌하는 비장한 결말을 연출하십시오.
-
-[인세인 금지 항목]
-1. <!-- SPOTS: ... --> 절대 출력 금지 (인세인은 씬 기반 게임입니다).
-2. '관찰력', '자료조사' 등 CoC 기능치 언급 금지. 판정은 오직 66대 정규 특기로만 요구하십시오.
-
-[주요 태그 규격]
-1. 조사 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
-2. 조사 성공 및 비밀 해금: <!-- REVEAL_HANDOUT: {"title": "핸드아웃제목"} --> / <!-- SHOCK: {"target": "${pName}", "skill": "공포판정특기명"} -->
-3. 감정 맺기: <!-- EMOTION: {"target": "${partnerName}"} -->
-4. 마스터 장면 트리거: <!-- MASTER_SCENE: {"title": "사건명"} -->
-5. 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "효과설명"} -->
-6. 장면 전환 제안: <!-- ADVANCE_SCENE -->`;
+          rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 정규 수칙]
+진행 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
+- 영어 병기 금지, 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 착란 등)만 사용하십시오.
+- 도입 페이즈 판정 요구 금지, 66대 정규 특기만 사용.
+- 조사 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
+- 비밀 해금: <!-- REVEAL_HANDOUT: {"title": "제목"} --> / <!-- SHOCK: {"target": "${pName}", "skill": "특기명"} -->
+- 감정 판정: <!-- EMOTION: {"target": "${partnerName}"} -->
+- 마스터 장면: <!-- MASTER_SCENE: {"title": "사건명"} -->
+- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "설명"} -->
+- 장면 전환: <!-- ADVANCE_SCENE -->`;
         } else {
           rulePrompt = `[자유 서사 모드]
-- 주사위 판정에 얽매이지 않고 문학적인 대사와 감정선에 집중하십시오.
-- 위기 상황에서 판정이 필요할 때만 선택적으로 요구하십시오: <!-- CHECK: {"action": "행동", "target": 10} -->`;
+- 주사위 판정 없이 문학적인 대사와 감정선에 집중하십시오.
+- 위기 시 선택적 판정 요구: <!-- CHECK: {"action": "행동", "target": 10} -->`;
         }
 
         const relationshipPrompt = `[🚨 캐릭터 호칭 및 관계성 절대 수칙]
-1. 'PC', 'KPC'라는 단어를 절대 쓰지 마십시오! 주인공은 '${pName}', 동행 파트너는 '${partnerName}'(으)로만 지칭하십시오.
-${(playPreference || "").includes("#달달") || (playPreference || "").includes("#일상") ? "2. 태그에 #달달 혹은 #일상이 포함되어 있습니다. 고어, 유혈 묘사를 배제하고 따뜻하게 재해석하십시오." : ""}`;
+1. 'PC', 'KPC' 금지. 주인공은 '${pName}', 동행 파트너는 '${partnerName}'(으)로만 지칭하십시오.
+${(playPreference || "").includes("#달달") || (playPreference || "").includes("#일상") ? "2. 고어/유혈 묘사를 배제하고 따뜻하게 재해석하십시오." : ""}`;
 
         systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
 
@@ -268,18 +251,17 @@ ${scenarioText || "미상의 시나리오"}
 ${eventsSummary}
 
 [🚨 서술 문체 및 규칙]
-1. 모든 지문 서술은 정중한 키퍼의 경어체(~합니다/했습니다)로 100% 일관되게 서술하십시오.
-2. 판정 요구 시 태그를 출력하고 즉시 서술을 멈추십시오. 태그 끝은 반드시 "-->" 로 닫으십시오.
-3. 임의 시간 스킵을 금지하며 1턴 1행동 원칙을 지키십시오.`;
+1. 모든 지문 서술은 정중한 경어체(~합니다/했습니다)로 100% 일관되게 서술하십시오.
+2. 판정 요구 시 태그 출력 후 서술을 즉시 멈추십시오.
+3. 임의 시간 스킵 금지 및 1턴 1행동 원칙 준수.`;
 
         formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
-        formattedContents.push({ role: "model", parts: [{ text: "경어체(~합니다/였습니다)로 일관되게 서술하며, 시간 스킵 없이 정규 룰을 준수하여 진행하겠습니다." }] });
+        formattedContents.push({ role: "model", parts: [{ text: "경어체로 일관되게 서술하며 정규 룰을 준수하여 진행하겠습니다." }] });
       }
 
-      // 🌟 [최적화] 대화가 길어져도 튕기지 않도록 최근 20턴만 선별
+      // 🌟 대화 히스토리 슬라이싱 최적화 (최근 20턴)
       const recentHistory = msgList.slice(-20);
 
-      // 대화 히스토리 구성
       for (const m of recentHistory) {
         const role = m.role === "user" ? "user" : "model";
         const text = (m.text || "").trim();
@@ -313,7 +295,7 @@ ${eventsSummary}
 
     if (!responseText) throw lastError || new Error("모든 예비 모델의 한도가 초과되었습니다.");
 
-    // 🌟 메신저 모드일 때 괄호 묘사 ( ... )나 [ ... ] 가 튀어나오면 무조건 강제 삭제
+    // 메신저 모드 괄호 묘사 강제 제거
     if (isPhoneChat && responseText) {
       responseText = responseText
         .replace(/^\s*\([\s\S]*?\)\s*/g, "")
