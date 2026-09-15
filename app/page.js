@@ -3769,7 +3769,7 @@ currentPhase === "클라이맥스" ? `
           photo: idx === 0 ? autoSnapPhotoUrl : null // 👈 첫 번째 말풍선에 사진 주소 연결!
         }));
 
-        if (incomingMsgs.length > 0) {
+if (incomingMsgs.length > 0) {
           newSheet.phoneChats = {
             ...currentChats,
             [contactId]: [...contactMsgs, ...incomingMsgs]
@@ -3778,6 +3778,7 @@ currentPhase === "클라이맥스" ? `
           // 📱 화면 상단에 카톡처럼 푸시 알림 배너 띄우기
           triggerToast("📱 새 메시지 도착", `${targetSenderName}: "${incomingMsgs[0]?.text}"`, "💬");
         }
+      } // 👈 이 닫는 괄호 } 가 빠져 있었어! 꼭 넣어줘!
 
       // [선물하기 아이템 자동 차감]
       const giftMatch = textToSend.match(/\[(.*?) 선물하기\]/);
