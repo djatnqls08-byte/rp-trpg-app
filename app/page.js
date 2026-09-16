@@ -5827,7 +5827,7 @@ return (
 
             {/* 시나리오 정보 */}
             <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-              {/* 1. 신규 추가: AI 시나리오 제작기 Gem 바로가기 */}
+              {/* 1. 스튜디오 링크 */}
               <a
                 href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
                 target="_blank"
@@ -5871,7 +5871,19 @@ return (
               </button>
 
               {/* 3. 기존 치환 버튼 */}
-              <button onClick={handleAutoReplaceKpcPc} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.8rem", cursor: "pointer" }}>
+              <button 
+                type="button"
+                onClick={handleAutoReplaceKpcPc} 
+                style={{ 
+                  padding: "4px 8px", 
+                  backgroundColor: theme.panelAlt, 
+                  color: theme.text, 
+                  border: `1px solid ${theme.border}`, 
+                  borderRadius: "6px", 
+                  fontSize: "0.8rem", 
+                  cursor: "pointer" 
+                }}
+              >
                 🔄 {isMobile ? "치환" : "PC/KPC 치환"}
               </button>
             </div>
