@@ -10855,7 +10855,94 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
         </div>
       )}
 
-{/* 💡 다인원 지원 독립 취향 수첩 모달 */}
+{/* 🎁 1. 다인원 지원 최상위 독립 선물하기 모달 */}
+      {giftModalNpc && (() => {
+        const allNpcs = activeSession?.sheet?.npcs || [];
+
+        return (
+          <div 
+            onClick={() => setGiftModalNpc(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 99999, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+          >
+            <div 
+              onClick={e => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "8px" }}>
+                <div>
+                  <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>🎁 선물 전달</span>
+                  <div style={{ fontSize: "0.72rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>전달할 상대와 소지품을 선택하세요</div>
+                </div>
+                <button type="button" onClick={() => setGiftModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
+              </div>
+
+              {allNpcs.length > 1 && (
+                <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px" }}>
+                  {allNpcs.map((npc) => {
+                    const isSelected = giftModalNpc.id === npc.id || giftModalNpc.name === npc.name;
+                    return (
+                      <button
+                        key={npc.id || npc.name}
+                        type="button"
+                        onClick={() => setGiftModalNpc(npc)}
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "14px",
+                          border: `1.5px solid ${isSelected ? activePhoneSkin.accent : activePhoneSkin.border}`,
+                          backgroundColor: isSelected ? activePhoneSkin.accent : "transparent",
+                          color: isSelected ? activePhoneSkin.accentText : activePhoneSkin.text,
+                          fontSize: "0.74rem",
+                          fontWeight: isSelected ? "800" : "500",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0
+                        }}
+                      >
+                        {npc.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "38vh" }}>
+                {(!activeSession?.sheet?.items || activeSession.sheet.items.length === 0) ? (
+                  <div style={{ textAlign: "center", padding: "24px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.5" }}>
+                    선물함에 소지품이 없습니다.<br />서사를 진행하며 물건을 얻어보세요!
+                  </div>
+                ) : (
+                  activeSession.sheet.items.map((it, idx) => (
+                    <div 
+                      key={idx}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px" }}
+                    >
+                      <div style={{ flex: 1, paddingRight: "8px" }}>
+                        <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}>📦 {it.name}</div>
+                        {it.desc && <div style={{ fontSize: "0.7rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>{it.desc}</div>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targetNpc = giftModalNpc;
+                          setGiftModalNpc(null);
+                          setSelectedProfileNpc(null);
+                          setIsPhoneDrawerOpen(false);
+                          executeMessage(`[${it.name} 선물하기] 품에서 [${it.name}]을(를) 꺼내어 ${targetNpc.name}에게 건넨다.`);
+                        }}
+                        style={{ padding: "7px 14px", backgroundColor: activePhoneSkin.accent, color: activePhoneSkin.accentText, border: "none", borderRadius: "16px", fontSize: "0.75rem", fontWeight: "800", cursor: "pointer", flexShrink: 0 }}
+                      >
+                        {giftModalNpc.name}에게 전달
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 💡 2. 다인원 지원 최상위 독립 취향 수첩 모달 */}
       {clueModalNpc && (() => {
         const allNpcs = activeSession?.sheet?.npcs || [];
 
@@ -10868,7 +10955,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               onClick={e => e.stopPropagation()}
               style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
             >
-              {/* 상단 헤더 */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "8px" }}>
                 <div>
                   <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>💡 취향 수첩</span>
@@ -10877,7 +10963,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 <button type="button" onClick={() => setClueModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
               </div>
 
-              {/* 🌟 다인원 인물 선택 탭 (2명 이상일 때 자동 노출) */}
               {allNpcs.length > 1 && (
                 <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px" }}>
                   {allNpcs.map((npc) => {
@@ -10907,7 +10992,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 </div>
               )}
 
-              {/* 해당 인물의 취향 목록 */}
               <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "38vh" }}>
                 {(() => {
                   const npcClues = (activeSession?.sheet?.clues || []).filter(c => 
@@ -10951,98 +11035,14 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                       </div>
                     </div>
                   ));
-
-      {/* 🎁 다인원 지원 독립 선물하기 모달 */}
-      {giftModalNpc && (() => {
-        const allNpcs = activeSession?.sheet?.npcs || [];
-
-        return (
-          <div 
-            onClick={() => setGiftModalNpc(null)}
-            style={{ position: "fixed", inset: 0, zIndex: 99999, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
-          >
-            <div 
-              onClick={e => e.stopPropagation()}
-              style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
-            >
-              {/* 상단 헤더 */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "8px" }}>
-                <div>
-                  <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>🎁 선물 전달</span>
-                  <div style={{ fontSize: "0.72rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>전달할 상대와 소지품을 선택하세요</div>
-                </div>
-                <button type="button" onClick={() => setGiftModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
-              </div>
-
-              {/* 🌟 다인원 인물 선택 탭 (2명 이상일 때 자동 노출) */}
-              {allNpcs.length > 1 && (
-                <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px" }}>
-                  {allNpcs.map((npc) => {
-                    const isSelected = giftModalNpc.id === npc.id || giftModalNpc.name === npc.name;
-                    return (
-                      <button
-                        key={npc.id || npc.name}
-                        type="button"
-                        onClick={() => setGiftModalNpc(npc)}
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: "14px",
-                          border: `1.5px solid ${isSelected ? activePhoneSkin.accent : activePhoneSkin.border}`,
-                          backgroundColor: isSelected ? activePhoneSkin.accent : "transparent",
-                          color: isSelected ? activePhoneSkin.accentText : activePhoneSkin.text,
-                          fontSize: "0.74rem",
-                          fontWeight: isSelected ? "800" : "500",
-                          cursor: "pointer",
-                          whiteSpace: "nowrap",
-                          flexShrink: 0
-                        }}
-                      >
-                        {npc.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* 소지품 목록 */}
-              <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "38vh" }}>
-                {(!activeSession?.sheet?.items || activeSession.sheet.items.length === 0) ? (
-                  <div style={{ textAlign: "center", padding: "24px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.5" }}>
-                    선물함에 소지품이 없습니다.<br />서사를 진행하며 물건을 얻어보세요!
-                  </div>
-                ) : (
-                  activeSession.sheet.items.map((it, idx) => (
-                    <div 
-                      key={idx}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px" }}
-                    >
-                      <div style={{ flex: 1, paddingRight: "8px" }}>
-                        <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}>📦 {it.name}</div>
-                        {it.desc && <div style={{ fontSize: "0.7rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>{it.desc}</div>}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const targetNpc = giftModalNpc;
-                          setGiftModalNpc(null);
-                          setSelectedProfileNpc(null);
-                          setIsPhoneDrawerOpen(false);
-                          executeMessage(`[${it.name} 선물하기] 품에서 [${it.name}]을(를) 꺼내어 ${targetNpc.name}에게 건넨다.`);
-                        }}
-                        style={{ padding: "7px 14px", backgroundColor: activePhoneSkin.accent, color: activePhoneSkin.accentText, border: "none", borderRadius: "16px", fontSize: "0.75rem", fontWeight: "800", cursor: "pointer", flexShrink: 0 }}
-                      >
-                        {giftModalNpc.name}에게 전달
-                      </button>
-                    </div>
-                  ))
-                )}
+                })()}
               </div>
             </div>
           </div>
         );
       })()}
-       
-       {/* ⏳ 2초 시간 경과 암전 오버레이 연출 */}
+
+      {/* ⏳ 3. 2초 시간 경과 암전 오버레이 연출 */}
       {timeTransition && (
         <div style={{
           position: "fixed",
@@ -11065,10 +11065,11 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               고요히 흐르는 시간 속에 머무는 중……
             </div>
             <div style={{ color: "#fde68a", fontSize: "17px", fontWeight: "bold", letterSpacing: "3px", marginTop: "10px" }}>
-                    [ {timeTransition} ]
-                  </div>
-                </div>
-              </div>
-            )}
-      );
-    }
+              [ {timeTransition} ]
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
