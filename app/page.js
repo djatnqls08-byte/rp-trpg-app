@@ -1130,7 +1130,7 @@ useEffect(() => {
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
 
- // 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
+// 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
   useEffect(() => {
     if (!activeSession?.messages || activeSession.messages.length === 0) return;
 
@@ -1169,7 +1169,7 @@ useEffect(() => {
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
 
-    // 🚨 게임 시작 극초반(1~2턴)이라면 1번 프롤로그 CG만 남김
+    // 게임 시작 극초반(1~2턴)이라면 1번 프롤로그 CG 1개만 남기고 리셋
     if (isBeginning) {
       const firstCg = allScenarioCgs[0] || (currentUnlocked.length > 0 ? currentUnlocked[0] : null);
       const resetList = firstCg ? [{ ...firstCg, unlockedAt: Date.now() }] : [];
@@ -1187,13 +1187,11 @@ useEffect(() => {
     allScenarioCgs.forEach((cg, idx) => {
       const triggerCond = (cg.trigger || cg.condition || "").trim();
 
-      // ① 1번 CG (프롤로그 / 첫 대면)
       if (idx === 0 || /프롤로그|첫\s*대면|시작/.test(triggerCond)) {
         properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
         return;
       }
 
-      // ② 대상 인물 및 호감도 동적 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const targetNpcName = targetNpc?.name;
 
@@ -1208,7 +1206,6 @@ useEffect(() => {
         return;
       }
 
-      // ③ 서사 조건: 5단계 시간대 및 핵심 키워드 동적 검사
       const passNpc = targetNpcName ? fullHistory.includes(targetNpcName) : true;
 
       let passTime = true;
@@ -3229,13 +3226,21 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   <!-- LOCATION_CARDS: [{"name": "장소명", "npc": "머물고있는인물명", "desc": "장소 분위기 설명"}] -->
 
 5. [부재중 NPC의 메신저 선톡 및 일상 사진 전송 수칙]
-- 플레이어가 현재 인물과 대화를 4~8턴 이상 주고받았을 때, **다른 장소에 있는 다른 NPC(연락처가 있는 인물)**가 플레이어에게 안부, 용건, 질투, 혹은 비밀스러운 선톡을 1회 발송하게 하십시오.
-- **[자동 사진 전송]** 유저가 요청하지 않아도, NPC의 현재 상황에 맞춰 자연스럽게 자신의 주변 풍경 사진을 함께 첨부해 보낼 수 있습니다.
-- 형식:
+  - 플레이어가 현재 인물과 대화를 4~8턴 이상 주고받았을 때, **다른 장소에 있는 다른 NPC(연락처가 있는 인물)**가 플레이어에게 안부, 용건, 질투, 혹은 비밀스러운 선톡을 1회 발송하게 하십시오.
+  - **[자동 사진 전송]** 유저가 요청하지 않아도, NPC의 현재 상황에 맞춰 자연스럽게 자신의 주변 풍경 사진을 함께 첨부해 보낼 수 있습니다.
+  - 형식:
   <!-- PHONE_MSG: {"from": "발신NPC이름", "text": "선톡 내용 (1~2줄)"} -->
   <!-- SNAP_PHOTO: {"prompt": "1girl, solo, looking at viewer, casual clothes, anime masterpiece", "caption": "사진 한 줄 설명"} -->
-- prompt는 고화질 일러스트가 생성될 수 있도록 반드시 배경이 포함된 영문(English) 키워드로 작성하십시오.`;
-  // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
+  - prompt는 고화질 일러스트가 생성될 수 있도록 반드시 배경이 포함된 영문(English) 키워드로 작성하십시오.
+
+6. [돌발 전화 수신 (INCOMING_CALL) 트리거 수칙]
+  - 긴급한 사건, 약속 확인, 혹은 밤/새벽 시간대 감정적인 대화가 필요한 타이밍에 다른 장소에 있는 NPC가 플레이어에게 전화를 걸어오게 할 수 있습니다. (전체 세션 중 1~2회 자연스럽게 연출)
+  - 형식: 맨 끝에 <!-- INCOMING_CALL: {"name": "발신NPC이름", "urgent": true} -->
+  - 🚨 절대 주의: 현재 눈앞에서 마주보고 있는 인물은 전화를 걸 수 없습니다. 다른 구역에 있는 인물만 전화를 겁니다!`;
+  
+ 
+ 
+ // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
       const currentPhase = activeSession.sheet?.phase || "도입";
       const isActionDone = activeSession.sheet?.actionUsed || textToSend.includes("주요 행동");
@@ -3367,12 +3372,28 @@ currentPhase === "클라이맥스" ? `
         rawText = rawText.replace(locationMatch[0], "").trim();
       }
 
-      // 2. 실시간 전화 수신 감지
+      // 2. 실시간 전화 수신 감지 (프로필 자동 결속 및 진동/알림 연동)
       const callMatch = rawText.match(/<!--\s*INCOMING_CALL:\s*(\{[\s\S]*?\})\s*-->/);
       if (callMatch) {
         try {
-          setIncomingCall(JSON.parse(callMatch[1]));
-        } catch (e) { console.error("전화 수신 파싱 실패", e); }
+          const rawCall = JSON.parse(callMatch[1]);
+          const callerName = (rawCall.name || rawCall.caller || rawCall.from || (typeof rawCall.caller === "object" ? rawCall.caller.name : "") || "").trim();
+          
+          // 현재 세션의 시트에서 발신자 프로필(사진, 이름) 자동 매칭
+          const matchedNpc = (activeSession.sheet?.npcs || []).find(n => n.name === callerName || (callerName && n.name.includes(callerName)));
+          const callerObj = matchedNpc || (typeof rawCall.caller === "object" ? rawCall.caller : { name: callerName, portrait: "" });
+
+          setIncomingCall({
+            caller: callerObj,
+            urgent: Boolean(rawCall.urgent)
+          });
+          setIsPhoneDrawerOpen(true);
+          
+          if (typeof triggerVibration === "function") triggerVibration("strong");
+          triggerToast("📞 전화 수신", `${callerObj.name || "누군가"}에게서 전화가 걸려왔습니다!`, "📱");
+        } catch (e) { 
+          console.error("전화 수신 파싱 실패", e); 
+        }
         rawText = rawText.replace(callMatch[0], "").trim();
       }
 
@@ -3402,148 +3423,72 @@ currentPhase === "클라이맥스" ? `
         rawText = rawText.replace(cgMatch[0], "").trim();
       }
 
-// 2) AI가 태그를 빼먹었을 경우: 시트 조건(호감도 40, 인물, 시간대 등) 자동 판정
+      // 2) AI가 태그를 빼먹었을 경우: 시트 조건 자동 판정
       if (!newlyUnlockedCg && allScenarioCgs.length > 0) {
         const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
         const fullRecentContext = `${textToSend} ${rawText}`;
+        const npcs = activeSession.sheet?.npcs || [];
 
         for (const cg of allScenarioCgs) {
-          const isAlreadyUnlocked = currentUnlocked.some(u => (u.title && u.title === cg.title) || (u.imageUrl && u.imageUrl === cg.imageUrl));
+          const isAlreadyUnlocked = currentUnlocked.some(u => 
+            (u.title && u.title === cg.title) || (u.imageUrl && u.imageUrl === cg.imageUrl) || u === cg.title || u === cg.imageUrl
+          );
           if (isAlreadyUnlocked) continue;
 
           const triggerCond = (cg.trigger || cg.condition || "").trim();
           if (!triggerCond) continue;
 
-          // 🎯 세션의 NPC 명단에서 조건문에 적힌 이름을 동적으로 자동 탐색
-        const targetNpc = (activeSession.sheet?.npcs || []).find(n => n.name && triggerCond.includes(n.name)) || currentContact;
-        const targetNpcName = targetNpc?.name;
-        const curAff = Number(targetNpc?.affection ?? 0);
+          // 대상 인물 및 호감도 동적 탐색
+          const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name)) || currentContact;
+          const targetNpcName = targetNpc?.name;
+          const curAff = Number(targetNpc?.affection ?? 0);
 
-        // ① 호감도 조건 검사 (콜론, 퍼센트, 괄호 등 모든 표기 지원)
-        const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
-        const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
-        const passFav = reqFav > 0 ? (curAff >= reqFav) : true;
-
-        // ② 5단계 시간대(새벽/아침/낮/저녁/밤) 완전 동적 검사
-          // ⭕ triggerCond로 전부 교체
-let passTime = true;
-if (/새벽|심야/.test(triggerCond)) {
-  passTime = (updatedPhase === "새벽" || currentPhase === "새벽");
-} else if (/아침|오전/.test(triggerCond)) {
-  passTime = (updatedPhase === "아침" || currentPhase === "아침");
-} else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
-  passTime = (updatedPhase === "낮" || currentPhase === "낮");
-} else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
-  passTime = (updatedPhase === "저녁" || currentPhase === "저녁");
-} else if (/밤|자정|야간/.test(triggerCond)) {
-  passTime = (updatedPhase === "밤" || currentPhase === "밤");
-}
-        // ③ 등장인물 일치 검사
-        const passNpc = targetNpcName 
-          ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
-          : true;
-
-        // ④ 상황 키워드 동적 검사 (시트 문장에서 2글자 이상 핵심 상황어만 자동 추출 대조)
-        let passKeyword = true;
-        if (reqFav === 0) {
-          const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
-          const dynamicKeywords = triggerCond
-            .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
-            .split(/\s+/)
-            .filter(w => w.length >= 2 && !stopWords.includes(w));
-
-          if (dynamicKeywords.length > 0) {
-            passKeyword = dynamicKeywords.some(kw => fullRecentContext.includes(kw));
-          }
-        }
-
-          // 🎯 최종 판정 분기:
-          // A. 호감도 달성형 (reqFav > 0): 해당 캐릭터와의 호감도만 충족하면 안전하게 즉시 해금
-          // B. 서사 이벤트형 (reqFav === 0): 시간대 + 등장인물 + 동적 추출 키워드 일치 시 해금
-          const isUnlockTriggered = (reqFav > 0)
-            ? (passFav && passNpc)
-            : (passTime && passNpc && passKeyword);
-
-          if (isUnlockTriggered) {
-            newlyUnlockedCg = cg;
-            break;
-          }
-        }
-      }
-
-      // 해금된 CG가 있으면 컷씬 팝업 및 앨범 저장
-      if (newlyUnlockedCg) {
-        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${newlyUnlockedCg.title || "미공개"}]`);
-        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(newlyUnlockedCg);
-        
-        setSessions(prev => prev.map(s => {
-          if (s.id === activeSessionId) {
-            const prevCgs = s.sheet?.unlockedCgs || [];
-            if (!prevCgs.some(c => (c.title && c.title === newlyUnlockedCg.title) || (c.imageUrl && c.imageUrl === newlyUnlockedCg.imageUrl))) {
-              return {
-                ...s,
-                sheet: {
-                  ...s.sheet,
-                  unlockedCgs: [...prevCgs, { ...newlyUnlockedCg, unlockedAt: Date.now() }]
-                }
-              };
-            }
-          }
-          return s;
-        }));
-      }
-
-      // 2) AI가 태그를 빼먹었을 경우: 시트 조건(호감도 40, 인물, 시간대 등) 자동 판별
-      if (!newlyUnlockedCg && allScenarioCgs.length > 0) {
-        const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
-        const curAff = Number(currentContact?.affection ?? activeSession.sheet?.npcs?.[0]?.affection ?? 0);
-        const fullRecentContext = `${textToSend} ${rawText}`;
-
-        for (const cg of allScenarioCgs) {
-          const isAlreadyUnlocked = currentUnlocked.some(u => (u.title && u.title === cg.title) || (u.imageUrl && u.imageUrl === cg.imageUrl));
-          if (isAlreadyUnlocked) continue;
-
-          const triggerCond = (cg.trigger || cg.condition || "").trim();
-          if (!triggerCond) continue;
-
-          // ① 호감도 조건 검사 (예: "호감도 40", "호감도 40 이상", "호감도 50")
-          const favMatch = triggerCond.match(/호감도\s*(\d+)/);
+          // ① 호감도 조건 검사
+          const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
           const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
           const passFav = reqFav > 0 ? (curAff >= reqFav) : true;
 
-          // 5단계 시간대(새벽/아침/낮/저녁/밤) 완전 동적 검사
-      let passTime = true;
-      if (/새벽|심야/.test(cond)) {
-        passTime = (currentPhase === "새벽");
-      } else if (/아침|오전/.test(cond)) {
-        passTime = (currentPhase === "아침");
-      } else if (/정오|한낮|대낮|낮/.test(cond)) {
-        passTime = (currentPhase === "낮");
-      } else if (/저녁|노을|황혼|해질/.test(cond)) {
-        passTime = (currentPhase === "저녁");
-      } else if (/밤|자정|야간/.test(cond)) {
-        passTime = (currentPhase === "밤");
-      }
+          // ② 5단계 시간대 동적 검사 (cond 오타 완전 제거)
+          let passTime = true;
+          if (/새벽|심야/.test(triggerCond)) {
+            passTime = (updatedPhase === "새벽" || currentPhase === "새벽");
+          } else if (/아침|오전/.test(triggerCond)) {
+            passTime = (updatedPhase === "아침" || currentPhase === "아침");
+          } else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
+            passTime = (updatedPhase === "낮" || currentPhase === "낮");
+          } else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
+            passTime = (updatedPhase === "저녁" || currentPhase === "저녁");
+          } else if (/밤|자정|야간/.test(triggerCond)) {
+            passTime = (updatedPhase === "밤" || currentPhase === "밤");
+          }
 
-          // ③ 특정 인물 이름 검사
-          const targetNpcName = (triggerCond.match(/(발렌틴|율리안|카시엘)/) || [])[1];
-          const passNpc = targetNpcName ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) : true;
-
-          // ④ 특수 상황 키워드 검사
-          const hasKeywordCondition = /첫\s*만남|조우|사각지대|가로막|살기/.test(triggerCond);
-          const passKeyword = hasKeywordCondition
-            ? /처음|첫\s*만남|조우|사각지대|가로막|살기|복도|서고/.test(fullRecentContext)
+          // ③ 대상 인물 일치 검사
+          const passNpc = targetNpcName 
+            ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
             : true;
 
-          // 호감도 마일스톤(40 등)을 달성했거나 복합 조건을 만족한 경우 즉시 해금
-          if ((reqFav > 0 && passFav) || (reqFav === 0 && passTime && passNpc && passKeyword)) {
+          // ④ 상황 키워드 동적 검사
+          let passKeyword = true;
+          if (reqFav === 0) {
+            const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
+            const dynamicKeywords = triggerCond
+              .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
+              .split(/\s+/)
+              .filter(w => w.length >= 2 && !stopWords.includes(w));
+
+            if (dynamicKeywords.length > 0) {
+              passKeyword = dynamicKeywords.some(kw => fullRecentContext.includes(kw));
+            }
+          }
+
+          if ((reqFav > 0 && passFav && passNpc) || (reqFav === 0 && passTime && passNpc && passKeyword)) {
             newlyUnlockedCg = cg;
             break;
           }
         }
       }
 
-      // 해금된 CG가 있으면 풀스크린 컷씬 발동 및 세션 앨범 저장
+      // 3) 해금된 CG 저장 및 컷씬 출력
       if (newlyUnlockedCg) {
         triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${newlyUnlockedCg.title || "미공개"}]`);
         if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(newlyUnlockedCg);
@@ -3776,7 +3721,7 @@ if (incomingMsgs.length > 0) {
             [contactId]: [...contactMsgs, ...incomingMsgs]
           };
           if (typeof triggerVibration === "function") triggerVibration();
-          // 📱 화면 상단에 카톡처럼 푸시 알림 배너 띄우기
+          // 💬 카톡처럼 화면 상단에 푸시 알림 배너 발송
           triggerToast("📱 새 메시지 도착", `${targetSenderName}: "${incomingMsgs[0]?.text}"`, "💬");
         }
       } // 👈 이 닫는 괄호 } 가 빠져 있었어! 꼭 넣어줘!
@@ -7645,25 +7590,38 @@ return (
             const messagesForApi = updatedChatList.map(m => ({ role: m.sender === "user" ? "user" : "model", text: m.text }));
             const recentStoryContext = (activeSession.messages || []).slice(-3).map(m => m.text).join("\n\n");
 
-          // ☀️ 상대방 인격/성격/말투 100% 고정 (캐붕 완벽 방지)
-const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수칙]
+// ☀️ 장르 자동 감지 (판타지/사극 vs 현대/일상)
+          const fullGenreText = `${activeSession?.title || ""} ${activeSession?.preference || ""} ${activeSession?.scenarioText || ""}`.toLowerCase();
+          const isFantasySetting = /판타지|중세|무협|동양|사극|황실|마법|오컬트|차원/.test(fullGenreText) || phoneTheme === "parchment";
+
+          const statusGuide = isFantasySetting
+            ? `- [판타지/시대극 배경]: 주인공이 통신석/마도구에 띄워둔 전언: "${activeSession?.sheet?.statusMessage || "(남겨진 글귀 없음)"}"
+- 현대적 단어(상태메시지, 카톡 등)를 금지하고 "통신석의 글귀", "마도구 너머로 비친 심경", "남겨두신 전언"으로 격조 높게 표현하십시오.`
+            : `- [현대/일상 배경]: 주인공의 메신저 프로필 상태메시지: "${activeSession?.sheet?.statusMessage || "(상태메시지 없음)"}"
+- "프로필에 적어둔 상태메시지", "상메", "프로필 글귀" 등 자연스러운 일상 어휘로 언급하며 대화를 풀어가십시오.`;
+
+          // ☀️ 상대방 인격/성격/말투 100% 고정
+          const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수칙]
 1. 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact?.title || "인물"})
 - [인물 외모 및 성격/관계성]: ${currentContact?.detail || "설정 없음"}
 - [감춰둔 속마음/비밀]: ${currentContact?.secret || "없음"}
+
 2. [말투/성격 절대 유지 (캐붕 금지)]
 - 가벼운 카톡 말투(예: 'ㅋㅋ', '헤헤', 유치한 장난, 뜬금없는 반말)는 절대 금지합니다.
 - 반드시 '${partnerName}' 고유의 캐릭터성(서늘하고 단아한 분위기, 차분한 어조, 절제된 태도 등)을 엄격히 지키십시오.
+
 3. [선톡 맥락 인정]
 - 위 대화의 첫 선톡은 당신(${partnerName})이 직접 보낸 문자가 맞습니다.
 - 플레이어가 답장한 것이니 "내가 언제 문자를 보냈냐"며 발뺌하지 말고, 본인의 캐릭터 성격에 맞게 대화를 이어가십시오.
 
-4. [주인공의 마도구 전언(심경) 인지 수칙]
-- activeSession?.sheet?.name || charName || "주인공"
-- [절대 금지]: '상태 메시지', '프로필' 같은 현대적 단어는 절대 입에 담지 마십시오!
-- [표현 지침]: 대신 "통신석에 띄워두신 글귀", "마도구 너머로 비친 그대의 심경", "남겨두신 전언" 등의 격조 높은 표현을 사용하십시오.
-- 주인공이 남겨둔 전언에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.`;
+4. [주인공의 상태메시지/전언 인지 수칙]
+${statusGuide}
+- 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.
 
-
+5. [일상 사진 / 스냅 사진 전송 규칙]
+- 유저가 "사진 보내줘", "셀카 보여줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
+<!-- SNAP_PHOTO: {"prompt": "1girl, solo, portrait, realistic lighting, anime masterpiece", "caption": "사진 한 줄 설명"} -->
+- prompt는 고화질 일러스트가 생성될 수 있도록 인물의 외모와 의상이 포함된 영문(English) 키워드로 상세히 작성하십시오.`;
            
             const res = await fetch("/api/chat", {
               method: "POST",
@@ -10088,7 +10046,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
           </div>
         </div>
       )}
-{/* ── 🖼️ CG 앨범 갤러리 모달 (화면 중앙 독립 팝업) ── */}
+{/* ── 🖼️ CG 앨범 갤러리 모달 ── */}
       {showCgAlbumModal && (
         <div 
           onClick={() => setShowCgAlbumModal(false)}
@@ -10119,7 +10077,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               boxShadow: "0 20px 50px rgba(0,0,0,0.7)"
             }}
           >
-            {/* 상단 헤더 바 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: "12px" }}>
               <div style={{ fontWeight: "800", fontSize: "1.05rem", color: "#f8fafc" }}>
                 🖼️ 이벤트 CG 앨범 ({activeSession?.sheet?.unlockedCgs?.length || 0})
@@ -10133,7 +10090,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               </button>
             </div>
 
-            {/* CG 사진 목록 그리드 */}
             <div style={{ flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(135px, 1fr))", gap: "12px", paddingRight: "4px" }}>
               {(!activeSession?.sheet?.unlockedCgs || activeSession.sheet.unlockedCgs.length === 0) ? (
                 <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#64748b", padding: "40px 0", fontSize: "0.85rem", lineHeight: 1.6 }}>
@@ -10173,7 +10129,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 ))
               )}
             </div>
-
           </div>
         </div>
       )}
