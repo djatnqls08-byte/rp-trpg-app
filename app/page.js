@@ -2141,7 +2141,7 @@ useEffect(() => {
         }
       }
 
-     // 6. 세션 업데이트 (CG 도감 목록과 세션 카드만 갱신하고, 해금 여부는 손대지 않음)
+      // 6. 세션 업데이트 (CG 도감 목록과 세션 카드만 갱신하고, 해금 여부는 손대지 않음)
       setSessions(prev => prev.map(s => {
         if (s.id === activeSession.id) {
           return {
@@ -2154,21 +2154,6 @@ useEffect(() => {
               cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs,
               scenarioCgs: eventCgs.length > 0 ? eventCgs : s.sheet?.scenarioCgs
             }
-          };
-        }
-        return s;
-      }));
-
-          return {
-            ...s,
-            sheetUrl: targetUrl,
-            thumbnail: sessionCardImg || s.thumbnail,
-            sheet: {
-              ...(s.sheet || {}),
-              thumbnail: sessionCardImg || s.sheet?.thumbnail,
-              cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs
-            },
-            unlockedCgs: Array.from(existingUnlocked)
           };
         }
         return s;
