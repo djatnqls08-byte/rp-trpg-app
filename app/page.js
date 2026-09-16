@@ -10346,6 +10346,210 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
           </div>
         </div>
       )}
+{/* 🌟 공지사항 및 업데이트 노트 모달 */}
+      {showNoticeModal && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: isMobile ? "12px" : "20px" }}>
+          <div className="glass-card" style={{ width: "100%", maxWidth: "560px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "88dvh" }}>
+
+            {/* 상단 탭 버튼 (업데이트 노트 1순위 배치) */}
+            <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar }}>
+              <button
+                type="button"
+                onClick={() => setActiveNoticeTab("update")}
+                style={{
+                  flex: 1,
+                  padding: "14px",
+                  background: activeNoticeTab === "update" ? theme.panelAlt : "transparent",
+                  border: "none",
+                  color: activeNoticeTab === "update" ? theme.accent : theme.textMuted,
+                  fontWeight: activeNoticeTab === "update" ? "800" : "500",
+                  fontSize: "0.92rem",
+                  cursor: "pointer",
+                  borderBottom: activeNoticeTab === "update" ? `2px solid ${theme.accent}` : "none"
+                }}
+              >
+                🚀 업데이트 노트 ({APP_VERSION})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveNoticeTab("guide")}
+                style={{
+                  flex: 1,
+                  padding: "14px",
+                  background: activeNoticeTab === "guide" ? theme.panelAlt : "transparent",
+                  border: "none",
+                  color: activeNoticeTab === "guide" ? theme.accent : theme.textMuted,
+                  fontWeight: activeNoticeTab === "guide" ? "800" : "500",
+                  fontSize: "0.92rem",
+                  cursor: "pointer",
+                  borderBottom: activeNoticeTab === "guide" ? `2px solid ${theme.accent}` : "none"
+                }}
+              >
+                📖 시작 가이드
+              </button>
+            </div>
+
+            {/* 본문 영역 (업데이트 노트가 기본 1순위 출력) */}
+            <div style={{ padding: isMobile ? "16px" : "20px", overflowY: "auto", flex: 1, fontSize: "0.88rem", lineHeight: "1.75" }}>
+              {activeNoticeTab === "update" ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  {/* 🚀 최신 버전 v1.4.0 */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
+                      <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
+                        🚀 v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
+                      </h3>
+                      <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
+                        LATEST
+                      </span>
+                    </div>
+
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
+                      <div style={{ fontSize: "0.84rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
+                        "머릿속의 설정을 손쉽게 — 키워드 조합부터 Gemini 스튜디오 연동, 로비 자동 배치까지 한 번에 완성됩니다."
+                      </div>
+                      <div style={{ fontSize: "0.85rem", lineHeight: "1.7", color: theme.text }}>
+                        • <strong>🎬 3분 튜토리얼 & 시나리오 양식 빌더:</strong> CoC/인세인 조작법 튜토리얼과 함께 룰, 추천 키워드(#집착 #오컬트 #신분차 등), 인물 설정을 선택해 AI 스튜디오용 프롬프트를 즉시 조립·복사하는 가이드 모달이 탑재되었습니다.<br/>
+                        • <strong>🪄 통합 불러오기 & 텍스트 붙여넣기 모달:</strong> [📄 파일 첨부] 버튼에서 파일 업로드뿐만 아니라 복사한 텍스트 붙여넣기를 함께 지원합니다. 스튜디오 생성문을 넣고 적용을 누르면 룰, 시놉시스, 서막, 진상, PC/KPC 프로필(상메/취향 포함)이 로비에 100% 자동 배치됩니다.<br/>
+                        • <strong>💡 스튜디오 복귀 길잡이 배너:</strong> 스튜디오에서 글을 복사해 로비로 복귀했을 때 유저가 헤매지 않도록 상단에 원클릭 자동 주입 안내 배너가 점등됩니다.<br/>
+                        • <strong>⚡ 통신 최적화 & 외모 왜곡 방지:</strong> Vercel 413(Payload Too Large) 방지를 위해 요청 메시지를 경량화하고, 캐릭터 외모(머리색 등) 날조를 차단하는 시스템 앵커를 강화했습니다.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.3.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>스마트폰 실시간 전화 & 다이내믹 아일랜드:</strong> 서랍형 슬라이드 수신 화면 및 풀스크린 통화 모달 지원.<br/>
+                      • <strong>이원화 비주얼 시스템:</strong> 시네마틱 16:9 컷씬과 메신저 1:1 일상 스냅 사진 갤러리 연동.<br/>
+                      • <strong>동적 장소 카드 & 약속 배지:</strong> 대면 종료 시 이동 가능한 장소 및 약속 장소 안내.<br/>
+                      • <strong>시간대 루프 & AI 기억 수첩:</strong> 낮/노을/밤 흐름과 주요 사건 플래그 박제.<br/>
+                      • <strong>4대 멀티 엔딩:</strong> 순애 트루 / 수라장 히든 / 신뢰 우정 / 파탄 엔딩 및 맞춤 후일담 연계.
+                    </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.2.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.2.0 결전 자동화 & 인세인 3대 소지품
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>인세인 3대 소지품(가방) 도입:</strong> 세션 생성 단계에서 생사를 가를 초기 아이템(진통제, 무기, 부적)을 2개 선택 가능.<br/>
+                      • <strong>인터럽트 개입 (무기 & 부적):</strong> 공격 실패 시 [무기] 재굴림, 회피 성공 적에게 [부적] 판정 방해 지원.<br/>
+                      • <strong>칠전팔기 긴급 소생 (진통제):</strong> 생명력 0 도달 시 진통제 긴급 복용으로 생존.<br/>
+                      • <strong>결전 액션 쾌속 자동화:</strong> 수동 회피를 철거하고 [공격] 원클릭으로 공방 협공 사이클 일괄 전개.
+                    </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.1.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.1.0 스마트폰 풀옵션 & 비주얼 대청소
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>읽씹 방지 메신저:</strong> 노란색 '1' 카운트, (•••) 타이핑 애니메이션, 상단 푸시 알림 배너 추가.<br/>
+                      • <strong>브라우저 경고창 추방:</strong> 회색 alert/prompt를 걷어내고 선물하기·취향수첩을 깔끔한 인앱 모달로 전면 개편.<br/>
+                      • <strong>돋보기의 저주 해제:</strong> 미연시 모드 전용 소지품(손수건, 캔디) 지급 및 취향 자동 아카이빙 탑재.<br/>
+                      • <strong>헤더 바 정돈:</strong> 불투명 박스를 투명 플랫 아이콘으로 바꾸고 실종되었던 핸드아웃/다이스 버튼 복구.
+                    </div>
+                  </div>
+
+                  {/* 📦 최초 버전 v1.0.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.0.0 정식 배포
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드 추가.<br/>
+                      • <strong>인세인(inSANe) 시스템 고도화:</strong> PC 및 서브 NPC 사명/비밀 분리 생성 및 핸드아웃 카드 완성.<br/>
+                      • <strong>온보딩 가이드 & 세이브 백업:</strong> 가이드 모달과 JSON 백업/복원 기능 탑재.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 4px 0", color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
+                      LyrisTable (LT) 시스템 가이드
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "0.82rem", color: theme.textMuted }}>
+                      1:1 타이만 세션과 관계성 서사를 위한 플랫폼 핵심 기능 안내입니다.
+                    </p>
+                  </div>
+
+                  {/* 1. 시나리오 연동 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.accent, fontSize: "0.9rem", marginBottom: "6px" }}>
+                      📄 1. 시나리오 연동 (파일 첨부)
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: theme.text, lineHeight: "1.65" }}>
+                      • <strong>파일 첨부 (.txt / .pdf):</strong> 로비의 [📄 파일 첨부]로 시나리오 문서를 올리면 룰 시스템, 시놉시스, 서막, KPC 명단, 조사 구역 및 단서 핸드아웃이 자동으로 파싱되어 입력란에 배치됩니다.<br/>
+                      • <strong>PC/KPC 자동 치환:</strong> 시나리오 본문에 'PC', 'KPC'로 적힌 단어는 [🔄 PC/KPC 치환] 버튼으로 캐릭터의 실제 고유 이름으로 일괄 변경할 수 있습니다.
+                    </div>
+                  </div>
+
+                  {/* 2. 시트 & 로비 저장 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.accent, fontSize: "0.9rem", marginBottom: "6px" }}>
+                      💾 2. 시트 & 로비 세팅 저장 (프리셋/백업)
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: theme.text, lineHeight: "1.65" }}>
+                      • <strong style={{ color: theme.accent }}>⭐ 공식 추천 시나리오 (상단 ⭐ 공식 시나리오):</strong> 복잡한 설정 없이도 플랫폼에 준비된 고퀄리티 공식 시나리오들을 원클릭으로 즉시 세팅해 플레이할 수 있습니다.<br/>
+                      • <strong>로비 전체 저장 (상단 💾 / 📁):</strong> PC와 KPC 프로필, 시나리오 본문, 스탯까지 포함된 '로비 풀 세팅'을 저장해 두고 원클릭으로 다시 불러올 수 있습니다. (JSON 파일 다운로드/복원 지원)<br/>
+                      • <strong>PC만 단독 저장 (우측 시트 💾 PC만):</strong> 세션 진행 도중 우측 시트 상단의 [💾 PC만]을 누르면 내 캐릭터 설정과 스탯만 별도 저장되어 다른 시나리오에서도 재활용할 수 있습니다.<br/>
+                      • <strong>전체 데이터 관리:</strong> 좌측 사이드바 하단의 [💾 데이터 관리]에서 진행 중인 세션을 텍스트(.txt), 마크다운(.md), PDF 인쇄본, 혹은 복원용 세이브(.json)로 안전하게 백업할 수 있습니다.
+                    </div>
+                  </div>
+
+                  {/* 3. 인세인 & CoC 핸드아웃 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.warning, fontSize: "0.9rem", marginBottom: "6px" }}>
+                      🔍 3. 조사 단서 및 테이블탑 핸드아웃
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: theme.text, lineHeight: "1.65" }}>
+                      • <strong>사명과 비밀 (인세인):</strong> 모든 등장인물의 공개 사명(앞면)과 비밀(뒷면) 카드가 헤더의 [🃏 핸드아웃]에 배치됩니다. 조사에 성공해야 비밀이 안전하게 해금됩니다.<br/>
+                      • <strong>단서 조사:</strong> 시나리오 파일 내에 배치된 조사 구역은 탐색 성공 시 핸드아웃으로 해금되며, 발견한 결정적 증거는 시트 내 [📋 증거 수첩]에 자동 보관됩니다.
+                    </div>
+                  </div>
+
+                  {/* 4. 편의 기능 */}
+                  <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
+                    <div style={{ fontWeight: "800", color: theme.danger, fontSize: "0.9rem", marginBottom: "6px" }}>
+                      ⎌ 4. 편의 기능 및 되돌리기 (롤백)
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: theme.text, lineHeight: "1.65" }}>
+                      • <strong>대화 취소 및 다시 쓰기:</strong> 내 마지막 말풍선 아래의 [⎌ 이 대화 취소 및 다시 쓰기]를 누르면 직전 상태로 메시지가 복구되며 호감도, 단서, 소지품 상태가 이전 턴으로 완전 롤백됩니다.<br/>
+                      • <strong>답변 강제 중단:</strong> AI 응답 도중 [⏹️ 취소] 버튼을 누르면 실시간 통신을 즉시 중단하고 재입력할 수 있습니다.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 모달 하단 푸터 (7일간 보지 않기 & 닫기 버튼) */}
+            <div style={{ padding: "12px 16px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.78rem", color: theme.textMuted, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={hideNoticeCheckbox}
+                  onChange={(e) => setHideNoticeCheckbox(e.target.checked)}
+                />
+                7일 동안 보지 않기
+              </label>
+              <button
+                type="button"
+                onClick={handleCloseNotice}
+                style={{ padding: "8px 18px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", fontSize: "0.82rem", cursor: "pointer" }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 상단 탭 버튼 (업데이트 노트를 맨 왼쪽 첫 번째로 배치) */}
             <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar }}>
