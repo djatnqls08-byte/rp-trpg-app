@@ -3344,14 +3344,26 @@ ${remainingCgs.length > 0
       ? rawMessagesForAi.map((m, idx) => idx === rawMessagesForAi.length - 1 ? { ...m, text: aiPromptOverride } : m)
       : rawMessagesForAi;
 
-    // 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입
+// 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입 (사망자 방어 포함)
     let currentNpcPrompt = "";
     if (isDatingMsg && currentContact) {
-      currentNpcPrompt = `\n\n[🚨 현재 메신저 톡 상대방 전환 알림]
+      // NPC 상태에 '사망' 키워드가 있거나 HP가 0 이하인 경우 감지
+      const isDead = /사망|죽음|유골|고인/.test(currentContact.status || "") || 
+                     /사망|죽음|유골|고인/.test(currentContact.detail || "") ||
+                     (currentContact.hp !== undefined && Number(currentContact.hp) <= 0);
+
+      if (isDead) {
+        currentNpcPrompt = `\n\n[🚨 상대방 사망 상태 알림: ${partnerName}]
+상대방 '${partnerName}'은 작중에서 이미 사망했습니다!
+절대로 '${partnerName}' 본인인 척 살아있는 대사나 답장을 생성하지 마십시오.
+답장 대신 지문으로 오직 [수신인이 응답할 수 없는 침묵], [읽지 않는 회색 숫자 '1'], 혹은 [수신 불가 안내음]만을 서술하십시오.`;
+      } else {
+        currentNpcPrompt = `\n\n[🚨 현재 메신저 톡 상대방 전환 알림]
 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact.title || currentContact.job || "인물"})
 - 인물 외모 및 성격/관계: [${currentContact.detail || "설정 없음"}]
 - 감춰둔 비밀/진심: [${currentContact.secret || "비밀 없음"}]
 절대 다른 사람의 입장에서 말하지 마십시오! 오직 '${partnerName}' 본인의 말투와 감정선으로만 톡 답장을 1~3줄 보내십시오.`;
+      }
     }
  
 // ⏰ 유저 대사에서 5단계 시간대 감지 및 암전 애니메이션 트리거
