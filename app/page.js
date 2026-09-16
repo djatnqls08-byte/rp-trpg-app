@@ -3689,77 +3689,42 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(clueRegex, "");
 
-// 💡 [취향 자동 구조 Fallback: 불완전 어구 원천 차단 및 정제]
-      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호") || rawText.includes("선호") || rawText.includes("좋아") || rawText.includes("싫어") || rawText.includes("보단"))) {
+// 💡 [취향 자동 구조 Fallback: 따옴표 대사 전용 + 선택지/형용사 원천 배제]
+      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호") || rawText.includes("선호") || rawText.includes("좋아"))) {
         
+        // 1) 선택지/시스템 텍스트 분리: 지문 앞쪽 순수 본문만 분리
+        const cleanBody = rawText.split(/\[(?:선택지|선택|행동|추천)\]|\n\s*1\./)[0];
+
+        // 2) 오직 따옴표(" ")로 둘러싸인 NPC의 실제 발화 대사만 추출
+        const dialogueMatches = cleanBody.match(/"([^"]+)"/g) || [];
+        const spokenText = dialogueMatches.join(" ");
+
         const sanitizeClueWord = (raw) => {
           if (!raw) return null;
-          let word = raw.trim();
-          word = word.replace(/^[에의은는이가을를과와로으로]\s+/, "").trim();
+          let word = raw.trim()
+            .replace(/^[에의은는이가을를과와로으로]\s+/, "")
+            .replace(/^(?:좀|더|가장|특히|오히려|무척|꽤)\s+/, "") // '좀', '더' 부사 제거
+            .trim();
 
-          if (word.startsWith("단 ") && !word.includes("것") && !word.includes("음식") && !word.includes("맛")) {
-            word = word.replace(/^단\s+/, "").trim();
-          }
+          // 미완성 형용사(-적인, -있는, -인, -한 등)는 명사가 아니므로 탈락
+          if (/(?:있는|없는|하는|되는|같은|않은|적인|스런|스러운|로운|[인한])$/.test(word)) return null;
 
-          if (/(?:있는|없는|하는|되는|같은|않은)$/.test(word)) return null;
-
-          const invalidStopwords = ["것", "곳", "때", "점", "수", "줄", "거", "바", "분"];
+          const invalidStopwords = ["것", "곳", "때", "점", "수", "줄", "거", "바", "분", "대답", "질문"];
           if (invalidStopwords.includes(word) || word.length < 2) return null;
-
           return word;
         };
 
-        const compareMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})보단\s*([가-힣a-zA-Z0-9\s]{2,20})(?:을|를|걸)\s*(?:선호|좋아)/);
-        if (compareMatch) {
-          const dislikeClean = sanitizeClueWord(compareMatch[1]);
-          const likeClean = sanitizeClueWord(compareMatch[2]);
+        const addClue = (rawWord, desc, type) => {
+          const clean = sanitizeClueWord(rawWord);
+          if (clean && !clean.includes(partnerName)) {
+            newClues.push({ id: Date.now() + Math.random(), name: clean, desc, type, npcName: partnerName });
+          }
+        };
 
-          if (dislikeClean && !dislikeClean.includes(partnerName)) {
-            newClues.push({
-              id: Date.now() + Math.random(),
-              name: dislikeClean,
-              desc: `${partnerName}이(가) 선호하지 않는다고 밝힘`,
-              type: "dislike",
-              npcName: partnerName
-            });
-          }
-          if (likeClean && !likeClean.includes(partnerName)) {
-            newClues.push({
-              id: Date.now() + Math.random() + 1,
-              name: likeClean,
-              desc: `${partnerName}이(가) 선호하는 취향`,
-              type: "like",
-              npcName: partnerName
-            });
-          }
-        } else {
-          const likeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|걸)\s*(?:좋아|선호|즐겨|마음에)/);
-          if (likeMatch) {
-            const likeClean = sanitizeClueWord(likeMatch[1]);
-            if (likeClean && !likeClean.includes(partnerName)) {
-              newClues.push({
-                id: Date.now() + Math.random(),
-                name: likeClean,
-                desc: `${partnerName}이(가) 선호하는 취향`,
-                type: "like",
-                npcName: partnerName
-              });
-            }
-          }
-
-          const dislikeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|은|는)\s*(?:싫어|꺼려|기피|부담|질색)/);
-          if (dislikeMatch) {
-            const dislikeClean = sanitizeClueWord(dislikeMatch[1]);
-            if (dislikeClean && !dislikeClean.includes(partnerName)) {
-              newClues.push({
-                id: Date.now() + Math.random(),
-                name: dislikeClean,
-                desc: `${partnerName}이(가) 꺼리는 취향`,
-                type: "dislike",
-                npcName: partnerName
-              });
-            }
-          }
+        // NPC 대사 속 선호 표현 포착
+        const likeMatch = spokenText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|이|가|정도면)?\s*(?:좋아|선호|충분|즐겨|마음에)/);
+        if (likeMatch) {
+          addClue(likeMatch[1], `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`, "like");
         }
       }
      
