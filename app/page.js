@@ -4343,17 +4343,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
   const endingMatch = lastMsgText.match(/\[((?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[^\]]*)\]/i);
   const endingTitle = isScenarioEnded ? (endingMatch ? endingMatch[1] : calculatedEnding.title) : calculatedEnding.title;
 
-  // 5. 장소를 떠나는 엔딩 (Departure End / 기본 노말)
-  // 조건: 큰 사건은 해결했으나 깊은 연인 관계로 발전하지 않고 담담히 자신의 길을 떠남
-  return {
-    type: "Departure End",
-    title: `Normal End: 새로운 길을 향한 발걸음`,
-    lovers: [],
-    others: sorted.map(n => n.name),
-    theme: "특정 인물에게 얽매이지 않고 자신의 새로운 길을 찾아 담담히 떠나는 작별"
-  };
-};
-
  // 🌟 [추가] 모바일 뒤로가기(제스처/버튼) 시 앱 종료 방지 및 로비 복귀
   useEffect(() => {
     if (activeSessionId) {
@@ -6607,15 +6596,17 @@ return (
                     }}
                   >
                     {isTrueEnding
-                      ? "👑 찬란한 후일담 보기"
-                      : isHiddenEnding 
-                      ? (calculatedEnding?.type === "Hidden Poly End" ? "🌙 세 사람의 후일담 보기" : "🗝️ 숨겨진 후일담 보기")
-                      : isBadEnding 
-                      ? "🥀 비극의 후일담 보기" 
-                      : (calculatedEnding?.type === "Solo End" ? "🍂 홀로 남겨진 후일담 보기" : "📜 후일담 보기")}
-                  </button>
+                    ? "👑 찬란한 후일담 보기"
+                    : isHiddenEnding 
+                    ? (calculatedEnding?.type === "Hidden Poly End" ? "🌙 세 사람의 후일담 보기" : "🗝️ 숨겨진 후일담 보기")
+                    : isBadEnding 
+                    ? "🥀 비극의 후일담 보기" 
+                    : (calculatedEnding?.type === "Solo End" ? "🍂 홀로 남겨진 후일담 보기" : "📜 후일담 보기")}
+                </button>
+              </div>
+            )}
 
-              {activeMadnessAlert && (
+            {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
                   <div style={{ fontSize: "0.78rem", color: theme.danger }}>
                     🩸 <strong>[광기 발현: {activeMadnessAlert.name}]</strong>
@@ -7298,23 +7289,32 @@ return (
                 </summary>
                 <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "10px" }}>
   {/* 📜 [성격 및 백스토리] 박스 */}
-  <div
-    style={{
-      padding: "10px 12px",
-      backgroundColor: "rgba(255, 255, 255, 0.03)",
-      borderRadius: "8px",
-      fontSize: "0.8rem",
-      lineHeight: "1.7",
-      color: theme.textSecondary || "#cbd5e1",
-      whiteSpace: "pre-wrap",
-      wordBreak: "keep-all"
-    }}
-  >
-    <div style={{ fontWeight: "800", color: theme.accent, marginBottom: "6px", fontSize: "0.82rem" }}>
-      📜 성격 및 백스토리
-    </div>
-    {(activeSession.sheet?.background || "기재된 설정이 없습니다.").replace(/\*\*/g, "")}
-  </div>
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      backgroundColor: "rgba(0, 0, 0, 0.04)",
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: "8px",
+                      fontSize: "0.82rem",
+                      lineHeight: "1.75",
+                      color: theme.text,
+                      fontWeight: "500",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "keep-all"
+                    }}
+                  >
+                    <div style={{ fontWeight: "800", color: theme.accent, marginBottom: "8px", fontSize: "0.82rem" }}>
+                      📜 성격 및 백스토리
+                    </div>
+                    {(() => {
+                      const raw = activeSession.sheet?.background;
+                      if (!raw) return "기재된 설정이 없습니다.";
+                      let clean = raw.replace(/\*\*/g, "");
+                      // 문장 뒤 항목명(예: '소지품:', '성격:', '배경:') 앞에 줄바꿈 및 📌 배지 자동 삽입
+                      clean = clean.replace(/([.!?"]\s*)([가-힣\w\s()]{2,15}:)/g, "$1\n\n📌 $2\n");
+                      return clean.trim();
+                    })()}
+                  </div>
 
   {/* 🔒 [숨겨진 비밀/사명] 박스 */}
   {activeSession.sheet?.secret && (
@@ -8972,56 +8972,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     </div>
                   </div>
                 </div>
-              )}
-              {giftModalNpc && (
-                <div 
-                  onClick={() => setGiftModalNpc(null)}
-                  style={{ position: "absolute", inset: 0, zIndex: 135, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
-                >
-                  <div 
-                    onClick={e => e.stopPropagation()}
-                    style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "10px" }}>
-                      <div>
-                        <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>🎁 {giftModalNpc.name}에게 선물하기</span>
-                        <div style={{ fontSize: "0.72rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>전달할 소지품을 선택하세요</div>
-                      </div>
-                      <button type="button" onClick={() => setGiftModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
-                    </div>
-
-                    <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "40vh" }}>
-                      {(!activeSession.sheet?.items || activeSession.sheet.items.length === 0) ? (
-                        <div style={{ textAlign: "center", padding: "24px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.5" }}>
-                          선물함에 소지품이 없습니다.<br />서사를 진행하며 물건을 얻어보세요!
-                        </div>
-                      ) : (
-                        activeSession.sheet.items.map((it, idx) => (
-                          <div 
-                            key={idx}
-                            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px" }}
-                          >
-                            <div style={{ flex: 1, paddingRight: "8px" }}>
-                              <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}>📦 {it.name}</div>
-                              {it.desc && <div style={{ fontSize: "0.7rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>{it.desc}</div>}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const targetNpc = giftModalNpc;
-                                setGiftModalNpc(null);
-                                setSelectedProfileNpc(null);
-                                setIsPhoneDrawerOpen(false);
-                                executeMessage(`[${it.name} 선물하기] 품에서 [${it.name}]을(를) 꺼내어 ${targetNpc.name}에게 건넨다.`);
-                              }}
-                              style={{ padding: "7px 14px", backgroundColor: activePhoneSkin.accent, color: activePhoneSkin.accentText, border: "none", borderRadius: "16px", fontSize: "0.75rem", fontWeight: "800", cursor: "pointer", flexShrink: 0 }}
-                            >
-                              선물 전달
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
+              )
                   </div>
                 </div>
               )}
@@ -10875,6 +10826,61 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
           </div>
         </div>
       )}
+
+{/* 🎁 10819번 줄 바로 아래에 붙여넣을 형태 */}
+      {giftModalNpc && (
+        <div 
+          onClick={() => setGiftModalNpc(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 99999, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: "360px", backgroundColor: activePhoneSkin.panelAlt, border: `1.5px solid ${activePhoneSkin.accent}`, borderRadius: "20px", padding: "20px", display: "flex", flexDirection: "column", gap: "14px", boxShadow: "0 16px 36px rgba(0,0,0,0.4)" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "10px" }}>
+              <div>
+                <span style={{ fontWeight: "800", fontSize: "0.95rem", color: activePhoneSkin.text }}>🎁 {giftModalNpc.name}에게 선물하기</span>
+                <div style={{ fontSize: "0.72rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>전달할 소지품을 선택하세요</div>
+              </div>
+              <button type="button" onClick={() => setGiftModalNpc(null)} style={{ background: "none", border: "none", color: activePhoneSkin.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
+            </div>
+
+            <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "40vh" }}>
+              {(!activeSession?.sheet?.items || activeSession.sheet.items.length === 0) ? (
+                <div style={{ textAlign: "center", padding: "24px 0", fontSize: "0.78rem", color: activePhoneSkin.textMuted, lineHeight: "1.5" }}>
+                  선물함에 소지품이 없습니다.<br />서사를 진행하며 물건을 얻어보세요!
+                </div>
+              ) : (
+                activeSession.sheet.items.map((it, idx) => (
+                  <div 
+                    key={idx}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px" }}
+                  >
+                    <div style={{ flex: 1, paddingRight: "8px" }}>
+                      <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}>📦 {it.name}</div>
+                      {it.desc && <div style={{ fontSize: "0.7rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>{it.desc}</div>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetNpc = giftModalNpc;
+                        setGiftModalNpc(null);
+                        setSelectedProfileNpc(null);
+                        setIsPhoneDrawerOpen(false);
+                        executeMessage(`[${it.name} 선물하기] 품에서 [${it.name}]을(를) 꺼내어 ${targetNpc.name}에게 건넨다.`);
+                      }}
+                      style={{ padding: "7px 14px", backgroundColor: activePhoneSkin.accent, color: activePhoneSkin.accentText, border: "none", borderRadius: "16px", fontSize: "0.75rem", fontWeight: "800", cursor: "pointer", flexShrink: 0 }}
+                    >
+                      선물 전달
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
        {/* ⏳ 2초 시간 경과 암전 오버레이 연출 */}
       {timeTransition && (
         <div style={{
