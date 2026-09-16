@@ -3305,17 +3305,32 @@ currentPhase === "클라이맥스" ? `
 - BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
     }
 
- // 🎨 현재 시나리오의 CG 목록을 동적으로 파싱하여 AI 지침에 주입
+ // 🎨 현재 시나리오의 CG 목록 및 미해금 CG 동선 유도 엔진
     const activeCgList = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
-    const dynamicCgGuidelines = activeCgList.length > 0
-      ? `\n\n[🎬 시나리오 고유 이벤트 CG 연출 지침]
-다음은 본 시나리오에 준비된 주요 이벤트 일러스트(CG)의 연출 조건입니다.
-${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition}`).join("\n")}
+    const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
+    
+    // 1) 아직 해금되지 않은 남은 CG만 선별
+    const remainingCgs = activeCgList.filter(cg => 
+      !currentUnlocked.some(u => (u?.title && u.title === cg.title) || u === cg.title)
+    );
 
-- [연출 일치 수칙]: 
-  * 인물과의 첫 대면이나 특정 중요 사건을 전개할 때, 임의로 상황을 바꾸지 말고 가급적 위 목록에 명시된 '상황, 장소, 분위기'를 존중하여 장면을 서술하십시오.
-  * 플레이어가 해당 상황에 정확히 도달하여 씬이 완성되었을 때는 지문 맨 끝에 아래 태그를 첨부하십시오:
-  <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->`
+    const dynamicCgGuidelines = activeCgList.length > 0
+      ? `\n\n[🎬 시나리오 고유 이벤트 CG 연출 및 동선 유도 지침]
+다음은 본 시나리오에 준비된 미해금 이벤트 일러스트(CG) 목록과 발생 조건입니다:
+${remainingCgs.length > 0 
+  ? remainingCgs.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition}`).join("\n")
+  : "(모든 일반 이벤트 CG 해금 완료)"}
+
+[🚨 CG 획득을 위한 동선 및 배경 유도 수칙]
+1. [배경 떡밥 투척]: 
+   - 대화가 3~5턴 이상 이어지거나 공간이 전환될 때, 위 미해금 CG의 조건에 적힌 '장소, 배경, 시간대, 특정 사물'을 지문 속에 은근한 호기심 거리(예: 테라스 너머의 달빛, 복도 끝에서 들려오는 발소리, 옥션 진열장의 이상한 유물)로 묘사하십시오.
+2. [장소 카드(LOCATION_CARDS) 우선 배정]:
+   - 장소 이동 배너를 출력할 때는 위 미해금 CG들의 발생 무대가 되는 장소를 최소 1곳 이상 반드시 포함하십시오.
+3. [선택지(SUGGESTIONS) 연계]:
+   - 지문 끝의 추천 선택지 3개 중 최소 1개는 미해금 CG 이벤트가 일어날 법한 행동(예: "함께 테라스로 바람을 쐬러 나간다", "진열장의 렌즈를 살펴본다")으로 제시하여 플레이어의 탐색을 자연스럽게 유도하십시오.
+4. [해금 선언]:
+   - 플레이어가 해당 장소나 상황에 완벽히 도달하여 명장면이 연출되었을 때는 지문 맨 끝에 태그를 첨부하십시오:
+   <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->`
       : "";
 
     dynamicRules += dynamicCgGuidelines;
