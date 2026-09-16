@@ -3689,49 +3689,88 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(clueRegex, "");
 
-// 💡 [취향 자동 구조 Fallback: 좋아하는 것(💖)과 싫어하는 것(💔) 정밀 분리]
+// 💡 [취향 자동 구조 Fallback: 불완전 어구 원천 차단 및 정제]
       if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호") || rawText.includes("선호") || rawText.includes("좋아") || rawText.includes("싫어") || rawText.includes("보단"))) {
         
-        // 1) 'A보단 B를 선호/좋아' 비교 구문 ➔ A는 기피(💔), B는 선호(💖) 동시 추출
+        // 정제 및 유효성 검사 헬퍼 함수
+        const sanitizeClueWord = (raw) => {
+          if (!raw) return null;
+          let word = raw.trim();
+
+          // 1) 앞쪽에 잘못 붙은 단독 조사(에, 의, 은, 는, 이, 가, 을, 를) 털어내기
+          word = word.replace(/^[에의은는이가을를과와로으로]\s+/, "").trim();
+
+          // 2) '단 것'은 보존하되, 문장 앞 문맥 없는 '단 ' 단독 접속사만 정제
+          if (word.startsWith("단 ") && !word.includes("것") && !word.includes("음식") && !word.includes("맛")) {
+            word = word.replace(/^단\s+/, "").trim();
+          }
+
+          // 3) 끝이 서술/형용 어미(~있는, ~없는, ~하는, ~되는, ~같은)로 끝나면 수식어만 잘려온 것이므로 무효화
+          if (/(?:있는|없는|하는|되는|같은|않은)$/.test(word)) return null;
+
+          // 4) 의미 없는 의존명사나 한 글자 단독 단어 차단
+          const invalidStopwords = ["것", "곳", "때", "점", "수", "줄", "거", "바", "분"];
+          if (invalidStopwords.includes(word) || word.length < 2) return null;
+
+          return word;
+        };
+
+        // 1) 'A보단 B를 선호/좋아' 비교 구문
         const compareMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})보단\s*([가-힣a-zA-Z0-9\s]{2,20})(?:을|를|걸)\s*(?:선호|좋아)/);
         if (compareMatch) {
-          const dislikeItem = compareMatch[1].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
-          const likeItem = compareMatch[2].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
+          const dislikeClean = sanitizeClueWord(compareMatch[1]);
+          const likeClean = sanitizeClueWord(compareMatch[2]);
 
-          if (dislikeItem.length >= 2 && !dislikeItem.includes(partnerName)) {
+          if (dislikeClean && !dislikeClean.includes(partnerName)) {
             newClues.push({
               id: Date.now() + Math.random(),
-              name: dislikeItem,
-              desc: `${partnerName}이(가) 꺼리거나 선호하지 않는다고 언급함`,
+              name: dislikeClean,
+              desc: `${partnerName}이(가) 선호하지 않는다고 밝힘`,
               type: "dislike",
               npcName: partnerName
             });
           }
-
-          if (likeItem.length >= 2 && !likeItem.includes(partnerName)) {
+          if (likeClean && !likeClean.includes(partnerName)) {
             newClues.push({
               id: Date.now() + Math.random() + 1,
-              name: likeItem,
-              desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
+              name: likeClean,
+              desc: `${partnerName}이(가) 선호하는 취향`,
               type: "like",
               npcName: partnerName
             });
           }
         } else {
-          // 2) 일반 선호 구문 ('~을 좋아/선호')
-          const likeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|걸)\s*(?:좋아|선호|즐겨|마음에|아끼)/);
+          // 2) 일반 선호 구문
+          const likeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|걸)\s*(?:좋아|선호|즐겨|마음에)/);
           if (likeMatch) {
-            let item = likeMatch[1].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
-            if (item.length >= 2 && !item.includes(partnerName)) {
+            const likeClean = sanitizeClueWord(likeMatch[1]);
+            if (likeClean && !likeClean.includes(partnerName)) {
               newClues.push({
                 id: Date.now() + Math.random(),
-                name: item,
-                desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
+                name: likeClean,
+                desc: `${partnerName}이(가) 선호하는 취향`,
                 type: "like",
                 npcName: partnerName
               });
             }
           }
+
+          // 3) 일반 기피 구문
+          const dislikeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|은|는)\s*(?:싫어|꺼려|기피|부담|질색)/);
+          if (dislikeMatch) {
+            const dislikeClean = sanitizeClueWord(dislikeMatch[1]);
+            if (dislikeClean && !dislikeClean.includes(partnerName)) {
+              newClues.push({
+                id: Date.now() + Math.random(),
+                name: dislikeClean,
+                desc: `${partnerName}이(가) 꺼리는 취향`,
+                type: "dislike",
+                npcName: partnerName
+              });
+            }
+          }
+        }
+      }
 
           // 3) 일반 기피/불호 구문 ('~을 싫어/꺼려/기피/부담')
           const dislikeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|은|는)\s*(?:싫어|꺼려|기피|부담|달갑지|질색)/);
@@ -7485,7 +7524,18 @@ return (
                         : "아직 발견된 결정적 단서가 없습니다."}
                     </div>
                   ) : (
-                    activeSession.sheet.clues.map((clue, cIdx) => (
+) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {activeSession.sheet.clues
+                  .filter(clue => {
+                    const n = (clue.name || "").trim();
+                    if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
+                    if (/(?:있는|없는|하는|되는|같은)$/.test(n)) return false;
+                    return true;
+                  })
+                  .map((clue, cIdx) => {
+                    const isDislike = clue.type === "dislike";
+                    return (
                       <div 
                         key={cIdx} 
                         title={clue.desc}
@@ -7494,21 +7544,21 @@ return (
                           alignItems: "center",
                           gap: "4px",
                           padding: "4px 9px", 
-                          backgroundColor: clue.type === "dislike" ? "rgba(239, 68, 68, 0.1)" : theme.panelAlt, 
+                          backgroundColor: isDislike ? "rgba(239, 68, 68, 0.1)" : theme.panelAlt, 
                           borderRadius: "14px", 
                           fontSize: "0.74rem", 
                           fontWeight: "600",
-                          border: `1px solid ${clue.type === "dislike" ? "rgba(239, 68, 68, 0.4)" : theme.border}`,
-                          color: clue.type === "dislike" ? (theme.danger || "#ef4444") : theme.text,
-                          margin: "2px"
+                          border: `1px solid ${isDislike ? "rgba(239, 68, 68, 0.4)" : theme.border}`,
+                          color: isDislike ? (theme.danger || "#ef4444") : theme.text
                         }}
                       >
-                        <span style={{ fontSize: "0.72rem" }}>{clue.type === "dislike" ? "💔" : "💖"}</span>
-<span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^솔직한 의도가 담긴\s*/, "")}</span>
+                        <span style={{ fontSize: "0.72rem" }}>{isDislike ? "💔" : "💖"}</span>
+                        <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^솔직한 의도가 담긴\s*/, "")}</span>
                       </div>
-                    ))
-                  )}
-                </div>
+                    );
+                  })}
+              </div>
+            )}
               </details>
             </div>
 
@@ -8417,11 +8467,20 @@ ${statusGuide}
                     <div id="npc-clues-section" style={{ borderBottom: `1px solid ${activePhoneSkin.border}`, paddingBottom: "12px" }}>
                       <div style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, fontWeight: "700", marginBottom: "6px" }}>발견된 취향 & 관심사</div>
                       {(() => {
-                       const npcClues = (activeSession.sheet?.clues || []).filter(c => 
-  c.name.includes(selectedProfileNpc.name) || 
-  c.npcName === selectedProfileNpc.name || 
-  (activeSession.sheet?.npcs || []).length <= 1
-);
+                       const npcClues = (activeSession.sheet?.clues || [])
+              .filter(c => {
+                const n = (c.name || "").trim();
+                // 1) '것', '점', 1글자 단독 단어 제외
+                if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
+                // 2) 어미가 ~있는, ~없는 등으로 끝나는 불완전 어구 제외
+                if (/(?:있는|없는|하는|되는|같은)$/.test(n)) return false;
+
+                return (
+                  c.name.includes(selectedProfileNpc.name) ||
+                  c.npcName === selectedProfileNpc.name ||
+                  (activeSession.sheet?.npcs || []).length <= 1
+                );
+              });
                         if (npcClues.length === 0) return <div style={{ fontSize: "0.74rem", color: activePhoneSkin.textMuted }}>대화를 통해 좋아하는 취향을 파악해 보세요.</div>;
                         return (
                           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
