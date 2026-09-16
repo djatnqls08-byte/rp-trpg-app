@@ -1202,8 +1202,11 @@ useEffect(() => {
         return;
       }
 
-      // 2. 1번 CG (프롤로그 / 첫 대면)
-      if (idx === 0 || /프롤로그|첫\s*대면|시작/.test(triggerCond)) {
+      // 2. '첫 대면/첫 만남' 조건 (이미 대화를 나눈 인물은 자동 소급 해금)
+      const isFirstMeetingTrigger = /프롤로그|첫\s*대면|첫\s*만남|시작/.test(triggerCond);
+      const isAlreadyMetInHistory = targetNpcName ? fullHistory.includes(targetNpcName) : false;
+
+      if (isFirstMeetingTrigger && (idx === 0 || isAlreadyMetInHistory)) {
         properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
         return;
       }
@@ -3290,7 +3293,7 @@ currentPhase === "클라이맥스" ? `
 - BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
     }
 
- // 🎨 현재 시나리오의 CG 목록 및 미해금 CG 동선 유도 엔진
+// 🎨 현재 시나리오의 CG 목록 및 미해금 CG 동선 유도 엔진
     const activeCgList = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
     const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
     
@@ -3312,11 +3315,17 @@ ${remainingCgs.length > 0
 2. [장소 카드(LOCATION_CARDS) 우선 배정]:
    - 장소 이동 배너를 출력할 때는 위 미해금 CG들의 발생 무대가 되는 장소를 최소 1곳 이상 반드시 포함하십시오.
 3. [선택지(SUGGESTIONS) 연계]:
-   - 지문 끝의 추천 선택지 3개 중 최소 1개는 미해금 CG 이벤트가 일어날 법한 행동(예: "함께 테라스로 바람을 쐬러 나간다", "진열장의 렌즈를 살펴본다")으로 제시하여 플레이어의 탐색을 자연스럽게 유도하십시오.
+   - 지문 끝의 추천 선택지 3개 중 최소 1개는 미해금 CG 이벤트가 일어날 법한 행동으로 제시하여 플레이어의 탐색을 자연스럽게 유도하십시오.
 4. [해금 선언]:
    - 플레이어가 해당 장소나 상황에 완벽히 도달하여 명장면이 연출되었을 때는 지문 맨 끝에 태그를 첨부하십시오:
-   <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->`
-      : "";
+   <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->
+5. [메신저/서신/전화를 통한 능동적 초대 연출]:
+   - 플레이어가 해당 장소로 이동하지 않거나 대화가 길어질 경우, 상대방이 직업적 용건이나 조심스러운 제안을 명분으로 먼저 연락을 취하게 하십시오.
+   - 연락처가 있다면 PHONE_MSG/INCOMING_CALL을 사용하고, 연락처가 없거나 통신 수단이 없는 시대관이라면 전령이나 시종을 통한 '서신/전언' 지문으로 초대하십시오.
+   - 예시 형식:
+     <!-- PHONE_MSG: {"from": "해당인물명", "text": "주인공이름, [미해금 CG 관련 용건/장소]에 대한 일로 잠시 상의할 것이 있습니다. 시간 괜찮으실 때 들러주시겠습니까?"} -->
+   - NPC는 맹목적으로 집착하거나 매달리지 않으며, 자신의 직업적 품위와 정중한 거리감을 지킨 채 자연스럽게 발걸음을 이끌어야 합니다.
+ 
 
     dynamicRules += dynamicCgGuidelines;
 
