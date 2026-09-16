@@ -11815,7 +11815,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
 
                   <div>
                     <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "4px" }}>
-                      6. 등장했으면 하는 NPC 수 :
+                      6. 등장했으면 하는 NPC 수(최대 10명) :
                     </label>
                     <input
                       type="text"
