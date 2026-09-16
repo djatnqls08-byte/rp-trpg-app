@@ -7422,15 +7422,15 @@ return (
               </details>
             </div>
 
-                  {/* 🌟 미연시 모드일 때는 [취향 & 관심사 노트], TRPG일 때는 [증거 수첩] */}
+{/* 🌟 미연시 모드일 때는 [취향 & 관심사 노트], TRPG일 때는 [증거 수첩] */}
             <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
               <details open style={{ cursor: "pointer" }}>
                 <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span>{activeSession.ruleMode?.startsWith("dating") ? "💡 취향 & 관심사 노트" : "📋 증거 수첩"}</span>
-                  <span style={{ fontSize: "0.7rem", color: theme.textMuted }}>{(activeSession.sheet.clues || []).length}개</span>
+                  <span style={{ fontSize: "0.7rem", color: theme.textMuted }}>{(activeSession.sheet?.clues || []).length}개</span>
                 </summary>
                 <div style={{ marginTop: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
-                  {(!activeSession.sheet.clues || activeSession.sheet.clues.length === 0) ? (
+                  {(!activeSession.sheet?.clues || activeSession.sheet.clues.length === 0) ? (
                     <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 0" }}>
                       {activeSession.ruleMode?.startsWith("dating") 
                         ? "상대가 좋아하는 취향이나 관심사가 아직 기록되지 않았습니다." 
@@ -11065,11 +11065,11 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               고요히 흐르는 시간 속에 머무는 중……
             </div>
             <div style={{ color: "#fde68a", fontSize: "17px", fontWeight: "bold", letterSpacing: "3px", marginTop: "10px" }}>
-              [ {timeTransition} ]
-            </div>
-          </div>
+                    [ {timeTransition} ]
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
-      )}
-    </div>
-  );
-}
+      );
+    }
