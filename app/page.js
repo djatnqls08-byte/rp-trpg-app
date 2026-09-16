@@ -4472,26 +4472,20 @@ return (
     <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
-      /* 마루부리 웹폰트 직접 등록 (브라우저 강제 다운로드) */
+    /* 리디바탕 웹폰트 등록 (모바일 최적화 전자책 명조체) */
       @font-face {
-        font-family: 'MaruBuri';
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Regular.woff') format('woff');
+        font-family: 'RIDIBatang';
+        src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
         font-weight: 400;
-        font-style: normal;
-      }
-      @font-face {
-        font-family: 'MaruBuri';
-        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@2.1/MaruBuri-Bold.woff') format('woff');
-        font-weight: 700;
         font-style: normal;
       }
 
       /* 전체 UI(버튼, 메뉴 등)는 고딕(프리텐다드) 고정 */
       *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
 
-      /* 서사 지문 말풍선(.serif-text)에만 마루부리 명조체 최우선 적용 */
+      /* 서사 지문 말풍선(.serif-text)에만 리디바탕 명조체 최우선 적용 */
       .serif-text, .serif-text * { 
-        font-family: ${fontChoice === "maru" ? "'MaruBuri', serif" : "'Pretendard', sans-serif"} !important; 
+        font-family: ${fontChoice === "pretendard" ? "'Pretendard', sans-serif" : "'RIDIBatang', serif"} !important; 
         line-height: 1.95; 
         word-break: keep-all; 
         letter-spacing: -0.01em; 
@@ -9304,7 +9298,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     onClick={() => setFontChoice("maru")} 
                     style={{ padding: "8px", borderRadius: "6px", border: `1.5px solid ${fontChoice === "maru" ? theme.accent : theme.border}`, backgroundColor: fontChoice === "maru" ? theme.panelAlt : "transparent", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: fontChoice === "maru" ? "800" : "400" }}
                   >
-                    📖 마루부리 (명조체)
+                    📖 리디바탕 (명조체)
                   </button>
                   <button 
                     type="button" 
