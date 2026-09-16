@@ -10422,7 +10422,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </div>
                 </div>
               ) : (
-(
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   {/* 🚀 최신 버전 v1.4.0 */}
                   <div>
