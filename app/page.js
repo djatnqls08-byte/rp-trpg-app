@@ -3710,14 +3710,23 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
           if (!raw) return null;
           let word = raw.trim()
             .replace(/^[에의은는이가을를과와로으로]\s+/, "")
-            .replace(/^(?:좀|더|가장|특히|오히려|무척|꽤)\s+/, "") // '좀', '더' 부사 제거
+            .replace(/^(?:좀|더|가장|특히|오히려|무척|꽤)\s+/, "")
             .trim();
 
-          // 미완성 형용사(-적인, -있는, -인, -한 등)는 명사가 아니므로 탈락
+          // 1) 앞쪽에 잘못 붙은 동사형/관형절(~은/는/던/지 않은) 제거 (예: '거짓이 섞이지 않은' ➔ 제거)
+          word = word.replace(/^[가-힣]+(?:은|는|던|인)\s+/g, "").replace(/^[가-힣]+(?:지|도)\s+않은\s+/g, "").trim();
+
+          // 2) 3단어 이상 길어지면 무조건 맨 끝 2단어만 압축 (예: '섞이지 않은 진솔한 태도' ➔ '진솔한 태도')
+          const words = word.split(/\s+/);
+          if (words.length > 2) {
+            word = words.slice(-2).join(" ");
+          }
+
           if (/(?:있는|없는|하는|되는|같은|않은|적인|스런|스러운|로운|[인한])$/.test(word)) return null;
 
           const invalidStopwords = ["것", "곳", "때", "점", "수", "줄", "거", "바", "분", "대답", "질문"];
           if (invalidStopwords.includes(word) || word.length < 2) return null;
+
           return word;
         };
 
@@ -7499,7 +7508,7 @@ return (
                         }}
                       >
                         <span style={{ fontSize: "0.72rem" }}>{isDislike ? "💔" : "💖"}</span>
-                        <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^솔직한 의도가 담긴\s*/, "")}</span>
+                        <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^[가-힣]+(?:지|도)?\s*않은\s*/, "").trim()}</span>
 </div>
                           );
                         })}
