@@ -5779,9 +5779,9 @@ return (
       </div>
     </div>       
               </div>
-            )}
+)}
 
-{/* 🌟 스튜디오에서 복귀 시 나타나는 길잡이 배너 */}
+            {/* 🌟 스튜디오에서 복귀 시 나타나는 길잡이 배너 */}
             {showPasteGuideBanner && (
               <div
                 onClick={() => {
@@ -5825,68 +5825,74 @@ return (
               </div>
             )}
 
-            {/* 시나리오 정보 */}
-            <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-              {/* 1. 스튜디오 링크 */}
-              <a
-                href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="새 탭에서 AI 시나리오 제작기(Gem) 열기"
-                style={{
-                  padding: "4px 8px",
-                  backgroundColor: theme.panelAlt,
-                  color: theme.accent,
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: "6px",
-                  fontSize: "0.8rem",
-                  fontWeight: "bold",
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  cursor: "pointer"
-                }}
-              >
-                🎬 {isMobile ? "스튜디오" : "스튜디오"}
-              </a>
+            {/* 🌟 시나리오 정보 카드 본체 */}
+            <div className="glass-card" style={{ padding: "16px", borderRadius: "16px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: "800", color: theme.text }}>
+                  {wizardMode.startsWith("dating") ? "📖 에피소드 설정 및 서막" : "📖 시나리오 정보 및 서막"}
+                </h3>
 
-              {/* 2. 시나리오 파일 첨부 통합 버튼 */}
-              <button 
-                type="button"
-                onClick={() => setShowPasteModal(true)} 
-                style={{ 
-                  padding: "4px 8px", 
-                  backgroundColor: theme.panelAlt, 
-                  color: theme.text, 
-                  border: `1px solid ${theme.border}`, 
-                  borderRadius: "6px", 
-                  fontSize: "0.8rem", 
-                  cursor: "pointer", 
-                  display: "inline-flex", 
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-              >
-                📄 {isMobile ? "첨부" : "파일 첨부"}
-              </button>
+                <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
+                  {/* 1. 스튜디오 바로가기 링크 */}
+                  <a
+                    href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="새 탭에서 AI 시나리오 제작기(Gem) 열기"
+                    style={{
+                      padding: "4px 8px",
+                      backgroundColor: theme.panelAlt,
+                      color: theme.accent,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: "6px",
+                      fontSize: "0.8rem",
+                      fontWeight: "bold",
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      cursor: "pointer"
+                    }}
+                  >
+                    🎬 {isMobile ? "스튜디오" : "스튜디오"}
+                  </a>
 
-              {/* 3. 기존 치환 버튼 */}
-              <button 
-                type="button"
-                onClick={handleAutoReplaceKpcPc} 
-                style={{ 
-                  padding: "4px 8px", 
-                  backgroundColor: theme.panelAlt, 
-                  color: theme.text, 
-                  border: `1px solid ${theme.border}`, 
-                  borderRadius: "6px", 
-                  fontSize: "0.8rem", 
-                  cursor: "pointer" 
-                }}
-              >
-                🔄 {isMobile ? "치환" : "PC/KPC 치환"}
-              </button>
-            </div>
+                  {/* 2. 시나리오 파일 첨부 통합 버튼 */}
+                  <button 
+                    type="button"
+                    onClick={() => setShowPasteModal(true)} 
+                    style={{ 
+                      padding: "4px 8px", 
+                      backgroundColor: theme.panelAlt, 
+                      color: theme.text, 
+                      border: `1px solid ${theme.border}`, 
+                      borderRadius: "6px", 
+                      fontSize: "0.8rem", 
+                      cursor: "pointer", 
+                      display: "inline-flex", 
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    📄 {isMobile ? "첨부" : "파일 첨부"}
+                  </button>
+
+                  {/* 3. 기존 치환 버튼 */}
+                  <button 
+                    type="button"
+                    onClick={handleAutoReplaceKpcPc} 
+                    style={{ 
+                      padding: "4px 8px", 
+                      backgroundColor: theme.panelAlt, 
+                      color: theme.text, 
+                      border: `1px solid ${theme.border}`, 
+                      borderRadius: "6px", 
+                      fontSize: "0.8rem", 
+                      cursor: "pointer" 
+                    }}
+                  >
+                    🔄 {isMobile ? "치환" : "PC/KPC 치환"}
+                  </button>
+                </div>
               </div>
 
               <input 
