@@ -696,7 +696,7 @@ const [showCgDialog, setShowCgDialog] = useState(true); // 🌟 CG 대사창 보
   // 🌟 [추가] 버전 관리 및 공지사항/가이드 상태
   const APP_VERSION = "v1.4.0";
   const [showNoticeModal, setShowNoticeModal] = useState(false);
-  const [activeNoticeTab, setActiveNoticeTab] = useState("guide"); // 'guide' 또는 'update'
+  const [activeNoticeTab, setActiveNoticeTab] = useState("update");
   const [hideNoticeCheckbox, setHideNoticeCheckbox] = useState(false);
 
   // 🌟 [추가] 처음 접속 시 7일 체크 확인 로직
@@ -5113,7 +5113,7 @@ return (
             {/* 5. 📢 공지 버튼 (로비에서만) */}
             {!activeSession && (
               <button 
-                onClick={() => { setActiveNoticeTab("guide"); openModal(setShowNoticeModal); }} 
+                onClick={() => { setActiveNoticeTab("update"); openModal(setShowNoticeModal); }} 
                 title="이용 가이드 및 패치 노트" 
                 style={{ 
                   height: isMobile ? "34px" : "36px", 
@@ -10347,18 +10347,42 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
         </div>
       )}
 
-      {/* 🌟 공지사항 및 시작 가이드 모달 (글씨 크기 및 가독성 업그레이드) */}
-      {showNoticeModal && (
-        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: isMobile ? "12px" : "20px" }}>
-          <div className="glass-card" style={{ width: "100%", maxWidth: "560px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "88dvh" }}>
-
-            {/* 상단 탭 버튼 */}
+      {/* 상단 탭 버튼 (업데이트 노트를 맨 왼쪽 첫 번째로 배치) */}
             <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar }}>
-              <button onClick={() => setActiveNoticeTab("guide")} style={{ flex: 1, padding: "14px", background: activeNoticeTab === "guide" ? theme.panelAlt : "transparent", border: "none", color: activeNoticeTab === "guide" ? theme.accent : theme.textMuted, fontWeight: activeNoticeTab === "guide" ? "800" : "500", fontSize: "0.92rem", cursor: "pointer", borderBottom: activeNoticeTab === "guide" ? `2px solid ${theme.accent}` : "none" }}>
-                📖 시작 가이드
-              </button>
-              <button onClick={() => setActiveNoticeTab("update")} style={{ flex: 1, padding: "14px", background: activeNoticeTab === "update" ? theme.panelAlt : "transparent", border: "none", color: activeNoticeTab === "update" ? theme.accent : theme.textMuted, fontWeight: activeNoticeTab === "update" ? "800" : "500", fontSize: "0.92rem", cursor: "pointer", borderBottom: activeNoticeTab === "update" ? `2px solid ${theme.accent}` : "none" }}>
+              <button 
+                type="button"
+                onClick={() => setActiveNoticeTab("update")} 
+                style={{ 
+                  flex: 1, 
+                  padding: "14px", 
+                  background: activeNoticeTab === "update" ? theme.panelAlt : "transparent", 
+                  border: "none", 
+                  color: activeNoticeTab === "update" ? theme.accent : theme.textMuted, 
+                  fontWeight: activeNoticeTab === "update" ? "800" : "500", 
+                  fontSize: "0.92rem", 
+                  cursor: "pointer", 
+                  borderBottom: activeNoticeTab === "update" ? `2px solid ${theme.accent}` : "none" 
+                }}
+              >
                 🚀 업데이트 노트 ({APP_VERSION})
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setActiveNoticeTab("guide")} 
+                style={{ 
+                  flex: 1, 
+                  padding: "14px", 
+                  background: activeNoticeTab === "guide" ? theme.panelAlt : "transparent", 
+                  border: "none", 
+                  color: activeNoticeTab === "guide" ? theme.accent : theme.textMuted, 
+                  fontWeight: activeNoticeTab === "guide" ? "800" : "500", 
+                  fontSize: "0.92rem", 
+                  cursor: "pointer", 
+                  borderBottom: activeNoticeTab === "guide" ? `2px solid ${theme.accent}` : "none" 
+                }}
+              >
+                📖 시작 가이드
               </button>
             </div>
 
@@ -11591,108 +11615,127 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </button>
                 </div>
 
-                {/* 📌 상단 참고용 키워드/룰 안내 보드 */}
-                <div style={{ padding: "12px", backgroundColor: theme.panelAlt || "#27272a", borderRadius: "10px", border: `1px solid ${theme.border || "#3f3f46"}` }}>
-                  <div style={{ fontSize: "0.72rem", fontWeight: "800", color: theme.accent || "#38bdf8", marginBottom: "4px" }}>
-                    💡 참고용 보기 (마음에 드는 키워드를 골라 아래에 적어보세요)
-                  </div>
-                  <div style={{ fontSize: "0.72rem", color: theme.text, lineHeight: "1.5" }}>
-                    <b>[룰 종류]:</b> 자유 서사, CoC, 인세인, 미연시<br />
-                    <b>[추천 키워드]:</b> #집착 #혐관 #쌍방구원 #오컬트 #신분차 #고립 #폐쇄병동 #비밀계약 #일상달달 #배틀
-                  </div>
-                </div>
-
-                {/* 📝 직접 입력 폼 */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "3px" }}>
-                      1. 룰 선택하기 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.rule}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, rule: e.target.value })}
-                      placeholder="예: CoC 7판 / 인세인 / 미연시 / 자유 서사"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
+                {/* 📌 상단 참고용 키워드/룰 안내 보드 (원클릭 자동 완성 칩) */}
+                <div style={{ padding: "14px 16px", backgroundColor: theme.panelAlt || "#27272a", borderRadius: "12px", border: `1.5px solid ${theme.border || "#3f3f46"}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: "800", color: theme.accent || "#38bdf8" }}>
+                      💡 추천 룰 & 키워드 (클릭 시 입력창에 자동 추가)
+                    </span>
+                    <span style={{ fontSize: "0.72rem", color: theme.textMuted || "#a1a1aa" }}>
+                      터치하여 간편 선택
+                    </span>
                   </div>
 
+                  {/* 1. 룰 퀵 칩 */}
                   <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "3px" }}>
-                      2. 키워드 선택하기 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.keywords}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, keywords: e.target.value })}
-                      placeholder="예: #폭풍우 #고립된저택 #혐관 #비밀계약"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
+                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                      [룰 선택]
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {["자유 서사", "크툴루의 부름 (CoC 7판)", "인세인 (inSANe)", "미연시 (연애 시뮬)"].map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setStudioPromptForm({ ...studioPromptForm, rule: r })}
+                          style={{
+                            padding: "4px 10px",
+                            backgroundColor: studioPromptForm.rule === r ? (theme.accent || "#38bdf8") : (theme.panel || "#18181b"),
+                            color: studioPromptForm.rule === r ? "#fff" : theme.text,
+                            border: `1px solid ${studioPromptForm.rule === r ? (theme.accent || "#38bdf8") : (theme.border || "#3f3f46")}`,
+                            borderRadius: "8px",
+                            fontSize: "0.78rem",
+                            fontWeight: "700",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
+                  {/* 2. 관계성 & 서사 톤 */}
                   <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "3px" }}>
-                      3. 주인공 나이, 성별 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.pcAgeGender}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcAgeGender: e.target.value })}
-                      placeholder="예: 여성, 24세"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
+                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                      [관계성 & 감정선]
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {[
+                        "#쌍방구원", "#혐관", "#애증", "#신분차", "#비밀계약", 
+                        "#착각계", "#짝사랑", "#달달일상", "#후회/미련", "#배틀", 
+                        "#운명적유대", "#스폰서/후원", "#사제지간", "#소꿉친구"
+                      ].map((tag) => {
+                        const isAdded = (studioPromptForm.keywords || "").includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              const cur = studioPromptForm.keywords || "";
+                              if (isAdded) {
+                                setStudioPromptForm({ ...studioPromptForm, keywords: cur.replace(tag, "").replace(/\s+/g, " ").trim() });
+                              } else {
+                                setStudioPromptForm({ ...studioPromptForm, keywords: cur ? `${cur} ${tag}` : tag });
+                              }
+                            }}
+                            style={{
+                              padding: "4px 9px",
+                              backgroundColor: isAdded ? "rgba(99, 102, 241, 0.25)" : (theme.panel || "#18181b"),
+                              color: isAdded ? "#818cf8" : theme.text,
+                              border: `1px solid ${isAdded ? "#6366f1" : (theme.border || "#3f3f46")}`,
+                              borderRadius: "14px",
+                              fontSize: "0.78rem",
+                              fontWeight: isAdded ? "800" : "500",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
+                  {/* 3. 배경 & 장르 기믹 */}
                   <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "3px" }}>
-                      4. (선택) 주인공의 성격, 소지품, 배경 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.pcDetail}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcDetail: e.target.value })}
-                      placeholder="예: 과묵하고 신중함 / 소지품: 회중시계, 만년필 / 전직 탐정"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "3px" }}>
-                      5. (선택) 주인공의 비밀 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.pcSecret}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcSecret: e.target.value })}
-                      placeholder="예: 과거 사건의 유일한 생존자이나 기억을 잃음"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "3px" }}>
-                      6. 등장했으면 하는 NPC 수 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.npcCount}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, npcCount: e.target.value })}
-                      placeholder="예: 1명 (파트너) / 총 3명 (주요인물 1명, 서브 2명)"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: "0.74rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "3px" }}>
-                      7. (선택) 선호하는 NPC 외형 :
-                    </label>
-                    <input
-                      type="text"
-                      value={studioPromptForm.npcAppearance}
-                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, npcAppearance: e.target.value })}
-                      placeholder="예: 흑발 장발, 단정한 제복 차림 / 날카로운 인상의 은발"
-                      style={{ width: "100%", padding: "7px 10px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "6px", color: theme.text, fontSize: "0.78rem" }}
-                    />
+                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                      [배경 & 사건 기믹]
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {[
+                        "#오컬트", "#폐쇄병동", "#고립된저택", "#도시괴담", "#코스믹호러", 
+                        "#추리/수사", "#시간루프", "#기억상실", "#시한부", "#가면무도회", 
+                        "#아포칼립스", "#동양풍/사극", "#사이버펑크", "#금지된의식"
+                      ].map((tag) => {
+                        const isAdded = (studioPromptForm.keywords || "").includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              const cur = studioPromptForm.keywords || "";
+                              if (isAdded) {
+                                setStudioPromptForm({ ...studioPromptForm, keywords: cur.replace(tag, "").replace(/\s+/g, " ").trim() });
+                              } else {
+                                setStudioPromptForm({ ...studioPromptForm, keywords: cur ? `${cur} ${tag}` : tag });
+                              }
+                            }}
+                            style={{
+                              padding: "4px 9px",
+                              backgroundColor: isAdded ? "rgba(229, 169, 60, 0.2)" : (theme.panel || "#18181b"),
+                              color: isAdded ? "#fbbf24" : theme.text,
+                              border: `1px solid ${isAdded ? "#f59e0b" : (theme.border || "#3f3f46")}`,
+                              borderRadius: "14px",
+                              fontSize: "0.78rem",
+                              fontWeight: isAdded ? "800" : "500",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
