@@ -1205,10 +1205,25 @@ useEffect(() => {
         return;
       }
 
-      // ② 호감도 조건 검사
+      // ② 호감도 및 '루트 진입' 조건 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const targetNpcName = targetNpc?.name;
 
+      // 🚩 1) '루트 진입' 조건 자동 판별 (수치 표기가 없어도 호감도 50 이상 & 1위 독점 시 인정)
+      const isRouteTrigger = /루트\s*(진입|확정|돌입)/.test(triggerCond);
+      if (isRouteTrigger) {
+        const curAff = targetNpc ? (targetNpc.affection || 0) : Math.max(...npcs.map(n => n.affection || 0), 0);
+        const otherAffs = npcs.filter(n => n.name !== targetNpcName).map(n => n.affection || 0);
+        const maxOther = otherAffs.length > 0 ? Math.max(...otherAffs) : 0;
+
+        // 호감도 50점 이상이면서 다른 NPC들 중 가장 높을 때 해금
+        if (curAff >= 50 && curAff >= maxOther) {
+          properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
+        }
+        return;
+      }
+
+      // 2) 일반 호감도 수치 조건 검사 (예: 호감도 40)
       const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
       const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
 
@@ -1220,6 +1235,7 @@ useEffect(() => {
         return;
       }
 
+     
       // ③ 서사 조건: 시간대 및 키워드 검사
       const passNpc = targetNpcName ? fullHistory.includes(targetNpcName) : true;
 
@@ -4194,15 +4210,70 @@ const executePlayerDodge = () => {
 const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
 const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
-// ☀️ [엔딩 감지 로직] 4대 분기(트루/히든/배드/노멀) 및 서브 타이틀 추출
-    const isScenarioEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
-    const isHiddenEnding = isScenarioEnded && /Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText);
-    const isBadEnding = isScenarioEnded && !isHiddenEnding && /Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText);
-    const isTrueEnding = isScenarioEnded && !isHiddenEnding && !isBadEnding && /True\s*End|Happy\s*End|트루|해피/i.test(lastMsgText);
+// ☀️ [엔딩 감지 및 수치 기반 자동 판정 로직]
+// ☀️ [다인원/비공략 NPC 완벽 대응 엔딩 판정 로직]
+const evaluateEnding = (npcs = []) => {
+  if (!npcs || npcs.length === 0) {
+    return { type: "Normal End", title: "Normal End: 홀로 마주한 새벽" };
+  }
 
-    // AI가 작성한 엔딩 제목 추출 (예: [True End: 영원한 서약] -> "True End: 영원한 서약")
-    const endingMatch = lastMsgText.match(/\[((?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[^\]]*)\]/i);
-    const endingTitle = endingMatch ? endingMatch[1] : (isTrueEnding ? "True Ending" : isHiddenEnding ? "Hidden Ending" : isBadEnding ? "Bad Ending" : "Normal Ending");
+  // 호감도 순으로 정렬
+  const sorted = [...npcs].sort((a, b) => (Number(b.affection) || 0) - (Number(a.affection) || 0));
+  const top1Npc = sorted[0];
+  const top2Npc = sorted[1];
+
+  const top1Aff = Number(top1Npc?.affection) || 0;
+  const top2Aff = Number(top2Npc?.affection) || 0;
+
+  // 1. 배드 엔딩 판정: 
+  // 다른 NPC를 방치한 건 상관없지만, '가장 호감도가 높은 인물'마저 20점 미만이거나 주력 인물 관계가 파탄(-10 이하)났을 때만
+  if (top1Aff < 20 || (top1Aff <= -10)) {
+    return { type: "Bad End", title: `Bad End: 어긋난 시선과 차가운 침묵` };
+  }
+
+  // 2. 다자 엔딩 (Hidden End): 
+  // 비공략 NPC는 버리고, 유의미하게 공략한 인물이 2명 이상(둘 다 60점 이상)이면서 둘의 격차가 15점 이내로 팽팽할 때
+  const isPolyamory = top1Aff >= 60 && top2Aff >= 60 && (top1Aff - top2Aff) <= 15;
+  if (isPolyamory) {
+    return { 
+      type: "Hidden End", 
+      title: `Hidden End: ${top1Npc.name}와 ${top2Npc.name}, 세 사람의 은밀한 밤` 
+    };
+  }
+
+  // 3. 1인 집중 트루 엔딩 (True End):
+  // 1순위 NPC 호감도가 70점 이상이고, 2순위 NPC와 격차가 확실(20점 이상)하거나 2순위가 비공략 상태(45점 미만)일 때
+  const isSoloTrue = top1Aff >= 70 && ((top1Aff - top2Aff >= 20) || top2Aff < 45);
+  if (isSoloTrue) {
+    return { 
+      type: "True End", 
+      title: `True End: ${top1Npc.name}와의 영원한 서약` 
+    };
+  }
+
+  // 4. 노말 엔딩 (Normal End):
+  // 사건은 해결했으나 1인 트루(70점+)나 다자 조건(둘 다 60점+)에는 미치지 못한 무난한 동료 엔딩
+  return { 
+    type: "Normal End", 
+    title: `Normal End: ${top1Npc.name}와 함께 맞이하는 평온한 일상` 
+  };
+};
+ 
+// 지문 속 완결 텍스트 감지
+const isScenarioEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
+
+// 현재 세션 NPC 호감도 기반 실시간 엔딩 계산
+const calculatedEnding = evaluateEnding(activeSession?.sheet?.npcs || []);
+
+// 지문에 적힌 명시적 태그가 있다면 우선 적용하고, 없으면 호감도 계산 결과 적용
+const isHiddenEnding = isScenarioEnded && (/Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText) || calculatedEnding.type === "Hidden End");
+const isBadEnding = isScenarioEnded && !isHiddenEnding && (/Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText) || calculatedEnding.type === "Bad End");
+const isTrueEnding = isScenarioEnded && !isHiddenEnding && !isBadEnding && (/True\s*End|Happy\s*End|트루|해피/i.test(lastMsgText) || calculatedEnding.type === "True End");
+
+const endingMatch = lastMsgText.match(/\[((?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[^\]]*)\]/i);
+const endingTitle = isScenarioEnded
+  ? (endingMatch ? endingMatch[1] : calculatedEnding.title)
+  : calculatedEnding.title;
 
  // 🌟 [추가] 모바일 뒤로가기(제스처/버튼) 시 앱 종료 방지 및 로비 복귀
   useEffect(() => {
