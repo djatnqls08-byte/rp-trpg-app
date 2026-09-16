@@ -11600,16 +11600,18 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 </div>
               </>
             ) : (
-              /* 2. 시나리오 양식 직접 작성 뷰 */
-              <>
+<>
+                {/* 상단 네비게이션 */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <button
+                    type="button"
                     onClick={() => setTutorialView("menu")}
                     style={{ background: "none", border: "none", color: "#818cf8", fontSize: "0.85rem", cursor: "pointer", fontWeight: "700", padding: 0 }}
                   >
                     ← 뒤로 가기
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsTutorialModalOpen(false);
                       setTutorialView("menu");
@@ -11620,20 +11622,20 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </button>
                 </div>
 
-                {/* 📌 상단 참고용 키워드/룰 안내 보드 (원클릭 자동 완성 칩) */}
+                {/* 📌 상단 원클릭 자동 완성 키워드 칩 */}
                 <div style={{ padding: "14px 16px", backgroundColor: theme.panelAlt || "#27272a", borderRadius: "12px", border: `1.5px solid ${theme.border || "#3f3f46"}`, display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.85rem", fontWeight: "800", color: theme.accent || "#38bdf8" }}>
-                      💡 추천 룰 & 키워드 (클릭 시 입력창에 자동 추가)
+                    <span style={{ fontSize: "0.86rem", fontWeight: "800", color: theme.accent || "#38bdf8" }}>
+                      💡 추천 룰 & 키워드 (클릭 시 아래 1·2번에 자동 입력)
                     </span>
-                    <span style={{ fontSize: "0.72rem", color: theme.textMuted || "#a1a1aa" }}>
+                    <span style={{ fontSize: "0.74rem", color: theme.textMuted || "#a1a1aa" }}>
                       터치하여 간편 선택
                     </span>
                   </div>
 
-                  {/* 1. 룰 퀵 칩 */}
+                  {/* 1) 룰 선택 칩 */}
                   <div>
-                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                    <div style={{ fontSize: "0.78rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
                       [룰 선택]
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -11643,12 +11645,12 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                           type="button"
                           onClick={() => setStudioPromptForm({ ...studioPromptForm, rule: r })}
                           style={{
-                            padding: "4px 10px",
+                            padding: "5px 11px",
                             backgroundColor: studioPromptForm.rule === r ? (theme.accent || "#38bdf8") : (theme.panel || "#18181b"),
                             color: studioPromptForm.rule === r ? "#fff" : theme.text,
                             border: `1px solid ${studioPromptForm.rule === r ? (theme.accent || "#38bdf8") : (theme.border || "#3f3f46")}`,
                             borderRadius: "8px",
-                            fontSize: "0.78rem",
+                            fontSize: "0.8rem",
                             fontWeight: "700",
                             cursor: "pointer"
                           }}
@@ -11659,9 +11661,9 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     </div>
                   </div>
 
-                  {/* 2. 관계성 & 서사 톤 */}
+                  {/* 2) 관계성 칩 */}
                   <div>
-                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                    <div style={{ fontSize: "0.78rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
                       [관계성 & 감정선]
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -11684,7 +11686,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                               }
                             }}
                             style={{
-                              padding: "4px 9px",
+                              padding: "5px 10px",
                               backgroundColor: isAdded ? "rgba(99, 102, 241, 0.25)" : (theme.panel || "#18181b"),
                               color: isAdded ? "#818cf8" : theme.text,
                               border: `1px solid ${isAdded ? "#6366f1" : (theme.border || "#3f3f46")}`,
@@ -11701,9 +11703,9 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     </div>
                   </div>
 
-                  {/* 3. 배경 & 장르 기믹 */}
+                  {/* 3) 배경 기믹 칩 */}
                   <div>
-                    <div style={{ fontSize: "0.76rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
+                    <div style={{ fontSize: "0.78rem", fontWeight: "700", color: theme.textMuted || "#a1a1aa", marginBottom: "6px" }}>
                       [배경 & 사건 기믹]
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
@@ -11726,7 +11728,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                               }
                             }}
                             style={{
-                              padding: "4px 9px",
+                              padding: "5px 10px",
                               backgroundColor: isAdded ? "rgba(229, 169, 60, 0.2)" : (theme.panel || "#18181b"),
                               color: isAdded ? "#fbbf24" : theme.text,
                               border: `1px solid ${isAdded ? "#f59e0b" : (theme.border || "#3f3f46")}`,
@@ -11744,8 +11746,102 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </div>
                 </div>
 
-                {/* 🚀 최하단: [복사] & [스튜디오 이동] 버튼 */}
-                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                {/* 📝 복구된 1~7번 직접 입력 폼 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "4px" }}>
+                      1. 룰 선택하기 (위의 칩을 누르거나 직접 입력) :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.rule}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, rule: e.target.value })}
+                      placeholder="예: CoC 7판 / 인세인 / 미연시 / 자유 서사"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "4px" }}>
+                      2. 키워드 선택하기 (위의 해시태그를 누르거나 직접 추가) :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.keywords}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, keywords: e.target.value })}
+                      placeholder="예: #쌍방구원 #혐관 #오컬트 #고립된저택"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "4px" }}>
+                      3. 주인공 나이, 성별 :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.pcAgeGender}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcAgeGender: e.target.value })}
+                      placeholder="예: 여성, 24세"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "4px" }}>
+                      4. (선택) 주인공의 성격, 소지품, 배경 :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.pcDetail}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcDetail: e.target.value })}
+                      placeholder="예: 과묵하고 신중함 / 소지품: 회중시계, 만년필 / 전직 탐정"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "4px" }}>
+                      5. (선택) 주인공의 비밀 :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.pcSecret}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, pcSecret: e.target.value })}
+                      placeholder="예: 과거 사건의 유일한 생존자이나 기억을 잃음"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.text, display: "block", marginBottom: "4px" }}>
+                      6. 등장했으면 하는 NPC 수 :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.npcCount}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, npcCount: e.target.value })}
+                      placeholder="예: 1명 (파트너) / 총 3명 (주요인물 1명, 서브 2명)"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: theme.textMuted || "#9e9c96", display: "block", marginBottom: "4px" }}>
+                      7. (선택) 선호하는 NPC 외형 :
+                    </label>
+                    <input
+                      type="text"
+                      value={studioPromptForm.npcAppearance}
+                      onChange={(e) => setStudioPromptForm({ ...studioPromptForm, npcAppearance: e.target.value })}
+                      placeholder="예: 흑발 장발, 단정한 제복 차림 / 날카로운 인상의 은발"
+                      style={{ width: "100%", padding: "9px 12px", backgroundColor: theme.inputBg || "#141413", border: `1px solid ${theme.border || "#3f3f46"}`, borderRadius: "8px", color: theme.text, fontSize: "0.84rem" }}
+                    />
+                  </div>
+                </div>
+
+                {/* 🚀 최하단 복사 & 스튜디오 이동 버튼 */}
+                <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -11766,12 +11862,12 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                     }}
                     style={{
                       flex: 1,
-                      padding: "11px",
+                      padding: "12px",
                       backgroundColor: isPromptCopied ? "#10b981" : (theme.panelAlt || "#27272a"),
                       color: isPromptCopied ? "#fff" : theme.text,
                       border: `1px solid ${isPromptCopied ? "#10b981" : (theme.border || "#3f3f46")}`,
                       borderRadius: "10px",
-                      fontSize: "0.82rem",
+                      fontSize: "0.84rem",
                       fontWeight: "700",
                       cursor: "pointer",
                       transition: "all 0.15s ease"
@@ -11780,25 +11876,25 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                     {isPromptCopied ? "✓ 양식 복사됨!" : "📋 작성한 양식 복사"}
                   </button>
 
-<a
+                  <a
                     href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
                       setIsTutorialModalOpen(false);
                       setTutorialView("menu");
-                      setShowPasteGuideBanner(true); // 👈 배너 켜기 스위치
+                      setShowPasteGuideBanner(true);
                     }}
                     style={{
                       flex: 1.2,
-                      padding: "11px",
+                      padding: "12px",
                       backgroundColor: "#6366f1",
                       color: "#ffffff",
                       borderRadius: "10px",
                       textAlign: "center",
                       textDecoration: "none",
                       fontWeight: "800",
-                      fontSize: "0.82rem",
+                      fontSize: "0.84rem",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
