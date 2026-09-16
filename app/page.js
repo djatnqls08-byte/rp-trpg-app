@@ -7527,11 +7527,12 @@ return (
                       >
                         <span style={{ fontSize: "0.72rem" }}>{isDislike ? "💔" : "💖"}</span>
                         <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^솔직한 의도가 담긴\s*/, "")}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
+</div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
               </details>
             </div>
 
