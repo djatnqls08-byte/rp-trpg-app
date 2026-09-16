@@ -7498,7 +7498,6 @@ return (
                         : "아직 발견된 결정적 단서가 없습니다."}
                     </div>
                   ) : (
-) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {activeSession.sheet.clues
                   .filter(clue => {
