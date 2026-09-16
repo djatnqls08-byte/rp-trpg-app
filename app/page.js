@@ -11070,6 +11070,5 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 </div>
               </div>
             )}
-        </div>
       );
     }
