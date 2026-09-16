@@ -3662,18 +3662,23 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(itemRegex, "");
 
-      // [단서/취향 자동 추출 및 수첩 추가]
+     // [단서/취향 자동 추출 및 수첩 추가: 순수 키워드만 정밀 추출]
       let newClues = [];
-      const clueRegex = /<!--\s*CLUE:\s*(\{.*?\})\s*-->/gs;
+      const clueRegex = /<!--\s*CLUE:\s*(\{[\s\S]*?\})\s*-->/gi;
       let clueMatch;
       while ((clueMatch = clueRegex.exec(rawText)) !== null) {
         try {
           const clueObj = JSON.parse(clueMatch[1]);
           if (clueObj.name) {
-            const formattedName = clueObj.name.includes(partnerName) ? clueObj.name : `[${partnerName}] ${clueObj.name}`;
+            // [인물명], '취향과 관심사' 같은 수식어구를 완전히 깎아내고 순수 알맹이 단어만 추출
+            const pureItemName = clueObj.name
+              .replace(/\[.*?\]/g, "")
+              .replace(/.*의\s*(?:취향|관심사|선호).*$/, "")
+              .trim();
+
             newClues.push({ 
               id: Date.now() + Math.random(), 
-              name: formattedName, 
+              name: pureItemName || clueObj.name.trim(), 
               desc: clueObj.desc || "",
               npcName: partnerName
             });
@@ -3682,16 +3687,19 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(clueRegex, "");
 
-      // 💡 [취향 자동 구조 Fallback]
-      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("관심"))) {
-        const quoteMatch = rawText.match(/[\*"]([^\*"]*(?:좋아합|선호합|취향|마음에 듭|애정|시간을)[^\*"]*)[\*"]/);
-        const descText = quoteMatch ? quoteMatch[1].trim() : (rawText.split("\n").find(l => l.includes("좋아")) || "대화를 통해 확인된 관심사");
-        newClues.push({
-          id: Date.now() + Math.random(),
-          name: `[${partnerName}] ${partnerName}의 취향과 관심사`,
-          desc: descText.replace(/^["'*]+|["'*]+$/g, ""),
-          npcName: partnerName
-        });
+      // 💡 [취향 자동 구조 Fallback]: 대화 속에서 실제 취향 단어만 포착
+      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호"))) {
+        const sentenceMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를)\s*(?:좋아|선호|즐겨|마음에|아끼)/);
+        const extractedWord = sentenceMatch ? sentenceMatch[1].trim() : null;
+
+        if (extractedWord && extractedWord.length >= 2 && !extractedWord.includes(partnerName)) {
+          newClues.push({
+            id: Date.now() + Math.random(),
+            name: extractedWord,
+            desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
+            npcName: partnerName
+          });
+        }
       }
 
       // [새 등장인물 자동 추출]
@@ -3706,24 +3714,61 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-      // [선톡 자동 수신 & 스냅 사진 동시 감지]
+// [선톡 자동 수신 & 스냅 사진 동시 감지]
       let newPhoneMsg = null;
-      const phoneRegex = /<!--\s*PHONE_MSG:\s*(\{.*?\})\s*-->/gs;
+      const phoneRegex = /<!--\s*PHONE_MSG:\s*(\{[\s\S]*?\})\s*-->/gi;
       let phoneMatch;
       while ((phoneMatch = phoneRegex.exec(rawText)) !== null) {
         try { newPhoneMsg = JSON.parse(phoneMatch[1]); } catch (e) {}
       }
       rawText = rawText.replace(phoneRegex, "");
 
-      // 📷 선톡에 사진이 포함되어 있는지 확인
+      // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱 (셀카 배제 & 세계관 자동 매칭)
       let autoSnapPhotoUrl = null;
-      const autoSnapMatch = rawText.match(/<!--\s*SNAP_PHOTO:\s*(\{.*?\})\s*-->/i);
+      const autoSnapMatch = rawText.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
       if (autoSnapMatch) {
         try {
           const snapData = JSON.parse(autoSnapMatch[1]);
-          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(snapData.prompt)}?width=800&height=1000&nologo=true`;
+          // 셀카/인물 키워드(girl, portrait, face 등)를 강제 제거하고 사물/배경 위주로 정제
+          let p = (snapData.prompt || snapData.photo || snapData.caption || "")
+            .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer)\b/gi, "")
+            .trim();
+          if (!p) p = "aesthetic scenery, cozy atmosphere, anime background masterpiece, no humans";
+          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p + ", no humans, scenery only")}?width=800&height=1000&nologo=true`;
         } catch (e) {}
         rawText = rawText.replace(autoSnapMatch[0], "");
+      }
+
+      // 🌟 2) [스마트 Fallback] 태그 누락 시 시대관/사물 분석 (셀카 완전 제외)
+      if (!autoSnapPhotoUrl && newPhoneMsg) {
+        const combinedText = `${textToSend} ${newPhoneMsg.text || ""} ${rawText}`.toLowerCase();
+        const isPhotoRequested = /사진|스냅|찍|풍경|보여줘|진열장|서재|거리/.test(combinedText);
+
+        if (isPhotoRequested) {
+          // 장르 분석 (판타지/사극 vs SF vs 현대)
+          const fullGenre = `${activeSession?.title || ""} ${activeSession?.preference || ""}`.toLowerCase();
+          const isFantasy = /판타지|중세|황실|사극|옥션|경매장|마법|귀족/.test(fullGenre);
+
+          let topic = "aesthetic antique room scenery, warm lighting, anime masterpiece, no humans";
+
+          if (/진열장|쇼케이스|장식장|보석|유물|성유물/.test(combinedText)) {
+            topic = isFantasy 
+              ? "ornate royal antique showcase displaying glowing magical relics and jewels, grand fantasy auction hall, velvet interior, warm chandelier lighting, masterpiece background, no humans"
+              : "vintage glass showcase with subtle warm lighting, antique display cabinet, clean boutique interior, masterpiece, no humans";
+          } else if (/차|찻잔|티|커피|테이블/.test(combinedText)) {
+            topic = isFantasy
+              ? "luxurious royal porcelain tea cup on antique mahogany table, vintage lace tablecloth, afternoon sunlight, elegant fantasy indoor, no humans"
+              : "cozy cafe table with warm cup of tea, soft sunlight, aesthetic interior, no humans";
+          } else if (/서재|책|도서관|문서/.test(combinedText)) {
+            topic = "massive classical dark academia library, towering bookshelves, ancient tomes, warm candle light, dust motes in sunbeams, no humans";
+          } else if (/거리|풍경|하늘|야경|정원/.test(combinedText)) {
+            topic = isFantasy
+              ? "grand fantasy capital street, cobblestone roads, magnificent imperial architecture, twilight sky, glowing lanterns, no humans"
+              : "quiet picturesque European street at sunset, soft atmospheric lighting, beautiful background, no humans";
+          }
+
+          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic)}?width=800&height=1000&nologo=true`;
+        }
       }
      
 // [호감도 변화 추출 - value 및 delta 둘 다 완벽 지원]
@@ -7029,7 +7074,6 @@ return (
                               🎁 상대에게 선물하기
                             </button>
 
-// ⭕ 수정 후
 <button
   type="button"
   onClick={() => {
@@ -7394,15 +7438,27 @@ return (
                     </div>
                   ) : (
                     activeSession.sheet.clues.map((clue, cIdx) => (
-                      <div key={cIdx} onClick={() => setInput(prev => `[취향 언급: ${clue.name}] ` + prev)} style={{ padding: "6px 8px", backgroundColor: theme.panelAlt, borderRadius: "6px", fontSize: "0.72rem", border: `1px solid ${theme.border}` }}>
-                        <strong style={{ color: theme.accent }}>{activeSession.ruleMode?.startsWith("dating") ? "💖" : "🔎"} {clue.name}</strong>
-                        <div style={{ fontSize: "0.68rem", color: theme.textMuted, marginTop: "2px" }}>{clue.desc}</div>
+                      <div 
+                        key={cIdx} 
+                        style={{ 
+                          padding: "8px 10px", 
+                          backgroundColor: theme.panelAlt, 
+                          borderRadius: "8px", 
+                          fontSize: "0.75rem", 
+                          border: `1px solid ${theme.border}`,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "3px"
+                        }}
+                      >
+                        <strong style={{ color: theme.accent, fontSize: "0.8rem" }}>
+                          {activeSession.ruleMode?.startsWith("dating") ? "💖" : "🔎"} {clue.name}
+                        </strong>
+                        <div style={{ fontSize: "0.7rem", color: theme.textMuted, lineHeight: "1.4" }}>
+                          {clue.desc}
+                        </div>
                       </div>
                     ))
-                  )}
-                </div>
-              </details>
-            </div>
 
             {/* 🌟 클라이맥스 전용: 적(에너미) 체력 게이지 카드 */}
             {activeSession.sheet?.phase === "클라이맥스" && (
@@ -7877,21 +7933,36 @@ ${statusGuide}
             if (suggMatch) { try { setPhoneSuggestions(JSON.parse(suggMatch[1])); } catch(e) {} rawReply = rawReply.replace(suggMatch[0], ""); }
             else { setPhoneSuggestions([]); }
 
-           // 📷 [메신저 전용] 유저 시나리오 일상 스냅 사진 감지 & 생성
-    let snapPhotoUrl = null;
-    const snapMatch = rawReply.match(/<!--\s*SNAP_PHOTO:\s*(\{.*?\})\s*-->/i);
-    if (snapMatch) {
-      try {
-        const snapData = JSON.parse(snapMatch[1]);
-        snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(snapData.prompt)}?width=800&height=1000&nologo=true`;
-        
-        // 스마트폰 앨범에 즉시 저장
-        setUnlockedCgList(prev => prev.includes(snapPhotoUrl) ? prev : [...prev, snapPhotoUrl]);
-        triggerToast("📷 사진 도착", snapData.caption || "새로운 일상 스냅 사진이 도착했습니다.");
-      } catch (e) {
-        console.error("SNAP_PHOTO 파싱 실패:", e);
-      }
-    }
+         // 📷 [메신저 전용] 일상 스냅 사진 감지 & 스마트 Fallback
+            let snapPhotoUrl = null;
+            const snapMatch = rawReply.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
+            if (snapMatch) {
+              try {
+                const snapData = JSON.parse(snapMatch[1]);
+                const p = snapData.prompt || snapData.photo || snapData.caption || "beautiful scenery, anime masterpiece";
+                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=800&height=1000&nologo=true`;
+              } catch (e) {}
+              rawReply = rawReply.replace(snapMatch[0], "");
+            }
+
+            // 🌟 메신저 채팅 중 사진 요청 시 Fallback 자동 생성
+            if (!snapPhotoUrl) {
+              const combinedReply = `${textToSend} ${rawReply}`.toLowerCase();
+              if (/사진|셀카|스냅|찍|포토|보여줘/.test(combinedReply)) {
+                let topicPrompt = "aesthetic daily snapshot, soft lighting, anime masterpiece";
+                if (/진열장|쇼케이스|장식장/.test(combinedReply)) {
+                  topicPrompt = "vintage glass display showcase with warm subtle lighting, antique boutique, highly detailed, anime aesthetic";
+                } else if (/카페|차|커피/.test(combinedReply)) {
+                  topicPrompt = "cozy warm cafe table with hot cup, soft sunlight, anime aesthetic";
+                }
+                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topicPrompt)}?width=800&height=1000&nologo=true`;
+              }
+            }
+
+            if (snapPhotoUrl) {
+              setUnlockedCgList(prev => prev.includes(snapPhotoUrl) ? prev : [...prev, snapPhotoUrl]);
+              triggerToast("📷 사진 도착", "새로운 일상 스냅 사진이 도착했습니다.");
+            }
            
             const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
            const npcReply = { id: Date.now() + 1, sender: "npc", text: cleanReply, time: currentTime, photo: snapPhotoUrl };
@@ -10850,17 +10921,32 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     );
                   }
                   return npcClues.map((clue, idx) => (
-                    <div key={idx} style={{ padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px", borderLeft: `3px solid ${activePhoneSkin.accent}` }}>
-                      <div style={{ fontWeight: "800", fontSize: "0.82rem", color: activePhoneSkin.accent }}>{clue.name}</div>
-                      <div style={{ fontSize: "0.74rem", color: activePhoneSkin.text, marginTop: "4px", lineHeight: "1.4" }}>{clue.desc}</div>
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        padding: "12px 14px", 
+                        backgroundColor: activePhoneSkin.shellBg, 
+                        border: `1px solid ${activePhoneSkin.border}`, 
+                        borderRadius: "12px", 
+                        borderLeft: `3.5px solid ${activePhoneSkin.accent}`,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "4px"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: "800", fontSize: "0.86rem", color: activePhoneSkin.accent }}>
+                          ✨ {clue.name}
+                        </span>
+                        <span style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted }}>
+                          기록됨
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.76rem", color: activePhoneSkin.text, lineHeight: "1.5" }}>
+                        {clue.desc}
+                      </div>
                     </div>
                   ));
-                })()}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* 🎁 다인원 지원 독립 선물하기 모달 */}
       {giftModalNpc && (() => {
