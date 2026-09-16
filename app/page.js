@@ -1157,7 +1157,7 @@ useEffect(() => {
     }
   }, [activeSession?.id, activeSession?.messages?.length]);
 
-  // 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩 CG 자동 청소 및 정상 CG만 보관
+// 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩 CG 자동 청소 및 정상 CG만 보관
   useEffect(() => {
     if (!activeSession || !activeSession.messages || activeSession.messages.length === 0) return;
 
@@ -1169,7 +1169,7 @@ useEffect(() => {
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
 
-    // 🚨 극초반에는 1번 프롤로그 CG 1장만 남기고 오해금된 모든 CG(배드엔딩 등) 강제 청소!
+    // 🚨 극초반에는 1번 프롤로그 CG 1장만 남기고 오해금된 모든 CG(배드/히든 엔딩 등) 강제 청소!
     if (isBeginning) {
       const firstCg = allScenarioCgs[0] || (currentUnlocked.length > 0 ? currentUnlocked[0] : null);
       const resetList = firstCg ? [{ ...firstCg, unlockedAt: Date.now() }] : [];
@@ -1192,9 +1192,9 @@ useEffect(() => {
       const triggerCond = (cg.trigger || cg.condition || "").trim();
       const cgTitle = (cg.title || "").trim();
 
-      // 엔딩 CG 가드: 시나리오가 끝나지 않았으면 수집 대상에서 제외
-      const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩|파멸|사망/i.test(cgTitle) ||
-                         /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩/i.test(triggerCond);
+      // 🚨 [엔딩 CG 철저 차단]: Hidden End, 히든, 노말 엔딩까지 완벽 방어
+      const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩|파멸|사망/i.test(cgTitle) ||
+                         /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩/i.test(triggerCond);
       if (isEndingCg && !isScenarioEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
         return;
       }
@@ -1205,65 +1205,35 @@ useEffect(() => {
         return;
       }
 
-      // ② 호감도 및 '루트 진입' 조건 검사
+      // ② 호감도 조건 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
-      const targetNpcName = targetNpc?.name;
+      const curAff = targetNpc ? Number(targetNpc.affection || 0) : Math.max(...npcs.map(n => Number(n.affection) || 0), 0);
 
-      // 🚩 1) '루트 진입' 조건 자동 판별 (수치 표기가 없어도 호감도 50 이상 & 1위 독점 시 인정)
+      // 루트 진입 조건 판별 (호감도 50점 이상 & 독점)
       const isRouteTrigger = /루트\s*(진입|확정|돌입)/.test(triggerCond);
       if (isRouteTrigger) {
-        const curAff = targetNpc ? (targetNpc.affection || 0) : Math.max(...npcs.map(n => n.affection || 0), 0);
-        const otherAffs = npcs.filter(n => n.name !== targetNpcName).map(n => n.affection || 0);
+        const otherAffs = npcs.filter(n => n.name !== targetNpc?.name).map(n => Number(n.affection) || 0);
         const maxOther = otherAffs.length > 0 ? Math.max(...otherAffs) : 0;
-
-        // 호감도 50점 이상이면서 다른 NPC들 중 가장 높을 때 해금
         if (curAff >= 50 && curAff >= maxOther) {
           properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
         }
         return;
       }
 
-      // 2) 일반 호감도 수치 조건 검사 (예: 호감도 40)
+      // 일반 수치 호감도 조건 검사 (예: 호감도 40)
       const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
       const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
-
       if (reqFav > 0) {
-        const curAff = targetNpc ? (targetNpc.affection || 0) : Math.max(...npcs.map(n => n.affection || 0), 0);
         if (curAff >= reqFav) {
           properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
         }
         return;
       }
 
-     
-      // ③ 서사 조건: 시간대 및 키워드 검사
-      const passNpc = targetNpcName ? fullHistory.includes(targetNpcName) : true;
-
-      let passTime = true;
-      if (/새벽|심야/.test(triggerCond)) {
-        passTime = (currentPhase === "새벽");
-      } else if (/아침|오전/.test(triggerCond)) {
-        passTime = (currentPhase === "아침");
-      } else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
-        passTime = (currentPhase === "낮");
-      } else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
-        passTime = (currentPhase === "저녁");
-      } else if (/밤|자정|야간/.test(triggerCond)) {
-        passTime = (currentPhase === "밤");
-      }
-
-      const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
-      const cleanedWords = triggerCond
-        .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
-        .split(/\s+/)
-        .filter(w => w.length >= 2 && !stopWords.includes(w));
-
-      const passAction = cleanedWords.length > 0
-        ? cleanedWords.some(kw => fullHistory.includes(kw))
-        : false;
-
-      if (passNpc && passTime && passAction) {
-        properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
+      // ③ 상황 조건: 단순 단어 1개 일치가 아닌, AI가 직접 발행했거나 기존에 정상 해금되었던 이력만 유지
+      const wasAlreadyUnlocked = currentUnlocked.some(u => (u.title && u.title === cg.title) || u === cg.title);
+      if (wasAlreadyUnlocked && !isEndingCg) {
+        properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
       }
     });
 
@@ -1277,7 +1247,7 @@ useEffect(() => {
         sheet: { ...s.sheet, unlockedCgs: uniqueUnlocked }
       } : s));
     }
-  }, [activeSession?.id, activeSession?.messages?.length, currentPhase]);
+  }, [activeSession?.id, activeSession?.messages?.length, currentPhase, isScenarioEnded]);
  
 // 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
   const PHONE_SKINS = {
@@ -3503,13 +3473,13 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
           const triggerCond = (cg.trigger || cg.condition || "").trim();
           const cgTitle = (cg.title || "").trim();
 
-          // 🚨 [가드 1: 엔딩 CG 보호] 게임이 실제로 끝나지 않았으면 엔딩/배드엔딩 CG는 절대 해금 금지!
-          const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩|파멸|사망/i.test(cgTitle) ||
-                             /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩/i.test(triggerCond);
+          // 🚨 [가드 1: 엔딩 CG 보호] Hidden End 및 히든 엔딩 차단 완비
+          const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩|파멸|사망/i.test(cgTitle) ||
+                             /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩/i.test(triggerCond);
           if (isEndingCg && !isScenarioEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
             continue;
           }
-
+         
           // 🚨 [가드 2: 극초반 보호] 1~2턴에는 1번 프롤로그 외 다른 CG 해금 금지
           if (isBeginning && idx !== 0 && !/프롤로그|첫\s*대면|시작/.test(triggerCond)) {
             continue;
