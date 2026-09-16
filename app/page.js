@@ -7459,6 +7459,10 @@ return (
                         </div>
                       </div>
                     ))
+                  )}
+                </div>
+              </details>
+            </div>
 
             {/* 🌟 클라이맥스 전용: 적(에너미) 체력 게이지 카드 */}
             {activeSession.sheet?.phase === "클라이맥스" && (
