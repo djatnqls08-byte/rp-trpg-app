@@ -5826,8 +5826,8 @@ return (
             )}
 
             {/* 시나리오 정보 */}
-<div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-              {/* 🌟 1. 신규 추가: AI 시나리오 제작기 Gem 바로가기 */}
+            <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
+              {/* 1. 신규 추가: AI 시나리오 제작기 Gem 바로가기 */}
               <a
                 href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
                 target="_blank"
@@ -5850,7 +5850,7 @@ return (
                 🎬 {isMobile ? "스튜디오" : "스튜디오"}
               </a>
 
-{/* 2. 시나리오 파일 첨부 통합 버튼 */}
+              {/* 2. 시나리오 파일 첨부 통합 버튼 */}
               <button 
                 type="button"
                 onClick={() => setShowPasteModal(true)} 
