@@ -10422,10 +10422,9 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </div>
                 </div>
               ) : (
-
+(
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  
-{/* 🚀 최신 버전 v1.4.0 */}
+                  {/* 🚀 최신 버전 v1.4.0 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
@@ -10461,7 +10460,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                       • <strong>시간대 루프 & AI 기억 수첩:</strong> 낮/노을/밤 흐름과 주요 사건 플래그 박제.<br/>
                       • <strong>4대 멀티 엔딩:</strong> 순애 트루 / 수라장 히든 / 신뢰 우정 / 파탄 엔딩 및 맞춤 후일담 연계.
                     </div>
-                  </div>
                   </div>
 
                   {/* 📦 이전 버전 v1.2.0 */}
@@ -10503,7 +10501,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </div>
                 </div>
               )}
-            </div>
 
             {/* 모달 하단 푸터 (7일간 보지 않기 & 닫기 버튼) */}
             <div style={{ padding: "12px 16px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
