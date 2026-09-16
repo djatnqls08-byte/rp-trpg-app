@@ -3425,18 +3425,19 @@ currentPhase === "클라이맥스" ? `
         const passFav = reqFav > 0 ? (curAff >= reqFav) : true;
 
         // ② 5단계 시간대(새벽/아침/낮/저녁/밤) 완전 동적 검사
-          let passTime = true;
-          if (/새벽|심야/.test(triggerCond)) {
-            passTime = (updatedPhase === "새벽" || currentPhase === "새벽");
-          } else if (/아침|오전/.test(triggerCond)) {
-            passTime = (updatedPhase === "아침" || currentPhase === "아침");
-          } else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
-            passTime = (updatedPhase === "낮" || currentPhase === "낮");
-          } else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
-            passTime = (updatedPhase === "저녁" || currentPhase === "저녁");
-          } else if (/밤|자정|야간/.test(triggerCond)) {
-            passTime = (updatedPhase === "밤" || currentPhase === "밤");
-          }
+          // ⭕ triggerCond로 전부 교체
+let passTime = true;
+if (/새벽|심야/.test(triggerCond)) {
+  passTime = (updatedPhase === "새벽" || currentPhase === "새벽");
+} else if (/아침|오전/.test(triggerCond)) {
+  passTime = (updatedPhase === "아침" || currentPhase === "아침");
+} else if (/정오|한낮|대낮|낮/.test(triggerCond)) {
+  passTime = (updatedPhase === "낮" || currentPhase === "낮");
+} else if (/저녁|노을|황혼|해질/.test(triggerCond)) {
+  passTime = (updatedPhase === "저녁" || currentPhase === "저녁");
+} else if (/밤|자정|야간/.test(triggerCond)) {
+  passTime = (updatedPhase === "밤" || currentPhase === "밤");
+}
         // ③ 등장인물 일치 검사
         const passNpc = targetNpcName 
           ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
