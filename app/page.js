@@ -1167,7 +1167,9 @@ useEffect(() => {
     const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
-
+    
+    // 💡 에러 방지: 대화 이력 텍스트를 최상단에서 안전하게 선언
+    const fullHistory = (activeSession.messages || []).map(m => m.text || "").join(" ");
     const lastMsgText = activeSession.messages[activeSession.messages.length - 1]?.text || "";
     const isEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
 
@@ -1202,23 +1204,26 @@ useEffect(() => {
         return;
       }
 
-      // 2. '첫 대면/첫 만남' 조건 (이미 대화를 나눈 인물은 자동 소급 해금)
+      // 💡 에러 방지: 대상 인물 정보를 먼저 추출한 뒤 대면 조건을 판정
+      const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
+      const targetNpcName = targetNpc?.name || "";
+
+      // 2. 1번 CG (프롤로그 / 첫 대면 소급 인정)
       const isFirstMeetingTrigger = /프롤로그|첫\s*대면|첫\s*만남|시작/.test(triggerCond);
       const isAlreadyMetInHistory = targetNpcName ? fullHistory.includes(targetNpcName) : false;
 
-      if (isFirstMeetingTrigger && (idx === 0 || isAlreadyMetInHistory)) {
+      if (idx === 0 || (isFirstMeetingTrigger && (idx === 0 || isAlreadyMetInHistory))) {
         properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
         return;
       }
 
       // 3. 호감도 조건 검사
-      const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const curAff = targetNpc ? Number(targetNpc.affection || 0) : Math.max(...npcs.map(n => Number(n.affection) || 0), 0);
 
       // 루트 진입 (호감도 50 이상 & 독점)
       const isRouteTrigger = /루트\s*(진입|확정|돌입)/.test(triggerCond);
       if (isRouteTrigger) {
-        const otherAffs = npcs.filter(n => n.name !== targetNpc?.name).map(n => Number(n.affection) || 0);
+        const otherAffs = npcs.filter(n => n.name !== targetNpcName).map(n => Number(n.affection) || 0);
         const maxOther = otherAffs.length > 0 ? Math.max(...otherAffs) : 0;
         if (curAff >= 50 && curAff >= maxOther) {
           properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
@@ -1236,7 +1241,7 @@ useEffect(() => {
         return;
       }
 
-      // 4. 상황/사건 CG: 대화창에서 AI가 실제로 컷씬 태그(m.cg)를 띄워준 적이 있을 때만 해금 유지!
+      // 4. 상황/사건 CG: 대화창에서 AI가 실제로 컷씬(m.cg)을 띄운 적이 있을 때만 유지
       const actuallyEmittedInChat = (activeSession.messages || []).some(m => 
         m.cg && ((m.cg.title && m.cg.title === cgTitle) || (m.cg.imageUrl && m.cg.imageUrl === cg.imageUrl))
       );
