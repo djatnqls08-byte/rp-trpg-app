@@ -1157,7 +1157,7 @@ useEffect(() => {
     }
   }, [activeSession?.id, activeSession?.messages?.length]);
 
-  // 🎨 [과거 기록 전수 조사] 시작 직후 오해금 방지 및 정상 CG만 수집
+  // 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩 CG 자동 청소 및 정상 CG만 보관
   useEffect(() => {
     if (!activeSession || !activeSession.messages || activeSession.messages.length === 0) return;
 
@@ -1169,11 +1169,15 @@ useEffect(() => {
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
 
-    // 게임 시작 극초반(1~2턴)이라면 1번 프롤로그 CG 1개만 남기고 리셋
+    // 🚨 극초반에는 1번 프롤로그 CG 1장만 남기고 오해금된 모든 CG(배드엔딩 등) 강제 청소!
     if (isBeginning) {
       const firstCg = allScenarioCgs[0] || (currentUnlocked.length > 0 ? currentUnlocked[0] : null);
       const resetList = firstCg ? [{ ...firstCg, unlockedAt: Date.now() }] : [];
-      if (currentUnlocked.length !== resetList.length) {
+      
+      const currentTitles = currentUnlocked.map(c => c.title || c).join(",");
+      const resetTitles = resetList.map(c => c.title || c).join(",");
+
+      if (currentTitles !== resetTitles) {
         setSessions(prev => prev.map(s => s.id === activeSession.id ? {
           ...s,
           sheet: { ...s.sheet, unlockedCgs: resetList }
@@ -1186,12 +1190,22 @@ useEffect(() => {
 
     allScenarioCgs.forEach((cg, idx) => {
       const triggerCond = (cg.trigger || cg.condition || "").trim();
+      const cgTitle = (cg.title || "").trim();
 
+      // 엔딩 CG 가드: 시나리오가 끝나지 않았으면 수집 대상에서 제외
+      const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩|파멸|사망/i.test(cgTitle) ||
+                         /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩/i.test(triggerCond);
+      if (isEndingCg && !isScenarioEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
+        return;
+      }
+
+      // ① 1번 CG (프롤로그 / 첫 대면)
       if (idx === 0 || /프롤로그|첫\s*대면|시작/.test(triggerCond)) {
         properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
         return;
       }
 
+      // ② 호감도 조건 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const targetNpcName = targetNpc?.name;
 
@@ -1206,6 +1220,7 @@ useEffect(() => {
         return;
       }
 
+      // ③ 서사 조건: 시간대 및 키워드 검사
       const passNpc = targetNpcName ? fullHistory.includes(targetNpcName) : true;
 
       let passTime = true;
@@ -1229,7 +1244,7 @@ useEffect(() => {
 
       const passAction = cleanedWords.length > 0
         ? cleanedWords.some(kw => fullHistory.includes(kw))
-        : true;
+        : false;
 
       if (passNpc && passTime && passAction) {
         properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
@@ -1237,13 +1252,17 @@ useEffect(() => {
     });
 
     const uniqueUnlocked = Array.from(new Map(properlyUnlocked.map(c => [c.title || c.imageUrl, c])).values());
-    if (uniqueUnlocked.length !== currentUnlocked.length) {
+    const currentTitles = currentUnlocked.map(c => c.title || c).join(",");
+    const uniqueTitles = uniqueUnlocked.map(c => c.title || c).join(",");
+
+    if (currentTitles !== uniqueTitles) {
       setSessions(prev => prev.map(s => s.id === activeSession.id ? {
         ...s,
         sheet: { ...s.sheet, unlockedCgs: uniqueUnlocked }
       } : s));
     }
   }, [activeSession?.id, activeSession?.messages?.length, currentPhase]);
+ 
 // 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
   const PHONE_SKINS = {
     default: {
@@ -3415,6 +3434,7 @@ currentPhase === "클라이맥스" ? `
 // ── 🎨 [스마트 이벤트 CG 자동 감지 & 강제 해금 엔진] ──
       const allScenarioCgs = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
       let newlyUnlockedCg = null;
+      const isBeginning = (activeSession.messages || []).length <= 2;
 
       // 1) AI가 직접 출력한 UNLOCK_CG 태그 우선 파싱
       const cgMatch = rawText.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
@@ -3423,22 +3443,37 @@ currentPhase === "클라이맥스" ? `
         rawText = rawText.replace(cgMatch[0], "").trim();
       }
 
-      // 2) AI가 태그를 빼먹었을 경우: 시트 조건 자동 판정
+      // 2) AI 태그 누락 시 시트 조건 자동 판정
       if (!newlyUnlockedCg && allScenarioCgs.length > 0) {
         const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
         const fullRecentContext = `${textToSend} ${rawText}`;
         const npcs = activeSession.sheet?.npcs || [];
 
-        for (const cg of allScenarioCgs) {
+        for (let idx = 0; idx < allScenarioCgs.length; idx++) {
+          const cg = allScenarioCgs[idx];
+
+          // 이미 해금된 CG 건너뛰기
           const isAlreadyUnlocked = currentUnlocked.some(u => 
             (u.title && u.title === cg.title) || (u.imageUrl && u.imageUrl === cg.imageUrl) || u === cg.title || u === cg.imageUrl
           );
           if (isAlreadyUnlocked) continue;
 
           const triggerCond = (cg.trigger || cg.condition || "").trim();
-          if (!triggerCond) continue;
+          const cgTitle = (cg.title || "").trim();
 
-          // 대상 인물 및 호감도 동적 탐색
+          // 🚨 [핵심 가드 1: 엔딩 CG 보호] 게임이 실제로 끝나지 않았으면 엔딩/배드엔딩 CG는 절대 해금 금지!
+          const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩|파멸|사망/i.test(cgTitle) ||
+                             /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩/i.test(triggerCond);
+          if (isEndingCg && !isScenarioEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
+            continue;
+          }
+
+          // 🚨 [핵심 가드 2: 극초반 보호] 1~2턴에는 1번 프롤로그 외 다른 CG 해금 금지
+          if (isBeginning && idx !== 0 && !/프롤로그|첫\s*대면|시작/.test(triggerCond)) {
+            continue;
+          }
+
+          // 🎯 대상 인물 및 호감도 동적 탐색
           const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name)) || currentContact;
           const targetNpcName = targetNpc?.name;
           const curAff = Number(targetNpc?.affection ?? 0);
@@ -3446,9 +3481,9 @@ currentPhase === "클라이맥스" ? `
           // ① 호감도 조건 검사
           const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
           const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
-          const passFav = reqFav > 0 ? (curAff >= reqFav) : true;
+          const passFav = reqFav > 0 ? (curAff >= reqFav) : false;
 
-          // ② 5단계 시간대 동적 검사 (cond 오타 완전 제거)
+          // ② 5단계 시간대 동적 검사
           let passTime = true;
           if (/새벽|심야/.test(triggerCond)) {
             passTime = (updatedPhase === "새벽" || currentPhase === "새벽");
@@ -3467,8 +3502,8 @@ currentPhase === "클라이맥스" ? `
             ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
             : true;
 
-          // ④ 상황 키워드 동적 검사
-          let passKeyword = true;
+          // ④ 상황 키워드 동적 검사 (기본값 false로 안전 강화)
+          let passKeyword = false;
           if (reqFav === 0) {
             const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
             const dynamicKeywords = triggerCond
@@ -3481,7 +3516,12 @@ currentPhase === "클라이맥스" ? `
             }
           }
 
-          if ((reqFav > 0 && passFav && passNpc) || (reqFav === 0 && passTime && passNpc && passKeyword)) {
+          // 최종 판정
+          const isUnlockTriggered = (reqFav > 0)
+            ? (passFav && passNpc)
+            : (passTime && passNpc && passKeyword);
+
+          if (isUnlockTriggered) {
             newlyUnlockedCg = cg;
             break;
           }
