@@ -3245,7 +3245,9 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 
 3. [시스템 태그 연동 수칙]
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
-- 상대의 중요한 취향/단서 확인 시 <!-- CLUE: {"name": "단서명", "desc": "설명"} -->
+// ⭕ 수정 후 (좋아하는 것과 싫어하는 것 구분 지침)
+- 상대방의 취향(선호하는 것 혹은 싫어/기피하는 것)이 대화에 나오면 지문 맨 끝에 명사 형태로 태그를 출력하십시오:
+  <!-- CLUE: {"name": "핵심 명사 (예: 쌉싸름한 맛, 단 것)", "desc": "상세 설명", "type": "like 또는 dislike"} -->
 - 번호/연락처/마도구 파장을 교환하면 맨 끝에 <!-- UNLOCK_CONTACT: {"name": "인물명"} -->
 // dynamicRules 내부의 호감도 규칙을 아래처럼 보완
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "delta": 1~3} -->
@@ -3687,18 +3689,64 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
       }
       rawText = rawText.replace(clueRegex, "");
 
-      // 💡 [취향 자동 구조 Fallback]: 대화 속에서 실제 취향 단어만 포착
-      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호"))) {
-        const sentenceMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를)\s*(?:좋아|선호|즐겨|마음에|아끼)/);
-        const extractedWord = sentenceMatch ? sentenceMatch[1].trim() : null;
+// 💡 [취향 자동 구조 Fallback: 좋아하는 것(💖)과 싫어하는 것(💔) 정밀 분리]
+      if (newClues.length === 0 && (textToSend.includes("취향") || textToSend.includes("좋아") || textToSend.includes("선호") || rawText.includes("선호") || rawText.includes("좋아") || rawText.includes("싫어") || rawText.includes("보단"))) {
+        
+        // 1) 'A보단 B를 선호/좋아' 비교 구문 ➔ A는 기피(💔), B는 선호(💖) 동시 추출
+        const compareMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})보단\s*([가-힣a-zA-Z0-9\s]{2,20})(?:을|를|걸)\s*(?:선호|좋아)/);
+        if (compareMatch) {
+          const dislikeItem = compareMatch[1].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
+          const likeItem = compareMatch[2].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
 
-        if (extractedWord && extractedWord.length >= 2 && !extractedWord.includes(partnerName)) {
-          newClues.push({
-            id: Date.now() + Math.random(),
-            name: extractedWord,
-            desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
-            npcName: partnerName
-          });
+          if (dislikeItem.length >= 2 && !dislikeItem.includes(partnerName)) {
+            newClues.push({
+              id: Date.now() + Math.random(),
+              name: dislikeItem,
+              desc: `${partnerName}이(가) 꺼리거나 선호하지 않는다고 언급함`,
+              type: "dislike",
+              npcName: partnerName
+            });
+          }
+
+          if (likeItem.length >= 2 && !likeItem.includes(partnerName)) {
+            newClues.push({
+              id: Date.now() + Math.random() + 1,
+              name: likeItem,
+              desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
+              type: "like",
+              npcName: partnerName
+            });
+          }
+        } else {
+          // 2) 일반 선호 구문 ('~을 좋아/선호')
+          const likeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|걸)\s*(?:좋아|선호|즐겨|마음에|아끼)/);
+          if (likeMatch) {
+            let item = likeMatch[1].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
+            if (item.length >= 2 && !item.includes(partnerName)) {
+              newClues.push({
+                id: Date.now() + Math.random(),
+                name: item,
+                desc: `${partnerName}이(가) 대화 중 선호한다고 언급한 취향`,
+                type: "like",
+                npcName: partnerName
+              });
+            }
+          }
+
+          // 3) 일반 기피/불호 구문 ('~을 싫어/꺼려/기피/부담')
+          const dislikeMatch = rawText.match(/([가-힣a-zA-Z0-9\s]{2,15})(?:을|를|은|는)\s*(?:싫어|꺼려|기피|부담|달갑지|질색)/);
+          if (dislikeMatch) {
+            let item = dislikeMatch[1].replace(/^[은는이가을를단한그저참]\s*/, "").trim();
+            if (item.length >= 2 && !item.includes(partnerName)) {
+              newClues.push({
+                id: Date.now() + Math.random(),
+                name: item,
+                desc: `${partnerName}이(가) 꺼리거나 싫어한다고 밝힌 취향`,
+                type: "dislike",
+                npcName: partnerName
+              });
+            }
+          }
         }
       }
 
@@ -7440,23 +7488,23 @@ return (
                     activeSession.sheet.clues.map((clue, cIdx) => (
                       <div 
                         key={cIdx} 
+                        title={clue.desc}
                         style={{ 
-                          padding: "8px 10px", 
-                          backgroundColor: theme.panelAlt, 
-                          borderRadius: "8px", 
-                          fontSize: "0.75rem", 
-                          border: `1px solid ${theme.border}`,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "3px"
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "4px 9px", 
+                          backgroundColor: clue.type === "dislike" ? "rgba(239, 68, 68, 0.1)" : theme.panelAlt, 
+                          borderRadius: "14px", 
+                          fontSize: "0.74rem", 
+                          fontWeight: "600",
+                          border: `1px solid ${clue.type === "dislike" ? "rgba(239, 68, 68, 0.4)" : theme.border}`,
+                          color: clue.type === "dislike" ? (theme.danger || "#ef4444") : theme.text,
+                          margin: "2px"
                         }}
                       >
-                        <strong style={{ color: theme.accent, fontSize: "0.8rem" }}>
-                          {activeSession.ruleMode?.startsWith("dating") ? "💖" : "🔎"} {clue.name}
-                        </strong>
-                        <div style={{ fontSize: "0.7rem", color: theme.textMuted, lineHeight: "1.4" }}>
-                          {clue.desc}
-                        </div>
+                        <span style={{ fontSize: "0.72rem" }}>{clue.type === "dislike" ? "💔" : "💖"}</span>
+<span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^솔직한 의도가 담긴\s*/, "")}</span>
                       </div>
                     ))
                   )}
@@ -11008,33 +11056,36 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                       </div>
                     );
                   }
-                  return npcClues.map((clue, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        padding: "12px 14px", 
-                        backgroundColor: activePhoneSkin.shellBg, 
-                        border: `1px solid ${activePhoneSkin.border}`, 
-                        borderRadius: "12px", 
-                        borderLeft: `3.5px solid ${activePhoneSkin.accent}`,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px"
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontWeight: "800", fontSize: "0.86rem", color: activePhoneSkin.accent }}>
-                          ✨ {clue.name}
-                        </span>
-                        <span style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted }}>
-                          기록됨
-                        </span>
+                  return npcClues.map((clue, idx) => {
+                    const isDislike = clue.type === "dislike";
+                    return (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          padding: "12px 14px", 
+                          backgroundColor: activePhoneSkin.shellBg, 
+                          border: `1px solid ${activePhoneSkin.border}`, 
+                          borderRadius: "12px", 
+                          borderLeft: `3.5px solid ${isDislike ? (theme.danger || "#ef4444") : activePhoneSkin.accent}`,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "4px"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontWeight: "800", fontSize: "0.86rem", color: isDislike ? (theme.danger || "#ef4444") : activePhoneSkin.accent }}>
+                            {isDislike ? "💔 기피: " : "💖 선호: "}{clue.name}
+                          </span>
+                          <span style={{ fontSize: "0.68rem", color: isDislike ? (theme.danger || "#ef4444") : activePhoneSkin.textMuted, fontWeight: "700" }}>
+                            {isDislike ? "주의" : "선호"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.76rem", color: activePhoneSkin.text, lineHeight: "1.5" }}>
+                          {clue.desc}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "0.76rem", color: activePhoneSkin.text, lineHeight: "1.5" }}>
-                        {clue.desc}
-                      </div>
-                    </div>
-                  ));
+                    );
+                  });
                 })()}
               </div>
             </div>
