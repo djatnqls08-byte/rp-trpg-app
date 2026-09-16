@@ -1157,7 +1157,7 @@ useEffect(() => {
     }
   }, [activeSession?.id, activeSession?.messages?.length]);
 
-// 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩 CG 자동 청소 및 정상 CG만 보관
+// 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩/미도달 CG 자동 청소 및 정상 CG만 보관
   useEffect(() => {
     if (!activeSession || !activeSession.messages || activeSession.messages.length === 0) return;
 
@@ -1165,11 +1165,9 @@ useEffect(() => {
     if (allScenarioCgs.length === 0) return;
 
     const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
-    const fullHistory = (activeSession.messages || []).map(m => m.text || "").join(" ");
     const npcs = activeSession.sheet?.npcs || [];
     const isBeginning = (activeSession.messages || []).length <= 2;
 
-    // 💡 아래쪽 변수를 당겨 쓰지 않고 내부에서 자체 판정 (크래시 원천 차단)
     const lastMsgText = activeSession.messages[activeSession.messages.length - 1]?.text || "";
     const isEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
 
@@ -1197,23 +1195,24 @@ useEffect(() => {
       const triggerCond = (cg.trigger || cg.condition || "").trim();
       const cgTitle = (cg.title || "").trim();
 
-      // 🚨 [엔딩 CG 철저 차단]: Hidden End, 히든, 노말 엔딩까지 방어
+      // 1. 엔딩 CG 차단
       const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩|파멸|사망/i.test(cgTitle) ||
                          /Bad\s*End|True\s*End|Happy\s*End|Hidden\s*End|Normal\s*End|히든|트루|해피|배드|노말|엔딩/i.test(triggerCond);
       if (isEndingCg && !isEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
         return;
       }
 
-      // ① 1번 CG (프롤로그 / 첫 대면)
+      // 2. 1번 CG (프롤로그 / 첫 대면)
       if (idx === 0 || /프롤로그|첫\s*대면|시작/.test(triggerCond)) {
         properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
         return;
       }
 
-      // ② 호감도 조건 검사
+      // 3. 호감도 조건 검사
       const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name));
       const curAff = targetNpc ? Number(targetNpc.affection || 0) : Math.max(...npcs.map(n => Number(n.affection) || 0), 0);
 
+      // 루트 진입 (호감도 50 이상 & 독점)
       const isRouteTrigger = /루트\s*(진입|확정|돌입)/.test(triggerCond);
       if (isRouteTrigger) {
         const otherAffs = npcs.filter(n => n.name !== targetNpc?.name).map(n => Number(n.affection) || 0);
@@ -1224,6 +1223,7 @@ useEffect(() => {
         return;
       }
 
+      // 일반 수치 호감도 (예: 호감도 40)
       const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
       const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
       if (reqFav > 0) {
@@ -1233,10 +1233,12 @@ useEffect(() => {
         return;
       }
 
-      // ③ 상황 조건: AI가 직접 발행했거나 기존에 정상 등록된 이력만 유지
-      const wasAlreadyUnlocked = currentUnlocked.some(u => (u?.title && u.title === cg.title) || u === cg.title);
-      if (wasAlreadyUnlocked && !isEndingCg) {
-        properlyUnlocked.push({ ...cg, unlockedAt: Date.now() });
+      // 4. 상황/사건 CG: 대화창에서 AI가 실제로 컷씬 태그(m.cg)를 띄워준 적이 있을 때만 해금 유지!
+      const actuallyEmittedInChat = (activeSession.messages || []).some(m => 
+        m.cg && ((m.cg.title && m.cg.title === cgTitle) || (m.cg.imageUrl && m.cg.imageUrl === cg.imageUrl))
+      );
+      if (actuallyEmittedInChat && !isEndingCg) {
+        properlyUnlocked.push({ ...cg, unlockedAt: cg.unlockedAt || Date.now() });
       }
     });
 
@@ -2139,22 +2141,23 @@ useEffect(() => {
         }
       }
 
-      // 6. 세션 업데이트
+     // 6. 세션 업데이트 (CG 도감 목록과 세션 카드만 갱신하고, 해금 여부는 손대지 않음)
       setSessions(prev => prev.map(s => {
         if (s.id === activeSession.id) {
-          const fullChatHistory = (s.messages || []).map(m => m.text || m.content || "").join(" ");
-          const existingUnlocked = new Set(s.unlockedCgs || []);
-
-          eventCgs.forEach(cg => {
-            const triggerKeyword = cg.trigger?.trim();
-            const titleKeyword = cg.title?.trim();
-            if (
-              (triggerKeyword && fullChatHistory.includes(triggerKeyword)) ||
-              (titleKeyword && fullChatHistory.includes(titleKeyword))
-            ) {
-              existingUnlocked.add(cg.title || cg.imageUrl);
+          return {
+            ...s,
+            sheetUrl: targetUrl,
+            thumbnail: sessionCardImg || s.thumbnail,
+            sheet: {
+              ...(s.sheet || {}),
+              thumbnail: sessionCardImg || s.sheet?.thumbnail,
+              cgs: eventCgs.length > 0 ? eventCgs : s.sheet?.cgs,
+              scenarioCgs: eventCgs.length > 0 ? eventCgs : s.sheet?.scenarioCgs
             }
-          });
+          };
+        }
+        return s;
+      }));
 
           return {
             ...s,
