@@ -8968,11 +8968,9 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                             <div style={{ fontSize: "0.74rem", color: activePhoneSkin.text, marginTop: "4px", lineHeight: "1.4" }}>{clue.desc}</div>
                           </div>
                         ));
+                     // ⭕ 정상 상태 (clueModalNpc 닫는 태그만 정확히 유지)
                       })()}
                     </div>
-                  </div>
-                </div>
-              )
                   </div>
                 </div>
               )}
