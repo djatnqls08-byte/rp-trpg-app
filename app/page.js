@@ -3787,7 +3787,6 @@ ${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition
             }
           }
         }
-      }
 
       // [새 등장인물 자동 추출]
       let newlyFoundNpcs = [];
