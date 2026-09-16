@@ -1176,11 +1176,12 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
           }
         ]
       };
-      setSessions((prev) => [insaneSession, ...prev]);
+setSessions((prev) => [insaneSession, ...prev]);
       setActiveSessionId(insaneSession.id);
     }
+  }; // 👈 이 닫는 괄호 추가!
 
- 
+
   // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
   const [charJob, setCharJob] = useState("");
@@ -2184,16 +2185,17 @@ const handleFileUpload = async (e) => {
   if (file.name.toLowerCase().endsWith(".pdf")) {
     setIsPdfLoading(true);
     try {
+      // ⬇️ 아래처럼 따옴표 안에 순수 URL만 남겨주세요
       if (!window.pdfjsLib) {
         await new Promise((res, rej) => {
           const script = document.createElement("script");
-          script.src = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js)";
+          script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
           script.onload = res;
           script.onerror = rej;
           document.head.appendChild(script);
         });
       }
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "[https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js](https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js)";
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
       let text = "";
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -10423,11 +10425,11 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                   
-                  {/* 🚀 최신 버전 v1.3.0 */}
+{/* 🚀 최신 버전 v1.4.0 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
-                        🚀 v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
+                        🚀 v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
                       </h3>
                       <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
                         LATEST
@@ -10436,16 +10438,30 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
 
                     <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ fontSize: "0.84rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
-                        "울려 퍼지는 진동과 귓가에 닿는 숨결, 그리고 눈앞에 펼쳐지는 결정적 순간—당신만의 서사가 한층 선명해집니다."
+                        "머릿속의 설정을 손쉽게 — 키워드 조합부터 Gemini 스튜디오 연동, 로비 자동 배치까지 한 번에 완성됩니다."
                       </div>
                       <div style={{ fontSize: "0.85rem", lineHeight: "1.7", color: theme.text }}>
-                        • <strong>📲 스마트폰 실시간 전화 & 다이내믹 아일랜드:</strong> 서랍형 슬라이드 수신 화면과 몰입감 넘치는 풀스크린 통화 모달이 추가되었습니다. 통화 중 상단 `⌄` 버튼으로 최소화해 서사를 읽거나 대화할 수 있는 상단 미니 플로팅 바 및 접이식 통화 요약 카드를 지원합니다.<br/>
-                        • <strong>🎬 이원화 비주얼 시스템 (공식 CG & 실사 스냅):</strong> 공식 시나리오의 결정적 순간에 터져 나오는 <strong>16:9 풀스크린 시네마틱 일러스트 컷씬</strong>과 유저 시나리오 메신저 대화 중 실시간으로 수신되는 <strong>1:1 POV 일상 스냅 사진</strong>이 앨범 갤러리와 완벽 연동됩니다.<br/>
-                        • <strong>👣 발걸음과 만남 (동적 장소 카드):</strong> 대면 서사 퇴장 시 하단에 <strong>[👣 어디로 갈까?]</strong> 추천 장소 카드 3장이 펼쳐집니다. 전날 메신저로 약속을 잡았다면 <strong>[⭐ 약속 장소]</strong> 배지가 직관적으로 안내합니다.<br/>
-                        • <strong>⏳ 시간대 루프 & AI 기억 수첩:</strong> 낮/노을/밤의 시간 흐름과 취침 선언 시스템이 정립되었습니다. 약속 이행, 통화 무시 등 플레이어의 선택과 행적이 실시간 플래그로 박제되어 캐릭터의 태도에 입체적으로 반영됩니다.<br/>
-                        • <strong>🏆 4대 멀티 엔딩 & 맞춤 에필로그:</strong> 호감도와 관계성의 깊이에 따라 <strong>단독 순애 트루 / 수라장 히든 / 깊은 신뢰의 우정 / 차가운 파탄</strong> 엔딩 분기가 자동 판정되며, 각 결말에 특화된 후일담 서사 트리거가 연결됩니다.
+                        • <strong>🎬 3분 튜토리얼 & 시나리오 양식 빌더:</strong> CoC/인세인 조작법 튜토리얼과 함께 룰, 추천 키워드(#집착 #오컬트 #신분차 등), 인물 설정을 선택해 AI 스튜디오용 프롬프트를 즉시 조립·복사하는 가이드 모달이 탑재되었습니다.<br/>
+                        • <strong>🪄 통합 불러오기 & 텍스트 붙여넣기 모달:</strong> [📄 파일 첨부] 버튼에서 파일 업로드뿐만 아니라 복사한 텍스트 붙여넣기를 함께 지원합니다. 스튜디오 생성문을 넣고 적용을 누르면 룰, 시놉시스, 서막, 진상, PC/KPC 프로필(상메/취향 포함)이 로비에 100% 자동 배치됩니다.<br/>
+                        • <strong>💡 스튜디오 복귀 길잡이 배너:</strong> 스튜디오에서 글을 복사해 로비로 복귀했을 때 유저가 헤매지 않도록 상단에 원클릭 자동 주입 안내 배너가 점등됩니다.<br/>
+                        • <strong>⚡ 통신 최적화 & 외모 왜곡 방지:</strong> Vercel 413(Payload Too Large) 방지를 위해 요청 메시지를 경량화하고, 캐릭터 외모(머리색 등) 날조를 차단하는 시스템 앵커를 강화했습니다.
                       </div>
                     </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.3.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>스마트폰 실시간 전화 & 다이내믹 아일랜드:</strong> 서랍형 슬라이드 수신 화면 및 풀스크린 통화 모달 지원.<br/>
+                      • <strong>이원화 비주얼 시스템:</strong> 시네마틱 16:9 컷씬과 메신저 1:1 일상 스냅 사진 갤러리 연동.<br/>
+                      • <strong>동적 장소 카드 & 약속 배지:</strong> 대면 종료 시 이동 가능한 장소 및 약속 장소 안내.<br/>
+                      • <strong>시간대 루프 & AI 기억 수첩:</strong> 낮/노을/밤 흐름과 주요 사건 플래그 박제.<br/>
+                      • <strong>4대 멀티 엔딩:</strong> 순애 트루 / 수라장 히든 / 신뢰 우정 / 파탄 엔딩 및 맞춤 후일담 연계.
+                    </div>
+                  </div>
                   </div>
 
                   {/* 📦 이전 버전 v1.2.0 */}
@@ -11720,10 +11736,15 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                     {isPromptCopied ? "✓ 양식 복사됨!" : "📋 작성한 양식 복사"}
                   </button>
 
-                  <a
+<a
                     href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => {
+                      setIsTutorialModalOpen(false);
+                      setTutorialView("menu");
+                      setShowPasteGuideBanner(true); // 👈 배너 켜기 스위치
+                    }}
                     style={{
                       flex: 1.2,
                       padding: "11px",
