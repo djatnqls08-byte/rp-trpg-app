@@ -10351,7 +10351,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
       {showNoticeModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: isMobile ? "12px" : "20px" }}>
           <div className="glass-card" style={{ width: "100%", maxWidth: "560px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", overflow: "hidden", maxHeight: "88dvh" }}>
-            
+
             {/* 상단 탭 버튼 */}
             <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.sidebar }}>
               <button onClick={() => setActiveNoticeTab("guide")} style={{ flex: 1, padding: "14px", background: activeNoticeTab === "guide" ? theme.panelAlt : "transparent", border: "none", color: activeNoticeTab === "guide" ? theme.accent : theme.textMuted, fontWeight: activeNoticeTab === "guide" ? "800" : "500", fontSize: "0.92rem", cursor: "pointer", borderBottom: activeNoticeTab === "guide" ? `2px solid ${theme.accent}` : "none" }}>
@@ -10362,7 +10362,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
               </button>
             </div>
 
-            {/* 본문 영역 (시원하고 큼직한 폰트 적용) */}
+            {/* 본문 영역 */}
             <div style={{ padding: isMobile ? "16px" : "20px", overflowY: "auto", flex: 1, fontSize: "0.88rem", lineHeight: "1.75" }}>
               {activeNoticeTab === "guide" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -10500,6 +10500,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   </div>
                 </div>
               )}
+            </div>
 
             {/* 모달 하단 푸터 (7일간 보지 않기 & 닫기 버튼) */}
             <div style={{ padding: "12px 16px", borderTop: `1px solid ${theme.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: theme.sidebar }}>
@@ -10522,7 +10523,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
           </div>
         </div>
       )}
-
       {/* 🌟 인세인 66개 특기 대용 판정 팝업 */}
       {showSkillMatrixModal && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 160, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px" }}>
