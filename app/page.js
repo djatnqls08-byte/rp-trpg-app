@@ -3252,6 +3252,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     * 상대방의 심기를 거스르거나, 예의 없는 요구, 질투 유발, 배신감, 도를 넘은 변덕을 부릴 경우 현실적인 인격체로서 가차 없이 호감도를 깎으십시오.
     * 맹목적으로 플레이어에게 호의를 베풀지 말고, 독립적인 기준에 따라 불쾌한 상황에서는 차가운 태도와 함께 호감도를 깎으십시오.
   - 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
+  
 
 4. [장면 순환 및 다자간 인물 조우 강제 수칙]
   - [독점 방지]: 동일한 인물과의 대화가 10~15턴 이상 이어지면, 인물이 일정을 언급하며 대화를 자연스럽게 마무리짓게 하십시오.
@@ -3318,6 +3319,21 @@ currentPhase === "클라이맥스" ? `
 - 입맞춤이나 날씨 묘사에서 쳇바퀴를 돌지 말고, 신체적 접촉, 은밀한 부위의 마찰, 애무, 절정(오르가즘)의 신체 반응을 암전 없이 끝까지 직접 서술하십시오.
 - BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
     }
+
+ // 🎨 현재 시나리오의 CG 목록을 동적으로 파싱하여 AI 지침에 주입
+    const activeCgList = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
+    const dynamicCgGuidelines = activeCgList.length > 0
+      ? `\n\n[🎬 시나리오 고유 이벤트 CG 연출 지침]
+다음은 본 시나리오에 준비된 주요 이벤트 일러스트(CG)의 연출 조건입니다.
+${activeCgList.map((c, i) => `${i + 1}. [${c.title}]: ${c.trigger || c.condition}`).join("\n")}
+
+- [연출 일치 수칙]: 
+  * 인물과의 첫 대면이나 특정 중요 사건을 전개할 때, 임의로 상황을 바꾸지 말고 가급적 위 목록에 명시된 '상황, 장소, 분위기'를 존중하여 장면을 서술하십시오.
+  * 플레이어가 해당 상황에 정확히 도달하여 씬이 완성되었을 때는 지문 맨 끝에 아래 태그를 첨부하십시오:
+  <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->`
+      : "";
+
+    dynamicRules += dynamicCgGuidelines;
 
     // 🌟 메신저 모드일 때는 현재 톡 중인 상대와의 대화 내역만 추려서 AI에게 전달
     const rawMessagesForAi = isDatingMsg
@@ -3464,6 +3480,7 @@ currentPhase === "클라이맥스" ? `
         const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
         const fullRecentContext = `${textToSend} ${rawText}`;
         const npcs = activeSession.sheet?.npcs || [];
+        const currentTurnCount = (activeSession.messages || []).length;
 
         for (let idx = 0; idx < allScenarioCgs.length; idx++) {
           const cg = allScenarioCgs[idx];
@@ -3477,15 +3494,21 @@ currentPhase === "클라이맥스" ? `
           const triggerCond = (cg.trigger || cg.condition || "").trim();
           const cgTitle = (cg.title || "").trim();
 
-          // 🚨 [핵심 가드 1: 엔딩 CG 보호] 게임이 실제로 끝나지 않았으면 엔딩/배드엔딩 CG는 절대 해금 금지!
+          // 🚨 [가드 1: 엔딩 CG 보호] 게임이 실제로 끝나지 않았으면 엔딩/배드엔딩 CG는 절대 해금 금지!
           const isEndingCg = /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩|파멸|사망/i.test(cgTitle) ||
                              /Bad\s*End|True\s*End|Happy\s*End|배드|트루|해피|엔딩/i.test(triggerCond);
           if (isEndingCg && !isScenarioEnded && activeSession.sheet?.phase !== "배드엔딩" && activeSession.sheet?.phase !== "에필로그") {
             continue;
           }
 
-          // 🚨 [핵심 가드 2: 극초반 보호] 1~2턴에는 1번 프롤로그 외 다른 CG 해금 금지
+          // 🚨 [가드 2: 극초반 보호] 1~2턴에는 1번 프롤로그 외 다른 CG 해금 금지
           if (isBeginning && idx !== 0 && !/프롤로그|첫\s*대면|시작/.test(triggerCond)) {
+            continue;
+          }
+
+          // 🚨 [가드 3: 클라이맥스/위기 CG 보호] 7턴 미만의 초반에는 CG 08(자정의 붕괴 등) 해금 금지!
+          const isClimaxCg = /클라이맥스|위기|붕괴|결전|자정의/i.test(cgTitle) || /클라이맥스|위기|붕괴|결전/.test(triggerCond);
+          if (isClimaxCg && currentTurnCount < 7) {
             continue;
           }
 
@@ -3493,6 +3516,19 @@ currentPhase === "클라이맥스" ? `
           const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name)) || currentContact;
           const targetNpcName = targetNpc?.name;
           const curAff = Number(targetNpc?.affection ?? 0);
+         
+
+          // 🚩 [루트 진입 조건 자동 판별]
+          const isRouteTrigger = /루트\s*(진입|확정|돌입)/.test(triggerCond);
+          if (isRouteTrigger) {
+            const otherAffs = npcs.filter(n => n.name !== targetNpcName).map(n => Number(n.affection) || 0);
+            const maxOther = otherAffs.length > 0 ? Math.max(...otherAffs) : 0;
+            if (curAff >= 50 && curAff >= maxOther) {
+              newlyUnlockedCg = cg;
+              break;
+            }
+            continue;
+          }
 
           // ① 호감도 조건 검사
           const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
@@ -3518,10 +3554,14 @@ currentPhase === "클라이맥스" ? `
             ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
             : true;
 
-          // ④ 상황 키워드 동적 검사 (기본값 false로 안전 강화)
+          // ④ 상황 키워드 정밀 검사
           let passKeyword = false;
           if (reqFav === 0) {
-            const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", targetNpcName].filter(Boolean);
+            const stopWords = [
+              "해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", 
+              "경우", "이상", "이하", "처음", "첫", "대면", "만남", targetNpcName
+            ].filter(Boolean);
+
             const dynamicKeywords = triggerCond
               .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
               .split(/\s+/)
@@ -4210,70 +4250,109 @@ const executePlayerDodge = () => {
 const lastMsgText = activeSession?.messages?.[activeSession.messages.length - 1]?.text || "";
 const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.sheet?.madnessStatus && !activeMadnessAlert && (activeSession?.pendingCheck?.skill?.includes("이성") || (activeSession?.messages?.[activeSession.messages.length - 1]?.text || "").includes("산 체크"));
 
-// ☀️ [엔딩 감지 및 수치 기반 자동 판정 로직]
-// ☀️ [다인원/비공략 NPC 완벽 대응 엔딩 판정 로직]
-const evaluateEnding = (npcs = []) => {
-  if (!npcs || npcs.length === 0) {
-    return { type: "Normal End", title: "Normal End: 홀로 마주한 새벽" };
-  }
+// ☀️ [전 시나리오 공용: 인원수 무제한 범용 멀티 엔딩 엔진]
+  const evaluateEnding = (npcs = []) => {
+    if (!npcs || npcs.length === 0) {
+      return {
+        type: "Departure End",
+        title: "Normal End: 새로운 길을 향한 발걸음",
+        lovers: [],
+        others: [],
+        theme: "누구에게도 얽매이지 않고 자신의 길을 찾아 담담히 떠나는 결말"
+      };
+    }
 
-  // 호감도 순으로 정렬
-  const sorted = [...npcs].sort((a, b) => (Number(b.affection) || 0) - (Number(a.affection) || 0));
-  const top1Npc = sorted[0];
-  const top2Npc = sorted[1];
+    const sorted = [...npcs].sort((a, b) => (Number(b.affection) || 0) - (Number(a.affection) || 0));
+    const activeTargets = sorted.filter(n => (Number(n.affection) || 0) >= 25);
 
-  const top1Aff = Number(top1Npc?.affection) || 0;
-  const top2Aff = Number(top2Npc?.affection) || 0;
+    const top1 = sorted[0];
+    const top2 = sorted[1] || null;
+    const top1Aff = Number(top1?.affection) || 0;
+    const top2Aff = Number(top2?.affection) || 0;
 
-  // 1. 배드 엔딩 판정: 
-  // 다른 NPC를 방치한 건 상관없지만, '가장 호감도가 높은 인물'마저 20점 미만이거나 주력 인물 관계가 파탄(-10 이하)났을 때만
-  if (top1Aff < 20 || (top1Aff <= -10)) {
-    return { type: "Bad End", title: `Bad End: 어긋난 시선과 차가운 침묵` };
-  }
+    // 1. 배드 엔딩 (1순위마저 25점 미만이거나 파탄)
+    if (top1Aff < 25 || sorted.some(n => Number(n.affection) <= -10)) {
+      return {
+        type: "Bad End",
+        title: "Bad End: 어긋난 시선과 차가운 침묵",
+        lovers: [],
+        others: sorted.map(n => n.name),
+        theme: "핵심 인물과의 신뢰가 무너지고 차가운 단절 속에 남겨진 결말"
+      };
+    }
 
-  // 2. 다자 엔딩 (Hidden End): 
-  // 비공략 NPC는 버리고, 유의미하게 공략한 인물이 2명 이상(둘 다 60점 이상)이면서 둘의 격차가 15점 이내로 팽팽할 때
-  const isPolyamory = top1Aff >= 60 && top2Aff >= 60 && (top1Aff - top2Aff) <= 15;
-  if (isPolyamory) {
-    return { 
-      type: "Hidden End", 
-      title: `Hidden End: ${top1Npc.name}와 ${top2Npc.name}, 세 사람의 은밀한 밤` 
+    // 2. 단독 1:1 트루 엔딩
+    const isSoloTrue = top1Aff >= 75 && (!top2 || (top1Aff - top2Aff >= 20) || top2Aff < 45);
+    if (isSoloTrue) {
+      return {
+        type: "True End",
+        title: `True End: ${top1.name}와의 영원한 서약`,
+        lovers: [top1.name],
+        others: sorted.slice(1).map(n => n.name),
+        theme: `${top1.name}와 단둘만의 확고한 연인 관계 성립. 다른 인물들은 본래의 자리로 물러남`
+      };
+    }
+
+    // 3. 다자연애 공존 엔딩 (주요 대상 전원 60점 이상 & 격차 15 이내)
+    const isMultiRomance = activeTargets.length >= 2 && 
+      activeTargets.every(n => (Number(n.affection) || 0) >= 60) && 
+      (top1Aff - Number(activeTargets[activeTargets.length - 1].affection)) <= 15;
+
+    if (isMultiRomance) {
+      const loverNames = activeTargets.map(n => n.name).join(", ");
+      return {
+        type: "Hidden Poly End",
+        title: `Hidden End: 함께 머무는 은밀한 밤`,
+        lovers: activeTargets.map(n => n.name),
+        others: sorted.filter(n => !activeTargets.some(at => at.name === n.name)).map(n => n.name),
+        theme: `주인공과 [${loverNames}] 전원이 깊은 신뢰와 절제된 애정을 바탕으로 이뤄낸 공존`
+      };
+    }
+
+    // 4. 다각관계 미결착 ➡️ 홀로 엔딩
+    const isTorn = top2 && top1Aff >= 50 && top2Aff >= 50 && (top1Aff - top2Aff) <= 15;
+    if (isTorn) {
+      return {
+        type: "Solo End",
+        title: `Normal End: 누구의 손도 잡지 못한 채`,
+        lovers: [],
+        others: sorted.map(n => n.name),
+        theme: `${top1.name}와 ${top2.name} 사이의 묘한 기류 속에서 누구도 온전히 선택하지 못하고 홀로 남겨진 결말`
+      };
+    }
+
+    // 5. 장소를 떠나는 엔딩 (기본 노말)
+    return {
+      type: "Departure End",
+      title: `Normal End: 새로운 길을 향한 발걸음`,
+      lovers: [],
+      others: sorted.map(n => n.name),
+      theme: "특정 인물에게 얽매이지 않고 자신의 새로운 길을 찾아 담담히 떠나는 작별"
     };
-  }
+  };
 
-  // 3. 1인 집중 트루 엔딩 (True End):
-  // 1순위 NPC 호감도가 70점 이상이고, 2순위 NPC와 격차가 확실(20점 이상)하거나 2순위가 비공략 상태(45점 미만)일 때
-  const isSoloTrue = top1Aff >= 70 && ((top1Aff - top2Aff >= 20) || top2Aff < 45);
-  if (isSoloTrue) {
-    return { 
-      type: "True End", 
-      title: `True End: ${top1Npc.name}와의 영원한 서약` 
-    };
-  }
+  // 실시간 수치 기반 엔딩 판정
+  const calculatedEnding = evaluateEnding(activeSession?.sheet?.npcs || []);
 
-  // 4. 노말 엔딩 (Normal End):
-  // 사건은 해결했으나 1인 트루(70점+)나 다자 조건(둘 다 60점+)에는 미치지 못한 무난한 동료 엔딩
-  return { 
-    type: "Normal End", 
-    title: `Normal End: ${top1Npc.name}와 함께 맞이하는 평온한 일상` 
+  // 엔딩 발생 여부 감지
+  const isScenarioEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
+  const isBadEnding = isScenarioEnded && (calculatedEnding.type === "Bad End" || /Bad\s*End|배드/i.test(lastMsgText));
+  const isTrueEnding = isScenarioEnded && (calculatedEnding.type === "True End" || /True\s*End|트루/i.test(lastMsgText));
+  const isHiddenEnding = isScenarioEnded && (calculatedEnding.type === "Hidden Poly End" || /Hidden\s*End|히든/i.test(lastMsgText));
+
+  const endingMatch = lastMsgText.match(/\[((?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[^\]]*)\]/i);
+  const endingTitle = isScenarioEnded ? (endingMatch ? endingMatch[1] : calculatedEnding.title) : calculatedEnding.title;
+
+  // 5. 장소를 떠나는 엔딩 (Departure End / 기본 노말)
+  // 조건: 큰 사건은 해결했으나 깊은 연인 관계로 발전하지 않고 담담히 자신의 길을 떠남
+  return {
+    type: "Departure End",
+    title: `Normal End: 새로운 길을 향한 발걸음`,
+    lovers: [],
+    others: sorted.map(n => n.name),
+    theme: "특정 인물에게 얽매이지 않고 자신의 새로운 길을 찾아 담담히 떠나는 작별"
   };
 };
- 
-// 지문 속 완결 텍스트 감지
-const isScenarioEnded = /\[(?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[: \]]|완결|막을 내렸다/i.test(lastMsgText);
-
-// 현재 세션 NPC 호감도 기반 실시간 엔딩 계산
-const calculatedEnding = evaluateEnding(activeSession?.sheet?.npcs || []);
-
-// 지문에 적힌 명시적 태그가 있다면 우선 적용하고, 없으면 호감도 계산 결과 적용
-const isHiddenEnding = isScenarioEnded && (/Hidden\s*End|Secret\s*End|히든|시크릿|진엔딩/i.test(lastMsgText) || calculatedEnding.type === "Hidden End");
-const isBadEnding = isScenarioEnded && !isHiddenEnding && (/Bad\s*End|Dead\s*End|배드|파멸|비극/i.test(lastMsgText) || calculatedEnding.type === "Bad End");
-const isTrueEnding = isScenarioEnded && !isHiddenEnding && !isBadEnding && (/True\s*End|Happy\s*End|트루|해피/i.test(lastMsgText) || calculatedEnding.type === "True End");
-
-const endingMatch = lastMsgText.match(/\[((?:True|Happy|Bad|Dead|Normal|Open|Hidden|Secret)?\s*End[^\]]*)\]/i);
-const endingTitle = isScenarioEnded
-  ? (endingMatch ? endingMatch[1] : calculatedEnding.title)
-  : calculatedEnding.title;
 
  // 🌟 [추가] 모바일 뒤로가기(제스처/버튼) 시 앱 종료 방지 및 로비 복귀
   useEffect(() => {
@@ -6447,32 +6526,66 @@ return (
                   gap: "12px",
                   margin: "12px 0"
                 }}>
-                  <div style={{ fontSize: "0.8rem", color: theme.text }}>
+<div style={{ fontSize: "0.8rem", color: theme.text }}>
                     <strong>
-                      {isTrueEnding
-                        ? "👑 최고의 결말(트루 엔딩)에 도달했습니다"
-                        : isHiddenEnding 
-                        ? "🗝️ 숨겨진 진실(히든 엔딩)에 도달했습니다" 
-                        : isBadEnding 
-                        ? "🥀 비극적 결말에 도달했습니다" 
-                        : "✨ 시나리오가 완결되었습니다"}
+                      {calculatedEnding?.title || (
+                        isTrueEnding
+                          ? "👑 최고의 결말(트루 엔딩)에 도달했습니다"
+                          : isHiddenEnding 
+                          ? "🗝️ 숨겨진 진실(히든 엔딩)에 도달했습니다" 
+                          : isBadEnding 
+                          ? "🥀 비극적 결말에 도달했습니다" 
+                          : "✨ 시나리오가 완결되었습니다"
+                      )}
                     </strong>
                     <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
-                      우측 시트에서 감춰졌던 모든 진상과 인물들의 비밀이 해금되었습니다.
+                      {activeSession?.ruleMode === "insane"
+                        ? "우측 시트에서 감춰졌던 모든 진상과 인물들의 비밀이 해금되었습니다."
+                        : (calculatedEnding?.theme || "각 인물들과 쌓아온 감정과 선택이 결말에 도달했습니다.")}
                     </div>
                   </div>
+
                   <button
                     onClick={() => {
-                      let promptText = "";
-                      if (isTrueEnding) {
-                        promptText = `[에필로그 요청: 찬란한 결말의 후일담]\n본 시나리오의 트루 엔딩(True End)에 도달했습니다. 서로를 향한 깊은 신뢰와 흔들리지 않는 연대 속에서, 역경을 딛고 피어난 두 사람의 깊은 여운을 담은 후일담을 3~4문단으로 서술해 주십시오.`;
-                      } else if (isHiddenEnding) {
-                        promptText = `[에필로그 요청: 숨겨진 진실의 후일담]\n본 시나리오의 히든 엔딩(Hidden End)에 도달했습니다. 표면상 드러나지 않았던 배후의 진실, 두 사람만이 공유하게 된 은밀한 운명, 혹은 세계관의 숨겨진 비하인드를 담은 신비롭고 깊은 여운의 후일담을 3~4문단으로 서술해 주십시오.`;
-                      } else if (isBadEnding) {
-                        promptText = `[에필로그 요청: 비극의 후일담]\n본 시나리오가 비극적인 결말(Bad End)로 막을 내렸습니다. 사건이 끝난 후 남겨진 세계, 혹은 홀로 남거나 스러져간 두 인물의 쓸쓸하고 애틋한 여운을 담은 후일담을 3~4문단으로 서술해 주십시오.`;
-                      } else {
-                        promptText = `[에필로그 요청: 평온의 후일담]\n본 시나리오가 성공적으로 완결되었습니다. 시련을 넘어선 두 사람이 계절이 바뀐 뒤 평온한 일상 속에서 서로의 온기를 나누며 살아가는 감성적인 후일담을 3~4문단으로 서술해 주십시오.`;
+                      const isInsaneMode = activeSession?.ruleMode === "insane";
+
+                      // 1. 인세인(InSANe) 추리/호러 모드일 때
+                      if (isInsaneMode) {
+                        let promptText = "";
+                        if (isTrueEnding) {
+                          promptText = `[에필로그 요청: 찬란한 결말의 후일담]\n본 시나리오의 트루 엔딩(True End)에 도달했습니다. 사건의 숨겨진 모든 진상을 밝혀내고 생존한 이들이 마주한 새벽의 여운을 3~4문단으로 서술해 주십시오.`;
+                        } else if (isHiddenEnding) {
+                          promptText = `[에필로그 요청: 숨겨진 진실의 후일담]\n본 시나리오의 히든 엔딩(Hidden End)에 도달했습니다. 표면 뒤에 도사리고 있던 배후의 진실과 세계관의 숨겨진 비하인드를 담은 미스터리한 후일담을 3~4문단으로 서술해 주십시오.`;
+                        } else if (isBadEnding) {
+                          promptText = `[에필로그 요청: 비극의 후일담]\n본 시나리오가 비극적인 결말(Bad End)로 막을 내렸습니다. 사건이 끝난 후 남겨진 참상과 홀로 스러져간 이들의 쓸쓸한 여운을 3~4문단으로 서술해 주십시오.`;
+                        } else {
+                          promptText = `[에필로그 요청: 평온의 후일담]\n본 시나리오가 완결되었습니다. 시련을 넘어선 생존자들이 일상으로 돌아가 맞이하는 담담한 후일담을 3~4문단으로 서술해 주십시오.`;
+                        }
+                        executeMessage(promptText);
+                        return;
                       }
+
+                      // 2. 일반 / 미연시 / 다인원 서사 모드일 때 (동적 수치 기반)
+                      const loversText = calculatedEnding?.lovers?.length > 0 
+                        ? calculatedEnding.lovers.join(", ") 
+                        : "없음 (누구와도 맺어지지 않음)";
+                      const othersText = calculatedEnding?.others?.length > 0 
+                        ? calculatedEnding.others.join(", ") 
+                        : "없음";
+
+                      let promptText = `[에필로그 요청: ${calculatedEnding?.title || "후일담"}]
+- 확정 결말: ${calculatedEnding?.title || "완결"} (${calculatedEnding?.type || "Normal End"})
+- 결말 테마: ${calculatedEnding?.theme || "사건의 뒷이야기"}
+- 공식 연인: ${loversText}
+- 비연인(공적 거리감 유지): ${othersText}
+
+[후일담 서술 수칙]
+1. '공식 연인'에 명시된 인물들과의 감정선과 유대를 중심으로 결말을 묘사하십시오. (다자연애일 경우 질투나 강압 없이 상호 신뢰와 공존을 섬세하게 표현하십시오.)
+2. '비연인'으로 분류된 인물은 사적인 연애 감정이나 소유욕을 배제하고, 자신의 본래 직업적 정체성과 신념을 지키며 공적인 거리감을 유지하게 하십시오.
+3. [단독 트루 엔딩]일 경우 다른 인물의 사적인 난입을 금지하십시오.
+4. [홀로 엔딩 / 떠나는 엔딩]일 경우 누구의 손도 잡지 않고 자신의 길을 향해 나아가는 주인공의 독립적이고 담담한 여운을 묘사하십시오.
+5. 시나리오 완결에 걸맞게 한 편의 소설처럼 감각적이고 유려한 문체로 3~4문단 서술해 주십시오.`;
+
                       executeMessage(promptText);
                     }}
                     style={{ 
@@ -6483,7 +6596,7 @@ return (
                         ? "#7b2cbf" 
                         : isBadEnding 
                         ? theme.danger 
-                        : theme.accent, 
+                        : (calculatedEnding?.type === "Solo End" ? "#64748b" : theme.accent), 
                       color: "#fff", 
                       border: "none", 
                       borderRadius: "6px", 
@@ -6496,13 +6609,11 @@ return (
                     {isTrueEnding
                       ? "👑 찬란한 후일담 보기"
                       : isHiddenEnding 
-                      ? "🗝️ 숨겨진 후일담 보기" 
+                      ? (calculatedEnding?.type === "Hidden Poly End" ? "🌙 세 사람의 후일담 보기" : "🗝️ 숨겨진 후일담 보기")
                       : isBadEnding 
-                      ? "📜 비극의 후일담 보기" 
-                      : "📜 후일담 보기"}
+                      ? "🥀 비극의 후일담 보기" 
+                      : (calculatedEnding?.type === "Solo End" ? "🍂 홀로 남겨진 후일담 보기" : "📜 후일담 보기")}
                   </button>
-                </div>
-              )}
 
               {activeMadnessAlert && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "rgba(247, 101, 133, 0.22)", border: `1.5px solid ${theme.danger}`, borderRadius: "8px", padding: "8px 12px" }}>
