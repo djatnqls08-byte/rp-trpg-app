@@ -3246,8 +3246,8 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 3. [시스템 태그 연동 수칙]
 - 새로운 물건을 얻으면 맨 끝에 <!-- ITEM: {"name": "아이템명", "desc": "설명"} -->
 // ⭕ 수정 후 (좋아하는 것과 싫어하는 것 구분 지침)
-- 상대방의 취향(선호하는 것 혹은 싫어/기피하는 것)이 대화에 나오면 지문 맨 끝에 명사 형태로 태그를 출력하십시오:
-  <!-- CLUE: {"name": "핵심 명사 (예: 쌉싸름한 맛, 단 것)", "desc": "상세 설명", "type": "like 또는 dislike"} -->
+- 상대방이 선호하는 것(예: 고요한 시간, 진실, 홍차, 독서)이나 꺼리는 것이 대사에 나타나면 지문 맨 끝에 반드시 2~3단어 이내의 '완성된 명사' 형태로 태그를 출력하십시오 (형용사나 문장 조각 절대 금지):
+  <!-- CLUE: {"name": "고요한 시간", "desc": "잡음이 섞이지 않은 평온한 분위기", "type": "like"} -->
 - 번호/연락처/마도구 파장을 교환하면 맨 끝에 <!-- UNLOCK_CONTACT: {"name": "인물명"} -->
 // dynamicRules 내부의 호감도 규칙을 아래처럼 보완
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "delta": 1~3} -->
@@ -7500,13 +7500,14 @@ return (
                   ) : (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {activeSession.sheet.clues
-                  .filter(clue => {
-                    const n = (clue.name || "").trim();
-                    if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
-                    if (/(?:있는|없는|하는|되는|같은)$/.test(n)) return false;
-                    return true;
-                  })
-                  .map((clue, cIdx) => {
+  .filter(clue => {
+    const n = (clue.name || "").trim();
+    if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
+    // 💡 형용사/관형사형 어미(-적인, -있는, -하는, -인, -한)로 끝나면 무조건 숨김
+    if (/(?:있는|없는|하는|되는|같은|않은|적인|스런|스러운|로운|[인한])$/.test(n)) return false;
+    return true;
+  })
+  .map((clue, cIdx) => {
                     const isDislike = clue.type === "dislike";
                     return (
                       <div 
