@@ -4483,9 +4483,9 @@ return (
       /* 전체 UI(버튼, 메뉴 등)는 고딕(프리텐다드) 고정 */
       *, *::before, *::after { box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
 
-      /* 서사 지문 말풍선(.serif-text)에만 리디바탕 명조체 최우선 적용 */
+      /* 서사 지문 말풍선(.serif-text) 서체 토글 */
       .serif-text, .serif-text * { 
-        font-family: ${fontChoice === "pretendard" ? "'Pretendard', sans-serif" : "'RIDIBatang', serif"} !important; 
+        font-family: ${(fontChoice === "ridi" || fontChoice === "maru" || fontChoice === "serif") ? "'RIDIBatang', serif" : "'Pretendard', sans-serif"} !important; 
         line-height: 1.95; 
         word-break: keep-all; 
         letter-spacing: -0.01em; 
