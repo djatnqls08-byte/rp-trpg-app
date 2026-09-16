@@ -4554,13 +4554,27 @@ return (
               }}
                 style={{ borderRadius: "10px", cursor: "pointer", marginBottom: "8px", backgroundColor: activeSessionId === s.id ? theme.panelAlt : theme.panel, border: `1px solid ${activeSessionId === s.id ? theme.accent : theme.border}`, overflow: "hidden", display: "flex", flexDirection: "column" }}
               >
-                {/* 상단 썸네일 배너 영역 (고정 높이 70px) */}
-                <div style={{ width: "100%", height: "70px", backgroundColor: theme.panelAlt, backgroundImage: `url(${s.thumbnail || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg"})`, backgroundSize: "cover", backgroundPosition: "center", position: "relative" }}>
-                  {/* 🌟 클릭 시 컴퓨터 파일 선택 창 바로 열림 */}
-                  <label 
-                    onClick={(e) => e.stopPropagation()} 
-                    title="내 컴퓨터에서 세션 카드 이미지 선택"
-                    style={{ position: "absolute", top: "4px", right: "4px", backgroundColor: "rgba(0,0,0,0.6)", color: "#fff", borderRadius: "4px", padding: "3px 6px", fontSize: "0.7rem", cursor: "pointer" }}
+                {{/* 상단 썸네일 배너 영역 (7:2 ~ 16:9 유동적 높이 자동 대응) */}
+<div style={{ width: "100%", position: "relative", backgroundColor: theme.panelAlt, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+  <img
+    src={s.thumbnail || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg"}
+    alt="세션 카드"
+    style={{
+      width: "100%",
+      height: "auto",
+      minHeight: "75px",   // 7:2 초와이드 비율 기준 최소 높이 (과도하게 납작해짐 방지)
+      maxHeight: "185px",  // 16:9 표준 비율 기준 최대 높이 (카드가 너무 커짐 방지)
+      objectFit: "cover",
+      objectPosition: "center",
+      display: "block"
+    }}
+  />
+
+  {/* 🌟 클릭 시 컴퓨터 파일 선택 창 바로 열림 */}
+  <label 
+    onClick={(e) => e.stopPropagation()} 
+    title="내 컴퓨터에서 세션 카드 이미지 선택"
+    style={{ position: "absolute", top: "6px", right: "6px", backgroundColor: "rgba(0,0,0,0.65)", color: "#fff", borderRadius: "4px", padding: "3px 6px", fontSize: "0.7rem", cursor: "pointer", zIndex: 2 }}
                   >
                     ✏️
                     <input type="file" accept="image/*" onChange={(e) => handleSessionCardUpload(s.id, e)} style={{ display: "none" }} />
