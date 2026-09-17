@@ -3724,7 +3724,10 @@ ${npcsSummary}
           npcs: (rawSheet.npcs || []).map(n => ({
             ...n,
             portrait: (n.portrait || "").startsWith("data:image") ? "" : n.portrait
-          }))
+          })),
+          // 🌟 아이템/단서에 박힌 거대 사진 데이터까지 일괄 청소
+          items: (rawSheet.items || []).map(item => ({ ...item, image: (item.image || "").startsWith("data:image") ? "" : item.image })),
+          handouts: (rawSheet.handouts || []).map(h => ({ ...h, image: (h.image || "").startsWith("data:image") ? "" : h.image }))
         } : rawSheet;
 
         const res = await fetch("/api/chat", {
