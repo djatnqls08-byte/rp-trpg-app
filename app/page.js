@@ -877,9 +877,17 @@ useEffect(() => {
     setLobbySaveModal(null);
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
-  const handleLoadLobbyPreset = (p) => {
+ const handleLoadLobbyPreset = (p) => {
+    if (p.charName) setOriginalPresetPcName(p.charName);
+    // 🌟 원래 프리셋에 들어있던 NPC 원본 명단 기억
+    if (p.kpcList && Array.isArray(p.kpcList)) {
+      setOriginalPresetNpcs(p.kpcList.map(k => ({ id: k.id, name: k.name })));
+    }
+    if (p.eventCgs) setScenarioCgs(p.eventCgs); 
+    if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
+  if (p.charName) setOriginalPresetPcName(p.charName);
   if (p.eventCgs) setScenarioCgs(p.eventCgs); 
-  if (p.thumbnail) setScenarioThumbnail(p.thumbnail); // 👈 추가
+  if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
   setScenarioTitle(p.scenarioTitle || "");
     setPublicSynopsis(p.publicSynopsis || "");
     setOpeningScene(p.openingScene || "");
@@ -1203,6 +1211,8 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
 
   // 캐릭터 폼 상태
   const [charName, setCharName] = useState("");
+  const [originalPresetPcName, setOriginalPresetPcName] = useState("");
+  const [originalPresetNpcs, setOriginalPresetNpcs] = useState([]);
   const [charJob, setCharJob] = useState("");
   const [charAge, setCharAge] = useState("24");
   const [charGender, setCharGender] = useState("여성");
@@ -1213,6 +1223,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
   const [charPortraitUrl, setCharPortraitUrl] = useState("");
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [activePortraitTarget, setActivePortraitTarget] = useState("pc");
+ 
 
   // CoC 스탯 및 기능치
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
@@ -2774,12 +2785,64 @@ const startNewSession = async () => {
         }))
       };
     }
-    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${publicSynopsis}\n\n[초기 배경/서막]\n${openingScene}\n\n[키퍼 전용 기밀/진상]\n${hiddenTruth}`;
+
+ 
+// 🌟 PC 및 NPC 이름 변경 시 본문 & 컷씬(CG) 텍스트 일괄 자동 치환
+    let finalSynopsis = publicSynopsis;
+    let finalOpening = openingScene;
+    let finalTruth = hiddenTruth;
+
+    // 1) PC 이름 치환
+    if (originalPresetPcName && originalPresetPcName !== pName) {
+      const pcRegex = new RegExp(originalPresetPcName, "g");
+      finalSynopsis = finalSynopsis.replace(pcRegex, pName);
+      finalOpening = finalOpening.replace(pcRegex, pName);
+      finalTruth = finalTruth.replace(pcRegex, pName);
+    }
+
+    // 2) NPC 이름 치환 맵 구성
+    const npcReplaceMap = [];
+    (originalPresetNpcs || []).forEach(oldNpc => {
+      const updatedNpc = (kpcList || []).find(k => k.id === oldNpc.id);
+      if (updatedNpc && updatedNpc.name && oldNpc.name && updatedNpc.name !== oldNpc.name) {
+        npcReplaceMap.push({ oldName: oldNpc.name, newName: updatedNpc.name });
+      }
+    });
+
+    // 3) 본문 지문 속 NPC 이름 치환
+    npcReplaceMap.forEach(({ oldName, newName }) => {
+      const reg = new RegExp(oldName, "g");
+      finalSynopsis = finalSynopsis.replace(reg, newName);
+      finalOpening = finalOpening.replace(reg, newName);
+      finalTruth = finalTruth.replace(reg, newName);
+    });
+
+    // 4) 컷씬(CG) 제목 및 해금 조건(Trigger) 속 NPC 이름 일괄 치환
+    let finalScenarioCgs = (scenarioCgs || []).map(cg => {
+      let updatedTitle = cg.title || "";
+      let updatedTrigger = cg.trigger || cg.condition || "";
+
+      npcReplaceMap.forEach(({ oldName, newName }) => {
+        const reg = new RegExp(oldName, "g");
+        updatedTitle = updatedTitle.replace(reg, newName);
+        updatedTrigger = updatedTrigger.replace(reg, newName);
+      });
+
+      return {
+        ...cg,
+        title: updatedTitle,
+        trigger: updatedTrigger,
+        condition: updatedTrigger
+      };
+    });
+
+    // 5) 치환 완료된 시나리오 컨텍스트 생성
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
 
    const newId = Date.now();
 
     // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
-    let sessionSheet = { ...(initialSheet || {}) };
+    let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
     if (wizardMode === "insane") {
       const generated = generateInsaneThemeAssets(sessionTitle, fullScenarioContext);
       
@@ -2795,6 +2858,7 @@ const startNewSession = async () => {
         sessionSheet.rituals = generated.rituals;
       }
     }
+ 
 // 🎒 3단계: 특기표에서 선택한 초기 소지품(최대 2개)을 시트에 주입
   sessionSheet.items = [
     { id: "item_painkiller", name: "진통제", type: "heal", count: insaneItems["진통제"] || 0, desc: "생명력 또는 이성치 1 회복" },
@@ -3503,21 +3567,24 @@ ${remainingCgs.length > 0
       text: m.text
     }));
 
-    // 🌟 [외모 왜곡 방지] 캐릭터 외모(흑발 등) 및 성별 설정을 시스템 프롬프트에 강력 고정
+// 🌟 [외모 왜곡 및 이전 이름 송출 방지 앵커]
     const pcAppearance = activeSession.sheet?.background || "설정 없음";
-    const pcNameStr = activeSession.sheet?.name || "주인공";
+    const pcNameStr = activeSession.sheet?.name || charName.trim() || "주인공";
     const npcsSummary = (activeSession.sheet?.npcs || []).map(n => 
       `- ${n.name} (${n.title || n.job || "인물"}): 외모/설정 [${n.detail || n.desc || "설정 없음"}]`
     ).join("\n");
 
-    const appearanceAnchor = `\n\n[🚨 캐릭터 고유 외모 및 인물 설정 절대 준수 수칙]
-1. [등록된 프로필 외모 엄수]
+    const appearanceAnchor = `\n\n[🚨 캐릭터 이름 및 외모 고정 절대 수칙]
+1. [주인공(PC) 호칭 절대 규칙]
+- 현재 주인공의 공식 이름은 무조건 [${pcNameStr}]입니다.
+- 시나리오 원문, 시놉시스, 핸드아웃 지문에 예전 디폴트 이름(예: '클레어', '탐사자', 'PC' 등)이 남아있더라도 절대로 그 이름을 부르지 마십시오.
+- 지문 서술 및 인물들의 대사에서 반드시 현재 지정된 이름인 [${pcNameStr}](으)로만 지칭하십시오.
+
+2. [등록된 프로필 외모 엄수]
 - 주인공 [${pcNameStr}]: ${pcAppearance}
 - 주요 등장인물 외모 명단:
 ${npcsSummary}
-2. [외모 날조 및 클리셰 묘사 절대 금지]
-- 인물의 머리색(예: 흑발 등), 눈동자, 체형, 성별은 위 프로필 설정을 100% 엄격하게 준수하십시오.
-- 프로필에 명시된 외모(흑발 등)를 무시하고 제멋대로 '은발', '은빛 머리칼', '백발' 등 임의의 클리셰 외모로 왜곡하거나 날조하여 묘사하는 것을 엄격히 금지합니다.`;
+- 머리색, 눈동자, 성별 등은 위 설정을 100% 엄격하게 준수하며, 임의로 백발/은발 등으로 왜곡하지 마십시오.`;
 
 // 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입 (사망자 방어 포함)
     let currentNpcPrompt = "";
