@@ -5641,14 +5641,14 @@ return (
                         </div>
 
                         <div style={{ flex: 1, display: "flex", gap: "8px", paddingRight: kpcList.length > 1 ? "24px" : "0" }}>
-                          {/* 이름: 40% 비율, 조금 더 굵은 폰트 */}
-                          <input 
-                            type="text" 
-                            value={kpc.name} 
-                            onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
-                            placeholder={wizardMode.startsWith("dating") ? "이름" : "이름"} 
-                            style={{ width: "42%", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.85rem", fontWeight: "700" }} 
-                          />
+{/* 🌟 수정 후: fontWeight: "700" 제거 */}
+<input 
+  type="text" 
+  value={kpc.name} 
+  onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
+  placeholder="이름" 
+  style={{ width: "42%", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+/>
                           {/* 직업/신분: 58% 비율로 넉넉하게 노출 */}
                           <input 
                             type="text" 
@@ -5938,72 +5938,74 @@ return (
               </div>
             )}
 
-            {/* 🌟 시나리오 정보 카드 본체 */}
-            <div className="glass-card" style={{ padding: "16px", borderRadius: "16px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: "800", color: theme.text }}>
+            {/* 🌟 시나리오 정보 카드 헤더 (모바일 글자 꺾임 방지) */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? "0.84rem" : "0.95rem", fontWeight: "800", color: theme.text, whiteSpace: "nowrap", flexShrink: 0 }}>
                   {wizardMode.startsWith("dating") ? "📖 에피소드 설정 및 서막" : "📖 시나리오 정보 및 서막"}
                 </h3>
 
-                <div style={{ display: "flex", gap: "5px", flexShrink: 0 }}>
-                  {/* 1. 스튜디오 바로가기 링크 */}
+                <div style={{ display: "flex", gap: isMobile ? "3px" : "5px", flexShrink: 0, alignItems: "center" }}>
+                  {/* 1. 스튜디오 링크 */}
                   <a
                     href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
                     target="_blank"
                     rel="noopener noreferrer"
                     title="새 탭에서 AI 시나리오 제작기(Gem) 열기"
                     style={{
-                      padding: "4px 8px",
+                      padding: isMobile ? "3px 6px" : "4px 8px",
                       backgroundColor: theme.panelAlt,
                       color: theme.accent,
                       border: `1px solid ${theme.border}`,
                       borderRadius: "6px",
-                      fontSize: "0.8rem",
+                      fontSize: isMobile ? "0.72rem" : "0.78rem",
                       fontWeight: "bold",
                       textDecoration: "none",
                       display: "inline-flex",
                       alignItems: "center",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      whiteSpace: "nowrap"
                     }}
                   >
-                    🎬 {isMobile ? "스튜디오" : "스튜디오"}
+                    🎬 스튜디오
                   </a>
 
-                  {/* 2. 시나리오 파일 첨부 통합 버튼 */}
+                  {/* 2. 첨부 버튼 */}
                   <button 
                     type="button"
                     onClick={() => setShowPasteModal(true)} 
                     style={{ 
-                      padding: "4px 8px", 
+                      padding: isMobile ? "3px 6px" : "4px 8px", 
                       backgroundColor: theme.panelAlt, 
                       color: theme.text, 
                       border: `1px solid ${theme.border}`, 
                       borderRadius: "6px", 
-                      fontSize: "0.8rem", 
+                      fontSize: isMobile ? "0.72rem" : "0.78rem", 
                       cursor: "pointer", 
                       display: "inline-flex", 
                       alignItems: "center",
-                      gap: "4px"
+                      gap: "2px",
+                      whiteSpace: "nowrap"
                     }}
                   >
-                    📄 {isMobile ? "첨부" : "파일 첨부"}
+                    📄 첨부
                   </button>
 
-                  {/* 3. 기존 치환 버튼 */}
+                  {/* 3. 치환 버튼 */}
                   <button 
                     type="button"
                     onClick={handleAutoReplaceKpcPc} 
                     style={{ 
-                      padding: "4px 8px", 
+                      padding: isMobile ? "3px 6px" : "4px 8px", 
                       backgroundColor: theme.panelAlt, 
                       color: theme.text, 
                       border: `1px solid ${theme.border}`, 
                       borderRadius: "6px", 
-                      fontSize: "0.8rem", 
-                      cursor: "pointer" 
+                      fontSize: isMobile ? "0.72rem" : "0.78rem", 
+                      cursor: "pointer",
+                      whiteSpace: "nowrap"
                     }}
                   >
-                    🔄 {isMobile ? "치환" : "PC/KPC 치환"}
+                    🔄 치환
                   </button>
                 </div>
               </div>
