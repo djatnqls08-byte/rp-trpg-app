@@ -10076,16 +10076,15 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                       cursor: "pointer"
                                     }}
                                   >
-                                    {">"}
+                                   {">"}
                                   </button>
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-                        </div>
 
-                        {/* 카테고리 사이를 나누는 깔끔한 가로 구분선 */}
+                        {/* 3. 카테고리 구분선 */}
                         {secIdx < activeSections.length - 1 && (
                           <div style={{ height: "1.5px", backgroundColor: theme.border, margin: "10px 0 4px 0", opacity: 0.8 }} />
                         )}
@@ -10094,7 +10093,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                     ))}
                   </div>
                 );
-              })()}
 
               {/* 2. 📁 내 저장 세팅만 단독 표시 */}
               {lobbyPresetTab === "local" && (
