@@ -1170,22 +1170,26 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
 - 💡 [첫 번째 미션: 대화 나누기]
 도입 페이즈에서는 판정을 하지 않습니다. 유진에게 말을 건네 안심시켜 보세요!
 
-▶ 2단계: [메인 페이즈 1 - 사이클/씬 안내 & 감정 판정]
-- 유진과 대화 후, 정식 씬 선언 박스를 지문 맨 위에 출력:
+▶ ▶ 2단계: [메인 페이즈 1 - 사이클/씬 교육 & 감정 판정]
+- 유진과 대화 후 씬 선언:
   🎬 [메인 페이즈: 1사이클 1씬 돌입]
   - 씬 플레이어: \${pName}
-  - 남은 리미트: 4사이클
-- 사이클/씬 개념을 2줄로 친절히 교육:
-  "인세인의 메인 페이즈는 '사이클(라운드)'로 진행됩니다. 각 사이클마다 플레이어는 씬(기회)을 얻어 [조사/감정/회복] 중 단 1번의 행동을 취할 수 있습니다. 리미트(4사이클)가 끝나기 전에 탈출해야 합니다!"
+- "인세인은 1씬당 [조사 / 감정 / 회복] 중 단 1번의 주요 행동만 할 수 있습니다!" 교육.
 - 💡 [두 번째 미션: 감정 판정]
 하단의 [💭 감정 판정 (1D6)] 버튼을 눌러 유진과 감정(유대)을 맺어보세요!
 
-▶ 3단계: [메인 페이즈 2 - 조사 및 공포 판정]
-- 감정 성공 묘사 직후, 비상등이 깜빡이며 인터폰 발견.
-- 인터폰 조사 유도. 유저가 [기계] 조사 성공 시:
-  비밀 해금(<!-- REVEAL_HANDOUT: {"title": "비상 인터폰"} -->) 후 충격적인 진실에 대한 [공포 판정: 침착(5)] 요구!
-- 💡 [세 번째 미션: 조사 & 공포 판정]
-하단의 [🔍 조사 판정]으로 [기계]를 굴려 인터폰을 조사하고, 비밀의 쇼크에 맞서 [침착]으로 공포 판정을 넘기세요!
+▶ 2.5단계: [감정 획득 & 씬 종료 (강제 장면 전환)]
+- 유저가 감정 판정을 완료하면:
+  1. 감정 획득 서사를 묘사합니다.
+  2. "이번 씬의 주요 행동(감정)을 마쳤으므로 1씬을 종료합니다." 선언.
+  3. 반드시 맨 끝에 <!-- ADVANCE_SCENE --> 태그를 출력하여 씬을 닫으십시오! (절대 이 턴에 조사를 요구하지 말 것)
+
+▶ 3단계: [메인 페이즈 2 - 새로운 씬 돌입 & 핸드아웃 조사]
+- 새로운 씬 시작 선언:
+  🎬 [메인 페이즈: 새로운 씬 시작]
+- 비상등이 깜빡이며 엘리베이터 인터폰 발견 묘사.
+- 💡 [세 번째 미션: 핸드아웃 조사]
+새로운 씬이 시작되었습니다! 하단의 [🔍 조사 판정]을 누르고 [기계]를 굴려 비상 인터폰을 조사하세요!
 
 ▶ 4단계: [클라이맥스 페이즈 - 괴이 강림과 전투/의식]
 - 천장에서 검붉은 괴이가 떨어지며 강제 클라이맥스 돌입 선언!
@@ -8500,11 +8504,31 @@ return (
                 </div>
                 <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
+                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "700" }}>
                     <span>{npc.name}</span>
-                    <span style={{ color: theme.danger }}>♥ {npc.affection}</span>
+                    {/* 🌟 인세인 모드일 때는 맺은 감정 뱃지, 일반 모드일 때는 호감도 하트 표시 */}
+                    {activeSession.ruleMode === "insane" ? (
+                      npc.emotion ? (
+                        <span style={{
+                          color: "#a855f7",
+                          backgroundColor: "rgba(168, 85, 247, 0.15)",
+                          border: "1px solid rgba(168, 85, 247, 0.3)",
+                          padding: "1px 6px",
+                          borderRadius: "4px",
+                          fontSize: "0.65rem",
+                          fontWeight: "800"
+                        }}>
+                          🎭 {npc.emotion}
+                        </span>
+                      ) : (
+                        <span style={{ color: theme.textMuted, fontSize: "0.65rem", fontWeight: "normal" }}>
+                          감정 없음
+                        </span>
+                      )
+                    ) : (
+                      <span style={{ color: theme.danger }}>♥ {npc.affection ?? 0}</span>
+                    )}
                   </div>
-                  <div style={{ color: theme.textMuted, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{npc.title}</div>
-                </div>
               </summary>
               
               {/* 드롭다운 펼쳤을 때 나오는 상세 내용 (핸드아웃 해금 상태 자동 연동) */}
