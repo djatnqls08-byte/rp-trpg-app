@@ -10023,10 +10023,29 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   gap: "8px" 
                                 }}
                               >
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                    {p.presetTitle || p.scenarioTitle || "시나리오"}
-                                  </div>
+                                <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.textMain /* 기존 스타일 유지 */ }}>
+  <span>{p.presetTitle || p.scenarioTitle || "시나리오"}</span>
+
+  {/* 🌟 CG 데이터가 있을 때만 제목 옆에 골드 뱃지 표시 */}
+  {((p.scenarioCgs && p.scenarioCgs.length > 0) || 
+    (p.cgs && p.cgs.length > 0) || 
+    (p.initialSheet?.scenarioCgs && p.initialSheet.scenarioCgs.length > 0)) && (
+    <span style={{
+      marginLeft: "6px",
+      fontSize: "0.62rem",
+      fontWeight: "bold",
+      padding: "1px 5px",
+      borderRadius: "4px",
+      background: "rgba(245, 158, 11, 0.15)",
+      color: "#fbbf24",
+      border: "1px solid rgba(245, 158, 11, 0.4)",
+      verticalAlign: "middle",
+      display: "inline-block"
+    }}>
+      ✨ CG
+    </span>
+  )}
+</div>
                                   <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     룰: <strong style={{ color: theme.accent }}>{displayRule}</strong> {p.playPreference ? `· ${p.playPreference}` : ""}
                                   </div>
