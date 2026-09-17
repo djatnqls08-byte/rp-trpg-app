@@ -3654,24 +3654,22 @@ ${remainingCgs.length > 0
       text: m.text
     }));
 
-// 🌟 [외모 왜곡 및 이전 이름 송출 방지 앵커]
+// 🌟 [외모 왜곡 및 이전 이름/직업 날조 방지 앵커]
     const pcAppearance = activeSession.sheet?.background || "설정 없음";
     const pcNameStr = activeSession.sheet?.name || charName.trim() || "주인공";
-    const npcsSummary = (activeSession.sheet?.npcs || []).map(n => 
-      `- ${n.name} (${n.title || n.job || "인물"}): 외모/설정 [${n.detail || n.desc || "설정 없음"}]`
-    ).join("\n");
+    const pcJobStr = activeSession.sheet?.job || "달그림자 옥션 수석 감정사"; // 👈 직업 추출
 
-    const appearanceAnchor = `\n\n[🚨 캐릭터 이름 및 외모 고정 절대 수칙]
-1. [주인공(PC) 호칭 절대 규칙]
-- 현재 주인공의 공식 이름은 무조건 [${pcNameStr}]입니다.
-- 시나리오 원문, 시놉시스, 핸드아웃 지문에 예전 디폴트 이름(예: '클레어', '탐사자', 'PC' 등)이 남아있더라도 절대로 그 이름을 부르지 마십시오.
-- 지문 서술 및 인물들의 대사에서 반드시 현재 지정된 이름인 [${pcNameStr}](으)로만 지칭하십시오.
+    const appearanceAnchor = `\n\n[🚨 캐릭터 이름, 직업 및 외모 고정 절대 수칙]
+1. [주인공(PC) 호칭 및 직업 절대 규칙]
+- 현재 주인공의 공식 이름은 [${pcNameStr}]이며, 공식 직업은 [${pcJobStr}]입니다.
+- ❌ 절대 금지: 주인공을 '경감', '형사', '수사관', '경찰' 등으로 날조하여 부르지 마십시오.
+- ⭕ 필수 지침: 주인공은 옥션에 출품된 성유물과 보물을 감별하는 [${pcJobStr}]입니다. 인물들은 주인공의 전문성과 감정 능력을 존중하는 호칭을 사용하십시오.
 
 2. [등록된 프로필 외모 엄수]
 - 주인공 [${pcNameStr}]: ${pcAppearance}
 - 주요 등장인물 외모 명단:
 ${npcsSummary}
-- 머리색, 눈동자, 성별 등은 위 설정을 100% 엄격하게 준수하며, 임의로 백발/은발 등으로 왜곡하지 마십시오.`;
+- 머리색, 눈동자, 신분 등은 위 설정을 100% 엄격하게 준수하십시오.`;
 
 // 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입 (사망자 방어 포함)
     let currentNpcPrompt = "";
