@@ -2879,6 +2879,36 @@ const startNewSession = async () => {
     { id: "item_amulet", name: "부적", type: "reroll_other", count: insaneItems["부적"] || 0, desc: "타인의 판정 재굴림" }
   ].filter(it => it.count > 0); // 1개 이상 챙긴 아이템만 가방에 등록
 
+// 📱 서막 지문 속 [인물명]: "대사"를 스마트폰 메신저 실제 메시지로 자동 변환
+  const openingMsgRegex = /\[([^\]]+)\]\s*:\s*["“]([^"”]+)["”]/g;
+  let match;
+  const initialPhoneChats = {};
+  const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+
+  while ((match = openingMsgRegex.exec(finalOpening || openingScene || "")) !== null) {
+    const senderName = match[1].trim();
+    const messageText = match[2].trim();
+
+    // 등록된 등장인물(NPC) 중 이름이 매칭되는 인물 탐색 (권시우 팀장 ➔ 권시우 매칭)
+    const matchedNpc = (npcs || []).find(n => n.name && (senderName.includes(n.name) || n.name.includes(senderName))) || npcs[0];
+    const contactId = matchedNpc?.id || 1;
+
+    if (!initialPhoneChats[contactId]) initialPhoneChats[contactId] = [];
+
+    initialPhoneChats[contactId].push({
+      id: Date.now() + Math.random(),
+      sender: "npc",
+      text: messageText,
+      time: currentTime,
+      unread: true
+    });
+  }
+
+  // 시트에 초기 메시지 주입 (새로고침/API 완료 후에도 보존)
+  sessionSheet.phoneChats = initialPhoneChats;
+  if (initialSheet) initialSheet.phoneChats = initialPhoneChats;
+
+  // ⬇️ 원래 있던 코드 (이 줄 바로 위에 붙여넣으시면 됩니다)
   const newSession = {
     id: newId,
     title: sessionTitle,
