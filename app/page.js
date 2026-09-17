@@ -1618,7 +1618,7 @@ useEffect(() => {
     setCocStats({ ...stats, luck: Math.floor(Math.random() * 50) + 40 });
   };
 
- const advanceInsaneScene = (sessionId) => {
+const advanceInsaneScene = (sessionId) => {
     setSessions(prev => prev.map(s => {
       if (s.id !== sessionId || s.ruleMode !== "insane") return s;
       if (s.sheet?.phase === "클라이맥스") return s;
@@ -1666,6 +1666,51 @@ useEffect(() => {
       };
     }));
   };
+
+  const drawMadnessCard = (targetSessionId, autoNotify = true) => {
+    let drawnCard = null;
+    setSessions(prev => prev.map(s => {
+      if (s.id !== targetSessionId || s.ruleMode !== "insane") return s;
+      // 🌟 도입 페이즈 중에는 광기 카드를 절대 뽑지 않음
+      if (s.sheet?.phase === "도입") return s;
+
+      const currentDeck = s.sheet?.madnessDeck || [];
+      if (!currentDeck || currentDeck.length === 0) {
+        return s;
+      }
+
+      const deck = [...currentDeck];
+      drawnCard = deck.shift();
+      if (!drawnCard) return s;
+
+      const newHand = [...(s.sheet?.madnessCards || []), { ...drawnCard, id: Date.now() }];
+      const cardName = drawnCard.name || drawnCard.title || "미지의 광기";
+      const newMessages = autoNotify ? [
+        ...(s.messages || []),
+        { role: "user", text: `[🎲 시스템: 이성 감소로 인해 광기 덱에서 《${cardName}》 카드를 1장 뽑았습니다.]` }
+      ] : (s.messages || []);
+
+      return {
+        ...s,
+        messages: newMessages,
+        sheet: {
+          ...s.sheet,
+          madnessDeck: deck,
+          madnessCards: newHand
+        }
+      };
+    }));
+
+    if (drawnCard) {
+      if (typeof playDiceSound === "function") playDiceSound();
+    } else {
+      if (typeof triggerToast === "function") {
+        triggerToast("광기 덱 소진", "뽑을 수 있는 남은 광기 카드가 없습니다.", "⚠️");
+      }
+    }
+    return drawnCard;
+  };
+ 
   const manifestMadnessCard = (cardId, targetSessionId) => {
     const session = sessions.find(s => s.id === targetSessionId);
     if (!session) return;
