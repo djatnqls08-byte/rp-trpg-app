@@ -246,16 +246,29 @@ ${recentPhoneSummary}
 - 이성(SAN) 체크: <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->
 - 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
         } else if (ruleMode === "insane") {
-          rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 정규 수칙]
+rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 정규 수칙]
 진행 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
 - 영어 병기 금지, 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 착란 등)만 사용하십시오.
-- 도입 페이즈 판정 요구 금지, 66대 정규 특기만 사용.
+- 66대 정규 특기만 사용하십시오.
+
+[🚨 도입 페이즈 절대 원칙]
+- 도입 페이즈(Introduction)에서는 조사/공포/전투 등 어떠한 주사위 판정(CHECK)도 절대 요구하지 마십시오.
+- 인물의 사명과 초기 분위기를 전달한 뒤, 대화가 마무리되면 즉시 <!-- ADVANCE_SCENE --> 태그로 메인 페이즈로 넘기십시오.
+
+[📜 조사 성공 및 비밀 해금 절차 (반드시 순서 준수)]
+1. 조사 판정 성공 시, 반드시 비밀 해금 태그를 출력하십시오:
+   <!-- REVEAL_HANDOUT: {"title": "대상명"} -->
+2. 해금된 비밀에 '쇼크(공포)'가 포함되어 있다면, AI가 자의적으로 광기를 터뜨리지 말고 반드시 공포 판정을 요구하십시오:
+   <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
+3. ❌ 금지: 공포 판정 주사위를 굴리기도 전에 AI가 독단적으로 이성을 깎거나 광기를 발현시키는 행위 엄격 금지.
+
+[🎲 시스템 태그 규격]
 - 조사 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
-- 비밀 해금: <!-- REVEAL_HANDOUT: {"title": "제목"} --> / <!-- SHOCK: {"target": "${pName}", "skill": "특기명"} -->
+- 공포 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
 - 감정 판정: <!-- EMOTION: {"target": "${partnerName}"} -->
 - 마스터 장면: <!-- MASTER_SCENE: {"title": "사건명"} -->
-- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "설명"} -->
-- 장면 전환: <!-- ADVANCE_SCENE -->`;
+- 장면 전환: <!-- ADVANCE_SCENE -->
+- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "설명"} --> (※ 주의: 오직 플레이어가 이미 소지한 광기의 발현 조건이 충족되었을 때만 극히 제한적으로 사용)`;
         } else {
           rulePrompt = `[자유 서사 모드]
 - 주사위 판정 없이 문학적인 대사와 감정선에 집중하십시오.
