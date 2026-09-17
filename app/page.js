@@ -3720,25 +3720,43 @@ ${npcsSummary}
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({
-          messages: messagesForAi,
-          scenarioText: (activeSession.scenarioText || "") + dynamicRules + currentNpcPrompt + missedCallNotice + appearanceAnchor,
-          playerSheet: typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet,
-          ruleMode: activeSession.ruleMode,
-          playPreference: activeSession.preference,
-          currentPhase: updatedPhase || currentPhase || "낮",
-          recentEvents: recentEvents || [],
-          // 📱 [통화 & 대면 정보 동시 전달]
-          isVoiceCall: isVoiceCallActive,
-          voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
-          facingNpc: currentContact?.name || null,
-        })
-      });
+        // 🌟 1. 시트 내 거대 Base64 사진 데이터 제거
+        const rawSheet = typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet;
+        const safePlayerSheet = rawSheet ? {
+          ...rawSheet,
+          portraitUrl: (rawSheet.portraitUrl || "").startsWith("data:image") ? "" : rawSheet.portraitUrl,
+          npcs: (rawSheet.npcs || []).map(n => ({
+            ...n,
+            portrait: (n.portrait || "").startsWith("data:image") ? "" : n.portrait
+          }))
+        } : rawSheet;
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
-      }
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            messages: (messagesForAi || []).slice(-20), // 🌟 2. 최근 15개 턴만 전송 (용량 폭탄 방지)
+            scenarioText: (activeSession.scenarioText || "") + dynamicRules + (currentRuleSnippet || ""),
+            playerSheet: safePlayerSheet,
+            ruleMode: activeSession.ruleMode,
+            playPreference: activeSession.preference,
+            currentPhase: updatedPhase || currentPhase || "낮",
+            recentEvents: recentEvents || [],
+            // 📱 통화 & 대면 정보 동시 전달
+            isVoiceCall: isVoiceCallActive,
+            voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
+            facingNpc: currentContact?.name || null,
+          })
+        });
+
+        if (!res.ok) {
+          if (res.status === 413) {
+            throw new Error("전송 데이터 용량이 너무 큽니다. 프로필 사진을 웹 링크로 교체해 주세요.");
+          }
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
+        }
 
       const data = await res.json();
       let rawText = data.text || "";
@@ -8529,20 +8547,31 @@ ${statusGuide}
 <!-- SNAP_PHOTO: {"prompt": "1girl, solo, portrait, realistic lighting, anime masterpiece", "caption": "사진 한 줄 설명"} -->
 - prompt는 고화질 일러스트가 생성될 수 있도록 인물의 외모와 의상이 포함된 영문(English) 키워드로 상세히 작성하십시오.`;
            
-            const res = await fetch("/api/chat", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                messages: messagesForApi,
-                scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
-                playerSheet: activeSession.sheet,
-                ruleMode: "dating",
-                playPreference: activeSession.preference,
-                isPhoneChat: true,
-                targetNpc: currentContact,
-                lastStoryContext: recentStoryContext
-              })
-            });
+           // 🌟 413 용량 폭탄 방지: 거대 Base64 사진 제거 및 경량화
+        const cleanPlayerSheet = activeSession.sheet ? {
+          ...activeSession.sheet,
+          portraitUrl: (activeSession.sheet.portraitUrl || "").startsWith("data:image") ? "" : activeSession.sheet.portraitUrl
+        } : null;
+
+        const cleanTargetNpc = currentContact ? {
+          ...currentContact,
+          portrait: (currentContact.portrait || "").startsWith("data:image") ? "" : currentContact.portrait
+        } : null;
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: messagesForApi.slice(-15),
+            scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
+            playerSheet: cleanPlayerSheet,
+            ruleMode: "dating",
+            playPreference: activeSession.preference,
+            isPhoneChat: true,
+            targetNpc: cleanTargetNpc,
+            lastStoryContext: (recentStoryContext || "").slice(-1000)
+          })
+        });
 
             if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
             const data = await res.json();
