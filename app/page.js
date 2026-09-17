@@ -2992,44 +2992,44 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
-     let newlyUnlockedCg = typeof unlockedCgObj !== "undefined" ? unlockedCgObj : null;
+      // 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
+      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
+        ? finalScenarioCgs
+        : (scenarioCgs || initialSheet?.scenarioCgs || []);
 
-      if (newlyUnlockedCg) {
-        const pName = activeSession.sheet?.name || charName.trim() || "주인공";
-        const origPc = originalPresetPcName || "서지한";
-        const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc;
-        const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
-
-        const rawSceneText = newlyUnlockedCg.desc || newlyUnlockedCg.trigger || newlyUnlockedCg.condition || "";
-        
-        if (rawSceneText.trim()) {
-          let formatted = rawSceneText
-            .replace(new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g"), pName)
-            .replace(new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g"), newPcShort);
-
-          (activeSession.sheet?.npcs || []).forEach((npc, idx) => {
-            const origNpc = (originalPresetNpcs && originalPresetNpcs[idx]) || (index === 0 ? "윤설아" : "");
-            const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc;
-            const curNpcShort = npc.name.length >= 3 ? npc.name.slice(1) : npc.name;
-
-            if (origNpc) {
-              formatted = formatted
-                .replace(new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g"), npc.name)
-                .replace(new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g"), curNpcShort);
-            }
-          });
-
-          // 🎬 1. 상황 단절을 메워주는 씬 전환 나레이션 자동 부착
-          const transitionBridge = `*(얼마 후, 대화가 잦아들고 약속했던 ${newlyUnlockedCg.title || "장소"}의 순간으로 이어집니다……)*\n\n`;
-          finalModelText = transitionBridge + formatted.trim();
-
-          // ⏳ 2. 화면 전체 2초 암전 연출을 함께 띄워 자연스러운 이동 표현
-          if (typeof setTimeTransition === "function") {
-            setTimeTransition(newlyUnlockedCg.title || "장면 전환");
-            setTimeout(() => setTimeTransition(null), 2000);
-          }
-        }
+      const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
+      const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
+      
+      let unlockedCgObj = null;
+      if (cgMatch) {
+        try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
+      } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
+        // 조건이 '프롤로그/시작'이면 첫 대면 시 무조건 자동 발동!
+        unlockedCgObj = firstCg;
       }
+
+      if (unlockedCgObj) {
+        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
+        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
+      }
+
+      setSessions(prev => prev.map(s => s.id === newId ? {
+        ...s, 
+        sheet: { 
+          ...initialSheet, 
+          ...parsedData.newSheetVars,
+          scenarioCgs: currentCgs,
+          unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
+        },
+        messages: [{ 
+          role: "model", 
+          text: wizardMode === "dating_msg" ? cleanText : (cleanDisplayOpening || cleanText), 
+          cg: unlockedCgObj || null 
+        }],
+        suggestedActions: parsedData.suggActions,
+        investigationSpots: parsedData.investigationSpots,
+        pendingCheck: parsedData.pendingCheck
+      } : s));
 
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
@@ -4208,6 +4208,47 @@ ${npcsSummary}
       }
 
       const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
+
+     const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
+      
+      // 🌟 플레이 중 CG가 해금되었을 때만 시트 원문 텍스트로 대체
+      let finalModelText = cleanText;
+
+      if (newlyUnlockedCg) {
+        const pName = activeSession.sheet?.name || charName.trim() || "주인공";
+        const origPc = originalPresetPcName || "서지한";
+        const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc;
+        const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
+
+        const rawSceneText = newlyUnlockedCg.desc || newlyUnlockedCg.trigger || newlyUnlockedCg.condition || "";
+        
+        if (rawSceneText.trim()) {
+          let formatted = rawSceneText
+            .replace(new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g"), pName)
+            .replace(new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g"), newPcShort);
+
+          (activeSession.sheet?.npcs || []).forEach((npc, idx) => {
+            const origNpc = (originalPresetNpcs && originalPresetNpcs[idx]) || (idx === 0 ? "윤설아" : "");
+            const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc;
+            const curNpcShort = npc.name.length >= 3 ? npc.name.slice(1) : npc.name;
+
+            if (origNpc) {
+              formatted = formatted
+                .replace(new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g"), npc.name)
+                .replace(new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g"), curNpcShort);
+            }
+          });
+
+          // 전환 나레이션과 함께 원문 결합
+          const transitionBridge = `*(대화가 잦아들고 약속했던 ${newlyUnlockedCg.title || "장소"}의 순간으로 이어집니다……)*\n\n`;
+          finalModelText = transitionBridge + formatted.trim();
+
+          if (typeof setTimeTransition === "function") {
+            setTimeTransition(newlyUnlockedCg.title || "장면 전환");
+            setTimeout(() => setTimeTransition(null), 2000);
+          }
+        }
+      }
       
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
 
