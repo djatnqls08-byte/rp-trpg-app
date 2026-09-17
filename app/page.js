@@ -5938,7 +5938,10 @@ return (
               </div>
             )}
 
-            {/* 🌟 시나리오 정보 카드 헤더 (모바일 글자 꺾임 방지) */}
+            {/* 🌟 시나리오 정보 카드 본체 */}
+            <div className="glass-card" style={{ padding: "16px", borderRadius: "16px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+              
+              {/* 카드 상단 헤더: 제목 및 3대 버튼 (모바일 한 줄 유지) */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
                 <h3 style={{ margin: 0, fontSize: isMobile ? "0.84rem" : "0.95rem", fontWeight: "800", color: theme.text, whiteSpace: "nowrap", flexShrink: 0 }}>
                   {wizardMode.startsWith("dating") ? "📖 에피소드 설정 및 서막" : "📖 시나리오 정보 및 서막"}
