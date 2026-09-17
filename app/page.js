@@ -917,39 +917,6 @@ setLobbySaveModal(null);
 
     closeModal(setShowLobbyPresetModal);
   };
-  // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
-  if (p.kpcList && Array.isArray(p.kpcList)) {
-    setOriginalPresetNpcs(p.kpcList.map(k => k.name).filter(Boolean));
-  }
-  if (p.eventCgs) setScenarioCgs(p.eventCgs);
-  if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
-  setScenarioTitle(p.scenarioTitle || "");
-    setPublicSynopsis(p.publicSynopsis || "");
-    setOpeningScene(p.openingScene || "");
-    setHiddenTruth(p.hiddenTruth || "");
-    setPlayPreference(p.playPreference || "");
-    if (p.wizardMode) setWizardMode(p.wizardMode);
-
-    setCharName(p.charName || "");
-    setCharJob(p.charJob || "");
-    setCharAge(p.charAge || "24");
-    setCharGender(p.charGender || "여성");
-    setCharBackground(p.charBackground || "");
-    setCharMission(p.charMission || "");
-    setCharSecret(p.charSecret || "");
-    setCharPortraitUrl(p.charPortraitUrl || "");
-
-    if (p.cocStats) setCocStats(p.cocStats);
-    if (p.cocSkills) setCocSkills(p.cocSkills);
-    if (p.insaneSkills) setInsaneSkills(p.insaneSkills);
-    if (p.insaneCuriosity) setInsaneCuriosity(p.insaneCuriosity);
-    if (p.insaneFear) setInsaneFear(p.insaneFear);
-    if (p.insaneLimit) setInsaneLimit(p.insaneLimit);
-
-    if (p.kpcList && Array.isArray(p.kpcList)) setKpcList(p.kpcList);
-
-    closeModal(setShowLobbyPresetModal);
-  };
 
   // 🌟 로비 세팅 JSON 다운로드 (백업)
   const exportLobbyPresets = () => {
