@@ -10083,7 +10083,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                             );
                           })}
                         </div>
-                          })}
                         </div>
 
                         {/* 카테고리 사이를 나누는 깔끔한 가로 구분선 */}
