@@ -2629,9 +2629,23 @@ const startNewSession = async () => {
     const autoTheme = detectAutoPhoneTheme(`${playPreference} ${sessionTitle} ${publicSynopsis}`);
     setPhoneTheme(autoTheme);
 
-    const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => ({
-      id: k.id, name: k.name, title: k.job || "조력자", detail: k.detail || "", portrait: k.portraitUrl || getPortraitUrl(k.name), affection: 0, secret: k.secret, secretRevealed: false
-    }));
+   const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => {
+      // 🌟 상세 설정 본문에서 초기 상태메시지 추출 ("상태메시지: ...", "상메: ...")
+      const statMatch = (k.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
+      const initialStatus = k.statusMessage || (statMatch ? statMatch[1].trim() : "");
+
+      return {
+        id: k.id,
+        name: k.name,
+        title: k.job || "조력자",
+        detail: k.detail || "",
+        portrait: k.portraitUrl || getPortraitUrl(k.name),
+        affection: 0,
+        secret: k.secret,
+        secretRevealed: false,
+        statusMessage: initialStatus
+      };
+    });
 
     // 🌟 완벽한 핸드아웃 세팅 로직 (다수 NPC 지원 및 사명 명시)
     let initialHandouts = [];
@@ -3507,7 +3521,9 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 - 호감도 변동 시 <!-- AFFECTION: {"name": "NPC이름", "delta": 1~3} -->
     * 상대방의 심기를 거스르거나, 예의 없는 요구, 질투 유발, 배신감, 도를 넘은 변덕을 부릴 경우 현실적인 인격체로서 가차 없이 호감도를 깎으십시오.
     * 맹목적으로 플레이어에게 호의를 베풀지 말고, 독립적인 기준에 따라 불쾌한 상황에서는 차가운 태도와 함께 호감도를 깎으십시오.
-  - 인물의 심경이나 상황 변화 시 맨 끝에: <!-- STATUS: {"name": "인물명", "msg": "새 상태메시지"} -->
+- [상태메시지 필수 갱신]: 인물의 심경 변화, 호감도 상승, 이동, 중요한 사건(마감, 조우, 위기)이 발생했을 때 인물의 프로필 상태메시지를 반드시 아래 태그로 갱신하십시오:
+  <!-- STATUS: {"name": "인물명", "msg": "현재 상황이나 심경을 담은 10자 내외 한마디"} -->
+  (예: "14화 피드백 대기 중", "작업실 방문 예정", "체육관 청소 중")
   
 
 4. [장면 순환 및 다자간 인물 조우 강제 수칙]
@@ -8528,10 +8544,22 @@ ${statusGuide}
             const affMatch = rawReply.match(/<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/i);
             if (affMatch) { try { affDelta = JSON.parse(affMatch[1]); } catch(e) {} rawReply = rawReply.replace(affMatch[0], ""); }
 
-            let newClue = null;
-            const clueMatch = rawReply.match(/<!--\s*CLUE:\s*(\{.*?\})\s*-->/i);
-            if (clueMatch) { try { newClue = JSON.parse(clueMatch[1]); } catch(e) {} rawReply = rawReply.replace(clueMatch[0], ""); }
-
+// 🌟 상태메시지 태그 파싱 및 자연어("~라고 해둘게") 자동 감지
+            let newStatusMsg = null;
+            const statusMatch = rawReply.match(/<!--\s*STATUS:\s*(\{.*?\})\s*-->/i);
+            if (statusMatch) {
+              try {
+                const sObj = JSON.parse(statusMatch[1]);
+                newStatusMsg = (sObj.msg || sObj.status || sObj.message || "").trim();
+              } catch(e) {}
+              rawReply = rawReply.replace(statusMatch[0], "");
+            }
+            if (!newStatusMsg) {
+              const autoStatMatch = rawReply.match(/(?:그럼|앞으로|이제)?\s*["'“]?([^"'”\r\n]{1,20}?)["'”]?\s*(?:이?라고|이?로|으로)\s*(?:해둘게|해놓을게|바꿀게|바꿔둘게|적어둘게|설정할게)/i);
+              if (autoStatMatch && !autoStatMatch[1].includes("질문") && !autoStatMatch[1].includes("대답")) {
+                newStatusMsg = autoStatMatch[1].trim();
+              }
+            }
             const suggMatch = rawReply.match(/<!--\s*SUGGESTIONS:\s*(\[.*?\])\s*-->/i);
             if (suggMatch) { try { setPhoneSuggestions(JSON.parse(suggMatch[1])); } catch(e) {} rawReply = rawReply.replace(suggMatch[0], ""); }
             else { setPhoneSuggestions([]); }
@@ -8603,7 +8631,7 @@ const bubbles = cleanReply
                 const prevChats = sSheet.phoneChats || {};
                 const contactList = prevChats[activePhoneContactId] || [];
 
-                // 첫 말풍선 도착 시 호감도 변화와 취향 수첩을 함께 시트에 저장
+               // 첫 말풍선 도착 시 호감도 변화와 취향 수첩을 함께 시트에 저장
                 if (i === 0) {
                   if (affDelta && (affDelta.value !== undefined || affDelta.affection !== undefined)) {
                     const incomingRaw = Number(affDelta.value !== undefined ? affDelta.value : affDelta.affection);
@@ -8611,6 +8639,13 @@ const bubbles = cleanReply
                     const safeDiff = Math.max(-5, Math.min(3, incomingRaw - currentAff));
                     sSheet.npcs = (sSheet.npcs || []).map(n => n.id === activePhoneContactId ? { ...n, affection: Math.max(0, Math.min(100, currentAff + safeDiff)) } : n);
                   }
+
+                  // 🌟 바로 이 자리에 아래 코드를 추가해 주시면 됩니다!
+                  if (newStatusMsg) {
+                    sSheet.npcs = (sSheet.npcs || []).map(n => (n.id === activePhoneContactId || n.name === partnerName) ? { ...n, statusMessage: newStatusMsg } : n);
+                    triggerToast("📱 상태메시지 변경", `${partnerName}: "${newStatusMsg}"`, "💬");
+                  }
+
                   if (newClue && newClue.name) {
                     sSheet.clues = [...(sSheet.clues || []), { id: Date.now(), name: newClue.name, desc: newClue.desc || "" }];
                   }
