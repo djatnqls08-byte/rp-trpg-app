@@ -3654,27 +3654,31 @@ ${remainingCgs.length > 0
       text: m.text
     }));
 
-// 🌟 [외모 왜곡 및 이전 이름/직업 날조 방지 앵커]
-    const pcAppearance = activeSession.sheet?.background || "설정 없음";
+// 🌟 [외모 왜곡 및 직업/신분 날조 방지 앵커 - 범용 버전]
     const pcNameStr = activeSession.sheet?.name || charName.trim() || "주인공";
-    const pcJobStr = activeSession.sheet?.job || "달그림자 옥션 수석 감정사";
+    const pcJobStr = activeSession.sheet?.job || "시트에 명시된 신분";
+    const pcAppearance = activeSession.sheet?.background || activeSession.sheet?.appearance || "설정 없음";
 
-    // 👈 범인이었던 npcsSummary 정의 추가
+    // 👈 아까 에러를 냈던 npcsSummary도 안전하게 포함
     const npcsSummary = (activeSession.sheet?.npcs || [])
-      .map(n => `- ${n.name}: ${n.background || n.job || "외모 정보 없음"}`)
+      .map(n => `- ${n.name}: ${n.background || n.job || "외모/신분 정보 없음"}`)
       .join("\n") || "등록된 인물 없음";
 
-    const appearanceAnchor = `\n\n[🚨 캐릭터 이름, 직업 및 외모 고정 절대 수칙]
-1. [주인공(PC) 호칭 및 직업 절대 규칙]
-- 현재 주인공의 공식 이름은 [${pcNameStr}]이며, 공식 직업은 [${pcJobStr}]입니다.
-- ❌ 절대 금지: 주인공을 '경감', '형사', '수사관', '경찰' 등으로 날조하여 부르지 마십시오.
-- ⭕ 필수 지침: 주인공은 옥션에 출품된 성유물과 보물을 감별하는 [${pcJobStr}]입니다. 인물들은 주인공의 전문성과 감정 능력을 존중하는 호칭을 사용하십시오.
+    // 직업이 있을 때와 없을 때를 유연하게 분기
+    const jobInstruction = activeSession.sheet?.job
+      ? `- 공식 직업/신분: [${pcJobStr}]\n- ❌ 주의: 시트에 적히지 않은 직업(형사, 수사관, 탐정 등 TRPG 기본 클리셰)을 제멋대로 붙이지 말고, 오직 [${pcJobStr}]에 맞는 호칭과 태도를 유지하십시오.`
+      : `- 직업/신분: 시트 및 대화 흐름을 따르며, 자의적으로 수사관이나 경찰 등으로 단정 짓지 마십시오.`;
+
+    const appearanceAnchor = `\n\n[🚨 캐릭터 이름, 신분 및 외모 고정 절대 수칙]
+1. [주인공(PC) 호칭 및 신분 준수]
+- 주인공 공식 이름: [${pcNameStr}]
+${jobInstruction}
 
 2. [등록된 프로필 외모 엄수]
 - 주인공 [${pcNameStr}]: ${pcAppearance}
-- 주요 등장인물 외모 명단:
+- 주요 인물 외모 및 신분:
 ${npcsSummary}
-- 머리색, 눈동자, 신분 등은 위 설정을 100% 엄격하게 준수하십시오.`;
+- 등록된 머리색, 눈동자, 고유 설정은 시트 내용을 100% 엄격하게 준수하십시오.`;
 
 // 🌟 AI에게 현재 선택된 인물의 성격과 비밀 주입 (사망자 방어 포함)
     let currentNpcPrompt = "";
@@ -3740,8 +3744,9 @@ ${npcsSummary}
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({
-            messages: (messagesForAi || []).slice(-30), // 최근 30개 턴으로 넉넉히 전달
-            scenarioText: (activeSession.scenarioText || "") + dynamicRules + (currentRuleSnippet || ""),
+            messages: (messagesForAi || []).slice(-30),
+            // 🌟 currentRuleSnippet을 지우고 방금 만든 범용 appearanceAnchor를 연결합니다
+            scenarioText: (activeSession.scenarioText || "") + (dynamicRules || "") + (typeof appearanceAnchor !== "undefined" ? appearanceAnchor : ""),
             playerSheet: safePlayerSheet,
             ruleMode: activeSession.ruleMode,
             playPreference: activeSession.preference,
@@ -3752,7 +3757,6 @@ ${npcsSummary}
             voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
             facingNpc: currentContact?.name || null,
           })
-        });
 
         if (!res.ok) {
           if (res.status === 413) {
