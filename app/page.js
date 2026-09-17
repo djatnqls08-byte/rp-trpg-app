@@ -3031,49 +3031,6 @@ const startNewSession = async () => {
         pendingCheck: parsedData.pendingCheck
       } : s));
 
-      let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
-
-      // 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
-      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
-        ? finalScenarioCgs
-        : (scenarioCgs || initialSheet?.scenarioCgs || []);
-
-      const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
-      const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
-      
-      let unlockedCgObj = null;
-      if (cgMatch) {
-        try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
-      } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
-        unlockedCgObj = firstCg;
-      }
-
-      if (unlockedCgObj) {
-        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
-        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
-      }
-
-      // 🌟 서막 데이터 유무에 따른 텍스트 결정 (시트 원문 vs AI 창작문)
-      const initialStoryText = hasOpening ? finalOpening : cleanText;
-
-      setSessions(prev => prev.map(s => s.id === newId ? {
-        ...s, 
-        sheet: { 
-          ...initialSheet, 
-          ...parsedData.newSheetVars,
-          scenarioCgs: currentCgs,
-          unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
-        },
-        // 🌟 수정 후: 시트 서막 원문(cleanDisplayOpening) 출력
-        messages: [{ 
-          role: "model", 
-          text: wizardMode === "dating_msg" ? cleanText : cleanDisplayOpening, 
-          cg: unlockedCgObj || null 
-        }],
-        suggestedActions: parsedData.suggActions,
-        investigationSpots: parsedData.investigationSpots,
-        pendingCheck: parsedData.pendingCheck
-      } : s));
     } catch (err) {
       if (err.name === "AbortError") return;
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}).` }] } : s));
@@ -4208,8 +4165,6 @@ ${npcsSummary}
       }
 
       const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
-
-     const { cleanText, parsedData } = parseTagsSafely(rawText, partnerName, activeSession.ruleMode);
       
       // 🌟 플레이 중 CG가 해금되었을 때만 시트 원문 텍스트로 대체
       let finalModelText = cleanText;
