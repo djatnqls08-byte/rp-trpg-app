@@ -3394,6 +3394,56 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   // 🗺️ 플레이어가 채팅을 치거나 행동을 시작하면 이전 장소 배너 즉시 닫기
   setLocationCards([]);
 
+// 💖 [호감도 복구/조정 치트키]
+    // 사용법 1: /호감도 발렌틴 80
+    // 사용법 2: /호감도 80
+    if (textToSend.trim().startsWith("/호감도") || textToSend.trim().startsWith("/치트")) {
+      const parts = textToSend.trim().split(/\s+/);
+      let targetName = null;
+      let targetVal = 50;
+
+      if (parts.length >= 3) {
+        targetName = parts[1];
+        targetVal = parseInt(parts[2], 10);
+      } else if (parts.length === 2) {
+        targetVal = parseInt(parts[1], 10);
+      }
+
+      if (!isNaN(targetVal)) {
+        setSessions(prev => prev.map(s => {
+          if (s.id !== activeSessionId) return s;
+          const oldNpcs = s.sheet?.npcs || [];
+          const updatedNpcs = oldNpcs.map((npc, idx) => {
+            const isMatch = targetName 
+              ? npc.name?.includes(targetName) 
+              : (currentContact ? npc.name === currentContact.name : idx === 0);
+            
+            if (isMatch) {
+              return { ...npc, affection: targetVal, affinity: targetVal };
+            }
+            return npc;
+          });
+
+          return {
+            ...s,
+            sheet: {
+              ...s.sheet,
+              npcs: updatedNpcs
+            }
+          };
+        }));
+
+        const appliedName = targetName || currentContact?.name || "NPC";
+        if (typeof triggerToast === "function") {
+          triggerToast("치트키 적용", `[${appliedName}] 호감도가 ${targetVal}(으)로 변경되었습니다.`, "💖");
+        } else {
+          alert(`[${appliedName}] 호감도가 ${targetVal}(으)로 변경되었습니다.`);
+        }
+        setUserInput("");
+        return; // 🌟 AI 서버 통신 차단하고 즉시 완료
+      }
+    }
+ 
   // 📵 유저가 전화를 끊는 말을 입력했을 때 즉시 통화 State 강제 해제
     const endCallKeywords = ["전화끊", "전화 끊", "통화 종료", "끊을게", "끊겠습니다", "끊는다"];
     if (isVoiceCallActive && endCallKeywords.some(k => textToSend.includes(k))) {
