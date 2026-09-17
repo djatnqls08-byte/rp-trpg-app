@@ -11865,7 +11865,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                 <div style={{ padding: "14px 16px", backgroundColor: theme.panelAlt || "#27272a", borderRadius: "12px", border: `1.5px solid ${theme.border || "#3f3f46"}`, display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: "0.86rem", fontWeight: "800", color: theme.accent || "#38bdf8" }}>
-                      💡 추천 룰 & 키워드 (클릭 시 아래 1·2번에 자동 입력)
+                      💡 룰 & 키워드
                     </span>
                     <span style={{ fontSize: "0.74rem", color: theme.textMuted || "#a1a1aa" }}>
                       터치하여 간편 선택
