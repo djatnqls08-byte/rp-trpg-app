@@ -874,11 +874,49 @@ useEffect(() => {
       localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
     }
 
-    setLobbySaveModal(null);
+setLobbySaveModal(null);
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
-const loadedCgs = p.scenarioCgs || p.eventCgs || p.cgs || p.initialSheet?.scenarioCgs || [];
-if (loadedCgs.length > 0) setScenarioCgs(loadedCgs);
+
+  // 🌟 누락되었던 함수 선언문 복구!
+  const handleLoadLobbyPreset = (p) => {
+    if (p.charName) setOriginalPresetPcName(p.charName);
+    const loadedCgs = p.scenarioCgs || p.eventCgs || p.cgs || p.initialSheet?.scenarioCgs || [];
+    if (loadedCgs.length > 0) setScenarioCgs(loadedCgs);
+
+    // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
+    if (p.kpcList && Array.isArray(p.kpcList)) {
+      setOriginalPresetNpcs(p.kpcList.map(k => k.name).filter(Boolean));
+    }
+    if (p.eventCgs) setScenarioCgs(p.eventCgs);
+    if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
+    setScenarioTitle(p.scenarioTitle || "");
+    setPublicSynopsis(p.publicSynopsis || "");
+    setOpeningScene(p.openingScene || "");
+    setHiddenTruth(p.hiddenTruth || "");
+    setPlayPreference(p.playPreference || "");
+    if (p.wizardMode) setWizardMode(p.wizardMode);
+
+    setCharName(p.charName || "");
+    setCharJob(p.charJob || "");
+    setCharAge(p.charAge || "24");
+    setCharGender(p.charGender || "여성");
+    setCharBackground(p.charBackground || "");
+    setCharMission(p.charMission || "");
+    setCharSecret(p.charSecret || "");
+    setCharPortraitUrl(p.charPortraitUrl || "");
+
+    if (p.cocStats) setCocStats(p.cocStats);
+    if (p.cocSkills) setCocSkills(p.cocSkills);
+    if (p.insaneSkills) setInsaneSkills(p.insaneSkills);
+    if (p.insaneCuriosity) setInsaneCuriosity(p.insaneCuriosity);
+    if (p.insaneFear) setInsaneFear(p.insaneFear);
+    if (p.insaneLimit) setInsaneLimit(p.insaneLimit);
+
+    if (p.kpcList && Array.isArray(p.kpcList)) setKpcList(p.kpcList);
+
+    closeModal(setShowLobbyPresetModal);
+  };
   // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
   if (p.kpcList && Array.isArray(p.kpcList)) {
     setOriginalPresetNpcs(p.kpcList.map(k => k.name).filter(Boolean));
@@ -10000,7 +10038,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                           </span>
                         </div>
 
-                        {/* 시나리오 목록 */}
+                        {/* 카테고리에 속한 시나리오 목록 */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           {sec.presets.map((p, pIdx) => {
                             const displayRule = (p.wizardMode || p.ruleMode || p.rule || "STORY").toString().toUpperCase();
@@ -10017,6 +10055,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   gap: "8px" 
                                 }}
                               >
+                                {/* 1. 좌측 텍스트 정보 영역 (누락되었던 flex 감싸개 복구) */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>
                                     <span>{p.presetTitle || p.scenarioTitle || "시나리오"}</span>
@@ -10048,6 +10087,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   </div>
                                 </div>
 
+                                {/* 2. 우측 이동 버튼 영역 */}
                                 <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                                   <button
                                     type="button"
