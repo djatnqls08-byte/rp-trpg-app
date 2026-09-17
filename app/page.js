@@ -2839,8 +2839,12 @@ const startNewSession = async () => {
       });
     });
 
-const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || "포마드 슬릭백 흑발, 흑색 제복";
-const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
+// 🌟 1번 파트너 이름 및 외모 정보 정의 (누락되었던 부분 추가)
+    const currentNpcName = kpcList[0]?.name || "파트너";
+    const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
+
+    // 5) 치환 완료된 시나리오 컨텍스트 생성
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
    
  // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
