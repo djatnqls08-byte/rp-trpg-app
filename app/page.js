@@ -8503,32 +8503,31 @@ return (
                   <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0, fontSize: "0.72rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
-                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "700" }}>
-                    <span>{npc.name}</span>
-                    {/* 🌟 인세인 모드일 때는 맺은 감정 뱃지, 일반 모드일 때는 호감도 하트 표시 */}
-                    {activeSession.ruleMode === "insane" ? (
-                      npc.emotion ? (
-                        <span style={{
-                          color: "#a855f7",
-                          backgroundColor: "rgba(168, 85, 247, 0.15)",
-                          border: "1px solid rgba(168, 85, 247, 0.3)",
-                          padding: "1px 6px",
-                          borderRadius: "4px",
-                          fontSize: "0.65rem",
-                          fontWeight: "800"
-                        }}>
-                          🎭 {npc.emotion}
-                        </span>
-                      ) : (
-                        <span style={{ color: theme.textMuted, fontSize: "0.65rem", fontWeight: "normal" }}>
-                          감정 없음
-                        </span>
-                      )
-                    ) : (
-                      <span style={{ color: theme.danger }}>♥ {npc.affection ?? 0}</span>
-                    )}
-                  </div>
+                  // ⭕ 수정한 코드: 인세인일 때는 맺은 감정을, 아닐 때는 호감도 하트를 표시
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: "700" }}>
+  <span>{npc.name}</span>
+  {activeSession.ruleMode === "insane" ? (
+    npc.emotion ? (
+      <span style={{
+        color: "#a855f7",
+        backgroundColor: "rgba(168, 85, 247, 0.15)",
+        border: "1px solid rgba(168, 85, 247, 0.3)",
+        padding: "1px 6px",
+        borderRadius: "4px",
+        fontSize: "0.65rem",
+        fontWeight: "800"
+      }}>
+        🎭 {npc.emotion}
+      </span>
+    ) : (
+      <span style={{ color: theme.textMuted, fontSize: "0.65rem", fontWeight: "normal" }}>
+        감정 없음
+      </span>
+    )
+  ) : (
+    <span style={{ color: theme.danger }}>♥ {npc.affection ?? 0}</span>
+  )}
+</div>
               </summary>
               
               {/* 드롭다운 펼쳤을 때 나오는 상세 내용 (핸드아웃 해금 상태 자동 연동) */}
