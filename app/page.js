@@ -1622,10 +1622,29 @@ useEffect(() => {
     setSessions(prev => prev.map(s => {
       if (s.id !== sessionId || s.ruleMode !== "insane") return s;
       if (s.sheet?.phase === "클라이맥스") return s;
+
+      const currentPhase = s.sheet?.phase || "도입";
+
+      // 🌟 1. 도입 페이즈일 때는 사이클을 올리지 않고 메인 1사이클 1씬으로 정상 진입
+      if (currentPhase === "도입") {
+        return {
+          ...s,
+          sheet: {
+            ...s.sheet,
+            phase: "메인",
+            cycle: 1,
+            scene: 1,
+            madnessCards: s.sheet?.madnessCards || [],
+            handouts: s.sheet?.handouts || []
+          }
+        };
+      }
+
+      // 🌟 2. 메인 페이즈 씬/사이클 연산
       let currScene = s.sheet?.scene || 1;
       let currCycle = s.sheet?.cycle || 1;
       const limit = s.sheet?.limit || 4;
-     
+
       if (currScene >= 2) {
         currCycle += 1;
         currScene = 1;
@@ -1640,56 +1659,13 @@ useEffect(() => {
           ...s.sheet,
           cycle: currCycle,
           scene: currScene,
-          phase: isClimax ? "클라이맥스" : "메인"
+          phase: isClimax ? "클라이맥스" : "메인",
+          madnessCards: s.sheet?.madnessCards || [],
+          handouts: s.sheet?.handouts || []
         }
       };
     }));
   };
-
-const drawMadnessCard = (targetSessionId, autoNotify = true) => {
-    let drawnCard = null;
-    setSessions(prev => prev.map(s => {
-      if (s.id !== targetSessionId || s.ruleMode !== "insane") return s;
-      
-      const currentDeck = s.sheet?.madnessDeck || [];
-      // 🌟 광기 덱이 비어 있으면 에러 내지 않고 안전하게 넘김
-      if (!currentDeck || currentDeck.length === 0) {
-        return s;
-      }
-
-      const deck = [...currentDeck];
-      drawnCard = deck.shift();
-      if (!drawnCard) return s; // 🌟 카드가 없으면 중단
-
-      const newHand = [...(s.sheet?.madnessCards || []), { ...drawnCard, id: Date.now() }];
-
-      const cardName = drawnCard.name || drawnCard.title || "미지의 광기";
-      const newMessages = autoNotify ? [
-        ...(s.messages || []),
-        { role: "user", text: `[🎲 시스템: 이성 감소로 인해 광기 덱에서 《${cardName}》 카드를 1장 뽑았습니다.]` }
-      ] : (s.messages || []);
-
-      return {
-        ...s,
-        messages: newMessages,
-        sheet: {
-          ...s.sheet,
-          madnessDeck: deck,
-          madnessCards: newHand
-        }
-      };
-    }));
-
-    if (drawnCard) {
-      if (typeof playDiceSound === "function") playDiceSound();
-    } else {
-      // 광기 카드가 없을 때 토스트 알림
-      if (typeof triggerToast === "function") {
-        triggerToast("광기 덱 소진", "뽑을 수 있는 남은 광기 카드가 없습니다.", "⚠️");
-      }
-    }
-  };
- 
   const manifestMadnessCard = (cardId, targetSessionId) => {
     const session = sessions.find(s => s.id === targetSessionId);
     if (!session) return;
