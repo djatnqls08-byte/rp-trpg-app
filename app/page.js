@@ -2793,57 +2793,59 @@ const startNewSession = async () => {
     let finalOpening = openingScene;
     let finalTruth = hiddenTruth;
 
-    // 1) 주인공({PC}) 이름 치환
-    const pcReg = /\{PC\}|세리아나|세리|클레어/g;
-    finalSynopsis = finalSynopsis.replace(pcReg, pName);
-    finalOpening = finalOpening.replace(pcReg, pName);
-    finalTruth = finalTruth.replace(pcReg, pName);
+    // 1) 원래 시트/프리셋에 적혀 있던 PC 이름 추출 및 치환
+    const origPc = originalPresetPcName || "서지한";
+    const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc; // "지한"
+    const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;     // "유진"
 
-    // 2) 등록된 모든 KPC 목록을 순회하며 {KPC1}, {KPC2}, {NPC1} 치환
+    const pcFullReg = new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g");
+    const pcShortReg = new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g");
+
+    finalSynopsis = finalSynopsis.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+    finalOpening = finalOpening.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+    finalTruth = finalTruth.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+
+    // 2) KPC 및 이전 시나리오 원본 NPC 이름 치환
     let finalScenarioCgs = [...(scenarioCgs || [])];
 
     (kpcList || []).forEach((kpc, index) => {
-      const num = index + 1; // 1, 2, 3...
+      const num = index + 1;
       const currentName = kpc.name || `인물${num}`;
 
-      // {KPC1}, {NPC1} 및 {KPC}, 발렌틴 등 옛 디폴트 이름 대응 정규식
+      const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || (index === 0 ? "윤설아" : "");
+      const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc; // "설아"
+      const newNpcShort = currentName.length >= 3 ? currentName.slice(1) : currentName; // "인영"
+
       const tagRegex = new RegExp(`\\{(KPC|NPC)${num}\\}`, "g");
       finalSynopsis = finalSynopsis.replace(tagRegex, currentName);
       finalOpening = finalOpening.replace(tagRegex, currentName);
       finalTruth = finalTruth.replace(tagRegex, currentName);
 
-      // 1번 메인 KPC는 단독 {KPC} 및 예전 디폴트 이름(발렌틴, 발렌 등)도 함께 치환
-      if (num === 1) {
-        const mainKpcReg = /\{KPC\}|\{NPC\}|발렌틴|발렌|아델/g;
-        finalSynopsis = finalSynopsis.replace(mainKpcReg, currentName);
-        finalOpening = finalOpening.replace(mainKpcReg, currentName);
-        finalTruth = finalTruth.replace(mainKpcReg, currentName);
+      if (origNpc) {
+        const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
+        const npcShortReg = new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g");
+        finalSynopsis = finalSynopsis.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
+        finalOpening = finalOpening.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
+        finalTruth = finalTruth.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
       }
 
-      // 컷씬(CG) 제목과 해금 조건(트리거) 속 이름도 함께 치환
+      // 컷씬(CG) 속 이름 치환
       finalScenarioCgs = finalScenarioCgs.map(cg => {
-        let updatedTitle = (cg.title || "")
-          .replace(pcReg, pName)
-          .replace(tagRegex, currentName);
-        let updatedTrigger = (cg.trigger || cg.condition || "")
-          .replace(pcReg, pName)
-          .replace(tagRegex, currentName);
-
-        if (num === 1) {
-          const mainKpcReg = /\{KPC\}|\{NPC\}|발렌틴|발렌|아델/g;
-          updatedTitle = updatedTitle.replace(mainKpcReg, currentName);
-          updatedTrigger = updatedTrigger.replace(mainKpcReg, currentName);
+        let updatedTitle = (cg.title || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
+        let updatedTrigger = (cg.trigger || cg.condition || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
+        if (origNpc) {
+          const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
+          updatedTitle = updatedTitle.replace(npcFullReg, currentName);
+          updatedTrigger = updatedTrigger.replace(npcFullReg, currentName);
         }
-
-        return {
-          ...cg,
-          title: updatedTitle,
-          trigger: updatedTrigger,
-          condition: updatedTrigger
-        };
+        return { ...cg, title: updatedTitle, trigger: updatedTrigger, condition: updatedTrigger };
       });
     });
 
+    // 3) [서막], [도입부] 머리말 태그 말끔히 제거
+    const cleanDisplayOpening = finalOpening
+      .replace(/^\[(?:서막|도입|도입부|오프닝|시작)\]\s*/i, "")
+      .trim();
 // 🌟 1번 파트너 이름 및 외모 정보 정의 (누락되었던 부분 추가)
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
@@ -2991,10 +2993,10 @@ const startNewSession = async () => {
           scenarioCgs: currentCgs,
           unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
         },
-        // 메신저 모드가 아닐 때: 서막이 있으면 시트 원문, 없으면 AI 창작문 출력
+        // 🌟 수정 후: 시트 서막 원문(cleanDisplayOpening) 출력
         messages: [{ 
           role: "model", 
-          text: wizardMode === "dating_msg" ? cleanText : initialStoryText, 
+          text: wizardMode === "dating_msg" ? cleanText : cleanDisplayOpening, 
           cg: unlockedCgObj || null 
         }],
         suggestedActions: parsedData.suggActions,
