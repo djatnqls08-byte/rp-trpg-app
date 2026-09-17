@@ -8576,37 +8576,62 @@ const bubbles = cleanReply
   .map(s => s.trim().replace(/^["']|["']$/g, ""))
   .filter(Boolean);
 
-const newNpcMessages = (bubbles.length > 0 ? bubbles : [cleanReply]).map((bubbleText, idx) => ({
-  id: Date.now() + idx + 1,
-  sender: "npc",
-  text: bubbleText,
-  time: currentTime,
-  photo: idx === 0 ? snapPhotoUrl : null, // 첫 번째 버블에 사진 첨부
-  unread: false
-}));
+// 🌟 1. 말풍선 목록 생성
+            const newNpcMessages = (bubbles.length > 0 ? bubbles : [cleanReply]).map((bubbleText, idx) => ({
+              id: Date.now() + idx + 1,
+              sender: "npc",
+              text: bubbleText,
+              time: currentTime,
+              photo: idx === 0 ? snapPhotoUrl : null,
+              unread: false
+            }));
 
-setSessions(prev => {
-  const session = prev.find(s => s.id === activeSessionId);
-  if (!session) return prev;
-  let sSheet = { ...session.sheet };
-  const prevChats = sSheet.phoneChats || {};
-  sSheet.phoneChats = { ...prevChats, [activePhoneContactId]: [...(prevChats[activePhoneContactId] || []), ...newNpcMessages] };
+            // 🌟 2. 시간차(0.5~0.9초)를 두고 말풍선 순차 전송 + 호감도/취향 자동 반영
+            for (let i = 0; i < newNpcMessages.length; i++) {
+              const bubbleMsg = newNpcMessages[i];
 
-              if (affDelta && (affDelta.value !== undefined || affDelta.affection !== undefined)) {
-                const incomingRaw = Number(affDelta.value !== undefined ? affDelta.value : affDelta.affection);
-                const currentAff = currentContact?.affection ?? 10;
-                const safeDiff = Math.max(-5, Math.min(3, incomingRaw - currentAff));
-                sSheet.npcs = (sSheet.npcs || []).map(n => n.id === activePhoneContactId ? { ...n, affection: Math.max(0, Math.min(100, currentAff + safeDiff)) } : n);
+              // 첫 번째 말풍선 이후부터는 글자 수에 맞춰 타이핑 딜레이 대기
+              if (i > 0) {
+                const typingDelay = Math.min(900, Math.max(500, bubbleMsg.text.length * 35));
+                await new Promise(resolve => setTimeout(resolve, typingDelay));
               }
-              if (newClue && newClue.name) {
-                sSheet.clues = [...(sSheet.clues || []), { id: Date.now(), name: newClue.name, desc: newClue.desc || "" }];
-              }
-              return prev.map(s => s.id === activeSessionId ? { ...s, sheet: sSheet } : s);
-            });
 
-            triggerVibration("medium");
-          } catch(err) { alert("전송 실패: " + err.message); }
-          finally { setIsPhoneSending(false); }
+              setSessions(prev => {
+                const session = prev.find(s => s.id === activeSessionId);
+                if (!session) return prev;
+                let sSheet = { ...session.sheet };
+                const prevChats = sSheet.phoneChats || {};
+                const contactList = prevChats[activePhoneContactId] || [];
+
+                // 첫 말풍선 도착 시 호감도 변화와 취향 수첩을 함께 시트에 저장
+                if (i === 0) {
+                  if (affDelta && (affDelta.value !== undefined || affDelta.affection !== undefined)) {
+                    const incomingRaw = Number(affDelta.value !== undefined ? affDelta.value : affDelta.affection);
+                    const currentAff = currentContact?.affection ?? 10;
+                    const safeDiff = Math.max(-5, Math.min(3, incomingRaw - currentAff));
+                    sSheet.npcs = (sSheet.npcs || []).map(n => n.id === activePhoneContactId ? { ...n, affection: Math.max(0, Math.min(100, currentAff + safeDiff)) } : n);
+                  }
+                  if (newClue && newClue.name) {
+                    sSheet.clues = [...(sSheet.clues || []), { id: Date.now(), name: newClue.name, desc: newClue.desc || "" }];
+                  }
+                }
+
+                sSheet.phoneChats = {
+                  ...prevChats,
+                  [activePhoneContactId]: [...contactList, bubbleMsg]
+                };
+
+                return prev.map(s => s.id === activeSessionId ? { ...s, sheet: sSheet } : s);
+              });
+
+              // 말풍선이 꽂힐 때마다 부드러운 햅틱 진동
+              if (typeof triggerVibration === "function") triggerVibration("light");
+            }
+          } catch(err) { 
+            alert("전송 실패: " + err.message); 
+          } finally { 
+            setIsPhoneSending(false); 
+          }
         };
 
         return (
