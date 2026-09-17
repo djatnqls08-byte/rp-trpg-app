@@ -2911,15 +2911,6 @@ const startNewSession = async () => {
       });
     }
 
-    initialSheet.phoneChats = initialPhoneChats;
-      id: Date.now() + Math.random(),
-      sender: "npc",
-      text: messageText,
-      time: currentTime,
-      unread: true
-    });
-  }
-
   // 시트에 초기 메시지 주입 (새로고침/API 완료 후에도 보존)
   sessionSheet.phoneChats = initialPhoneChats;
   if (initialSheet) initialSheet.phoneChats = initialPhoneChats;
@@ -4238,12 +4229,20 @@ ${npcsSummary}
         const contactMsgs = currentChats[contactId] || [];
         const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 
-        let msgList = [];
-        if (Array.isArray(newPhoneMsg.messages)) {
-          msgList = newPhoneMsg.messages;
-        } else if (newPhoneMsg.text) {
-          msgList = newPhoneMsg.text.split("||").map(t => t.trim()).filter(Boolean);
-        }
+// 🌟 수정 후: 일반 문장도 문장 부호 기준으로 자동 분할
+let rawItems = [];
+if (Array.isArray(newPhoneMsg.messages)) {
+  rawItems = newPhoneMsg.messages;
+} else if (newPhoneMsg.text) {
+  rawItems = [newPhoneMsg.text];
+}
+
+const msgList = rawItems.flatMap(item =>
+  String(item)
+    .split(/\|\||(?<=[.!?])\s+|\n+/)
+    .map(t => t.trim())
+    .filter(Boolean)
+);
 
         const incomingMsgs = msgList.map((t, idx) => ({
           id: Date.now() + Math.random() + idx,
