@@ -2992,6 +2992,8 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
+     let newlyUnlockedCg = typeof unlockedCgObj !== "undefined" ? unlockedCgObj : null;
+
       if (newlyUnlockedCg) {
         const pName = activeSession.sheet?.name || charName.trim() || "주인공";
         const origPc = originalPresetPcName || "서지한";
