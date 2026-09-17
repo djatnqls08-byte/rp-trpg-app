@@ -2852,9 +2852,64 @@ const startNewSession = async () => {
       };
     });
 
-    // 4) 치환 완료된 시나리오 컨텍스트 생성
+// 🌟 PC({PC}) 및 다중 KPC({KPC1}, {KPC2}...) 일괄 자동 치환
+    let finalSynopsis = publicSynopsis;
+    let finalOpening = openingScene;
+    let finalTruth = hiddenTruth;
+
+    // 1) 주인공({PC}) 이름 치환
+    const pcReg = /\{PC\}|세리아나|세리|클레어/g;
+    finalSynopsis = finalSynopsis.replace(pcReg, pName);
+    finalOpening = finalOpening.replace(pcReg, pName);
+    finalTruth = finalTruth.replace(pcReg, pName);
+
+    // 2) 등록된 모든 KPC 목록을 순회하며 {KPC1}, {KPC2}, {NPC1} 치환
+    let finalScenarioCgs = [...(scenarioCgs || [])];
+
+    (kpcList || []).forEach((kpc, index) => {
+      const num = index + 1; // 1, 2, 3...
+      const currentName = kpc.name || `인물${num}`;
+
+      // {KPC1}, {NPC1} 및 {KPC}, 발렌틴 등 옛 디폴트 이름 대응 정규식
+      const tagRegex = new RegExp(`\\{(KPC|NPC)${num}\\}`, "g");
+      finalSynopsis = finalSynopsis.replace(tagRegex, currentName);
+      finalOpening = finalOpening.replace(tagRegex, currentName);
+      finalTruth = finalTruth.replace(tagRegex, currentName);
+
+      // 1번 메인 KPC는 단독 {KPC} 및 예전 디폴트 이름(발렌틴, 발렌 등)도 함께 치환
+      if (num === 1) {
+        const mainKpcReg = /\{KPC\}|\{NPC\}|발렌틴|발렌|아델/g;
+        finalSynopsis = finalSynopsis.replace(mainKpcReg, currentName);
+        finalOpening = finalOpening.replace(mainKpcReg, currentName);
+        finalTruth = finalTruth.replace(mainKpcReg, currentName);
+      }
+
+      // 컷씬(CG) 제목과 해금 조건(트리거) 속 이름도 함께 치환
+      finalScenarioCgs = finalScenarioCgs.map(cg => {
+        let updatedTitle = (cg.title || "")
+          .replace(pcReg, pName)
+          .replace(tagRegex, currentName);
+        let updatedTrigger = (cg.trigger || cg.condition || "")
+          .replace(pcReg, pName)
+          .replace(tagRegex, currentName);
+
+        if (num === 1) {
+          const mainKpcReg = /\{KPC\}|\{NPC\}|발렌틴|발렌|아델/g;
+          updatedTitle = updatedTitle.replace(mainKpcReg, currentName);
+          updatedTrigger = updatedTrigger.replace(mainKpcReg, currentName);
+        }
+
+        return {
+          ...cg,
+          title: updatedTitle,
+          trigger: updatedTrigger,
+          condition: updatedTrigger
+        };
+      });
+    });
+
+    // 5) 치환 완료된 시나리오 컨텍스트 생성
     const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
-   const newId = Date.now();
 
     // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
