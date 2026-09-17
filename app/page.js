@@ -3757,6 +3757,7 @@ ${npcsSummary}
             voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
             facingNpc: currentContact?.name || null,
           })
+        });
 
         if (!res.ok) {
           if (res.status === 413) {
@@ -3765,7 +3766,6 @@ ${npcsSummary}
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
         }
-
       const data = await res.json();
       let rawText = data.text || "";
 
