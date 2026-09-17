@@ -287,8 +287,12 @@ function convertRowToPreset(row, index, headers = []) {
     { name: n4Name, job: n4Job, detail: n4Detail, secret: n4Secret, img: n4Img }
   ];
 
-  rawNpcs.forEach((npc, i) => {
+ rawNpcs.forEach((npc, i) => {
     if (npc.name && npc.name.trim()) {
+      // 🌟 상세 설정 본문 속 상태메시지 추출 ("상태메시지: ...", "상메: ...")
+      const statMatch = (npc.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
+      const extractedStatus = statMatch ? statMatch[1].trim() : "";
+
       kpcList.push({
         id: Date.now() + i,
         name: npc.name.trim(),
@@ -296,7 +300,8 @@ function convertRowToPreset(row, index, headers = []) {
         detail: npc.detail || "",
         secret: npc.secret || "",
         portraitUrl: npc.img || "",
-        showSecret: false
+        showSecret: false,
+        statusMessage: extractedStatus // 👈 구글 시트에 적힌 상태메시지를 정상 보존!
       });
     }
   });
@@ -9363,22 +9368,25 @@ const bubbles = cleanReply
                         <span style={{ fontSize: "0.8rem", color: activePhoneSkin.textMuted }}>〉</span>
                       </div>
 
-{/* 👥 대화 기록에 등장한 인물 자동 인식 목록 추출 */}
+{/* 👥 실제 연락처를 교환했거나 대화가 시작된 인물만 등록 */}
               {(() => {
-                const fullChat = (activeSession.messages || []).map(m => m.text || m.content || "").join(" ");
-const unlockedList = activeSession.sheet?.unlockedContacts || [];
-const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
-  if (npc.hasContact || npc.unlocked) return true;
-  if (unlockedList.includes(npc.name) || unlockedList.some(u => npc.name?.includes(u))) return true;
-  if ((activeSession.sheet?.phoneChats || {})[npc.id]?.length > 0) return true;
+                const unlockedList = activeSession.sheet?.unlockedContacts || [];
+                const phoneChats = activeSession.sheet?.phoneChats || {};
 
-  // 대화 기록에 풀네임이나 첫 단어가 등장했거나 번호 교환 시 즉시 등록
-  const npcFirstName = npc.name?.split(" ")[0];
-  return (
-    (npc.name && fullChat.includes(npc.name)) ||
-    (npcFirstName && npcFirstName.length > 1 && fullChat.includes(npcFirstName))
-  );
-});
+                const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
+                  // 1. 서사 속에서 번호/통신석 파장을 정식 교환한 경우 (UNLOCK_CONTACT)
+                  if (npc.hasContact || npc.unlocked) return true;
+                  if (unlockedList.includes(npc.name) || unlockedList.some(u => npc.name?.includes(u))) return true;
+
+                  // 2. 상대방에게 선톡이 왔거나 실제 대화를 나눈 기록이 있는 경우
+                  if ((phoneChats[npc.id] || []).length > 0) return true;
+
+                  // 3. 처음부터 카톡으로 시작하는 메신저 전용 모드(dating_msg)인 경우
+                  if (activeSession.ruleMode === "dating_msg") return true;
+
+                  // ❌ 지문에서 눈앞에 마주보고 서 있다고 해서 멋대로 번호가 뜨지 않음!
+                  return false;
+                });
                 return (
                   <>
                     <div style={{ padding: "4px 16px 6px 16px", fontSize: "0.72rem", color: activePhoneSkin.textMuted, fontWeight: "bold" }}>
