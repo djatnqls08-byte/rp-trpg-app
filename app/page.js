@@ -9990,12 +9990,12 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   }];
                 }
 
-                return (
+return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {activeSections.map((sec, secIdx) => (
                       <div key={sec.key} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         
-                        {/* 카테고리 헤더 (스케치 반영) */}
+                        {/* 1. 카테고리 헤더 */}
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "2px 2px 0 2px" }}>
                           <span style={{ fontSize: "0.95rem" }}>{sec.icon}</span>
                           <span style={{ fontSize: "0.86rem", fontWeight: "900", color: theme.text }}>
@@ -10006,7 +10006,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                           </span>
                         </div>
 
-{/* 카테고리에 속한 시나리오 목록 */}
+                        {/* 2. 카테고리에 속한 시나리오 목록 */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           {sec.presets.map((p, pIdx) => {
                             const displayRule = (p.wizardMode || p.ruleMode || p.rule || "STORY").toString().toUpperCase();
@@ -10023,12 +10023,11 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   gap: "8px" 
                                 }}
                               >
-                                {/* 1. 좌측 텍스트 정보 영역 (누락되었던 flex 감싸개 복구) */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>
                                     <span>{p.presetTitle || p.scenarioTitle || "시나리오"}</span>
 
-                                    {/* 🌟 CG 데이터가 있을 때만 제목 옆에 골드 뱃지 표시 */}
+                                    {/* 🌟 CG 데이터가 있을 때만 골드 뱃지 표시 */}
                                     {((p.scenarioCgs && p.scenarioCgs.length > 0) || 
                                       (p.cgs && p.cgs.length > 0) || 
                                       (p.initialSheet?.scenarioCgs && p.initialSheet.scenarioCgs.length > 0) ||
@@ -10055,7 +10054,6 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   </div>
                                 </div>
 
-                                {/* 2. 우측 이동 버튼 영역 */}
                                 <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                                   <button
                                     type="button"
@@ -10076,7 +10074,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                       cursor: "pointer"
                                     }}
                                   >
-                                   {">"}
+                                    {">"}
                                   </button>
                                 </div>
                               </div>
