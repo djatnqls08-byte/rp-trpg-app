@@ -332,12 +332,16 @@ function convertRowToPreset(row, index, headers = []) {
   const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
   const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
 
+  // 🌟 [4] '미연시', '연애', 'dating' 입력 시 'dating' 모드로 통일 매핑
+  const rawRule = (rule || "").toString().trim();
+  const resolvedMode = /미연시|연애|dating/i.test(rawRule) ? "dating" : (rawRule.toLowerCase() || "insane");
+
   return {
     id: 9000000000000 + index,
     presetTitle: title || "새 시나리오",
     scenarioTitle: title || "새 시나리오",
     thumbnail: sessionCardImg,
-    wizardMode: (rule || "insane").toLowerCase().trim(),
+    wizardMode: resolvedMode,
     playPreference: tags || "",
     publicSynopsis: synopsis || "",
     openingScene: opening || "",
