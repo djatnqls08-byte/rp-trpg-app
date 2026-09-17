@@ -3657,7 +3657,12 @@ ${remainingCgs.length > 0
 // 🌟 [외모 왜곡 및 이전 이름/직업 날조 방지 앵커]
     const pcAppearance = activeSession.sheet?.background || "설정 없음";
     const pcNameStr = activeSession.sheet?.name || charName.trim() || "주인공";
-    const pcJobStr = activeSession.sheet?.job || "달그림자 옥션 수석 감정사"; // 👈 직업 추출
+    const pcJobStr = activeSession.sheet?.job || "달그림자 옥션 수석 감정사";
+
+    // 👈 범인이었던 npcsSummary 정의 추가
+    const npcsSummary = (activeSession.sheet?.npcs || [])
+      .map(n => `- ${n.name}: ${n.background || n.job || "외모 정보 없음"}`)
+      .join("\n") || "등록된 인물 없음";
 
     const appearanceAnchor = `\n\n[🚨 캐릭터 이름, 직업 및 외모 고정 절대 수칙]
 1. [주인공(PC) 호칭 및 직업 절대 규칙]
