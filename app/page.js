@@ -2992,41 +2992,50 @@ const startNewSession = async () => {
       });
 
       // 🌟 교체해서 넣을 코드
-            if (!res.ok) throw new Error("메시지 전송 실패");
+            // ⭕ 올바른 정상 서막 복구 코드
+      if (!res.ok) throw new Error("서버 응답 오류");
+      const data = await res.json();
+      const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
-            const data = await res.json();
-            const rawReply = data.text || data.reply || "";
+      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
+        ? finalScenarioCgs
+        : (scenarioCgs || initialSheet?.scenarioCgs || []);
 
-            // 마침표, 느낌표, 물음표, 줄바꿈 기준으로 카톡 말풍선 분할
-            const bubbles = rawReply
-              .split(/(?<=[.!?])\s+|\n+/)
-              .map(s => s.trim())
-              .filter(Boolean);
+      const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
+      const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
+      
+      let unlockedCgObj = null;
+      if (cgMatch) {
+        try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
+      } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
+        unlockedCgObj = firstCg;
+      }
 
-            const replyTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+      if (unlockedCgObj) {
+        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
+        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
+      }
 
-            // 여러 개의 개별 말풍선 객체 생성
-            const newNpcMessages = bubbles.map((bubbleText, idx) => ({
-              id: Date.now() + idx + 1,
-              sender: "npc",
-              text: bubbleText,
-              time: replyTime,
-              unread: false
-            }));
+          setSessions(prev => prev.map(s => s.id === newId ? {
+          ...s, 
+          sheet: { 
+            ...initialSheet, 
+            ...parsedData.newSheetVars,
+            scenarioCgs: currentCgs,
+            unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
+          },
+          messages: [{ 
+            role: "model", 
+            // 🌟 바로 이 줄입니다! 아래 코드로 교체하세요:
+            text: (typeof finalOpening !== "undefined" && finalOpening) ? finalOpening : (cleanDisplayOpening || cleanText),
+            cg: unlockedCgObj || null 
+          }],
+          suggestedActions: parsedData.suggActions,
+          investigationSpots: parsedData.investigationSpots,
+          pendingCheck: parsedData.pendingCheck
+        } : s));
 
-            // 세션에 분할된 말풍선 목록 추가
-            setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-              ...s,
-              sheet: {
-                ...s.sheet,
-                phoneChats: {
-                  ...oldChats,
-                  [activePhoneContactId]: [...updatedChatList, ...newNpcMessages]
-                }
-              }
-            } : s));
-
-            triggerVibration("medium");
+      // ⬆️ 바로 이 밑에 유저분이 올려주신 catch 블록이 이어집니다!
     } catch (err) {
       if (err.name === "AbortError") return;
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}).` }] } : s));
@@ -8558,15 +8567,30 @@ ${statusGuide}
               triggerToast("📷 사진 도착", "새로운 일상 스냅 사진이 도착했습니다.");
             }
            
-            const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
-           const npcReply = { id: Date.now() + 1, sender: "npc", text: cleanReply, time: currentTime, photo: snapPhotoUrl };
+           // ⭕ 수정 후 (답장을 문장별 카톡 버블로 나누어 저장)
+const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
 
-            setSessions(prev => {
-              const session = prev.find(s => s.id === activeSessionId);
-              if (!session) return prev;
-              let sSheet = { ...session.sheet };
-              const prevChats = sSheet.phoneChats || {};
-              sSheet.phoneChats = { ...prevChats, [activePhoneContactId]: [...(prevChats[activePhoneContactId] || []), npcReply] };
+// 마침표, 물음표, 느낌표, 줄바꿈 기준으로 버블 분할
+const bubbles = cleanReply
+  .split(/(?<=[.!?])\s+|\n+/)
+  .map(s => s.trim().replace(/^["']|["']$/g, ""))
+  .filter(Boolean);
+
+const newNpcMessages = (bubbles.length > 0 ? bubbles : [cleanReply]).map((bubbleText, idx) => ({
+  id: Date.now() + idx + 1,
+  sender: "npc",
+  text: bubbleText,
+  time: currentTime,
+  photo: idx === 0 ? snapPhotoUrl : null, // 첫 번째 버블에 사진 첨부
+  unread: false
+}));
+
+setSessions(prev => {
+  const session = prev.find(s => s.id === activeSessionId);
+  if (!session) return prev;
+  let sSheet = { ...session.sheet };
+  const prevChats = sSheet.phoneChats || {};
+  sSheet.phoneChats = { ...prevChats, [activePhoneContactId]: [...(prevChats[activePhoneContactId] || []), ...newNpcMessages] };
 
               if (affDelta && (affDelta.value !== undefined || affDelta.affection !== undefined)) {
                 const incomingRaw = Number(affDelta.value !== undefined ? affDelta.value : affDelta.affection);
