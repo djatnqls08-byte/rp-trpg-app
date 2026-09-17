@@ -306,9 +306,20 @@ function convertRowToPreset(row, index, headers = []) {
     }
   });
 
-// 🌟 BJ열(61번 인덱스)부터 3개씩 묶어 CG1~CG10 자동 추출
+// 🌟 [1] 공개 여부 확인 (체크 해제, '비공개', 'X', 'N' 등일 경우 즉시 제외)
+  const isPublicIdx = headers.findIndex(h => /공개여부|공개|상태/i.test(h?.replace(/\s+/g, '') || ""));
+  if (isPublicIdx !== -1) {
+    const pubVal = (row[isPublicIdx] || "").toString().trim().toUpperCase();
+    const isHidden = pubVal === "FALSE" || pubVal === "비공개" || pubVal === "X" || pubVal === "N" || pubVal === "준비중";
+    if (isHidden) return null;
+  }
+
+  // 🌟 [2] 옮겨진 CG 열 위치 자동 탐색 (못 찾으면 기존 61번 인덱스 기본값 사용)
+  const cgStartIdx = headers.findIndex(h => /^(cg1|이벤트cg1|cg\s*1)/i.test(h?.replace(/[\s_]/g, '') || ""));
+  const startCol = cgStartIdx !== -1 ? cgStartIdx : 61;
+
   const eventCgs = [];
-  for (let c = 61; c < row.length; c += 3) {
+  for (let c = startCol; c + 2 < row.length; c += 3) {
     const cgTitle = row[c]?.trim();
     const cgTrigger = row[c + 1]?.trim();
     const cgUrl = row[c + 2]?.trim();
@@ -317,15 +328,15 @@ function convertRowToPreset(row, index, headers = []) {
     }
   }
 
-// 🌟 헤더에서 '세션카드' 열 찾아 이미지 주소 가져오기
-const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
+  // 🌟 [3] 헤더에서 '세션카드' 열 찾아 이미지 주소 가져오기
+  const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
   const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
- 
+
   return {
     id: 9000000000000 + index,
     presetTitle: title || "새 시나리오",
     scenarioTitle: title || "새 시나리오",
-   thumbnail: sessionCardImg,
+    thumbnail: sessionCardImg,
     wizardMode: (rule || "insane").toLowerCase().trim(),
     playPreference: tags || "",
     publicSynopsis: synopsis || "",
@@ -798,7 +809,7 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
           const headers = rows[0] || [];
           const sheetPresets = rows.slice(1)
             .filter(r => r[0] && r[0].trim())
-            .map((row, idx) => convertRowToPreset(row, idx, headers)); // 👈 headers 추가
+            .map((row, idx) => convertRowToPreset(row, idx, headers)); 
 
           if (sheetPresets.length > 0) {
             setOfficialPresets(sheetPresets);
