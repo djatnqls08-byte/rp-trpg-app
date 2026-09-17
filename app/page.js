@@ -2879,23 +2879,39 @@ const startNewSession = async () => {
     { id: "item_amulet", name: "부적", type: "reroll_other", count: insaneItems["부적"] || 0, desc: "타인의 판정 재굴림" }
   ].filter(it => it.count > 0); // 1개 이상 챙긴 아이템만 가방에 등록
 
-// 📱 서막 지문 속 [인물명]: "대사"를 스마트폰 메신저 실제 메시지로 자동 변환
-  const openingMsgRegex = /\[([^\]]+)\]\s*:\s*["“]([^"”]+)["”]/g;
-  let match;
-  const initialPhoneChats = {};
-  const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+// 📱 서막 속 메신저 대사를 실제 카톡처럼 문장별로 쪼개서 수신
+    const openingMsgRegex = /\[([^\]]+)\]\s*:\s*["“]([^"”]+)["”]/g;
+    let match;
+    const initialPhoneChats = {};
+    const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 
-  while ((match = openingMsgRegex.exec(finalOpening || openingScene || "")) !== null) {
-    const senderName = match[1].trim();
-    const messageText = match[2].trim();
+    while ((match = openingMsgRegex.exec(finalOpening)) !== null) {
+      const senderName = match[1].trim();
+      const messageText = match[2].trim();
 
-    // 등록된 등장인물(NPC) 중 이름이 매칭되는 인물 탐색 (권시우 팀장 ➔ 권시우 매칭)
-    const matchedNpc = (npcs || []).find(n => n.name && (senderName.includes(n.name) || n.name.includes(senderName))) || npcs[0];
-    const contactId = matchedNpc?.id || 1;
+      const matchedNpc = npcs.find(n => senderName.includes(n.name) || n.name.includes(senderName)) || npcs[0];
+      const contactId = matchedNpc?.id || 1;
 
-    if (!initialPhoneChats[contactId]) initialPhoneChats[contactId] = [];
+      if (!initialPhoneChats[contactId]) initialPhoneChats[contactId] = [];
 
-    initialPhoneChats[contactId].push({
+      // 🌟 마침표, 물음표, 느낌표, 줄바꿈 기준으로 카톡 말풍선 쪼개기
+      const bubbles = messageText
+        .split(/(?<=[.!?])\s+|\n+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      bubbles.forEach((bubbleText, sIdx) => {
+        initialPhoneChats[contactId].push({
+          id: Date.now() + Math.random() + sIdx,
+          sender: "npc",
+          text: bubbleText,
+          time: currentTime,
+          unread: true
+        });
+      });
+    }
+
+    initialSheet.phoneChats = initialPhoneChats;
       id: Date.now() + Math.random(),
       sender: "npc",
       text: messageText,
@@ -2984,53 +3000,42 @@ const startNewSession = async () => {
         })
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
-      }
+      // 🌟 교체해서 넣을 코드
+            if (!res.ok) throw new Error("메시지 전송 실패");
 
-      const data = await res.json();
-      const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
+            const data = await res.json();
+            const rawReply = data.text || data.reply || "";
 
-      // 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
-      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
-        ? finalScenarioCgs
-        : (scenarioCgs || initialSheet?.scenarioCgs || []);
+            // 마침표, 느낌표, 물음표, 줄바꿈 기준으로 카톡 말풍선 분할
+            const bubbles = rawReply
+              .split(/(?<=[.!?])\s+|\n+/)
+              .map(s => s.trim())
+              .filter(Boolean);
 
-      const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
-      const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
-      
-      let unlockedCgObj = null;
-      if (cgMatch) {
-        try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
-      } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
-        // 조건이 '프롤로그/시작'이면 첫 대면 시 무조건 자동 발동!
-        unlockedCgObj = firstCg;
-      }
+            const replyTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 
-      if (unlockedCgObj) {
-        triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
-        if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
-      }
+            // 여러 개의 개별 말풍선 객체 생성
+            const newNpcMessages = bubbles.map((bubbleText, idx) => ({
+              id: Date.now() + idx + 1,
+              sender: "npc",
+              text: bubbleText,
+              time: replyTime,
+              unread: false
+            }));
 
-      setSessions(prev => prev.map(s => s.id === newId ? {
-        ...s, 
-        sheet: { 
-          ...initialSheet, 
-          ...parsedData.newSheetVars,
-          scenarioCgs: currentCgs,
-          unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
-        },
-        messages: [{ 
-          role: "model", 
-          text: wizardMode === "dating_msg" ? cleanText : (cleanDisplayOpening || cleanText), 
-          cg: unlockedCgObj || null 
-        }],
-        suggestedActions: parsedData.suggActions,
-        investigationSpots: parsedData.investigationSpots,
-        pendingCheck: parsedData.pendingCheck
-      } : s));
+            // 세션에 분할된 말풍선 목록 추가
+            setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+              ...s,
+              sheet: {
+                ...s.sheet,
+                phoneChats: {
+                  ...oldChats,
+                  [activePhoneContactId]: [...updatedChatList, ...newNpcMessages]
+                }
+              }
+            } : s));
 
+            triggerVibration("medium");
     } catch (err) {
       if (err.name === "AbortError") return;
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}).` }] } : s));
@@ -8488,7 +8493,7 @@ ${statusGuide}
 - 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.
 
 5. [일상 사진 / 스냅 사진 전송 규칙]
-- 유저가 "사진 보내줘", "셀카 보여줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
+- 유저가 "사진 보내줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
 <!-- SNAP_PHOTO: {"prompt": "1girl, solo, portrait, realistic lighting, anime masterpiece", "caption": "사진 한 줄 설명"} -->
 - prompt는 고화질 일러스트가 생성될 수 있도록 인물의 외모와 의상이 포함된 영문(English) 키워드로 상세히 작성하십시오.`;
            
