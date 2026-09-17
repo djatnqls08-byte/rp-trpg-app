@@ -3716,11 +3716,7 @@ ${npcsSummary}
     }
  
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        // 🌟 1. 시트 내 거대 Base64 사진 데이터 제거
+        // 🌟 1. 사진 제거 변수는 fetch 바깥(위쪽)에서 먼저 선언해야 합니다
         const rawSheet = typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet;
         const safePlayerSheet = rawSheet ? {
           ...rawSheet,
@@ -3736,7 +3732,7 @@ ${npcsSummary}
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({
-            messages: (messagesForAi || []).slice(-20), // 🌟 2. 최근 15개 턴만 전송 (용량 폭탄 방지)
+            messages: (messagesForAi || []).slice(-30), // 최근 30개 턴으로 넉넉히 전달
             scenarioText: (activeSession.scenarioText || "") + dynamicRules + (currentRuleSnippet || ""),
             playerSheet: safePlayerSheet,
             ruleMode: activeSession.ruleMode,
@@ -8562,7 +8558,7 @@ ${statusGuide}
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messages: messagesForApi.slice(-15),
+            messages: messagesForApi.slice(-20),
             scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
             playerSheet: cleanPlayerSheet,
             ruleMode: "dating",
