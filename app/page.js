@@ -3005,10 +3005,10 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
-    // 🌟 수정: 치환본(finalScenarioCgs)을 1순위로 읽도록 변경
-      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
-        ? finalScenarioCgs
-        : (scenarioCgs || initialSheet?.scenarioCgs || []);
+// 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
+const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
+  ? finalScenarioCgs
+  : (scenarioCgs || initialSheet?.scenarioCgs || []);
 
       const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
       const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
