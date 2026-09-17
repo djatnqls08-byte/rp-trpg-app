@@ -661,6 +661,14 @@ export default function App() {
   const [climaxStep, setClimaxStep] = useState("plot"); // "plot" 또는 "action"
  // 🌟 감정 판정 모달 전용 상태
   const [emotionModalOpen, setEmotionModalOpen] = useState(false);
+// 🌟 [InSANe 감정 모달 크래시 방지 및 연동 핸들러]
+  const [isEmotionModalOpen, setIsEmotionModalOpen] = useState(false);
+  const [selectedEmotionTarget, setSelectedEmotionTarget] = useState(null);
+  const openEmotionModal = (target = null) => {
+    setSelectedEmotionTarget(target);
+    setIsEmotionModalOpen(true);
+    if (typeof setEmotionModalOpen === "function") setEmotionModalOpen(true); // 👈 기존 모달 창 열림 연동
+  };
  // 🍞 [시스템 토스트 알림 상태]
   const [toast, setToast] = useState(null); // { title, message, icon }
  const triggerToast = (title, message, icon = "✨") => {
