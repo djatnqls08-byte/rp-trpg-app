@@ -877,8 +877,8 @@ useEffect(() => {
     setLobbySaveModal(null);
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
-const handleLoadLobbyPreset = (p) => {
-  if (p.charName) setOriginalPresetPcName(p.charName);
+const loadedCgs = p.scenarioCgs || p.eventCgs || p.cgs || p.initialSheet?.scenarioCgs || [];
+if (loadedCgs.length > 0) setScenarioCgs(loadedCgs);
   // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
   if (p.kpcList && Array.isArray(p.kpcList)) {
     setOriginalPresetNpcs(p.kpcList.map(k => k.name).filter(Boolean));
@@ -9937,7 +9937,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
             {/* 프리셋 리스트 영역 */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, overflowY: "auto", maxHeight: "360px", paddingRight: "2px" }}>
               
-{/* 1. ⭐ 공식 시나리오 (대소문자/속성명/한글 완벽 호환 만능 카테고리 파서) */}
+              {/* 1. ⭐ 공식 시나리오 */}
               {lobbyPresetTab === "public" && (() => {
                 if (!officialPresets || officialPresets.length === 0) {
                   return (
@@ -9947,25 +9947,21 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   );
                 }
 
-                // 🌟 대문자(COC, DATING), 소문자, 한글(크툴루, 미연시), 속성명(wizardMode, ruleMode 등) 모두 판별!
-               const getNormalizedMode = (p) => {
-  // 1. 기존 필드 확인
-  const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
-  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
-  if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
-  if (raw.includes("insane") || raw.includes("인세인")) return "insane";
-  if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
+                const getNormalizedMode = (p) => {
+                  const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
+                  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
+                  if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
+                  if (raw.includes("insane") || raw.includes("인세인")) return "insane";
+                  if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
 
-  // 🌟 2. 필드가 없을 경우: 본문 텍스트에서 자동 유추 (Fallback)
-  const fullText = `${p.presetTitle || ""} ${p.scenarioTitle || ""} ${p.hiddenTruth || ""} ${p.playPreference || ""}`.toLowerCase();
-  if (fullText.includes("호감도") || fullText.includes("미연시") || fullText.includes("데이트")) return "dating";
-  if (fullText.includes("이성") || fullText.includes("san") || fullText.includes("크툴루")) return "coc";
-  if (fullText.includes("광기") || fullText.includes("사명") || fullText.includes("인세인")) return "insane";
+                  const fullText = `${p.presetTitle || ""} ${p.scenarioTitle || ""} ${p.hiddenTruth || ""} ${p.playPreference || ""}`.toLowerCase();
+                  if (fullText.includes("호감도") || fullText.includes("미연시") || fullText.includes("데이트")) return "dating";
+                  if (fullText.includes("이성") || fullText.includes("san") || fullText.includes("크툴루")) return "coc";
+                  if (fullText.includes("광기") || fullText.includes("사명") || fullText.includes("인세인")) return "insane";
 
-  return "dating"; // 기본값으로 미연시에 배치
-};
+                  return "dating";
+                };
 
-                // 4대 카테고리 + 기타
                 const CATEGORIES = [
                   { key: "freeform", label: "자유 서사", icon: "✍️" },
                   { key: "coc", label: "CoC (크툴루의 부름)", icon: "🐙" },
@@ -9974,13 +9970,11 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   { key: "other", label: "추천 시나리오", icon: "✨" }
                 ];
 
-                // 시나리오가 있는 카테고리만 골라내기
                 let activeSections = CATEGORIES.map(cat => ({
                   ...cat,
                   presets: officialPresets.filter(p => getNormalizedMode(p) === cat.key)
                 })).filter(cat => cat.presets.length > 0);
 
-                // 🌟 비상 안전장치: 혹시라도 룰 구분이 전부 빗나가도 시나리오를 숨기지 않고 싹 다 출력!
                 if (activeSections.length === 0 && officialPresets.length > 0) {
                   activeSections = [{
                     key: "all",
@@ -9990,12 +9984,12 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                   }];
                 }
 
-return (
+                return (
                   <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {activeSections.map((sec, secIdx) => (
                       <div key={sec.key} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         
-                        {/* 1. 카테고리 헤더 */}
+                        {/* 카테고리 헤더 */}
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "2px 2px 0 2px" }}>
                           <span style={{ fontSize: "0.95rem" }}>{sec.icon}</span>
                           <span style={{ fontSize: "0.86rem", fontWeight: "900", color: theme.text }}>
@@ -10006,7 +10000,7 @@ return (
                           </span>
                         </div>
 
-                        {/* 2. 카테고리에 속한 시나리오 목록 */}
+                        {/* 시나리오 목록 */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           {sec.presets.map((p, pIdx) => {
                             const displayRule = (p.wizardMode || p.ruleMode || p.rule || "STORY").toString().toUpperCase();
@@ -10082,7 +10076,7 @@ return (
                           })}
                         </div>
 
-                        {/* 3. 카테고리 구분선 */}
+                        {/* 카테고리 구분선 */}
                         {secIdx < activeSections.length - 1 && (
                           <div style={{ height: "1.5px", backgroundColor: theme.border, margin: "10px 0 4px 0", opacity: 0.8 }} />
                         )}
@@ -10091,6 +10085,7 @@ return (
                     ))}
                   </div>
                 );
+              })()}
 
               {/* 2. 📁 내 저장 세팅만 단독 표시 */}
               {lobbyPresetTab === "local" && (
