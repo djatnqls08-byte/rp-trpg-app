@@ -2292,19 +2292,24 @@ const handleFileUpload = async (e) => {
       const headers = allRows[0];
       const dataRows = allRows.slice(1);
 
-      // 3. 현재 시나리오 행 찾기
+      // 3. 현재 시나리오 행 찾기 (정확히 일치하는 행만 탐색, 없으면 다른 시나리오로 넘기지 않음)
       const currentTitle = (activeSession.title || "").trim();
-      const matchedRow = dataRows.find(r => r[0] && (r[0].trim() === currentTitle || currentTitle.includes(r[0].trim()) || r[0].trim().includes(currentTitle)))
-        || dataRows.find(r => {
-          const tIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
-          return tIdx !== -1 && r[tIdx]?.trim();
-        })
-        || dataRows[0];
+      const matchedRow = dataRows.find(r => {
+        const rowTitle = (r[0] || "").trim();
+        if (!rowTitle) return false;
+        return rowTitle === currentTitle || currentTitle.includes(rowTitle) || rowTitle.includes(currentTitle);
+      });
+
+      // 🌟 일치하는 시나리오가 시트에 없으면 다른 시나리오 이미지를 덮어쓰지 않고 즉시 중단
+      if (!matchedRow) {
+        triggerToast("동기화 알림", "현재 시나리오와 일치하는 시트 행이 없어 기존 이미지를 유지합니다.", "💡");
+        setIsLoading(false);
+        return;
+      }
 
       // 4. 세션 카드 추출
       const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
       const sessionCardImg = thumbIdx !== -1 ? matchedRow[thumbIdx]?.trim() : "";
-
       // 5. 이벤트 CG 추출
       const eventCgs = [];
       for (let c = 61; c < matchedRow.length; c += 3) {
@@ -2933,7 +2938,7 @@ const startNewSession = async () => {
   const newSession = {
     id: newId,
     title: sessionTitle,
-    thumbnail: scenarioThumbnail || sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea",
+    thumbnail: scenarioThumbnail || sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg",
     ruleMode: wizardMode,
     preference: playPreference.trim(),
     scenarioText: fullScenarioContext,
@@ -4907,7 +4912,7 @@ return (
         boxShadow: isMobile && isSidebarOpen ? "4px 0 20px rgba(0,0,0,0.18)" : "none"
       }}>
         <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
-          <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
+          <button onClick={() => { setActiveSessionId(null); if (isMobile) setIsSidebarOpen(false); }} style={{ ...
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
           )}
