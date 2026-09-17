@@ -2962,6 +2962,45 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
+      if (newlyUnlockedCg) {
+        const pName = activeSession.sheet?.name || charName.trim() || "주인공";
+        const origPc = originalPresetPcName || "서지한";
+        const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc;
+        const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
+
+        const rawSceneText = newlyUnlockedCg.desc || newlyUnlockedCg.trigger || newlyUnlockedCg.condition || "";
+        
+        if (rawSceneText.trim()) {
+          let formatted = rawSceneText
+            .replace(new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g"), pName)
+            .replace(new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g"), newPcShort);
+
+          (activeSession.sheet?.npcs || []).forEach((npc, idx) => {
+            const origNpc = (originalPresetNpcs && originalPresetNpcs[idx]) || (index === 0 ? "윤설아" : "");
+            const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc;
+            const curNpcShort = npc.name.length >= 3 ? npc.name.slice(1) : npc.name;
+
+            if (origNpc) {
+              formatted = formatted
+                .replace(new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g"), npc.name)
+                .replace(new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g"), curNpcShort);
+            }
+          });
+
+          // 🎬 1. 상황 단절을 메워주는 씬 전환 나레이션 자동 부착
+          const transitionBridge = `*(얼마 후, 대화가 잦아들고 약속했던 ${newlyUnlockedCg.title || "장소"}의 순간으로 이어집니다……)*\n\n`;
+          finalModelText = transitionBridge + formatted.trim();
+
+          // ⏳ 2. 화면 전체 2초 암전 연출을 함께 띄워 자연스러운 이동 표현
+          if (typeof setTimeTransition === "function") {
+            setTimeTransition(newlyUnlockedCg.title || "장면 전환");
+            setTimeout(() => setTimeTransition(null), 2000);
+          }
+        }
+      }
+
+      let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
+
       // 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
       const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
         ? finalScenarioCgs
@@ -3562,10 +3601,11 @@ ${remainingCgs.length > 0
 [🚨 CG 획득을 위한 동선 및 배경 유도 수칙]
 1. [배경 떡밥 투척]: 
    - 대화가 3~5턴 이상 이어지거나 공간이 전환될 때, 위 미해금 CG의 조건에 적힌 '장소, 배경, 시간대, 특정 사물'을 지문 속에 은근한 호기심 거리로 묘사하십시오.
-2. [장소 카드(LOCATION_CARDS) 우선 배정]:
+2. [장소 카드(LOCATION_CARDS) 우선 배정 및 내면 예감]:
    - 장소 이동 배너를 출력할 때는 위 미해금 CG들의 발생 무대가 되는 장소를 최소 1곳 이상 반드시 포함하십시오.
+   - 해당 장소의 desc 끝에는 주인공의 내적 예감(예: 왠지 지금 이곳에 가보는 게 좋을 것 같다는 생각이 든다……)을 감성적으로 덧붙이십시오.
 3. [선택지(SUGGESTIONS) 연계]:
-   - 지문 끝의 추천 선택지 3개 중 최소 1개는 미해금 CG 이벤트가 일어날 법한 행동으로 제시하여 플레이어의 탐색을 자연스럽게 유도하십시오.
+   - 지문 끝의 추천 선택지 3개 중 최소 1개는 미해금 CG 이벤트 장소로 향하는 행동으로 제시하십시오.
 4. [해금 선언]:
    - 플레이어가 해당 장소나 상황에 완벽히 도달하여 명장면이 연출되었을 때는 지문 맨 끝에 태그를 첨부하십시오:
    <!-- UNLOCK_CG: {"title": "정확한 CG 제목"} -->
@@ -3853,9 +3893,20 @@ ${npcsSummary}
             }
           }
 
-          // 최종 판정
+          // 1. CG 조건문에서 장소/행동 키워드 추출 (호감도, 숫자, 이름 제외)
+          const targetLocationWords = triggerCond
+            .replace(/조건|호감도|\d+|이상|이하|달성|후|첫|대면|만남/gi, " ")
+            .replace(new RegExp(targetNpcName || "NPC", "g"), " ")
+            .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
+            .split(/\s+/)
+            .filter(w => w.length >= 2 && !["경우", "진입", "시간대"].includes(w));
+
+          // 2. 플레이어의 이동 선언이나 선택지에 해당 장소 단어가 포함되었는지 검사
+          const isLocationMatched = targetLocationWords.length === 0 || targetLocationWords.some(kw => fullRecentContext.includes(kw));
+
+          // 🌟 최종 판정: 호감도가 찼더라도, 실제로 해당 '장소로 이동'했을 때만 해금!
           const isUnlockTriggered = (reqFav > 0)
-            ? (passFav && passNpc)
+            ? (passFav && passNpc && isLocationMatched)
             : (passTime && passNpc && passKeyword);
 
           if (isUnlockTriggered) {
@@ -7165,44 +7216,61 @@ return (
             marginBottom: "6px",
           }}>
             {locationCards.map((card, idx) => {
-              // ⭐ 약속 장소 확인 (장소명 또는 NPC 매칭)
+              // 1. 약속 장소 확인 (빨간 배지)
               const isAppointed = (activeSession?.sheet?.appointments || []).some(
                 app => (app.place && card.name?.includes(app.place)) || (app.npc && card.npc?.includes(app.npc))
               );
+
+              // 🌟 2. 미해금 CG 장소 자동 매칭 검사 (금빛 묘한 예감 힌트)
+              const allScenarioCgs = activeSession?.sheet?.scenarioCgs || activeSession?.sheet?.cgs || scenarioCgs || [];
+              const currentUnlocked = activeSession?.sheet?.unlockedCgs || [];
+              const cardWords = (card.name || "").replace(/[^가-힣a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 2);
+              
+              const hasEventHint = allScenarioCgs.some(cg => {
+                const isAlreadyUnlocked = currentUnlocked.some(u => (u?.title && u.title === cg.title) || u === cg.title);
+                if (isAlreadyUnlocked) return false;
+                const cond = cg.trigger || cg.condition || "";
+                return cardWords.some(w => cond.includes(w));
+              });
 
               return (
                 <div
                   key={idx}
                   onClick={() => {
-                  const targetText = card.npc 
-                    ? `${card.name}(으)로 향하여 그곳에 있는 [${card.npc}]와(과) 마주친다.`
-                    : `${card.name}(으)로 향한다.`;
-                  
-                  // 🔄 율리안/카시엘 등 이동한 장소의 NPC로 대화 상대 즉시 전환
-                  if (card.npc) {
-                    const matchedNpc = (activeSession?.sheet?.npcs || []).find(n => n.name === card.npc || (card.npc && n.name.includes(card.npc)));
-                    if (matchedNpc) {
-                      setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, activeContactId: matchedNpc.id } : s));
+                    const targetText = card.npc 
+                      ? `${card.name}(으)로 향하여 그곳에 있는 [${card.npc}]와(과) 마주친다.`
+                      : `${card.name}(으)로 향한다.`;
+                    
+                    if (card.npc) {
+                      const matchedNpc = (activeSession?.sheet?.npcs || []).find(n => n.name === card.npc || (card.npc && n.name.includes(card.npc)));
+                      if (matchedNpc) {
+                        setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, activeContactId: matchedNpc.id } : s));
+                      }
                     }
-                  }
 
-                  setLocationCards([]);
-                  if (typeof handleSuggestionClick === "function") {
-                    handleSuggestionClick(targetText);
-                  } else {
-                    executeMessage(targetText);
-                  }
-                }}
+                    setLocationCards([]);
+                    if (typeof handleSuggestionClick === "function") {
+                      handleSuggestionClick(targetText);
+                    } else {
+                      executeMessage(targetText);
+                    }
+                  }}
                   style={{
                     position: "relative",
                     flex: "0 0 auto",
                     width: isMobile ? "190px" : "220px",
                     padding: "10px 12px",
                     borderRadius: "10px",
-                    border: isAppointed ? "1.5px solid #f43f5e" : "1px solid rgba(255, 255, 255, 0.15)",
-                    backgroundColor: isAppointed ? "rgba(76, 29, 44, 0.85)" : "rgba(30, 41, 59, 0.85)",
+                    border: hasEventHint 
+                      ? "1.5px solid #f59e0b" 
+                      : (isAppointed ? "1.5px solid #f43f5e" : "1px solid rgba(255, 255, 255, 0.15)"),
+                    backgroundColor: hasEventHint 
+                      ? "rgba(69, 39, 10, 0.9)" 
+                      : (isAppointed ? "rgba(76, 29, 44, 0.85)" : "rgba(30, 41, 59, 0.85)"),
                     cursor: "pointer",
-                    boxShadow: isAppointed ? "0 0 10px rgba(244, 63, 94, 0.25)" : "none",
+                    boxShadow: hasEventHint 
+                      ? "0 0 12px rgba(245, 158, 11, 0.35)" 
+                      : (isAppointed ? "0 0 10px rgba(244, 63, 94, 0.25)" : "none"),
                   }}
                 >
                   {/* ⭐ 약속 장소 배지 */}
@@ -7221,14 +7289,39 @@ return (
                     </div>
                   )}
 
-                  <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: isAppointed ? "#fda4af" : "#67e8f9", marginBottom: "3px" }}>
+                  {/* ✨ 묘한 예감 배지 (CG 이벤트 대기 장소) */}
+                  {hasEventHint && !isAppointed && (
+                    <div style={{
+                      display: "inline-block",
+                      fontSize: "0.62rem",
+                      fontWeight: "800",
+                      color: "#fff",
+                      backgroundColor: "#d97706",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      marginBottom: "4px"
+                    }}>
+                      ✨ 묘한 예감
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: "0.85rem", fontWeight: "bold", color: hasEventHint ? "#fde68a" : (isAppointed ? "#fda4af" : "#67e8f9"), marginBottom: "3px" }}>
                     📍 {card.name}
                   </div>
+
                   {card.desc && (
                     <div style={{ fontSize: "0.75rem", color: "#94a3b8", lineHeight: "1.3", marginBottom: "4px" }}>
                       {card.desc}
                     </div>
                   )}
+
+                  {/* 🌟 힌트 텍스트 자동 노출 */}
+                  {hasEventHint && (
+                    <div style={{ fontSize: "0.7rem", color: "#fcd34d", fontStyle: "italic", lineHeight: "1.3", marginBottom: "4px" }}>
+                      *(이곳에 가면 어떤 일이 생길 것 같다는 생각이 든다……)*
+                    </div>
+                  )}
+
                   {card.npc && (
                     <div style={{ fontSize: "0.7rem", color: "#cbd5e1" }}>
                       👤 {card.npc}
@@ -7239,6 +7332,7 @@ return (
             })}
           </div>
         )}
+
 {/* 제안 칩 */}
               {suggestionsEnabled && (activeSession?.suggestedActions || []).length > 0 && (
                 <div
