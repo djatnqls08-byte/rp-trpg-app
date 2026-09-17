@@ -10006,7 +10006,7 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                           </span>
                         </div>
 
-                        {/* 카테고리에 속한 시나리오 목록 */}
+{/* 카테고리에 속한 시나리오 목록 */}
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           {sec.presets.map((p, pIdx) => {
                             const displayRule = (p.wizardMode || p.ruleMode || p.rule || "STORY").toString().toUpperCase();
@@ -10023,60 +10023,66 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
                                   gap: "8px" 
                                 }}
                               >
-                                <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.textMain /* 기존 스타일 유지 */ }}>
-  <span>{p.presetTitle || p.scenarioTitle || "시나리오"}</span>
+                                {/* 1. 좌측 텍스트 정보 영역 (누락되었던 flex 감싸개 복구) */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontWeight: "800", fontSize: "0.84rem", color: theme.text }}>
+                                    <span>{p.presetTitle || p.scenarioTitle || "시나리오"}</span>
 
-  {/* 🌟 CG 데이터가 있을 때만 제목 옆에 골드 뱃지 표시 */}
-  {((p.scenarioCgs && p.scenarioCgs.length > 0) || 
-    (p.cgs && p.cgs.length > 0) || 
-    (p.initialSheet?.scenarioCgs && p.initialSheet.scenarioCgs.length > 0)) && (
-    <span style={{
-      marginLeft: "6px",
-      fontSize: "0.62rem",
-      fontWeight: "bold",
-      padding: "1px 5px",
-      borderRadius: "4px",
-      background: "rgba(245, 158, 11, 0.15)",
-      color: "#fbbf24",
-      border: "1px solid rgba(245, 158, 11, 0.4)",
-      verticalAlign: "middle",
-      display: "inline-block"
-    }}>
-      ✨ CG
-    </span>
-  )}
-</div>
+                                    {/* 🌟 CG 데이터가 있을 때만 제목 옆에 골드 뱃지 표시 */}
+                                    {((p.scenarioCgs && p.scenarioCgs.length > 0) || 
+                                      (p.cgs && p.cgs.length > 0) || 
+                                      (p.initialSheet?.scenarioCgs && p.initialSheet.scenarioCgs.length > 0) ||
+                                      p.eventCgs?.length > 0) && (
+                                      <span style={{
+                                        marginLeft: "6px",
+                                        fontSize: "0.62rem",
+                                        fontWeight: "bold",
+                                        padding: "1px 5px",
+                                        borderRadius: "4px",
+                                        background: "rgba(245, 158, 11, 0.15)",
+                                        color: "#fbbf24",
+                                        border: "1px solid rgba(245, 158, 11, 0.4)",
+                                        verticalAlign: "middle",
+                                        display: "inline-block"
+                                      }}>
+                                        ✨ CG
+                                      </span>
+                                    )}
+                                  </div>
+
                                   <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     룰: <strong style={{ color: theme.accent }}>{displayRule}</strong> {p.playPreference ? `· ${p.playPreference}` : ""}
                                   </div>
                                 </div>
 
-
-<div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-      <button
-        type="button"
-        onClick={() => handleLoadLobbyPreset(p)}
-        title="시나리오 바로 적용"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "34px",
-          height: "34px",
-          backgroundColor: theme.accent,
-          border: "none",
-          borderRadius: "6px",
-          color: "#fff",
-          fontSize: "0.95rem",
-          fontWeight: "900",
-          cursor: "pointer"
-        }}
-      >
-        {">"}
-      </button>
-    </div>
-  </div>
-);
+                                {/* 2. 우측 이동 버튼 영역 */}
+                                <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLoadLobbyPreset(p)}
+                                    title="시나리오 바로 적용"
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      width: "34px",
+                                      height: "34px",
+                                      backgroundColor: theme.accent,
+                                      border: "none",
+                                      borderRadius: "6px",
+                                      color: "#fff",
+                                      fontSize: "0.95rem",
+                                      fontWeight: "900",
+                                      cursor: "pointer"
+                                    }}
+                                  >
+                                    {">"}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                           })}
                         </div>
 
