@@ -877,16 +877,13 @@ useEffect(() => {
     setLobbySaveModal(null);
     triggerToast(`'${title}' 로비 세팅이 저장되었습니다! ✨`);
   };
- const handleLoadLobbyPreset = (p) => {
-    if (p.charName) setOriginalPresetPcName(p.charName);
-    // 🌟 원래 프리셋에 들어있던 NPC 원본 명단 기억
-    if (p.kpcList && Array.isArray(p.kpcList)) {
-      setOriginalPresetNpcs(p.kpcList.map(k => ({ id: k.id, name: k.name })));
-    }
-    if (p.eventCgs) setScenarioCgs(p.eventCgs); 
-    if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
+const handleLoadLobbyPreset = (p) => {
   if (p.charName) setOriginalPresetPcName(p.charName);
-  if (p.eventCgs) setScenarioCgs(p.eventCgs); 
+  // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
+  if (p.kpcList && Array.isArray(p.kpcList)) {
+    setOriginalPresetNpcs(p.kpcList.map(k => k.name).filter(Boolean));
+  }
+  if (p.eventCgs) setScenarioCgs(p.eventCgs);
   if (p.thumbnail) setScenarioThumbnail(p.thumbnail);
   setScenarioTitle(p.scenarioTitle || "");
     setPublicSynopsis(p.publicSynopsis || "");
@@ -2792,24 +2789,35 @@ const startNewSession = async () => {
     let finalOpening = openingScene;
     let finalTruth = hiddenTruth;
 
-    // 1) PC 이름 치환
-    if (originalPresetPcName && originalPresetPcName !== pName) {
-      const pcRegex = new RegExp(originalPresetPcName, "g");
-      finalSynopsis = finalSynopsis.replace(pcRegex, pName);
-      finalOpening = finalOpening.replace(pcRegex, pName);
-      finalTruth = finalTruth.replace(pcRegex, pName);
+    // 1) PC 이름 자동 감지 및 치환 (세리아나 ➔ 레이)
+    let oldPcName = originalPresetPcName;
+    if (!oldPcName) {
+      const pcMatch = (publicSynopsis + openingScene + hiddenTruth).match(/세리아나|클레어/);
+      if (pcMatch) oldPcName = pcMatch[0];
+    }
+    if (oldPcName && oldPcName !== pName) {
+      const pcReg = new RegExp(oldPcName, "g");
+      finalSynopsis = finalSynopsis.replace(pcReg, pName);
+      finalOpening = finalOpening.replace(pcReg, pName);
+      finalTruth = finalTruth.replace(pcReg, pName);
     }
 
-    // 2) NPC 이름 치환 맵 구성
+    // 2) NPC 이름 자동 감지 및 치환 (발렌틴 ➔ 레비아탄)
+    const currentNpcName = kpcList[0]?.name || "파트너";
+    let oldNpcNames = [...originalPresetNpcs];
+    if (oldNpcNames.length === 0) {
+      const cgTextPool = (scenarioCgs || []).map(c => (c.title || "") + " " + (c.trigger || "")).join(" ");
+      const npcMatch = cgTextPool.match(/발렌틴|아델/);
+      if (npcMatch) oldNpcNames.push(npcMatch[0]);
+    }
+
     const npcReplaceMap = [];
-    (originalPresetNpcs || []).forEach(oldNpc => {
-      const updatedNpc = (kpcList || []).find(k => k.id === oldNpc.id);
-      if (updatedNpc && updatedNpc.name && oldNpc.name && updatedNpc.name !== oldNpc.name) {
-        npcReplaceMap.push({ oldName: oldNpc.name, newName: updatedNpc.name });
+    oldNpcNames.forEach(oldName => {
+      if (oldName && oldName !== currentNpcName) {
+        npcReplaceMap.push({ oldName, newName: currentNpcName });
       }
     });
 
-    // 3) 본문 지문 속 NPC 이름 치환
     npcReplaceMap.forEach(({ oldName, newName }) => {
       const reg = new RegExp(oldName, "g");
       finalSynopsis = finalSynopsis.replace(reg, newName);
@@ -2817,11 +2825,19 @@ const startNewSession = async () => {
       finalTruth = finalTruth.replace(reg, newName);
     });
 
-    // 4) 컷씬(CG) 제목 및 해금 조건(Trigger) 속 NPC 이름 일괄 치환
+    // 3) 컷씬(CG) 데이터 속 주인공(세리아나)과 NPC(발렌틴) 이름 모두 치환
     let finalScenarioCgs = (scenarioCgs || []).map(cg => {
       let updatedTitle = cg.title || "";
       let updatedTrigger = cg.trigger || cg.condition || "";
 
+      // PC 이름 치환 (세리아나 ➔ 레이)
+      if (oldPcName && oldPcName !== pName) {
+        const pcReg = new RegExp(oldPcName, "g");
+        updatedTitle = updatedTitle.replace(pcReg, pName);
+        updatedTrigger = updatedTrigger.replace(pcReg, pName);
+      }
+
+      // NPC 이름 치환 (발렌틴 ➔ 레비아탄)
       npcReplaceMap.forEach(({ oldName, newName }) => {
         const reg = new RegExp(oldName, "g");
         updatedTitle = updatedTitle.replace(reg, newName);
@@ -2836,9 +2852,8 @@ const startNewSession = async () => {
       };
     });
 
-    // 5) 치환 완료된 시나리오 컨텍스트 생성
+    // 4) 치환 완료된 시나리오 컨텍스트 생성
     const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
-
    const newId = Date.now();
 
     // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
@@ -2936,9 +2951,11 @@ const startNewSession = async () => {
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
       // 🌟 [서막 첫 CG 자동 해금: 시트 조건이 '프롤로그/시작'이거나 AI가 태그를 주었을 때]
-      const currentCgs = (typeof scenarioCgs !== "undefined" && scenarioCgs.length > 0) 
-        ? scenarioCgs 
+      // ⬇️ 수정: 치환되지 않은 옛날 scenarioCgs 대신, 새 이름으로 치환된 finalScenarioCgs를 사용합니다!
+      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0) 
+        ? finalScenarioCgs 
         : (initialSheet?.scenarioCgs || []);
+
       const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
       const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
       
@@ -10815,18 +10832,28 @@ const metNpcs = (activeSession.sheet?.npcs || []).filter(npc => {
 
 {/* 🔍 CG 원본 풀스크린 라이트박스 + 💬 미연시 대사창 & 줄바꿈 & UI 숨김 토글 */}
       {zoomedCardUrl && (() => {
-        const isObj = typeof zoomedCardUrl === "object" && zoomedCardUrl !== null;
+       const isObj = typeof zoomedCardUrl === "object" && zoomedCardUrl !== null;
         const imgUrl = isObj ? (zoomedCardUrl.imageUrl || zoomedCardUrl.url) : zoomedCardUrl;
-        const rawText = isObj ? (zoomedCardUrl.trigger || zoomedCardUrl.desc || zoomedCardUrl.condition || "") : "";
+        let rawText = isObj ? (zoomedCardUrl.trigger || zoomedCardUrl.desc || zoomedCardUrl.condition || "") : "";
+
+        // 🌟 현재 세션의 실제 PC 이름과 파트너(NPC) 이름 가져오기
+        const livePcName = activeSession?.sheet?.name || "주인공";
+        const liveNpcName = activeSession?.sheet?.npcs?.[0]?.name || "상대방";
+
+        // 🌟 지문과 대사 속 옛날 디폴트 이름을 현재 변경된 이름으로 강제 치환
+        rawText = rawText.replace(/세리아나|클레어/g, livePcName).replace(/발렌틴|아델/g, liveNpcName);
+
+        let displayCgTitle = isObj ? (zoomedCardUrl.title || "") : "";
+        displayCgTitle = displayCgTitle.replace(/세리아나|클레어/g, livePcName).replace(/발렌틴|아델/g, liveNpcName);
 
         // 대사와 화자, 장면 묘사 자동 추출
         const dialogMatch = rawText.match(/([가-힣\w\s]+):\s*"([^"]+)"/);
-        const speaker = dialogMatch ? dialogMatch[1].trim() : (isObj ? zoomedCardUrl.title : "");
+        const speaker = dialogMatch ? dialogMatch[1].trim() : displayCgTitle;
         const quote = dialogMatch ? `"${dialogMatch[2]}"` : null;
 
         const descMatch = rawText.match(/장면 묘사:\s*([^\n\r]+)/);
         const sceneDesc = descMatch ? descMatch[1].trim() : null;
-        const hasTextContent = Boolean(quote || isObj?.title || sceneDesc);
+        const hasTextContent = Boolean(quote || displayCgTitle || sceneDesc);
 
         return (
           <div 
