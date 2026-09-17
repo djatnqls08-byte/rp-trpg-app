@@ -4912,7 +4912,7 @@ return (
         boxShadow: isMobile && isSidebarOpen ? "4px 0 20px rgba(0,0,0,0.18)" : "none"
       }}>
         <div style={{ padding: "14px", borderBottom: `1px solid ${theme.border}`, display: "flex", gap: "8px" }}>
-          <button onClick={() => { setActiveSessionId(null); setScenarioThumbnail(""); if (isMobile) setIsSidebarOpen(false); }} style={{ ...
+          <button onClick={() => { setActiveSessionId(null); setScenarioThumbnail(""); if (isMobile) setIsSidebarOpen(false); }} style={{ flex: 1, padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "700", fontSize: "0.85rem" }}>+ 새 시나리오</button>
           {isMobile && (
             <button onClick={() => setIsSidebarOpen(false)} style={{ padding: "8px 12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.text, borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>✕</button>
           )}
