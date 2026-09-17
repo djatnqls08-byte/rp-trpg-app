@@ -2895,32 +2895,46 @@ const startNewSession = async () => {
   setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
     setIsLoading(true);
-   let openingPrompt = "";
+  const hasOpening = Boolean(finalOpening && finalOpening.trim());
+
+    let openingPrompt = "";
     if (wizardMode === "dating") {
-      // 🌸 1. 소설형 비주얼 노벨 서막
-      openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
-시나리오의 [초기 배경/서막]과 [공개 시놉시스]를 바탕으로 두 사람의 첫 만남 혹은 사건의 순간을 감각적으로 열어주십시오.
+      if (hasOpening) {
+        // 🌟 서막이 이미 있는 경우: 선택지만 요청
+        openingPrompt = `시나리오의 [초기 배경/서막]을 플레이어가 확인했습니다.
+주인공 '${pName}'이 취할 만한 첫 번째 행동 선택지 3개만 아래 형식으로 출력하십시오:
+<!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
+      } else {
+        // 🌟 서막이 비어있는 경우: AI가 직접 서막 집필
+        openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
+시나리오의 [공개 시놉시스]와 [키퍼 전용 기밀/진상]을 바탕으로 두 사람의 첫 만남 혹은 사건의 순간을 감각적으로 열어주십시오.
 - 3인칭 소설 문체로 현장 분위기, 인물 간의 시선과 공기의 온도를 담아 4~5문장으로 서술하십시오.
 - 주사위 판정이나 시스템 용어를 배제하고 감정선에 집중하십시오.
 - 'PC', 'KPC'라는 단어를 일절 쓰지 말고 '${pName}'과 '${partnerName}'(으)로만 지칭하십시오.
 - 지문 끝에 주인공 '${pName}'(성향: [${charBackground || "자연스러운 성향"}])이 취할 만한 선택지 3개를 반드시 출력하십시오:
 <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
+      }
     } else if (wizardMode === "dating_msg") {
-      // 💬 2. 메신저형 첫 문자 톡
+      // 💬 메신저형 첫 문자 톡
       openingPrompt = `[세션 시작: 첫 메신저 톡 수신 요청]
 당신은 지금 '${partnerName}' 본인입니다.
 시나리오의 [초기 배경/서막]에 맞춰 상대방 '${pName}'에게 가볍게 말을 건네는 첫 카톡(메시지)을 1~2줄로 보내주십시오.
 - 해설 지문, 따옴표, 괄호 묘사를 일절 배제하고 오직 '${partnerName}'이 스마트폰 키보드로 직접 친 실제 전송 텍스트만 출력하십시오.`;
     } else {
-      // 🐙 3. CoC / 인세인 TRPG 서막
-      openingPrompt = `[세션 시작: 첫 서막 지문 요청]
+      // 🐙 CoC / 인세인 TRPG 서막
+      if (hasOpening) {
+        openingPrompt = `시나리오의 [초기 배경/서막] 이후 플레이어가 취할 만한 첫 행동 선택지 3개만 출력하십시오:
+<!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
+      } else {
+        openingPrompt = `[세션 시작: 첫 서막 지문 요청]
 시나리오의 [배후 진상]과 [초기 배경/서막]을 충실히 반영하여 서막을 여십시오.
 반드시 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
 - 'KPC'라는 단어를 일절 쓰지 말고, 파트너의 실제 이름 '${partnerName}'(으)로만 지칭하십시오.
 - '${pName}'과 '${partnerName}'의 온기를 살려 4~5문장으로 서술하십시오.
 - 지문 끝에 씬 행동을 위한 <!-- SUGGESTIONS: ["${partnerName}에게 말을 건다", "주변 단서를 살펴본다", "장면표 굴림"] --> 태그를 출력하십시오.`;
+      }
     }
-   
+
     const controller = new AbortController();
     setAbortController(controller);
 
@@ -2946,10 +2960,10 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
-// 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
-const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
-  ? finalScenarioCgs
-  : (scenarioCgs || initialSheet?.scenarioCgs || []);
+      // 🌟 치환된 컷씬 목록(finalScenarioCgs)을 최우선으로 읽도록 지정
+      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
+        ? finalScenarioCgs
+        : (scenarioCgs || initialSheet?.scenarioCgs || []);
 
       const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
       const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
@@ -2958,7 +2972,6 @@ const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.
       if (cgMatch) {
         try { unlockedCgObj = JSON.parse(cgMatch[1]); } catch(e) {}
       } else if (firstCg && (firstCg.trigger?.includes("프롤로그") || firstCg.trigger?.includes("시작"))) {
-        // 조건이 '프롤로그/시작'이면 첫 대면 시 무조건 자동 발동!
         unlockedCgObj = firstCg;
       }
 
@@ -2966,6 +2979,9 @@ const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.
         triggerToast("✨ 일러스트 해금", `새로운 이벤트 CG [${unlockedCgObj.title || "미공개"}]`);
         if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
       }
+
+      // 🌟 서막 데이터 유무에 따른 텍스트 결정 (시트 원문 vs AI 창작문)
+      const initialStoryText = hasOpening ? finalOpening : cleanText;
 
       setSessions(prev => prev.map(s => s.id === newId ? {
         ...s, 
@@ -2975,7 +2991,12 @@ const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.
           scenarioCgs: currentCgs,
           unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
         },
-        messages: [{ role: "model", text: cleanText, cg: unlockedCgObj || null }],
+        // 메신저 모드가 아닐 때: 서막이 있으면 시트 원문, 없으면 AI 창작문 출력
+        messages: [{ 
+          role: "model", 
+          text: wizardMode === "dating_msg" ? cleanText : initialStoryText, 
+          cg: unlockedCgObj || null 
+        }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
@@ -2987,14 +3008,6 @@ const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.
       setIsLoading(false);
       setAbortController(null);
     }
-  };
-
-// 🌟 [감정 판정 1단계] 팝업 열기
-  const openEmotionModal = () => {
-    if (!activeSession) return;
-    setEmotionTargetNpc(null);
-    setEmotionDiceResult(null);
-    setEmotionModalOpen(true);
   };
 
   // 🌟 [감정 판정 2단계] 대상 선택 후 주사위 굴리기
