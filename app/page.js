@@ -2950,11 +2950,10 @@ const startNewSession = async () => {
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
 
-      // 🌟 [서막 첫 CG 자동 해금: 시트 조건이 '프롤로그/시작'이거나 AI가 태그를 주었을 때]
-      // ⬇️ 수정: 치환되지 않은 옛날 scenarioCgs 대신, 새 이름으로 치환된 finalScenarioCgs를 사용합니다!
-      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0) 
-        ? finalScenarioCgs 
-        : (initialSheet?.scenarioCgs || []);
+    // 🌟 수정: 치환본(finalScenarioCgs)을 1순위로 읽도록 변경
+      const currentCgs = (typeof finalScenarioCgs !== "undefined" && finalScenarioCgs.length > 0)
+        ? finalScenarioCgs
+        : (scenarioCgs || initialSheet?.scenarioCgs || []);
 
       const firstCg = currentCgs.length > 0 ? currentCgs[0] : null;
       const cgMatch = data.text?.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/);
