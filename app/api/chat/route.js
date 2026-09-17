@@ -246,30 +246,34 @@ ${recentPhoneSummary}
 - 이성(SAN) 체크: <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->
 - 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
         } else if (ruleMode === "insane") {
-rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 정규 수칙]
-진행 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
-- 영어 병기 금지, 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 착란 등)만 사용하십시오.
-- 66대 정규 특기만 사용하십시오.
+rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 통합 게임마스터 수칙]
+현재 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
+- 언어 규칙: 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 광기 발현 등)만 사용하십시오. 영어 병기 금지.
+- 66대 정규 특기 체계 엄수.
 
-[🚨 도입 페이즈 절대 원칙]
-- 도입 페이즈(Introduction)에서는 조사/공포/전투 등 어떠한 주사위 판정(CHECK)도 절대 요구하지 마십시오.
-- 인물의 사명과 초기 분위기를 전달한 뒤, 대화가 마무리되면 즉시 <!-- ADVANCE_SCENE --> 태그로 메인 페이즈로 넘기십시오.
+[🚨 1. 페이즈 전환 및 사이클 관리 (절대 남발 금지)]
+- 씬 종료 태그(<!-- ADVANCE_SCENE -->)는 대사 칠 때마다 쓰는 것이 아닙니다!
+- 오직 유저가 해당 씬의 [주요 행동: 조사 / 감정 / 회복 / 장면 닫기]를 완전히 완수했을 때만 딱 1번 출력하십시오.
+- 현재 사이클(${currentCycle})이 리미트(${limitCycle})를 초과하면, 즉시 <!-- ADVANCE_SCENE -->와 함께 사건의 흑막/괴이가 등장하는 [클라이맥스 페이즈]를 선언하십시오.
 
-[📜 조사 성공 및 비밀 해금 절차 (반드시 순서 준수)]
-1. 조사 판정 성공 시, 반드시 비밀 해금 태그를 출력하십시오:
-   <!-- REVEAL_HANDOUT: {"title": "대상명"} -->
-2. 해금된 비밀에 '쇼크(공포)'가 포함되어 있다면, AI가 자의적으로 광기를 터뜨리지 말고 반드시 공포 판정을 요구하십시오:
-   <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
-3. ❌ 금지: 공포 판정 주사위를 굴리기도 전에 AI가 독단적으로 이성을 깎거나 광기를 발현시키는 행위 엄격 금지.
+[🚨 2. 도입 페이즈 규칙]
+- 도입 페이즈(Introduction)에서는 어떠한 조사/공포 주사위 판정도 요구하지 마십시오.
+- PC와 NPC들의 초기 상황과 사명을 소개하고, 대화가 마무리되면 <!-- ADVANCE_SCENE -->로 메인 1사이클로 진입시키십시오.
 
-[🎲 시스템 태그 규격]
-- 조사 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
-- 공포 판정 요구: <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
+[📜 3. 조사 성공 및 공포 판정 정석 루틴]
+- 플레이어가 핸드아웃 조사에 성공했을 때:
+  1단계: 반드시 <!-- REVEAL_HANDOUT: {"title": "대상명"} --> 태그를 출력해 비밀을 공개하십시오.
+  2단계: 공개된 비밀에 공포(쇼크)가 있다면, AI가 자의적으로 이성을 깎거나 광기를 주지 말고 반드시 공포 판정을 요구하십시오:
+  <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
+  3단계: 플레이어가 다음 턴에 실제로 주사위를 굴려 '실패'했을 때만 이성 감소 처리가 이루어집니다.
+
+[🎲 4. 시스템 출력 태그 규격]
+- 조사 요구: <!-- CHECK: {"skill": "특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
+- 공포 판정: <!-- CHECK: {"skill": "특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
 - 감정 판정: <!-- EMOTION: {"target": "${partnerName}"} -->
 - 마스터 장면: <!-- MASTER_SCENE: {"title": "사건명"} -->
 - 장면 전환: <!-- ADVANCE_SCENE -->
-- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "설명"} --> (※ 주의: 오직 플레이어가 이미 소지한 광기의 발현 조건이 충족되었을 때만 극히 제한적으로 사용)`;
-        } else {
+- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "내용"} --> (※ 플레이어가 보유한 광기의 트리거가 달성되었을 때만 제한적 사용)`;
           rulePrompt = `[자유 서사 모드]
 - 주사위 판정 없이 문학적인 대사와 감정선에 집중하십시오.
 - 위기 시 선택적 판정 요구: <!-- CHECK: {"action": "행동", "target": 10} -->`;
