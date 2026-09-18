@@ -1380,7 +1380,8 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
   const [charPortraitUrl, setCharPortraitUrl] = useState("");
   const [customPortraitPrompt, setCustomPortraitPrompt] = useState("");
   const [activePortraitTarget, setActivePortraitTarget] = useState("pc");
- 
+
+ const [showStudioModal, setShowStudioModal] = useState(false);
 
   // CoC 스탯 및 기능치
   const [cocStats, setCocStats] = useState({ str: 40, con: 50, siz: 50, dex: 60, app: 70, int: 75, pow: 75, edu: 40, luck: 55 });
@@ -2110,7 +2111,7 @@ const advanceInsaneScene = (sessionId) => {
       publicSynopsis: parsedSynopsis, 
       openingScene: parsedOpening, 
       hiddenTruth: parsedTruth, 
-      playPreference: s.preference || "#GL #쌍방구원 #달달", 
+      playPreference: s.preference || "", 
       wizardMode: s.ruleMode || "coc", 
       charName: s.sheet?.name || "", 
       charJob: s.sheet?.job || "", 
@@ -6327,29 +6328,26 @@ return (
                 </h3>
 
                 <div style={{ display: "flex", gap: isMobile ? "3px" : "5px", flexShrink: 0, alignItems: "center" }}>
-                  {/* 1. 스튜디오 링크 */}
-                  <a
-                    href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="새 탭에서 AI 시나리오 제작기(Gem) 열기"
-                    style={{
-                      padding: isMobile ? "3px 6px" : "4px 8px",
-                      backgroundColor: theme.panelAlt,
-                      color: theme.accent,
-                      border: `1px solid ${theme.border}`,
-                      borderRadius: "6px",
-                      fontSize: isMobile ? "0.72rem" : "0.78rem",
-                      fontWeight: "bold",
-                      textDecoration: "none",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap"
-                    }}
-                  >
-                    🎬 스튜디오
-                  </a>
+                  {/* 1. 스튜디오 선택 모달 열기 버튼 */}
+<button
+  type="button"
+  onClick={() => setShowStudioModal(true)}
+  title="AI 스튜디오 선택"
+  style={{
+    padding: "4px 8px",
+    backgroundColor: theme.panelAlt,
+    color: theme.accent,
+    border: `1px solid ${theme.border}`,
+    borderRadius: "6px",
+    fontSize: "0.8rem",
+    fontWeight: "bold",
+    display: "inline-flex",
+    alignItems: "center",
+    cursor: "pointer"
+  }}
+>
+  🎬 {isMobile ? "스튜디오" : "스튜디오"}
+</button>
 
                   {/* 2. 첨부 버튼 */}
                   <button 
@@ -12711,13 +12709,127 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                   fontWeight: "800",
                   cursor: "pointer"
                 }}
+             >
+                        🪄 로비에 자동 적용하기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+      {/* 🌟 여기에 스튜디오 모달 코드를 쏙 넣어주세요! 👇 */}
+      {showStudioModal && (
+        <div
+          onClick={() => setShowStudioModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-card"
+            style={{
+              width: "100%",
+              maxWidth: "380px",
+              backgroundColor: theme.panel || "#18181b",
+              border: `1.5px solid ${theme.border || "#27272a"}`,
+              borderRadius: "16px",
+              padding: "20px",
+              color: theme.text,
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              boxShadow: "0 16px 36px rgba(0, 0, 0, 0.4)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
+              <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: "800", color: theme.text }}>
+                🎬 AI 제작 스튜디오
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowStudioModal(false)}
+                style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}
               >
-                🪄 로비에 자동 적용하기
+                ✕
               </button>
+            </div>
+
+            <div style={{ fontSize: "0.75rem", color: theme.textMuted }}>
+              제작하려는 생성기를 선택하면 새 탭(Gem)으로 이동합니다.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
+              {/* 1. 초상화 만들기 (최우선 배치) */}
+              <a
+                href="https://gemini.google.com/gem/1OLmZ5oYd-JxqL7S_zSsfMhncpvRgAv71?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowStudioModal(false)}
+                style={{
+                  padding: "14px 16px",
+                  backgroundColor: theme.panelAlt || "#27272a",
+                  border: `1.5px solid ${theme.accent}`,
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                <span style={{ fontSize: "1.6rem" }}>🎨</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: "800", color: theme.accent }}>
+                    초상화 만들기
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
+                    캐릭터 프로필 일러스트 및 외형 생성
+                  </div>
+                </div>
+              </a>
+
+              {/* 2. 시나리오 만들기 */}
+              <a
+                href="https://gemini.google.com/gem/1laNhRvl9HlbyfErFfxUIs05pOrxSh_Sx?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowStudioModal(false)}
+                style={{
+                  padding: "14px 16px",
+                  backgroundColor: theme.panelAlt || "#27272a",
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: "12px",
+                  textDecoration: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                <span style={{ fontSize: "1.6rem" }}>📖</span>
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: "0.88rem", fontWeight: "800", color: theme.text }}>
+                    시나리오 만들기
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: theme.textMuted, marginTop: "2px" }}>
+                    시놉시스, 서막, 진상 및 핸드아웃 자동 기획
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
         </div>
       )}
+      {
     </div>
   );
 }
