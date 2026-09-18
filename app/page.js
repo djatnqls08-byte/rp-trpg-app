@@ -275,7 +275,7 @@ function convertRowToPreset(row, index, headers = []) {
   const cleanHeaders = (headers || []).map(h => (h || "").toString().replace(/[\s_]/g, "").toLowerCase());
   const findIdx = (regex) => cleanHeaders.findIndex(h => regex.test(h));
 
-  // 2. 제목 열 위치 동적 탐색 (열이 추가되거나 밀려도 자동 적응)
+  // 2. 제목 열 위치 동적 탐색
   let titleIdx = findIdx(/^(시나리오제목|제목|시나리오명|title)$/i);
   if (titleIdx === -1) {
     const firstVal = (row[0] || "").toString().trim().toUpperCase();
@@ -341,37 +341,40 @@ function convertRowToPreset(row, index, headers = []) {
   const curiosity = getVal(/^(호기심|호기심분야)$/i, 14);
   const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
 
-  // 🌟 NPC 1번 ~ 10번 동적 추출 (헤더 검색 우선 + 상대 위치 자동 계산)
+  // 🌟 NPC 1번 ~ 10번 동적 추출
   const kpcList = [];
 
   for (let i = 1; i <= 10; i++) {
-    const offset = 16 + (i - 1) * 5; // 1번: 16, 2번: 21, 3번: 26 ... 10번: 61
+    const offset = 16 + (i - 1) * 5; // 1번: 16, 2번: 21 ... 9번: 56, 10번: 61
     const name = getVal(new RegExp(`^(npc${i}이름|kpc${i}이름${i === 1 ? '|kpc이름|파트너이름' : ''})$`, 'i'), offset);
     const job = getVal(new RegExp(`^(npc${i}직업|kpc${i}직업${i === 1 ? '|kpc직업|파트너직업' : ''})$`, 'i'), offset + 1);
     const detail = getVal(new RegExp(`^(npc${i}상세|kpc${i}상세${i === 1 ? '|npc1특징' : ''})$`, 'i'), offset + 2);
     const secret = getVal(new RegExp(`^(npc${i}비밀|kpc${i}비밀${i === 1 ? '|kpc비밀' : ''})$`, 'i'), offset + 3);
     const img = getVal(new RegExp(`^(npc${i}이미지|kpc${i}이미지${i === 1 ? '|kpc이미지' : ''})$`, 'i'), offset + 4);
 
-    if (name && name.trim()) {
-      const statMatch = (detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
-      const extractedStatus = statMatch ? statMatch[1].trim() : "";
+    // 🚨 [방어 장치] CG 관련 텍스트나 URL이 들어온 경우 NPC 등록 차단
+    if (!name || !name.trim()) continue;
+    if (/^(cg\s*\d+|이벤트\s*cg|cg_)/i.test(name.trim())) continue;
+    if (name.trim().startsWith("http")) continue;
 
-      kpcList.push({
-        id: Date.now() + i,
-        name: name.trim(),
-        job: job || "",
-        detail: detail || "",
-        secret: secret || "",
-        portraitUrl: img || "",
-        showSecret: false,
-        statusMessage: extractedStatus
-      });
-    }
+    const statMatch = (detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
+    const extractedStatus = statMatch ? statMatch[1].trim() : "";
+
+    kpcList.push({
+      id: Date.now() + i,
+      name: name.trim(),
+      job: job || "",
+      detail: detail || "",
+      secret: secret || "",
+      portraitUrl: img || "",
+      showSecret: false,
+      statusMessage: extractedStatus
+    });
   }
 
-  // 🌟 [2] 옮겨진 CG 열 자동 탐색 (NPC 10번이 65번 열까지 차지하므로 기본 시작은 66)
+  // 🌟 [2] CG 열 자동 탐색 (헤더에 없으면 원래 CG 시작 자리인 61번 사용)
   const cgStartIdx = findIdx(/^(cg1|이벤트cg1|cg\s*1|cg1제목)/i);
-  const startCol = cgStartIdx !== -1 ? cgStartIdx : (66 + (titleIdx > 0 ? titleIdx : 0));
+  const startCol = cgStartIdx !== -1 ? cgStartIdx : (61 + (titleIdx > 0 ? titleIdx : 0));
 
   const eventCgs = [];
   for (let c = startCol; c + 2 < row.length; c += 3) {
@@ -396,7 +399,7 @@ function convertRowToPreset(row, index, headers = []) {
     }
   }
 
-  // 🌟 [4] '미연시' 한글 및 'dating' 완벽 매핑
+  // 🌟 [4] 룰 매핑
   const rawRule = (rule || "").toString().trim();
   let resolvedMode = "insane";
   if (/미연시|연애|dating/i.test(rawRule)) resolvedMode = "dating";
