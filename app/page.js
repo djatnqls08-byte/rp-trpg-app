@@ -12829,7 +12829,6 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
           </div>
         </div>
       )}
-      {
     </div>
   );
 }
