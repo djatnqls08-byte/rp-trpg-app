@@ -301,21 +301,18 @@ function convertRowToPreset(row, index, headers = []) {
     const pubVal = (row[pubIdx] || "").toString().trim().toUpperCase();
     isHidden = pubVal === "FALSE" || pubVal === "비공개" || pubVal === "X" || pubVal === "N" || pubVal === "준비중" || pubVal === "0";
   } else if (isFirstColBoolean) {
-    // 헤더 A1이 비어있어도 0번 열이 체크박스(FALSE)인 경우 비공개 처리
     if (firstColVal === "FALSE") isHidden = true;
   }
 
-  // 제목에 [비공개]가 적혀있거나 주석(//)인 경우도 비공개
   if (title.includes("비공개") || title.startsWith("//") || title.startsWith("[비공개]")) {
     isHidden = true;
   }
 
-  // 비공개 시나리오거나 제목 자리에 엉뚱한 값(TRUE/FALSE/URL)이 들어간 행은 즉시 제외
   if (isHidden || !title || title === "TRUE" || title === "FALSE" || title.startsWith("http")) {
     return null;
   }
 
-  // 3. 필드 추출 (헤더 이름으로 먼저 탐색, 없으면 제목 기준 상대 위치로 자동 계산)
+  // 3. 필드 추출
   const getVal = (regex, relativeOffset) => {
     const hIdx = findIdx(regex);
     if (hIdx !== -1 && hIdx < row.length) {
@@ -344,59 +341,37 @@ function convertRowToPreset(row, index, headers = []) {
   const curiosity = getVal(/^(호기심|호기심분야)$/i, 14);
   const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
 
-  const n1Name = getVal(/^(npc1이름|kpc이름|kpc1이름|파트너이름)$/i, 16);
-  const n1Job = getVal(/^(npc1직업|kpc직업|kpc1직업|파트너직업)$/i, 17);
-  const n1Detail = getVal(/^(npc1상세|kpc상세|kpc1상세|npc1특징)$/i, 18);
-  const n1Secret = getVal(/^(npc1비밀|kpc비밀|kpc1비밀)$/i, 19);
-  const n1Img = getVal(/^(npc1이미지|kpc이미지|kpc1이미지)$/i, 20);
-
-  const n2Name = getVal(/^(npc2이름|kpc2이름)$/i, 21);
-  const n2Job = getVal(/^(npc2직업|kpc2직업)$/i, 22);
-  const n2Detail = getVal(/^(npc2상세|kpc2상세)$/i, 23);
-  const n2Secret = getVal(/^(npc2비밀|kpc2비밀)$/i, 24);
-  const n2Img = getVal(/^(npc2이미지|kpc2이미지)$/i, 25);
-
-  const n3Name = getVal(/^(npc3이름|kpc3이름)$/i, 26);
-  const n3Job = getVal(/^(npc3직업|kpc3직업)$/i, 27);
-  const n3Detail = getVal(/^(npc3상세|kpc3상세)$/i, 28);
-  const n3Secret = getVal(/^(npc3비밀|kpc3비밀)$/i, 29);
-  const n3Img = getVal(/^(npc3이미지|kpc3이미지)$/i, 30);
-
-  const n4Name = getVal(/^(npc4이름|kpc4이름)$/i, 31);
-  const n4Job = getVal(/^(npc4직업|kpc4직업)$/i, 32);
-  const n4Detail = getVal(/^(npc4상세|kpc4상세)$/i, 33);
-  const n4Secret = getVal(/^(npc4비밀|kpc4비밀)$/i, 34);
-  const n4Img = getVal(/^(npc4이미지|kpc4이미지)$/i, 35);
-
+  // 🌟 NPC 1번 ~ 10번 동적 추출 (헤더 검색 우선 + 상대 위치 자동 계산)
   const kpcList = [];
-  const rawNpcs = [
-    { name: n1Name, job: n1Job, detail: n1Detail, secret: n1Secret, img: n1Img },
-    { name: n2Name, job: n2Job, detail: n2Detail, secret: n2Secret, img: n2Img },
-    { name: n3Name, job: n3Job, detail: n3Detail, secret: n3Secret, img: n3Img },
-    { name: n4Name, job: n4Job, detail: n4Detail, secret: n4Secret, img: n4Img }
-  ];
 
-  rawNpcs.forEach((npc, i) => {
-    if (npc.name && npc.name.trim()) {
-      const statMatch = (npc.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
+  for (let i = 1; i <= 10; i++) {
+    const offset = 16 + (i - 1) * 5; // 1번: 16, 2번: 21, 3번: 26 ... 10번: 61
+    const name = getVal(new RegExp(`^(npc${i}이름|kpc${i}이름${i === 1 ? '|kpc이름|파트너이름' : ''})$`, 'i'), offset);
+    const job = getVal(new RegExp(`^(npc${i}직업|kpc${i}직업${i === 1 ? '|kpc직업|파트너직업' : ''})$`, 'i'), offset + 1);
+    const detail = getVal(new RegExp(`^(npc${i}상세|kpc${i}상세${i === 1 ? '|npc1특징' : ''})$`, 'i'), offset + 2);
+    const secret = getVal(new RegExp(`^(npc${i}비밀|kpc${i}비밀${i === 1 ? '|kpc비밀' : ''})$`, 'i'), offset + 3);
+    const img = getVal(new RegExp(`^(npc${i}이미지|kpc${i}이미지${i === 1 ? '|kpc이미지' : ''})$`, 'i'), offset + 4);
+
+    if (name && name.trim()) {
+      const statMatch = (detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
       const extractedStatus = statMatch ? statMatch[1].trim() : "";
 
       kpcList.push({
         id: Date.now() + i,
-        name: npc.name.trim(),
-        job: npc.job || "",
-        detail: npc.detail || "",
-        secret: npc.secret || "",
-        portraitUrl: npc.img || "",
+        name: name.trim(),
+        job: job || "",
+        detail: detail || "",
+        secret: secret || "",
+        portraitUrl: img || "",
         showSecret: false,
         statusMessage: extractedStatus
       });
     }
-  });
+  }
 
-  // 🌟 [2] 옮겨진 CG 열 자동 탐색
+  // 🌟 [2] 옮겨진 CG 열 자동 탐색 (NPC 10번이 65번 열까지 차지하므로 기본 시작은 66)
   const cgStartIdx = findIdx(/^(cg1|이벤트cg1|cg\s*1|cg1제목)/i);
-  const startCol = cgStartIdx !== -1 ? cgStartIdx : (61 + (titleIdx > 0 ? titleIdx : 0));
+  const startCol = cgStartIdx !== -1 ? cgStartIdx : (66 + (titleIdx > 0 ? titleIdx : 0));
 
   const eventCgs = [];
   for (let c = startCol; c + 2 < row.length; c += 3) {
@@ -430,10 +405,11 @@ function convertRowToPreset(row, index, headers = []) {
   else if (/자유|free/i.test(rawRule)) resolvedMode = "freeform";
   else if (rawRule) resolvedMode = rawRule.toLowerCase();
 
+  // 🌟 [5] 최종 객체 반환
   return {
     id: 9000000000000 + index,
-    presetTitle: title,
-    scenarioTitle: title,
+    presetTitle: title || "새 시나리오",
+    scenarioTitle: title || "새 시나리오",
     thumbnail: sessionCardImg,
     wizardMode: resolvedMode,
     playPreference: tags || "",
@@ -453,7 +429,7 @@ function convertRowToPreset(row, index, headers = []) {
     insaneFear: fear || "죽음",
     insaneLimit: 3,
     kpcList: kpcList,
-    eventCgs: eventCgs 
+    eventCgs: eventCgs
   };
 }
 
