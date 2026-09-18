@@ -269,15 +269,104 @@ function parseCSV(text) {
 
 
 function convertRowToPreset(row, index, headers = []) {
-  const [
-    title, rule, tags, synopsis, opening, truth,
-    pcName, pcJob, pcAgeGender, pcBg, pcMission, pcSecret, pcImg,
-    skills, curiosity, fear,
-    n1Name, n1Job, n1Detail, n1Secret, n1Img,
-    n2Name, n2Job, n2Detail, n2Secret, n2Img,
-    n3Name, n3Job, n3Detail, n3Secret, n3Img,
-    n4Name, n4Job, n4Detail, n4Secret, n4Img
-  ] = row;
+  if (!row || row.length === 0) return null;
+
+  // 1. 헤더 텍스트 공백 및 특수기호 정리
+  const cleanHeaders = (headers || []).map(h => (h || "").toString().replace(/[\s_]/g, "").toLowerCase());
+  const findIdx = (regex) => cleanHeaders.findIndex(h => regex.test(h));
+
+  // 2. 제목 열 위치 동적 탐색 (열이 추가되거나 밀려도 자동 적응)
+  let titleIdx = findIdx(/^(시나리오제목|제목|시나리오명|title)$/i);
+  if (titleIdx === -1) {
+    const firstVal = (row[0] || "").toString().trim().toUpperCase();
+    if (firstVal === "TRUE" || firstVal === "FALSE") {
+      titleIdx = (row[1] || "").toString().trim().startsWith("http") ? 2 : 1;
+    } else if ((row[0] || "").toString().trim().startsWith("http")) {
+      titleIdx = 1;
+    } else {
+      titleIdx = 0;
+    }
+  }
+
+  const title = (row[titleIdx] || "").toString().trim();
+
+  // 🌟 [1] 공개/비공개 여부 확인
+  const pubIdx = findIdx(/^(공개|공개여부|상태|게시|open|public|노출)$/i);
+  const firstColVal = (row[0] || "").toString().trim().toUpperCase();
+  const isFirstColBoolean = firstColVal === "TRUE" || firstColVal === "FALSE";
+
+  let isHidden = false;
+
+  if (pubIdx !== -1) {
+    const pubVal = (row[pubIdx] || "").toString().trim().toUpperCase();
+    isHidden = pubVal === "FALSE" || pubVal === "비공개" || pubVal === "X" || pubVal === "N" || pubVal === "준비중" || pubVal === "0";
+  } else if (isFirstColBoolean) {
+    // 헤더 A1이 비어있어도 0번 열이 체크박스(FALSE)인 경우 비공개 처리
+    if (firstColVal === "FALSE") isHidden = true;
+  }
+
+  // 제목에 [비공개]가 적혀있거나 주석(//)인 경우도 비공개
+  if (title.includes("비공개") || title.startsWith("//") || title.startsWith("[비공개]")) {
+    isHidden = true;
+  }
+
+  // 비공개 시나리오거나 제목 자리에 엉뚱한 값(TRUE/FALSE/URL)이 들어간 행은 즉시 제외
+  if (isHidden || !title || title === "TRUE" || title === "FALSE" || title.startsWith("http")) {
+    return null;
+  }
+
+  // 3. 필드 추출 (헤더 이름으로 먼저 탐색, 없으면 제목 기준 상대 위치로 자동 계산)
+  const getVal = (regex, relativeOffset) => {
+    const hIdx = findIdx(regex);
+    if (hIdx !== -1 && hIdx < row.length) {
+      const v = (row[hIdx] || "").toString().trim();
+      if (v) return v;
+    }
+    const fallbackIdx = titleIdx + relativeOffset;
+    return fallbackIdx < row.length ? (row[fallbackIdx] || "").toString().trim() : "";
+  };
+
+  const rule = getVal(/^(룰|룰모드|룰시스템|시스템|mode|rule)$/i, 1);
+  const tags = getVal(/^(태그|서사태그|장르|키워드|tags?)$/i, 2);
+  const synopsis = getVal(/^(공개시놉시스|시놉시스|줄거리|synopsis)$/i, 3);
+  const opening = getVal(/^(서막|도입|도입부|오프닝|opening)$/i, 4);
+  const truth = getVal(/^(키퍼전용진상|진상|비밀|기밀|truth)$/i, 5);
+
+  const pcName = getVal(/^(pc이름|pc명|주인공이름|주인공|pc)$/i, 6);
+  const pcJob = getVal(/^(pc직업|주인공직업|직업)$/i, 7);
+  const pcAgeGender = getVal(/^(pc나이|나이성별|연령성별|나이\/성별)$/i, 8);
+  const pcBg = getVal(/^(pc배경|백스토리|pc성격|성격)$/i, 9);
+  const pcMission = getVal(/^(pc사명|공개사명|사명)$/i, 10);
+  const pcSecret = getVal(/^(pc비밀|숨겨진비밀)$/i, 11);
+  const pcImg = getVal(/^(pc이미지|pc초상화|pc사진)$/i, 12);
+
+  const skills = getVal(/^(특기|습득특기|보유특기|skills?)$/i, 13);
+  const curiosity = getVal(/^(호기심|호기심분야)$/i, 14);
+  const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
+
+  const n1Name = getVal(/^(npc1이름|kpc이름|kpc1이름|파트너이름)$/i, 16);
+  const n1Job = getVal(/^(npc1직업|kpc직업|kpc1직업|파트너직업)$/i, 17);
+  const n1Detail = getVal(/^(npc1상세|kpc상세|kpc1상세|npc1특징)$/i, 18);
+  const n1Secret = getVal(/^(npc1비밀|kpc비밀|kpc1비밀)$/i, 19);
+  const n1Img = getVal(/^(npc1이미지|kpc이미지|kpc1이미지)$/i, 20);
+
+  const n2Name = getVal(/^(npc2이름|kpc2이름)$/i, 21);
+  const n2Job = getVal(/^(npc2직업|kpc2직업)$/i, 22);
+  const n2Detail = getVal(/^(npc2상세|kpc2상세)$/i, 23);
+  const n2Secret = getVal(/^(npc2비밀|kpc2비밀)$/i, 24);
+  const n2Img = getVal(/^(npc2이미지|kpc2이미지)$/i, 25);
+
+  const n3Name = getVal(/^(npc3이름|kpc3이름)$/i, 26);
+  const n3Job = getVal(/^(npc3직업|kpc3직업)$/i, 27);
+  const n3Detail = getVal(/^(npc3상세|kpc3상세)$/i, 28);
+  const n3Secret = getVal(/^(npc3비밀|kpc3비밀)$/i, 29);
+  const n3Img = getVal(/^(npc3이미지|kpc3이미지)$/i, 30);
+
+  const n4Name = getVal(/^(npc4이름|kpc4이름)$/i, 31);
+  const n4Job = getVal(/^(npc4직업|kpc4직업)$/i, 32);
+  const n4Detail = getVal(/^(npc4상세|kpc4상세)$/i, 33);
+  const n4Secret = getVal(/^(npc4비밀|kpc4비밀)$/i, 34);
+  const n4Img = getVal(/^(npc4이미지|kpc4이미지)$/i, 35);
 
   const kpcList = [];
   const rawNpcs = [
@@ -287,9 +376,8 @@ function convertRowToPreset(row, index, headers = []) {
     { name: n4Name, job: n4Job, detail: n4Detail, secret: n4Secret, img: n4Img }
   ];
 
- rawNpcs.forEach((npc, i) => {
+  rawNpcs.forEach((npc, i) => {
     if (npc.name && npc.name.trim()) {
-      // 🌟 상세 설정 본문 속 상태메시지 추출 ("상태메시지: ...", "상메: ...")
       const statMatch = (npc.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
       const extractedStatus = statMatch ? statMatch[1].trim() : "";
 
@@ -301,45 +389,51 @@ function convertRowToPreset(row, index, headers = []) {
         secret: npc.secret || "",
         portraitUrl: npc.img || "",
         showSecret: false,
-        statusMessage: extractedStatus // 👈 구글 시트에 적힌 상태메시지를 정상 보존!
+        statusMessage: extractedStatus
       });
     }
   });
 
-// 🌟 [1] 공개 여부 확인 (체크 해제, '비공개', 'X', 'N' 등일 경우 즉시 제외)
-  const isPublicIdx = headers.findIndex(h => /공개여부|공개|상태/i.test(h?.replace(/\s+/g, '') || ""));
-  if (isPublicIdx !== -1) {
-    const pubVal = (row[isPublicIdx] || "").toString().trim().toUpperCase();
-    const isHidden = pubVal === "FALSE" || pubVal === "비공개" || pubVal === "X" || pubVal === "N" || pubVal === "준비중";
-    if (isHidden) return null;
-  }
-
-  // 🌟 [2] 옮겨진 CG 열 위치 자동 탐색 (못 찾으면 기존 61번 인덱스 기본값 사용)
-  const cgStartIdx = headers.findIndex(h => /^(cg1|이벤트cg1|cg\s*1)/i.test(h?.replace(/[\s_]/g, '') || ""));
-  const startCol = cgStartIdx !== -1 ? cgStartIdx : 61;
+  // 🌟 [2] 옮겨진 CG 열 자동 탐색
+  const cgStartIdx = findIdx(/^(cg1|이벤트cg1|cg\s*1|cg1제목)/i);
+  const startCol = cgStartIdx !== -1 ? cgStartIdx : (61 + (titleIdx > 0 ? titleIdx : 0));
 
   const eventCgs = [];
   for (let c = startCol; c + 2 < row.length; c += 3) {
     const cgTitle = row[c]?.trim();
     const cgTrigger = row[c + 1]?.trim();
     const cgUrl = row[c + 2]?.trim();
-    if (cgTitle && cgUrl) {
+    if (cgTitle && cgUrl && cgUrl.startsWith("http")) {
       eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
     }
   }
 
-  // 🌟 [3] 헤더에서 '세션카드' 열 찾아 이미지 주소 가져오기
-  const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
-  const sessionCardImg = thumbIdx !== -1 ? row[thumbIdx]?.trim() : "";
+  // 🌟 [3] 세션카드 열 탐색
+  const thumbIdx = findIdx(/^(세션카드|대표이미지|썸네일|표지)$/i);
+  let sessionCardImg = thumbIdx !== -1 ? (row[thumbIdx] || "").trim() : "";
+  if (!sessionCardImg && titleIdx > 0) {
+    for (let k = 0; k < titleIdx; k++) {
+      const cand = (row[k] || "").trim();
+      if (cand.startsWith("http")) {
+        sessionCardImg = cand;
+        break;
+      }
+    }
+  }
 
-  // 🌟 [4] '미연시', '연애', 'dating' 입력 시 'dating' 모드로 통일 매핑
+  // 🌟 [4] '미연시' 한글 및 'dating' 완벽 매핑
   const rawRule = (rule || "").toString().trim();
-  const resolvedMode = /미연시|연애|dating/i.test(rawRule) ? "dating" : (rawRule.toLowerCase() || "insane");
+  let resolvedMode = "insane";
+  if (/미연시|연애|dating/i.test(rawRule)) resolvedMode = "dating";
+  else if (/크툴루|coc/i.test(rawRule)) resolvedMode = "coc";
+  else if (/인세인|insane/i.test(rawRule)) resolvedMode = "insane";
+  else if (/자유|free/i.test(rawRule)) resolvedMode = "freeform";
+  else if (rawRule) resolvedMode = rawRule.toLowerCase();
 
   return {
     id: 9000000000000 + index,
-    presetTitle: title || "새 시나리오",
-    scenarioTitle: title || "새 시나리오",
+    presetTitle: title,
+    scenarioTitle: title,
     thumbnail: sessionCardImg,
     wizardMode: resolvedMode,
     playPreference: tags || "",
@@ -804,16 +898,18 @@ const [showPortraitEditModal, setShowPortraitEditModal] = useState(false);
 // 🌟 구글 스프레드시트 CSV 웹 게시 링크
   const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSW9Hbl6ff0YfgT7HIv-TccO8uBDQuOXCW4sucirgJg-U4Yd2uKns18wf32GKwxNfU0at8zROcVi-HI/pub?gid=593455354&single=true&output=csv";
 
-  useEffect(() => {
+ useEffect(() => {
     if (GOOGLE_SHEET_CSV_URL && GOOGLE_SHEET_CSV_URL.trim() !== "" && !GOOGLE_SHEET_CSV_URL.includes("여기에")) {
       fetch(GOOGLE_SHEET_CSV_URL)
         .then(res => res.text())
         .then(csvText => {
           const rows = parseCSV(csvText);
           const headers = rows[0] || [];
+          
+          // 🌟 null(비공개) 행을 목록에서 깨끗하게 제외
           const sheetPresets = rows.slice(1)
-            .filter(r => r[0] && r[0].trim())
-            .map((row, idx) => convertRowToPreset(row, idx, headers)); 
+            .map((row, idx) => convertRowToPreset(row, idx, headers))
+            .filter(Boolean);
 
           if (sheetPresets.length > 0) {
             setOfficialPresets(sheetPresets);
