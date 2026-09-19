@@ -2285,19 +2285,16 @@ const processScenarioText = (rawText) => {
   if (kpcSection) {
     const kText = kpcSection[1];
     const kName = (kText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "파트너";
-    const kJob = (kText.match(/(?:직업|역할\/직업|직업\/역할)\s*[:：]\s*([^\n\r]+)/i) || [])[1] 
-      || (kText.match(/역할\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
+    const kJob = (kText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
     
     // 성별, 나이 추출
     const kGender = (kText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
     const kAge = (kText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
 
-    // 상세 본문 추출 및 성별/나이/역할 줄글 청소
-    let kDetail = (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i) || [])[1] 
-      || (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    let kDetail = (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     kDetail = kDetail.replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
 
-    // 🌟 상태 메시지 및 좋아하는 것(취향) 완벽 보존
+    // 🌟 (유저가 확인한 원본 코드 100% 유지) 상태 메시지 및 좋아하는 것(취향) 추출
     const kStatus = (kText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
     const kLikes = (kText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     if (kLikes) kDetail += `\n[취향]: ${kLikes.trim()}`;
@@ -2329,17 +2326,15 @@ const processScenarioText = (rawText) => {
     const sText = match[3];
 
     const sName = (sText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || `NPC ${idx}`;
-    const sJob = (sText.match(/(?:직업|역할\/직업|직업\/역할)\s*[:：]\s*([^\n\r]+)/i) || [])[1] 
-      || (sText.match(/역할\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
+    const sJob = (sText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
 
     const sGender = (sText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
     const sAge = (sText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
 
-    let sDetail = (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i) || [])[1] 
-      || (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    let sDetail = (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     sDetail = sDetail.replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
 
-    // 🌟 서브 NPC 상태 메시지 & 취향 완벽 보존
+    // 🌟 (서브 NPC 원본 코드 100% 유지) 상태 메시지 및 좋아하는 것(취향) 추출
     const sStatus = (sText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
     const sLikes = (sText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     if (sLikes) sDetail += `\n[취향]: ${sLikes.trim()}`;
