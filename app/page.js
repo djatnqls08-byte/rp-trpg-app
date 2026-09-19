@@ -4000,20 +4000,17 @@ ${npcsSummary}
           handouts: (rawSheet.handouts || []).map(h => ({ ...h, image: (h.image || "").startsWith("data:image") ? "" : h.image }))
         } : rawSheet;
 
-/// 📞 [실시간 음성 통화(Voice Call) 절대 격리 규칙]
+// 📞 [실시간 음성 통화(Voice Call) 1:1 완전 격리 규칙]
     if (isVoiceCallActive && voiceCallNpc) {
       const callName = voiceCallNpc.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "");
       const matchedNpc = (activeSession.sheet?.npcs || []).find(n => n.name === callName) || voiceCallNpc;
-      const trueJob = matchedNpc.job || matchedNpc.title || "프리랜서 일러스트레이터";
+      const trueJob = matchedNpc.job || matchedNpc.title || "지인";
 
-      dynamicRules += `\n\n[🚨 실시간 음성 통화(Voice Call) 절대 엄수 수칙]
-1. 통화 상대 고정: 현재 통화 상대는 오직 [${callName}] (${trueJob}) 뿐입니다.
-2. ❌ 제3자 물리적 난입 전면 금지:
-   - 강태주를 포함한 그 어떤 제3자 인물도 현관문을 열거나, 발소리를 내거나, 방 안에 들이닥칠 수 없습니다.
-   - 통화 중에 가택 침입, 문 두드림, 뒤에서 지켜보기 등의 억지 서스펜스 연출을 절대 출력하지 마십시오.
-3. 🎧 청각 묘사 한정 (방 안 묘사 금지):
-   - 지문은 오직 '수화기 너머 [${callName}]의 목소리 톤, 호흡, 수화기 너머 작업실 배경음'으로만 제한하십시오.
-   - 플레이어가 있는 방 안의 상황이나 현관문 등 외부 물리 공간에 대한 서술은 일체 금지합니다.`;
+      dynamicRules += `\n\n[🚨 실시간 음성 통화(Voice Call) 엄수 규칙]
+1. 통화 상대: [${callName}] (${trueJob}) 단 한 명과의 1:1 통화입니다.
+2. 제3자 개입 전면 금지: 다른 어떤 인물도 나타나거나, 말을 걸거나, 문을 열고 들어올 수 없습니다.
+3. 공간 묘사 금지: 방 안이나 현관문 등 플레이어 쪽 물리적 공간 서술을 일체 금지하며, 오직 '수화기 너머 [${callName}]의 음성/호흡/통화 반응'만 정갈하게 서술하십시오.
+4. 직업 왜곡 금지: [${callName}]은 반드시 자신의 본업인 [${trueJob}]로서만 대화해야 합니다.`;
     }
      
         const res = await fetch("/api/chat", {
