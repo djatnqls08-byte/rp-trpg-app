@@ -3802,7 +3802,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
       { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
     ];
 
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMsetSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null, sheet: { ...s.sheet, turnCount: (s.sheet?.turnCount || 0) + 1 } } : s));essages, suggestedActions: [], pendingCheck: null } : s));
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null, sheet: { ...s.sheet, turnCount: (s.sheet?.turnCount || 0) + 1 } } : s));
     setIsLoading(true);
 
     const controller = new AbortController();
