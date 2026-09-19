@@ -428,8 +428,8 @@ function convertRowToPreset(row, index, headers = []) {
     hiddenTruth: truth || "",
     charName: pcName || "주인공",
     charJob: pcJob || "",
-    charAge: (pcAgeGender || "").split("/")[0]?.trim() || "20",
-    charGender: (pcAgeGender || "").split("/")[1]?.trim() || "여성",
+    charAge: (pcAgeGender || "").toString().match(/\d+/)?.[0] || "20",
+    charGender: (pcAgeGender || "").toString().match(/여성|남성/)?.[0] || "여성",
     charBackground: pcBg || "",
     charMission: pcMission || "",
     charSecret: pcSecret || "",
@@ -6008,7 +6008,7 @@ return (
                     onClick={() => setShowCharSecret(!showCharSecret)} 
                     style={{ width: "100%", padding: "7px", backgroundColor: showCharSecret ? `${theme.danger}15` : theme.panelAlt, border: `1px solid ${showCharSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: showCharSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", boxSizing: "border-box" }}
                   >
-                    {showCharSecret ? "🔒 내 캐릭터의 비밀 닫기" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)"}
+                    {showCharSecret ? "🔒 내 캐릭터의 비밀 닫기" : (wizardMode.startsWith("dating") ? "👀 내 캐릭터의 숨겨진 비밀 / 과거" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)")}
                   </button>
                   {showCharSecret && (
                     <textarea 
