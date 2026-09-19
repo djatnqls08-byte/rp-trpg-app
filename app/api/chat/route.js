@@ -10,7 +10,7 @@ const FALLBACK_MODELS = [
 ];
 
 export async function POST(req) {
-  try {
+  try { 
     const body = await req.json().catch(() => ({}));
     const {
       messages = [],
