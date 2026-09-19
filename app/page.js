@@ -2843,8 +2843,12 @@ useEffect(() => {
                         style={{ padding: "8px 10px", textAlign: "left", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                       >
                         🛏️ 수면 / 다음 날로 넘어가기
-                      </button>
-                      )}
+</button>
+
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* 중앙 입력칸 */}
               <textarea 
