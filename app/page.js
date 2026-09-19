@@ -345,14 +345,13 @@ function convertRowToPreset(row, index, headers = []) {
   const kpcList = [];
 
   for (let i = 1; i <= 10; i++) {
-    const offset = 16 + (i - 1) * 5; // 1번: 16, 2번: 21 ... 9번: 56, 10번: 61
+    const offset = 16 + (i - 1) * 5;
     const name = getVal(new RegExp(`^(npc${i}이름|kpc${i}이름${i === 1 ? '|kpc이름|파트너이름' : ''})$`, 'i'), offset);
     const job = getVal(new RegExp(`^(npc${i}직업|kpc${i}직업${i === 1 ? '|kpc직업|파트너직업' : ''})$`, 'i'), offset + 1);
     const detail = getVal(new RegExp(`^(npc${i}상세|kpc${i}상세${i === 1 ? '|npc1특징' : ''})$`, 'i'), offset + 2);
     const secret = getVal(new RegExp(`^(npc${i}비밀|kpc${i}비밀${i === 1 ? '|kpc비밀' : ''})$`, 'i'), offset + 3);
     const img = getVal(new RegExp(`^(npc${i}이미지|kpc${i}이미지${i === 1 ? '|kpc이미지' : ''})$`, 'i'), offset + 4);
 
-    // 🚨 [방어 장치] CG 관련 텍스트나 URL이 들어온 경우 NPC 등록 차단
     if (!name || !name.trim()) continue;
     if (/^(cg\s*\d+|이벤트\s*cg|cg_)/i.test(name.trim())) continue;
     if (name.trim().startsWith("http")) continue;
