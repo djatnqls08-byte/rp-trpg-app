@@ -785,6 +785,7 @@ export default function App() {
   const [voiceCallNpc, setVoiceCallNpc] = useState(null); // 통화 중인 상대 NPC
 const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열림/내림 상태
   const [isCallInputFocused, setIsCallInputFocused] = useState(false); // 키보드 포커스 상태
+ const [collapsedPhotos, setCollapsedPhotos] = useState({}); // 사진 접기/펼치기 상태
 
 // 🎬 시네마틱 CG 및 컷씬 상태
   const [activeCutsceneCg, setActiveCutsceneCg] = useState(null); // 현재 화면에 뜬 16:9 CG { url, title, caption }
@@ -9596,16 +9597,65 @@ ${statusGuide}
                             )}
                             <div style={{ backgroundColor: isUser ? activePhoneSkin.userBubbleBg : activePhoneSkin.npcBubbleBg, color: isUser ? activePhoneSkin.userBubbleText : activePhoneSkin.npcBubbleText, border: isUser ? "none" : `1px solid ${activePhoneSkin.npcBubbleBorder}`, padding: "9px 13px", borderRadius: isUser ? "14px 2px 14px 14px" : "2px 14px 14px 14px", fontSize: "0.84rem", lineHeight: "1.5", whiteSpace: "pre-wrap", wordBreak: "break-word", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                               
-                              {/* 📷 NPC가 보낸 일상 스냅 사진 렌더링 (클릭 시 크게보기) */}
-                              {m.photo && (
-                                <div 
-                                  onClick={() => setZoomedPortrait(m.photo)} 
-                                  style={{ marginBottom: "8px", borderRadius: "10px", overflow: "hidden", cursor: "zoom-in", border: `1px solid ${activePhoneSkin.border}` }}
-                                >
-                                  <img src={m.photo} alt="전송된 사진" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} />
-                                </div>
-                              )}
+                              {/* 📷 NPC가 보낸 사진 렌더링 (접기/펼치기 토글 탑재) */}
+{m.photo && (
+  <div style={{ marginBottom: "8px" }}>
+    <div style={{ 
+      display: "flex", 
+      justifyContent: "space-between", 
+      alignItems: "center", 
+      padding: "2px 4px 5px 4px",
+      borderBottom: collapsedPhotos[m.id || idx] ? "none" : `1px dashed ${activePhoneSkin.border}`,
+      marginBottom: collapsedPhotos[m.id || idx] ? "0" : "6px"
+    }}>
+      <span style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, display: "flex", alignItems: "center", gap: "4px" }}>
+        📷 <span>사진 첨부</span>
+      </span>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          const targetKey = m.id || idx;
+          setCollapsedPhotos(prev => ({ ...prev, [targetKey]: !prev[targetKey] }));
+        }}
+        style={{
+          background: "rgba(0, 0, 0, 0.08)",
+          border: `1px solid ${activePhoneSkin.border}`,
+          borderRadius: "10px",
+          color: activePhoneSkin.accent || activePhoneSkin.text,
+          fontSize: "0.65rem",
+          cursor: "pointer",
+          padding: "2px 8px",
+          fontWeight: "700",
+          lineHeight: 1.3
+        }}
+      >
+        {collapsedPhotos[m.id || idx] ? "▼ 사진 보기" : "▲ 사진 접기"}
+      </button>
+    </div>
 
+    {!collapsedPhotos[m.id || idx] && (
+      <div 
+        onClick={() => setZoomedPortrait(m.photo)} 
+        style={{ 
+          borderRadius: "10px", 
+          overflow: "hidden", 
+          cursor: "zoom-in", 
+          border: `1px solid ${activePhoneSkin.border}`,
+          position: "relative",
+          backgroundColor: "rgba(0,0,0,0.05)"
+        }}
+        title="클릭하여 크게 보기"
+      >
+        <img 
+          src={m.photo} 
+          alt="전송된 사진" 
+          style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} 
+        />
+      </div>
+    )}
+  </div>
+)}
                               {m.text}
                             </div>
 
