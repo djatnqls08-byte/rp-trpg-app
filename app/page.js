@@ -3313,10 +3313,47 @@ useEffect(() => {
                       return (
                         <div key={idx} style={{ alignSelf: isUser ? "flex-end" : "flex-start", maxWidth: "80%", display: "flex", flexDirection: isUser ? "row-reverse" : "row", alignItems: "flex-end", gap: "6px" }}>
                           {!isUser && <div onClick={() => setSelectedProfileNpc(currentContact)} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", flexShrink: 0, marginBottom: "2px", border: `1px solid ${activePhoneSkin.border}`, cursor: "pointer" }}><img src={currentContact?.portrait} alt="상대" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
+                          
                           <div style={{ backgroundColor: isUser ? activePhoneSkin.userBubbleBg : activePhoneSkin.npcBubbleBg, color: isUser ? activePhoneSkin.userBubbleText : activePhoneSkin.npcBubbleText, border: isUser ? "none" : `1px solid ${activePhoneSkin.npcBubbleBorder}`, padding: "9px 13px", borderRadius: isUser ? "14px 2px 14px 14px" : "2px 14px 14px 14px", fontSize: "0.84rem", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                            {m.photo && <div onClick={() => setZoomedPortrait(m.photo)} style={{ borderRadius: "10px", overflow: "hidden", cursor: "zoom-in", border: `1px solid ${activePhoneSkin.border}`, position: "relative", marginBottom: "6px" }}><img src={m.photo} alt="사진" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} /></div>}
+                            
+                            {/* 📷 NPC가 보낸 사진 렌더링 (접기/펼치기 토글 탑재) */}
+                            {m.photo && (
+                              <div style={{ marginBottom: "8px" }}>
+                                <div style={{ 
+                                  display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 4px 5px 4px",
+                                  borderBottom: collapsedPhotos[m.id || idx] ? "none" : `1px dashed ${activePhoneSkin.border}`,
+                                  marginBottom: collapsedPhotos[m.id || idx] ? "0" : "6px"
+                                }}>
+                                  <span style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, display: "flex", alignItems: "center", gap: "4px" }}>
+                                    📷 <span>사진 첨부</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const targetKey = m.id || idx;
+                                      setCollapsedPhotos(prev => ({ ...prev, [targetKey]: !prev[targetKey] }));
+                                    }}
+                                    style={{
+                                      background: "rgba(0, 0, 0, 0.08)", border: `1px solid ${activePhoneSkin.border}`, borderRadius: "10px",
+                                      color: activePhoneSkin.accent || activePhoneSkin.text, fontSize: "0.65rem", cursor: "pointer",
+                                      padding: "2px 8px", fontWeight: "700", lineHeight: 1.3
+                                    }}
+                                  >
+                                    {collapsedPhotos[m.id || idx] ? "▼ 보기" : "▲ 접기"}
+                                  </button>
+                                </div>
+            
+                                {!collapsedPhotos[m.id || idx] && (
+                                  <div onClick={() => setZoomedPortrait(m.photo)} style={{ borderRadius: "10px", overflow: "hidden", cursor: "zoom-in", border: `1px solid ${activePhoneSkin.border}`, position: "relative", backgroundColor: "rgba(0,0,0,0.05)" }} title="클릭하여 크게 보기">
+                                    <img src={m.photo} alt="전송된 사진" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", display: "block" }} />
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {m.text}
                           </div>
+                      
                           <div style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start", gap: "2px", flexShrink: 0, marginBottom: "2px" }}><span style={{ fontSize: "0.62rem", color: activePhoneSkin.textMuted }}>{m.time || ""}</span></div>
                         </div>
                       );
