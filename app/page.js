@@ -7156,7 +7156,7 @@ return (
     else if (typeof setUserInput === "function") setUserInput(originalText);
     else if (typeof setInput === "function") setInput(originalText);
 
-    // 2. 메시지 롤백
+    // 2. 세션 메시지에서 현재 유저 메시지 및 그 이후 답변 일괄 롤백
     setSessions(prev => prev.map(s => {
       if (s.id === activeSessionId) {
         const msgs = s.messages || [];
@@ -7182,7 +7182,19 @@ return (
     if (typeof setIsGenerating === "function") setIsGenerating(false);
     if (typeof setIsLoading === "function") setIsLoading(false);
   }}
-  style={{ /* 기존에 네가 쓰던 버튼 style 그대로 유지 */ }}
+  style={{
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "0.72rem",
+    color: "#999",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    marginTop: "4px",
+    padding: 0,
+    userSelect: "none"
+  }}
 >
   ⎌ 전송 취소 및 다시 쓰기
 </button>
