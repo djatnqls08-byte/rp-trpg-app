@@ -1084,7 +1084,6 @@ setLobbySaveModal(null);
   const [giftModalNpc, setGiftModalNpc] = useState(null); // 🌟 인앱 선물 선택 모달 상태
   const [clueModalNpc, setClueModalNpc] = useState(null); // 🌟 인앱 취향 수첩 팝업 상태
   const [zoomedPortrait, setZoomedPortrait] = useState(null); // 🌟 프로필 사진 크게보기 상태
- const [showSleepOptions, setShowSleepOptions] = useState(false);
   const [pendingRollback, setPendingRollback] = useState(null); // 🌟 대화 취소(롤백) 확인 모달 상태
  const [showSleepOptions, setShowSleepOptions] = useState(false); // 🌟 수면 선택 모달 상태
   const [appToast, setAppToast] = useState(null); // 🌟 화면 상단 알림 토스트
