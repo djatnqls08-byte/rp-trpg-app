@@ -51,7 +51,7 @@ export async function POST(req) {
       const pName = playerSheet?.name || "주인공";
       const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
       
-      // 🎯 대화 상대 확정 (1번 NPC 고정 문제 해결)
+      // 🎯 대화 상대 확정
       const activePartner = targetNpc || playerSheet?.npcs?.[0] || { name: "상대", job: "조력자" };
       const partnerName = activePartner.name || "상대";
       const currentAffinity = activePartner.affinity ?? activePartner.affection ?? 0;
@@ -59,8 +59,8 @@ export async function POST(req) {
 
       // 🧠 최근 기억 및 사건 수첩
       const eventsSummary = (recentEvents && recentEvents.length > 0)
-        ? recentEvents.map(e => `  * ${e}`).join("\n")
-        : "  * 특별히 기록된 사건 없음";
+        ? recentEvents.map(e => `   * ${e}`).join("\n")
+        : "   * 특별히 기록된 사건 없음";
 
       // 🌸 장르 태그 및 관계성 원칙
       const prefText = `${playPreference || ""} ${scenarioText || ""}`;
@@ -96,20 +96,20 @@ export async function POST(req) {
 1. CG 태그는 반드시 시나리오에 명시된 [핵심 사건/해금 조건]이 서사적으로 100% 충족되었을 때만 단 1회 삽입하십시오.
 2. 일상 대화, 가벼운 잡담, 식사 약속, 단순 이동 등 사건이 무르익지 않은 평이한 장면에서는 절대로 CG 태그를 조기 출력하거나 날조하지 마십시오.
 3. 목록 번호 순서(01 -> 02 -> 03...)에 절대 얽매이지 마십시오. 해당 상황에 도달하지 않았다면 엔딩까지 CG를 단 한 장도 출력하지 않아도 좋습니다.
-4. [대면 인물 엄격 일치]: 특정 인물(예: 차세경)의 CG는 반드시 현재 대면 중인 상대('${partnerName}')가 해당 인물 본인일 때만 출력할 수 있습니다. 다른 인물(예: 태주)과 대화하는 중에는 타인의 CG를 절대 출력하지 마십시오.
+4. [대면 인물 엄격 일치]: 특정 인물의 CG는 반드시 현재 대면 중인 상대('${partnerName}')가 해당 인물 본인일 때만 출력할 수 있습니다. 다른 인물과 대화하는 중에는 타인의 CG를 절대 출력하지 마십시오.
+`;
 
       let systemInstruction = "";
 
-      // ── [1. 미연시 모드: "dating"] ──
-      if (ruleMode === "dating") {
+      // ── [1. 미연시 모드: "dating" / "미연시"] ──
+      if (ruleMode === "dating" || ruleMode === "미연시") {
         if (isVoiceCall) {
-// 📱 [통화 & 대면 관계 판별]
-      const curVoiceNpc = (typeof voiceCallNpc !== "undefined" && voiceCallNpc) ? voiceCallNpc : partnerName;
-      const curFacingNpc = (typeof facingNpc !== "undefined" && facingNpc) ? facingNpc : null;
-      const isFacingSame = curFacingNpc && (curFacingNpc === curVoiceNpc);
-      const isLoveTriangle = curFacingNpc && (curFacingNpc !== curVoiceNpc);
+          const curVoiceNpc = (typeof voiceCallNpc !== "undefined" && voiceCallNpc) ? voiceCallNpc : partnerName;
+          const curFacingNpc = (typeof facingNpc !== "undefined" && facingNpc) ? facingNpc : null;
+          const isFacingSame = curFacingNpc && (curFacingNpc === curVoiceNpc);
+          const isLoveTriangle = curFacingNpc && (curFacingNpc !== curVoiceNpc);
 
-      systemInstruction = `${coreIdentityPrompt}
+          systemInstruction = `${coreIdentityPrompt}
 [1:1 실시간 음성 통화 모드]
 - 통화 상대(수화기 너머): '${curVoiceNpc}'
 - 현장 대면 인물(눈앞의 상대): ${curFacingNpc ? `'${curFacingNpc}'` : "없음 (단독)"}
@@ -130,9 +130,8 @@ ${isFacingSame ? `
 플레이어는 눈앞의 '${curFacingNpc}'와 마주하고 있는 와중에 수화기 너머의 '${curVoiceNpc}'와 통화가 연결된 상태입니다.
 
 [🚨 통화 상대('${curVoiceNpc}')의 생생한 당황과 안달 필수 서술]
-1. 수화기 너머 '${curVoiceNpc}'는 마이크를 통해 들려오는 현장의 낯선 기척(다른 사람의 말소리, 귓속말, 책장 넘기는 소리, 침묵, 머뭇거리는 숨소리)을 듣고 크게 당황하며 불안해합니다.
-2. '${curVoiceNpc}'의 대사에 의구심과 당황, 애타는 감정을 적극적으로 담으십시오:
-   - "……유나야? 내 말 듣고 있어? 방금 옆에서 누구 목소리……?", "너 지금 어디야? 누구랑 있길래 목소리를 죽여서 받아?"
+1. 수화기 너머 '${curVoiceNpc}'는 마이크를 통해 들려오는 현장의 낯선 기척을 듣고 크게 당황하며 불안해합니다.
+2. '${curVoiceNpc}'의 대사에 의구심과 당황, 애타는 감정을 적극적으로 담으십시오.
 3. 눈앞의 '${curFacingNpc}'는 수화기 너머로 새어 나오는 당황한 목소리와 PC의 굳은 표정을 흥미롭거나 서늘하게 관찰하며 심리적으로 압박합니다.
 4. 한 지문 안에 [수화기 너머 '${curVoiceNpc}'의 당황한 대사] + [눈앞 '${curFacingNpc}'의 서늘한 시선]을 반드시 함께 교차 서술하십시오!
 ` : `
@@ -149,12 +148,10 @@ ${isFacingSame ? `
 - 통화 종료 시: <!-- END_CALL: {"reason": "종료사유"} -->
 - 특이 사건 박제: <!-- EVENT_FLAG: "사건 요약" -->`;
 
-          // 📱 통화 모드 프롬프트 AI에게 주입
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
           formattedContents.push({ role: "model", parts: [{ text: `네, ${curVoiceNpc}와의 실시간 음성 통화 지침을 준수하여 현장과 연동해 진행하겠습니다.` }] });
 
         } else if (isPhoneChat) {
-          // 📱 [B. 1:1 메신저 모드]
           systemInstruction = `${coreIdentityPrompt}
 [1:1 스마트폰 메신저 모드]
 당신은 '${pName}'과 1:1 톡을 주고받고 있는 '${partnerName}' 본인입니다!
@@ -182,7 +179,6 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
           formattedContents.push({ role: "model", parts: [{ text: "괄호 지문 없이 순수 메신저 텍스트와 사진 태그만 전송하겠습니다." }] });
 
         } else {
-          // 📖 [C. 대면 비주얼 노벨 소설 서사]
           let recentPhoneSummary = "";
           if (playerSheet?.phoneChats) {
             const phoneLogs = [];
@@ -251,7 +247,7 @@ ${recentPhoneSummary}
 - 이성(SAN) 체크: <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->
 - 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
         } else if (ruleMode === "insane") {
-rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 통합 게임마스터 수칙]
+          rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 통합 게임마스터 수칙]
 현재 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
 - 언어 규칙: 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 광기 발현 등)만 사용하십시오. 영어 병기 금지.
 - 66대 정규 특기 체계 엄수.
@@ -278,7 +274,8 @@ rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 통합 게임마스터 수�
 - 감정 판정: <!-- EMOTION: {"target": "${partnerName}"} -->
 - 마스터 장면: <!-- MASTER_SCENE: {"title": "사건명"} -->
 - 장면 전환: <!-- ADVANCE_SCENE -->
-- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "내용"} --> (※ 플레이어가 보유한 광기의 트리거가 달성되었을 때만 제한적 사용)`;
+- 광기 발현: <!-- TRIGGER_MADNESS: {"name": "광기명", "desc": "내용"} -->`;
+        } else {
           rulePrompt = `[자유 서사 모드]
 - 주사위 판정 없이 문학적인 대사와 감정선에 집중하십시오.
 - 위기 시 선택적 판정 요구: <!-- CHECK: {"action": "행동", "target": 10} -->`;
@@ -311,7 +308,7 @@ ${eventsSummary}
         formattedContents.push({ role: "model", parts: [{ text: "경어체로 일관되게 서술하며 정규 룰을 준수하여 진행하겠습니다." }] });
       }
 
-      // 🌟 대화 히스토리 슬라이싱 최적화 (최근 20턴)
+      // 🌟 최근 20턴 히스토리 병합
       const recentHistory = msgList.slice(-20);
 
       for (const m of recentHistory) {
@@ -330,10 +327,8 @@ ${eventsSummary}
     let responseText = null;
     let lastError = null;
 
-    // 🎲 등록된 키들을 무작위로 섞어 요청 분산
     const shuffledKeys = [...apiKeys].sort(() => Math.random() - 0.5);
 
-    // 🔄 키 순회 (특정 키가 429 한도 초과 시 다음 키로 자동 전환)
     for (const currentKey of shuffledKeys) {
       const genAI = new GoogleGenerativeAI(currentKey);
 
@@ -356,7 +351,7 @@ ${eventsSummary}
     }
 
     if (!responseText) throw lastError || new Error("모든 API 키 및 예비 모델의 한도가 초과되었습니다.");
-    // 메신저 모드 괄호 묘사 강제 제거
+
     if (isPhoneChat && responseText) {
       responseText = responseText
         .replace(/^\s*\([\s\S]*?\)\s*/g, "")
