@@ -4118,14 +4118,15 @@ ${npcsSummary}
         rawText = rawText.replace(callMatch[0], "").trim();
       }
 
-      // 3. 상대방이 먼저 전화 끊음 감지
-      const endCallMatch = rawText.match(/<!--\s*END_CALL:\s*(\{[\s\S]*?\})\s*-->/);
-      if (endCallMatch) {
-        setIsVoiceCallActive(false);
-        setVoiceCallNpc(null);
-        rawText = rawText.replace(endCallMatch[0], "").trim();
-      }
-
+      // 3. 상대방이 먼저 전화 끊음 감지 (유저가 직접 빨간 버튼 누를 때만 종료되도록 차단)
+/*
+const endCallMatch = rawText.match(/<!--\s*END_CALL:\s*(\{[\s\S]*?\})\s*-->/);
+if (endCallMatch) {
+  setIsVoiceCallActive(false);
+  setVoiceCallNpc(null);
+  rawText = rawText.replace(endCallMatch[0], "").trim();
+}
+*/
       // 4. 사건 기억 플래그 박제
       const eventMatch = rawText.match(/<!--\s*EVENT_FLAG:\s*"([^"]+)"\s*-->/);
       if (eventMatch) {
@@ -7208,50 +7209,37 @@ return (
                       </div>
 
                       {isLastUser && !isLoading && (
-<button
-  type="button"
+<span
   onClick={() => {
-    // 1. 취소한 내 대사를 입력창에 복원
+    // 1. 입력창 글 복원
     const originalText = m.text || "";
     if (typeof setInputText === "function") setInputText(originalText);
     else if (typeof setUserInput === "function") setUserInput(originalText);
     else if (typeof setInput === "function") setInput(originalText);
 
-    // 2. 세션 메시지 및 해당 턴 이후 들어온 메신저(phoneChats) 동기화 롤백
+    // 2. 본문 대화 및 메신저에 방금 온 문자까지 동시 롤백
     setSessions(prev => prev.map(s => {
       if (s.id === activeSessionId) {
         const msgs = s.messages || [];
         let targetIdx = m.id ? msgs.findIndex(item => item.id === m.id) : -1;
-        if (targetIdx === -1) {
-          targetIdx = msgs.findIndex(item => item === m || (item.text === m.text && item.role === "user"));
-        }
-        if (targetIdx === -1 && typeof idx === "number") {
-          targetIdx = idx;
-        }
+        if (targetIdx === -1) targetIdx = idx;
+
+        // 📱 메신저 톡에 방금 쌓인 메시지도 같이 롤백
+        const currentChats = { ...(s.sheet?.phoneChats || {}) };
+        Object.keys(currentChats).forEach(contactId => {
+          const chatList = currentChats[contactId];
+          if (Array.isArray(chatList) && chatList.length > 0) {
+            currentChats[contactId] = chatList.slice(0, -1);
+          }
+        });
 
         if (targetIdx !== -1) {
-          const targetMsg = msgs[targetIdx];
-          const rollbackTimestamp = targetMsg?.id && typeof targetMsg.id === "number" ? targetMsg.id : Date.now();
-
-          // 메신저에 그 턴 이후 들어온 선톡/답장도 함께 롤백하여 시간선 일치시킴
-          const currentPhoneChats = s.sheet?.phoneChats || {};
-          const rolledBackPhoneChats = {};
-          
-          Object.keys(currentPhoneChats).forEach(contactKey => {
-            rolledBackPhoneChats[contactKey] = (currentPhoneChats[contactKey] || []).filter(pMsg => {
-              if (pMsg.id && typeof pMsg.id === "number") {
-                return pMsg.id < rollbackTimestamp;
-              }
-              return true;
-            });
-          });
-
           return {
             ...s,
             messages: msgs.slice(0, targetIdx),
             sheet: {
               ...s.sheet,
-              phoneChats: rolledBackPhoneChats
+              phoneChats: currentChats
             }
           };
         }
@@ -7259,29 +7247,22 @@ return (
       return s;
     }));
 
-    // 3. 통신 및 로딩 락 해제
     if (typeof setIsGenerating === "function") setIsGenerating(false);
     if (typeof setIsLoading === "function") setIsLoading(false);
   }}
   style={{
-    background: "transparent",
-    backgroundColor: "transparent",
-    border: "none",
-    outline: "none",
-    boxShadow: "none",
     cursor: "pointer",
-    fontSize: "0.72rem",
-    color: "#999",
+    fontSize: "0.75rem",
+    color: "#888",
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
     marginTop: "4px",
-    padding: 0,
     userSelect: "none"
   }}
 >
   ⎌ 전송 취소 및 다시 쓰기
-</button>
+</span>
                       )}
                     </div>
                   </div>
@@ -8992,6 +8973,8 @@ return (
             const messagesForApi = updatedChatList.map(m => ({ role: m.sender === "user" ? "user" : "model", text: m.photo ? `[사진 전송] ${m.text}` : m.text }));
             const recentStoryContext = (activeSession.messages || []).slice(-3).map(m => m.text).join("\n\n");
 
+
+           
             const fullGenreText = `${activeSession?.title || ""} ${activeSession?.preference || ""} ${activeSession?.scenarioText || ""}`.toLowerCase();
             const isFantasySetting = /판타지|중세|무협|동양|사극|황실|마법|오컬트|차원/.test(fullGenreText) || phoneTheme === "parchment";
 
@@ -8999,25 +8982,28 @@ return (
               ? `- [판타지/시대극 배경]: 주인공이 통신석/마도구에 띄워둔 전언: "${activeSession?.sheet?.statusMessage || "(남겨진 글귀 없음)"}"\n- 현대적 단어(상태메시지, 카톡 등)를 금지하고 "통신석의 글귀", "마도구 너머로 비친 심경", "남겨두신 전언"으로 격조 높게 표현하십시오.`
               : `- [현대/일상 배경]: 주인공의 메신저 프로필 상태메시지: "${activeSession?.sheet?.statusMessage || "(상태메시지 없음)"}"\n- "프로필에 적어둔 상태메시지", "상메", "프로필 글귀" 등 자연스러운 일상 어휘로 언급하며 대화를 풀어가십시오.`;
 
-            const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수칙]
+const phoneContextNotice = `\n\n[🎉 메신저 톡 캐릭터 빙의 필수 수칙]
 1. 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact?.title || "인물"})
 - [인물 외모 및 성격/관계성]: ${currentContact?.detail || "설정 없음"}
 - [감춰둔 속마음/비밀]: ${currentContact?.secret || "없음"}
 
-2. [말투/성격 절대 유지 (캐붕 금지)]
-- 가벼운 카톡 말투(예: 'ㅋㅋ', '헤헤', 유치한 장난, 뜬금없는 반말)는 절대 금지합니다.
-- 반드시 '${partnerName}' 고유의 캐릭터성(서늘하고 단아한 분위기, 차분한 어조, 절제된 태도 등)을 엄격히 지키십시오.
-
-3. [선톡 맥락 인정]
-- 위 대화의 첫 선톡은 당신(${partnerName})이 직접 보낸 문자가 맞습니다.
-- 플레이어가 답장한 것이니 "내가 언제 문자를 보냈냐"며 발뺌하지 말고, 본인의 캐릭터 성격에 맞게 대화를 이어가십시오.
-
-4. [주인공의 상태메시지/전언 인지 수칙]
 ${statusGuide}
-- 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.
+- 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 반응하십시오.
 
-// phoneContextNotice 구역
-- [중요]: 바로 직전에 플레이어와 음성 통화를 나눴거나 메인 서사에서 마주친 사건이 있다면, 그 대화 내용과 감정을 기억하고 메신저 대화에 적극적으로 반영하십시오.
+- 🚨 [정보 격리 절대 수칙 (메타발언 금지)]: 당신은 플레이어(은우)가 방 안에서 혼자 겪은 일, 다른 인물(차세경, 강태주 등)과 나눈 대화나 비밀 약속을 전혀 알지 못합니다! 플레이어가 이 메신저로 먼저 털어놓고 말해주기 전까지는 절대로 다른 인물의 일이나 약속을 아는 척하지 마십시오.
+- [직전 사건 연계]: 바로 직전에 플레이어와 음성 통화를 나눴거나 마주친 사건이 있다면, 그 대화 내용과 감정을 기억하고 메신저 대화에 자연스럽게 이어가십시오.
+
+2. [말투/성격 절대 유지 (캐붕 금지)]
+- 시나리오에 정의된 '${partnerName}'의 말투, 억양, 어조, 성격을 철저히 고수하십시오.
+
+3. [메신저 톡 형식 준수]
+- 현실의 모바일 메신저 대화처럼 1~3문장 이내로 간결하고 생동감 있게 답변하십시오.
+- 소설 지문이나 해설, 나레이션을 출력하지 말고 오직 캐릭터의 대사/텍스트만 출력하십시오.
+
+4. [일상 사진 / 풍경 사진 전송 규칙]
+- 유저가 "사진 보내줘", "풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 아래 형식의 태그를 함께 출력할 수 있습니다 (셀카 및 인물 제외, 사물/풍경 전용):
+<!-- SNAP_PHOTO: {"prompt": "aesthetic work room desk with tablet and papers, warm lighting, anime masterpiece background, no humans", "caption": "작업실 풍경"} -->
+`;
 
 5. [일상 사진 / 스냅 사진 전송 규칙]
 - 유저가 "사진 보내줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
