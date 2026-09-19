@@ -209,6 +209,7 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
 당신은 두 사람의 관계를 이끄는 비주얼 노벨 마스터입니다.
 - 주인공: '${pName}' (${pcTone})
 - 현재 대면 상대: '${partnerName}' (${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점)
+- 상대방 상세 설정 및 성별: ${activePartner.detail || activePartner.desc || activePartner.setting || "설정 없음"}
 - 전체 등장인물 명단: [${allNpcNames}]
 - 현재 시간대: [${currentPhase}]
 - 최근 기억 및 사건 수첩:
