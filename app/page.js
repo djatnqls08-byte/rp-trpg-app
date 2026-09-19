@@ -1084,7 +1084,9 @@ setLobbySaveModal(null);
   const [giftModalNpc, setGiftModalNpc] = useState(null); // 🌟 인앱 선물 선택 모달 상태
   const [clueModalNpc, setClueModalNpc] = useState(null); // 🌟 인앱 취향 수첩 팝업 상태
   const [zoomedPortrait, setZoomedPortrait] = useState(null); // 🌟 프로필 사진 크게보기 상태
+ const [showSleepOptions, setShowSleepOptions] = useState(false);
   const [pendingRollback, setPendingRollback] = useState(null); // 🌟 대화 취소(롤백) 확인 모달 상태
+ const [showSleepOptions, setShowSleepOptions] = useState(false); // 🌟 수면 선택 모달 상태
   const [appToast, setAppToast] = useState(null); // 🌟 화면 상단 알림 토스트
   const [lobbySaveModal, setLobbySaveModal] = useState(null); // 🌟 로비 세팅 저장 모달
   const [lobbySaveInput, setLobbySaveInput] = useState("");
@@ -2752,49 +2754,91 @@ const adjustStat = (statName, delta) => {
     executeMessage(`[🎬 2D6 장면표 굴림: ${d1}+${d2}=${sum}번]\n"${desc}"\n(이 분위기 속에서 장면을 시작합니다.)`);
   };
  
-  const parseTagsSafely = (rawText, partnerName, currentRule) => {
+const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet) => {
     let cleanText = rawText || "";
     let parsedData = { 
       suggActions: [], pendingCheck: null, newSheetVars: {}, 
       revealedSecrets: [], investigationSpots: [], newHandouts: [],
       revealedHandoutTitles: [], shouldAdvanceScene: false,
-      triggeredMadness: null
+      triggeredMadness: null, badEndTriggered: false, unlockedCg: null
     };
 
     try {
-      const madnessMatch = cleanText.match(/<!--\s*TRIGGER_MADNESS:\s*({[\s\S]*?})\s*-{1,3}>/i);
-      if (madnessMatch) {
-        try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
+      // 🌟 [Phase 5] 배드엔딩 세이프가드 (턴 수 / 일차 가드)
+      const isBadEndTag = /\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/i.test(cleanText);
+      const currentDay = sessionSheet?.day || 1;
+      const currentTurnCount = sessionSheet?.turnCount || 0;
+      const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
+
+      if (isBadEndTag) {
+        if (isEarlyGame) {
+          cleanText = cleanText.replace(/\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/gi, "");
+          console.warn("[Phase 5 Guard] 턴 수 부족으로 AI의 조기 배드엔딩 텍스트를 차단했습니다.");
+        } else {
+          parsedData.badEndTriggered = true;
+        }
       }
 
-      // 🌟 <!-- CHECK: ... --> 와 [CHECK: ... ] 둘 다 감지하도록 확장
-      const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>|\])/i);
-      if (checkMatch) {
-        try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
+      // 🌟 [Phase 3] CG 명시적 해금 및 메타데이터 맵핑
+      const cgMatch = cleanText.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/i);
+      if (cgMatch) {
+        try { 
+          const parsedCg = JSON.parse(cgMatch[1]); 
+          const activeCgList = sessionSheet?.scenarioCgs || sessionSheet?.cgs || [];
+          parsedData.unlockedCg = activeCgList.find(c => c.title === parsedCg.title || c.title.includes(parsedCg.title)) || parsedCg;
+        } catch(e) {}
+        cleanText = cleanText.replace(cgMatch[0], "").trim();
       }
+     
+const isBadEndTag = /\[(?:Bad|Dead|파멸|사망)\s*End[^\]]*\]/i.test(cleanText);
+      const currentDay = activeSession?.sheet?.day || 1;
+      const currentTurnCount = activeSession?.sheet?.turnCount || 0;
+      const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
+
+      if (isBadEndTag) {
+        if (isEarlyGame) {
+          cleanText = cleanText.replace(/\[(?:Bad|Dead|파멸|사망)\s*End[^\]]*\]/gi, "");
+        } else {
+          parsedData.badEndTriggered = true;
+        }
+      }
+     
+      const madnessMatch = cleanText.match(/<!--\s*TRIGGER_MADNESS:\s*({[\s\S]*?})\s*-{1,3}>/i);
+      if (madnessMatch) try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
+
+      const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>\vert{}\])/i);
+      if (checkMatch) try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
 
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
-      if (suggMatch) {
-        try {
-          const rawSuggs = JSON.parse(suggMatch[1]);
-          parsedData.suggActions = rawSuggs.map(s => s.replace(/\bKPC\b/g, partnerName || "파트너"));
-        } catch(e) {}
-      }
+      if (suggMatch) try { parsedData.suggActions = JSON.parse(suggMatch[1]).map(s => s.replace(/\bKPC\b/g, partnerName || "파트너")); } catch(e) {}
 
       if (currentRule !== "insane") {
         const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
-        if (spotsMatch) {
-          try { parsedData.investigationSpots = JSON.parse(spotsMatch[1]); } catch(e) {}
-        }
+        if (spotsMatch) try { parsedData.investigationSpots = JSON.parse(spotsMatch[1]); } catch(e) {}
       }
 
       const revHandoutRegex = /<!--\s*REVEAL_HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(revHandoutRegex)) {
-        try {
-          const obj = JSON.parse(m[1]);
-          if (obj.title) parsedData.revealedHandoutTitles.push(obj.title);
-        } catch (e) {}
+        try { const obj = JSON.parse(m[1]); if (obj.title) parsedData.revealedHandoutTitles.push(obj.title); } catch (e) {}
       }
+
+      const masterSceneMatch = cleanText.match(/<!--\s*TRIGGER_MASTER_SCENE:\s*({[\s\S]*?})\s*-{1,3}>/i);
+      if (masterSceneMatch) try { parsedData.triggerMasterScene = JSON.parse(masterSceneMatch[1]); } catch (e) {}
+      if (cleanText.includes("<!-- END_MASTER_SCENE")) parsedData.endMasterScene = true;
+      if (cleanText.includes("<!-- ADVANCE_SCENE") || cleanText.includes("<!-- END_SCENE")) parsedData.shouldAdvanceScene = true;
+
+      const handoutRegex = /<!--\s*HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
+      for (const m of cleanText.matchAll(handoutRegex)) {
+        try { parsedData.newHandouts.push(JSON.parse(m[1])); } catch (e) {}
+      }
+      const statMatch = cleanText.match(/<!--\s*STATUS:\s*({[\s\S]*?})\s*-{1,3}>/i);
+      if (statMatch) try { parsedData.newSheetVars = JSON.parse(statMatch[1]); } catch (e) {}
+    } catch (e) {}
+
+    cleanText = cleanText.replace(/```html|```json|```/gi, "").replace(/(?:<!--|\[)\s*CHECK:\s*{[\s\S]*?}\s*(?:-{1,3}>|\])/gi, "").replace(/<!--[\s\S]*?-{1,3}>/g, "").replace(/<[^>]+>/g, "").replace(/\bKPC\b/g, partnerName || "파트너").trim();
+    return { cleanText, parsedData };
+  };
+ 
 // 🌟 인세인 마스터 씬(Master Scene) 트리거 및 종료 감지
       const masterSceneMatch = cleanText.match(/<!--\s*TRIGGER_MASTER_SCENE:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (masterSceneMatch) {
@@ -3774,7 +3818,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
       { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
     ];
 
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null } : s));
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMsetSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null, sheet: { ...s.sheet, turnCount: (s.sheet?.turnCount || 0) + 1 } } : s));essages, suggestedActions: [], pendingCheck: null } : s));
     setIsLoading(true);
 
     const controller = new AbortController();
@@ -3789,7 +3833,12 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     const isDating = activeSession.ruleMode?.startsWith("dating");
     const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
-    let dynamicRules = `\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
+const currentDay = activeSession.sheet?.day || 1;
+    const currentPhaseStr = currentPhase || activeSession.sheet?.currentPhase || "낮";
+    
+ let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhaseStr}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.
+    
+    [키퍼 마스터링 및 완급 조절 절대 수칙]
 1. [🚨 진상 스포일러 절대 누설 금지]
 - 시나리오의 [키퍼 전용 기밀/진상]은 마스터만 알고 있는 비밀 배경입니다.
 - 플레이어가 주사위 판정(조사/심리학 등)을 성공하거나 직접적인 증거를 목격하기 전까지는, 지문이나 해설 독백으로 흑막의 정체나 사건의 진상을 절대로 미리 설명하지 마십시오.
@@ -8269,61 +8318,17 @@ return (
                             </>
                           )}
 
-{/* 🌟 시간 흐름 & 수면 (뱀파이어/올빼미족 완벽 지원) */}
+{/* 🌟 휴식 및 수면 (깔끔한 단일 버튼으로 통합) */}
                           <div style={{ height: "1px", backgroundColor: theme.border, margin: "4px 0" }} />
-                          
-                          {/* 1. ⏳ 시간 1칸 이동 */}
                           <button 
                             type="button"
-                            onClick={() => { 
-                              const phases = ["아침", "낮", "저녁", "밤", "새벽"];
-                              const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
-                              const curIdx = phases.indexOf(curPhase);
-                              const nextIdx = (curIdx + 1) % 5;
-                              const next = phases[nextIdx];
-                              const dayPlus = nextIdx === 0 ? 1 : 0; // 새벽에서 아침으로 넘어갈 때 하루 증가
-                              
-                              setCurrentPhase(next);
-                              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
-                              setIsActionDrawerOpen(false); 
-                            }} 
-                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", color: theme.text, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            onClick={() => {
+                              setIsActionDrawerOpen(false);
+                              setShowSleepOptions(true);
+                            }}
+                            style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
                           >
-                            ⏳ 시간 보내기 (현재: {currentPhase || "낮"} ➔ 다음)
-                          </button>
-
-                          {/* 2. 🛏️ 수면 (2칸 이동 - 낮잠/밤잠 모두 대응) */}
-                          <button 
-                            type="button"
-                            onClick={() => { 
-                              const phases = ["아침", "낮", "저녁", "밤", "새벽"];
-                              const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
-                              const curIdx = phases.indexOf(curPhase);
-                              const nextIdx = (curIdx + 2) % 5;
-                              const next = phases[nextIdx];
-                              const dayPlus = (curIdx + 2) >= 5 ? 1 : 0; // 자는 동안 자정을 넘기면 하루 증가
-                              
-                              setCurrentPhase(next);
-                              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
-                              executeMessage(`[수면] 잠자리에 들어 푹 쉬고 일어납니다. 어느덧 ${next}입니다.`); 
-                              setIsActionDrawerOpen(false); 
-                            }} 
-                            style={{ padding: "8px 10px", textAlign: "left", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "8px", color: "#10b981", fontSize: "0.78rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            🛏️ 수면 취하기 (8시간 경과)
-                          </button>
-                          
-                          {/* 3. 📅 날짜 통째로 넘기기 (시간대 유지, 일차만 +1) */}
-                          <button 
-                            type="button"
-                            onClick={() => { 
-                              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, sheet: { ...s.sheet, day: (s.sheet?.day || 1) + 1 } } : s));
-                              executeMessage(`[시간 경과] 하루가 지나, 다음 날이 되었습니다.`); 
-                              setIsActionDrawerOpen(false); 
-                            }} 
-                            style={{ padding: "8px 10px", textAlign: "left", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                          >
-                            📅 하루 통째로 넘기기 (날짜 +1)
+                            🛏️ 휴식 및 수면
                           </button>
                         </div>
                       </>
@@ -10413,6 +10418,57 @@ ${statusGuide}
                 저장하기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+{/* 🌟 휴식 및 수면 선택 모달 */}
+      {showSleepOptions && (
+        <div onClick={() => setShowSleepOptions(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 160, padding: "20px" }}>
+          <div onClick={e => e.stopPropagation()} className="glass-card" style={{ width: "100%", maxWidth: "340px", padding: "24px 20px", borderRadius: "18px", color: theme.text, display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 16px 40px rgba(0,0,0,0.35)", textAlign: "center" }}>
+            <div style={{ fontWeight: "800", fontSize: "1.05rem", marginBottom: "8px" }}>🛏️ 휴식 및 수면</div>
+            <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>시간을 얼마나 보낼지 선택하세요.</div>
+            
+            <button onClick={() => {
+              const phases = ["아침", "낮", "저녁", "밤", "새벽"];
+              const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
+              const nextIdx = (phases.indexOf(curPhase) + 1) % 5;
+              const next = phases[nextIdx];
+              const dayPlus = nextIdx === 0 ? 1 : 0;
+              setCurrentPhase(next);
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
+              executeMessage(`[휴식] 잠시 휴식을 취하며 시간을 보냅니다. 어느덧 ${next}입니다.`); 
+              setShowSleepOptions(false);
+            }} style={{ padding: "12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}>
+              ⏳ 시간 보내기 (현재: {currentPhase || "낮"} ➔ 다음)
+            </button>
+
+            <button onClick={() => {
+              const phases = ["아침", "낮", "저녁", "밤", "새벽"];
+              const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
+              const nextIdx = (phases.indexOf(curPhase) + 2) % 5;
+              const next = phases[nextIdx];
+              const dayPlus = (phases.indexOf(curPhase) + 2) >= 5 ? 1 : 0;
+              setCurrentPhase(next);
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
+              executeMessage(`[수면] 잠자리에 들어 푹 쉬고 일어납니다. 어느덧 ${next}입니다.`); 
+              setShowSleepOptions(false);
+            }} style={{ padding: "12px", backgroundColor: "rgba(16, 185, 129, 0.1)", border: `1px solid rgba(16, 185, 129, 0.3)`, borderRadius: "10px", color: "#10b981", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}>
+              🛋️ 수면 취하기 (8시간 경과)
+            </button>
+            
+            <button onClick={() => {
+              setCurrentPhase("아침");
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: "아침", sheet: { ...s.sheet, currentPhase: "아침", day: (s.sheet?.day || 1) + 1 } } : s));
+              executeMessage(`[시간 경과] 하루가 지나, 다음 날이 되었습니다.`); 
+              setShowSleepOptions(false);
+            }} style={{ padding: "12px", backgroundColor: "rgba(99, 102, 241, 0.15)", border: `1px solid rgba(99, 102, 241, 0.4)`, borderRadius: "10px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}>
+              📅 하루 통째로 넘기기 (날짜 +1)
+            </button>
+
+            <button onClick={() => setShowSleepOptions(false)} style={{ padding: "10px", background: "none", border: "none", color: theme.textMuted, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", marginTop: "4px" }}>
+              닫기
+            </button>
           </div>
         </div>
       )}
