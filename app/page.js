@@ -511,28 +511,6 @@ export default function App() {
     }, animationEnabled ? 600 : 100);
   };
 
-// 🎯 [현재 대면 상대 자동 인식 및 동기화]
-    const allNpcs = activeSession.sheet?.npcs || [];
-    let matchedPartner = null;
-
-    // 대사/이동 지문에서 [인물명] 또는 인물 이름 추출
-    for (const npc of allNpcs) {
-      if (textToSend.includes(npc.name) || textToSend.includes(`[${npc.name}]`)) {
-        matchedPartner = npc;
-        break;
-      }
-    }
-
-    // 대면 상대가 감지되면 세션의 현재 타깃을 즉시 교체
-    if (matchedPartner) {
-      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-        ...s,
-        activeTargetNpcId: matchedPartner.id,
-        sheet: { ...s.sheet, activeTargetNpcId: matchedPartner.id }
-      } : s));
-    }
-
- 
 // 2. 3대 주요 행동 - 조사 완료 처리 (범용 ID 및 동적 명칭 매칭)
   const handleExecuteInvestigation = (targetType, targetObj, skillName) => {
     setInvestigationModal(null);
@@ -3757,11 +3735,31 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     return;
   }
 
+  // ⭕ 수정: 현재 대면 상대 자동 감지 및 활성 타깃 즉시 동기화
     const isDatingMsg = activeSession.ruleMode === "dating_msg";
-    const currentContactId = activeSession.activeContactId || activeSession.sheet?.npcs?.[0]?.id;
-    const currentContact = (activeSession.sheet?.npcs || []).find(n => n.id === currentContactId) || activeSession.sheet?.npcs?.[0];
+    const allNpcs = activeSession.sheet?.npcs || [];
+    
+    // 유저 입력문이나 이동 지문에서 대면한 NPC 탐색 (예: [도아영]와(과) 마주친다)
+    let detectedPartner = null;
+    for (const n of allNpcs) {
+      if (textToSend.includes(n.name) || textToSend.includes(`[${n.name}]`)) {
+        detectedPartner = n;
+        break;
+      }
+    }
+
+    const currentContactId = detectedPartner?.id || activeSession.activeContactId || activeSession.sheet?.activeContactId || allNpcs[0]?.id;
+    const currentContact = allNpcs.find(n => n.id === currentContactId) || allNpcs[0];
     const partnerName = currentContact?.name || "상대방";
 
+    // 감지된 인물이 있으면 세션 활성 타깃 업데이트
+    if (detectedPartner && detectedPartner.id !== activeSession.activeContactId) {
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s,
+        activeContactId: detectedPartner.id,
+        sheet: { ...s.sheet, activeContactId: detectedPartner.id }
+      } : s));
+    }
     const snapshotSheet = JSON.parse(JSON.stringify(activeSession.sheet || {}));
 
     // 🌟 화면 말풍선에는 주석 태그(<!-- -->)를 제거한 깨끗한 텍스트만 저장
@@ -4038,6 +4036,13 @@ ${npcsSummary}
 2. 제3자 개입 전면 금지: 다른 어떤 인물도 나타나거나, 말을 걸거나, 문을 열고 들어올 수 없습니다.
 3. 공간 묘사 금지: 방 안이나 현관문 등 플레이어 쪽 물리적 공간 서술을 일체 금지하며, 오직 '수화기 너머 [${callName}]의 음성/호흡/통화 반응'만 정갈하게 서술하십시오.
 4. 직업 왜곡 금지: [${callName}]은 반드시 자신의 본업인 [${trueJob}]로서만 대화해야 합니다.`;
+    }
+
+// 🎯 [현재 대면 상대 직업 왜곡 방지 절대 지침]
+    if (currentContact) {
+      dynamicRules += `\n\n[🚨 현재 대면 상대 정보 절대 엄수]
+- 지금 플레이어 눈앞에 있는 인물: [${currentContact.name}] (공식 직업: ${currentContact.title || currentContact.job || "설정 참조"})
+- ❌ 절대 주의: 다른 인물(강태주-피트니스 센터 대표 등)의 신분이나 직업을 [${currentContact.name}]에게 절대로 뒤집어씌우지 마십시오.`;
     }
      
         const res = await fetch("/api/chat", {
@@ -5446,38 +5451,52 @@ return (
 
                   {activeSession ? activeSession.title : "로비 (세션 생성)"}
                 </span>
-{/* 🕒 5단계 시간대 연동 배지 (새벽 / 아침 / 낮 / 저녁 / 밤) */}
-            {activeSession && (() => {
-              const curPhase = currentPhase || activeSession?.currentPhase || "낮";
-              
-              // 5가지 시간대별 아이콘 및 테마 색상 지정
-              const phaseTheme = {
-                "새벽": { icon: "🌌", bg: "#1e1b4b", color: "#c7d2fe" },
-                "아침": { icon: "🌅", bg: "#431407", color: "#fed7aa" },
-                "낮":   { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" },
-                "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
-                "노을": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
-                "밤":   { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" },
-              }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
+{/* 🕒 5단계 시간대 연동 배지 (클릭 시 수동 변경 가능) */}
+{activeSession && (() => {
+  const curPhase = currentPhase || activeSession?.currentPhase || "낮";
+  const phaseCycle = ["아침", "낮", "저녁", "밤", "새벽"];
 
-              return (
-                <div style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "11px",
-                  padding: "2px 7px",
-                  borderRadius: "10px",
-                  backgroundColor: phaseTheme.bg,
-                  color: phaseTheme.color,
-                  fontWeight: "bold",
-                  flexShrink: 0,
-                }}>
-                  <span>{phaseTheme.icon}</span>
-                  <span>{curPhase}</span>
-                </div>
-              );
-            })()}
+  const phaseTheme = {
+    "새벽": { icon: "🌌", bg: "#1e1b4b", color: "#c7d2fe" },
+    "아침": { icon: "🌅", bg: "#431407", color: "#fed7aa" },
+    "낮":   { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" },
+    "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
+    "노을": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
+    "밤":   { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" },
+  }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
+
+  return (
+    <div 
+      onClick={() => {
+        const next = phaseCycle[(phaseCycle.indexOf(curPhase === "노을" ? "저녁" : curPhase) + 1) % phaseCycle.length];
+        setCurrentPhase(next);
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          ...s,
+          currentPhase: next,
+          sheet: { ...s.sheet, currentPhase: next }
+        } : s));
+      }}
+      title="클릭하여 시간대 변경 (아침/낮/저녁/밤/새벽)"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        fontSize: "11px",
+        padding: "2px 7px",
+        borderRadius: "10px",
+        backgroundColor: phaseTheme.bg,
+        color: phaseTheme.color,
+        fontWeight: "bold",
+        flexShrink: 0,
+        cursor: "pointer",
+        userSelect: "none"
+      }}
+    >
+      <span>{phaseTheme.icon}</span>
+      <span>{curPhase}</span>
+    </div>
+  );
+})()}
              
                 {activeSession && activeSession.ruleMode === "insane" && (
                   <span style={{ 
@@ -8540,28 +8559,34 @@ return (
               </div>
             )}
    
-            {/* 🌟 미연시 모드일 때는 호감도 대형 바, TRPG일 때는 SAN/HP 표시 */}
-            {activeSession.ruleMode?.startsWith("dating") ? (
-              <div className="glass-card" style={{ padding: "14px", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "10px", border: `1.5px solid rgba(247, 101, 133, 0.4)` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.danger }}>
-                    ♥ 호감도 ({activeSession.sheet.npcs?.[0]?.name || "상대방"})
-                  </span>
-                  <strong style={{ fontSize: "0.95rem", color: theme.danger }}>
-                    {activeSession.sheet.npcs?.[0]?.affection ?? 10} / 100
-                  </strong>
-                </div>
-                {/* 호감도 게이지 바 */}
-                <div style={{ width: "100%", height: "8px", backgroundColor: theme.panelAlt, borderRadius: "4px", overflow: "hidden" }}>
-                  <div style={{ width: `${Math.min(100, activeSession.sheet.npcs?.[0]?.affection ?? 10)}%`, height: "100%", backgroundColor: theme.danger, transition: "width 0.4s ease" }} />
-                </div>
-                <div style={{ fontSize: "0.74rem", color: theme.textMuted, textAlign: "center" }}>
-                  현재 관계: <strong style={{ color: theme.text }}>
-                    {(activeSession.sheet.npcs?.[0]?.affection ?? 10) >= 80 ? "💕 깊은 유대와 애정" : (activeSession.sheet.npcs?.[0]?.affection ?? 10) >= 50 ? "✨ 미묘한 설렘 (썸)" : (activeSession.sheet.npcs?.[0]?.affection ?? 10) >= 30 ? "☕ 호감을 가진 지인" : "🌱 조심스러운 첫 만남"}
-                  </strong>
-                </div>
-              </div>
-            ) : (
+           {/* 🌟 미연시 모드: 현재 대면 중인 인물의 호감도 동적 표시 */}
+{activeSession.ruleMode?.startsWith("dating") ? (() => {
+  const npcs = activeSession.sheet?.npcs || [];
+  const curTargetId = activeSession.activeContactId || activeSession.sheet?.activeContactId;
+  const targetChar = npcs.find(n => n.id === curTargetId) || npcs[0];
+  const affVal = Number(targetChar?.affection ?? 0);
+
+  return (
+    <div className="glass-card" style={{ padding: "14px", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "10px", border: `1.5px solid rgba(247, 101, 133, 0.4)` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.danger }}>
+          ♥ 호감도 ({targetChar?.name || "상대방"})
+        </span>
+        <strong style={{ fontSize: "0.95rem", color: theme.danger }}>
+          {affVal} / 100
+        </strong>
+      </div>
+      <div style={{ width: "100%", height: "8px", backgroundColor: theme.panelAlt, borderRadius: "4px", overflow: "hidden" }}>
+        <div style={{ width: `${Math.min(100, Math.max(0, affVal))}%`, height: "100%", backgroundColor: theme.danger, transition: "width 0.4s ease" }} />
+      </div>
+      <div style={{ fontSize: "0.74rem", color: theme.textMuted, textAlign: "center" }}>
+        현재 관계: <strong style={{ color: theme.text }}>
+          {affVal >= 80 ? "💕 깊은 유대와 애정" : affVal >= 50 ? "✨ 미묘한 설렘 (썸)" : affVal >= 30 ? "☕ 호감을 가진 지인" : "🌱 조심스러운 첫 만남"}
+        </strong>
+      </div>
+    </div>
+  );
+})() : (
               <div className="glass-card" style={{ padding: "12px", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
                   <span style={{ fontWeight: "700", color: theme.danger }}>이성 (SAN):</span>
