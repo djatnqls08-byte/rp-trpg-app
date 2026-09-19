@@ -113,7 +113,8 @@ export async function POST(req) {
 [1:1 실시간 음성 통화 모드]
 - 통화 상대(수화기 너머): '${curVoiceNpc}'
 - 현장 대면 인물(눈앞의 상대): ${curFacingNpc ? `'${curFacingNpc}'` : "없음 (단독)"}
-[상대 정보] 역할: ${activePartner?.job || "인물"}, 현재 호감도: ${currentAffinity}점
+[상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
+[인물 설정 및 관계]: ${activePartner.detail || activePartner.desc || "주인공과 오랜 친분이 있는 사이"}
 
 [🚨 직전 현장 상황]
 """
