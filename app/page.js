@@ -3998,6 +3998,19 @@ ${npcsSummary}
           handouts: (rawSheet.handouts || []).map(h => ({ ...h, image: (h.image || "").startsWith("data:image") ? "" : h.image }))
         } : rawSheet;
 
+// 📞 [통화 상대 직업 왜곡 방지 절대 앵커]
+    if (isVoiceCallActive && voiceCallNpc) {
+      const callName = voiceCallNpc.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : "");
+      const matchedNpc = (activeSession.sheet?.npcs || []).find(n => n.name === callName) || voiceCallNpc;
+      const trueJob = matchedNpc.job || matchedNpc.title || "프리랜서 일러스트레이터";
+
+      dynamicRules += `\n\n[🚨 실시간 음성 통화(Voice Call) 상대 정보 절대 고정]
+- 현재 통화 중인 상대: [${callName}]
+- [${callName}]의 공식 직업/신분: [${trueJob}]
+- ❌ 절대 주의: 다른 인물(강태주-피트니스 센터 대표, 민현우 등)의 직업이나 설정을 현재 통화 상대인 [${callName}]에게 절대로 섞지 마십시오.
+- 지문이나 독백을 서술할 때 반드시 [${callName}]의 본래 직업인 [${trueJob}]에 걸맞은 행동과 묘사만 출력하십시오.`;
+    }
+     
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
