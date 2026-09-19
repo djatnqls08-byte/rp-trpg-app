@@ -5508,22 +5508,28 @@ return (
 
                   {activeSession ? activeSession.title : "로비 (세션 생성)"}
                 </span>
-{/* 🕒 5단계 시간대 연동 배지 (클릭 시 수동 변경 가능) */}
-{activeSession && (() => {
-  const curPhase = currentPhase || activeSession?.currentPhase || "낮";
-  const phaseCycle = ["아침", "낮", "저녁", "밤", "새벽"];
+{/* 🕒 5단계 시간대 연동 배지 (터치 불가 & 구버전 호환) */}
+                {activeSession && (() => {
+                  const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
+                  
+                  // 🌟 기존 세션(day 데이터가 없는 방)은 메시지 길이에 비례해 자동으로 일차를 보정합니다! (대략 15턴당 1일)
+                  const currentDay = activeSession?.sheet?.day || Math.max(1, Math.floor((activeSession?.messages?.length || 0) / 15) + 1);
+                  
+                  const phaseTheme = { "새벽": { icon: "🌌", bg: "#1e1b4b", color: "#c7d2fe" }, "아침": { icon: "🌅", bg: "#431407", color: "#fed7aa" }, "낮": { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" }, "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" }, "노을": { icon: "🌆", bg: "#4a2818", color: "#fdba74" }, "밤": { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" } }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
+                  
+                  return (
+                    <div 
+                      title="현재 진행 중인 일차와 시간대" 
+                      style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", padding: "3px 8px", borderRadius: "10px", backgroundColor: phaseTheme.bg, color: phaseTheme.color, fontWeight: "bold", flexShrink: 0, userSelect: "none" }}
+                    >
+                      <span>{phaseTheme.icon}</span>
+                      <span>{currentDay}일차 {curPhase}</span>
+                    </div>
+                  );
+                })()}
 
-  const phaseTheme = {
-    "새벽": { icon: "🌌", bg: "#1e1b4b", color: "#c7d2fe" },
-    "아침": { icon: "🌅", bg: "#431407", color: "#fed7aa" },
-    "낮":   { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" },
-    "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
-    "노을": { icon: "🌆", bg: "#4a2818", color: "#fdba74" },
-    "밤":   { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" },
-  }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
-
-// 🌟 다이내믹 룰 & 마스터 플랜
-    const currentDay = activeSession.sheet?.day || 1;
+// 🌟 [Phase 1] 시스템 시간 절대 앵커 (구버전 호환)
+    const currentDay = activeSession.sheet?.day || Math.max(1, Math.floor((activeSession.messages?.length || 0) / 15) + 1);
     let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhase || "낮"}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.`;
                   return (
                     <div 
