@@ -2277,7 +2277,7 @@ const processScenarioText = (rawText) => {
     }
   }
 
-  // ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
+// ── [4. 등장인물 (KPC 및 서브 NPC 완벽 캡처)] ──
   let parsedNpcList = [];
 
   // 1. 파트너 KPC
@@ -2285,10 +2285,19 @@ const processScenarioText = (rawText) => {
   if (kpcSection) {
     const kText = kpcSection[1];
     const kName = (kText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "파트너";
-    const kJob = (kText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
-    let kDetail = (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    const kJob = (kText.match(/(?:직업|역할\/직업|직업\/역할)\s*[:：]\s*([^\n\r]+)/i) || [])[1] 
+      || (kText.match(/역할\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조력자";
+    
+    // 성별, 나이 추출
+    const kGender = (kText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
+    const kAge = (kText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
 
-    // 상태 메시지 및 좋아하는 것(취향) 추출
+    // 상세 본문 추출 및 성별/나이/역할 줄글 청소
+    let kDetail = (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i) || [])[1] 
+      || (kText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    kDetail = kDetail.replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
+
+    // 🌟 상태 메시지 및 좋아하는 것(취향) 완벽 보존
     const kStatus = (kText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
     const kLikes = (kText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     if (kLikes) kDetail += `\n[취향]: ${kLikes.trim()}`;
@@ -2299,6 +2308,8 @@ const processScenarioText = (rawText) => {
     parsedNpcList.push({
       id: Date.now(),
       name: kName.trim(),
+      gender: kGender.trim(),
+      age: kAge.trim().replace(/[^0-9]/g, ""),
       job: kJob.trim(),
       desc: kDetail.trim(),
       detail: kDetail.trim(),
@@ -2318,15 +2329,21 @@ const processScenarioText = (rawText) => {
     const sText = match[3];
 
     const sName = (sText.match(/이름\s*[:：]\s*([^\n\r]+)/i) || [])[1] || `NPC ${idx}`;
-    const sJob = (sText.match(/(?:역할|직업|역할\/직업)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
-    let sDetail = (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    const sJob = (sText.match(/(?:직업|역할\/직업|직업\/역할)\s*[:：]\s*([^\n\r]+)/i) || [])[1] 
+      || (sText.match(/역할\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "조연";
 
-    // 상태 메시지 및 좋아하는 것(취향) 추출
+    const sGender = (sText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
+    const sAge = (sText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i) || [])[1] || "";
+
+    let sDetail = (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i) || [])[1] 
+      || (sText.match(/(?:외모\s*및\s*성격|외모|성격|관계|상세|특징)[^:\n]*\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
+    sDetail = sDetail.replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
+
+    // 🌟 서브 NPC 상태 메시지 & 취향 완벽 보존
     const sStatus = (sText.match(/(?:상태\s*메시지|상메)\s*[:：]\s*["']?([^"'\r\n]+)["']?/i) || [])[1] || "";
     const sLikes = (sText.match(/(?:좋아하는\s*것|취향|선호)\s*[:：]\s*([^\n\r]+)/i) || [])[1] || "";
     if (sLikes) sDetail += `\n[취향]: ${sLikes.trim()}`;
 
-    // 🌟 [핵심 보존] 비밀 추출 (본문 블록 내부 우선 검색 ➔ 없을 시 번호 태그 검색)
     const inBlockSecret = sText.match(/\[[^\]]*(?:비밀|사명|진상)[^\]]*\]\s*[:：]?\s*([\s\S]*?)(?=\n\s*(?:\[|\(|$))/i);
     let sSecret = "";
     if (inBlockSecret) {
@@ -2340,6 +2357,8 @@ const processScenarioText = (rawText) => {
     parsedNpcList.push({
       id: Date.now() + Math.random(),
       name: sName.trim(),
+      gender: sGender.trim(),
+      age: sAge.trim().replace(/[^0-9]/g, ""),
       job: sJob.trim(),
       desc: sDetail.trim(),
       detail: sDetail.trim(),
@@ -2354,7 +2373,6 @@ const processScenarioText = (rawText) => {
   if (parsedNpcList.length > 0) {
     setKpcList(parsedNpcList);
   }
-
   // ── [5. 핸드아웃(조사 구역, 단서, 프라이스) 강력 추출] ──
   let extractedHandouts = [];
 
