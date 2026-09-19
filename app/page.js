@@ -5924,39 +5924,41 @@ return (
                   <div onClick={() => { setActivePortraitTarget("pc"); openModal(setShowPortraitEditModal); }} style={{ width: "64px", height: "64px", borderRadius: "50%", border: `1.5px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", flexShrink: 0 }}>
   {charPortraitUrl ? <img src={charPortraitUrl} alt="PC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>초상화</span>}
 </div>
-<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
-  {/* 1행: 이름 + 성별 + 나이 */}
-  <div style={{ display: "flex", gap: "6px" }}>
-    <input 
-      type="text" 
-      value={charName} 
-      onChange={e => setCharName(e.target.value)} 
-      placeholder="이름" 
-      style={{ flex: 1, minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
-    />
+<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
+  {/* 1행: 이름 (넓게 꽉 채움) */}
+  <input 
+    type="text" 
+    value={charName} 
+    onChange={e => setCharName(e.target.value)} 
+    placeholder="이름" 
+    style={{ width: "100%", minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+  />
+
+  {/* 2행: 성별 + 나이 (모바일에서도 안 터지게 분배) */}
+  <div style={{ display: "flex", gap: "6px", width: "100%" }}>
     <input 
       type="text" 
       value={charGender} 
       onChange={e => setCharGender(e.target.value)} 
       placeholder="성별" 
-      style={{ width: "55px", textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+      style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
     />
     <input 
       type="text" 
       value={charAge} 
       onChange={e => setCharAge(e.target.value)} 
       placeholder="나이" 
-      style={{ width: "50px", textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+      style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
     />
   </div>
 
-  {/* 2행: 직업 / 역할 */}
+  {/* 3행: 직업 / 역할 (미연시 한글 지원) */}
   <input 
     type="text" 
     value={charJob} 
     onChange={e => setCharJob(e.target.value)} 
-    placeholder={wizardMode.startsWith("dating") ? "매력 키워드 / 포지션 (예: 다정함, 연하)" : "직업/역할"} 
-    style={{ padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+    placeholder={(wizardMode.startsWith("dating") || wizardMode === "미연시") ? "매력 키워드 / 포지션 (예: 다정함, 연하)" : "직업/역할"} 
+    style={{ width: "100%", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
   />
 </div>
 </div>
@@ -5964,33 +5966,33 @@ return (
                 <textarea 
                   value={charBackground} 
                   onChange={e => setCharBackground(e.target.value)} 
-                  placeholder={wizardMode.startsWith("dating") ? "성격, 취향, 평소 태도 및 분위기..." : "백스토리 및 성격..."} 
-                  style={{ width: "100%", height: "70px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", resize: "none" }} 
+                  placeholder={(wizardMode.startsWith("dating") || wizardMode === "미연시") ? "성격, 취향, 평소 태도 및 분위기..." : "백스토리 및 성격..."} 
+                  style={{ width: "100%", height: "70px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", resize: "none", boxSizing: "border-box" }} 
                 />
 
                 <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
-                  <button type="button" onClick={() => setShowCharSecret(!showCharSecret)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "600" }}>
+                  <button type="button" onClick={() => setShowCharSecret(!showCharSecret)} style={{ width: "100%", padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "600", boxSizing: "border-box" }}>
                     {showCharSecret 
-                      ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 내 비밀 닫기") 
-                      : (wizardMode.startsWith("dating") ? "👀 상대에게 숨긴 진짜 진심/고민 (Secret)" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)")}
+                      ? ((wizardMode.startsWith("dating") || wizardMode === "미연시") ? "🔒 속마음 닫기" : "🔒 내 비밀 닫기") 
+                      : ((wizardMode.startsWith("dating") || wizardMode === "미연시") ? "👀 상대에게 숨긴 진짜 진심/고민 (Secret)" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)")}
                   </button>
                   {showCharSecret && (
                     <textarea 
                       value={charSecret} 
                       onChange={e => setCharSecret(e.target.value)} 
-                      placeholder={wizardMode.startsWith("dating") ? "상대에게 털어놓지 못했던 남모를 상처나 숨겨둔 진심..." : "숨겨진 진짜 목적이나 과거"} 
-                      style={{ width: "100%", height: "55px", marginTop: "6px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", resize: "none" }} 
+                      placeholder={(wizardMode.startsWith("dating") || wizardMode === "미연시") ? "상대에게 털어놓지 못했던 남모를 상처나 숨겨둔 진심..." : "숨겨진 진짜 목적이나 과거"} 
+                      style={{ width: "100%", height: "55px", marginTop: "6px", padding: "8px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", resize: "none", boxSizing: "border-box" }} 
                     />
                   )}
                 </div>
               </div>
 
 {/* 등장인물 (KPC / 히로인) */}
-<div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+<div className="glass-card" style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "14px", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
       <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>
-        {wizardMode.startsWith("dating") ? "히로인 / 공략 상대" : "등장인물 (KPC)"}
+        {(wizardMode.startsWith("dating") || wizardMode === "미연시") ? "히로인 / 공략 상대" : "등장인물 (KPC)"}
       </span>
       <span style={{ fontSize: "0.75rem", color: theme.textMuted, backgroundColor: theme.panelAlt, padding: "2px 8px", borderRadius: "10px", border: `1px solid ${theme.border}` }}>
         {kpcList.length}명
