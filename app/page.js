@@ -4429,7 +4429,19 @@ ${npcsSummary}
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-// 🌟 [본문 메시지 자동 감지] AI가 태그를 빼먹고 본문에 [이름]: "내용"으로 썼을 때 자동 선톡 처리
+// 📱 [선톡 태그 파싱 및 본문 자동 감지 완전체]
+      let newPhoneMsg = null;
+
+      // 1) AI가 태그를 정상 출력했을 때
+      const phoneMsgMatch = rawText.match(/<!--\s*PHONE_MSG:\s*(\{[\s\S]*?\})\s*-->/i);
+      if (phoneMsgMatch) {
+        try {
+          newPhoneMsg = JSON.parse(phoneMsgMatch[1]);
+        } catch (e) {}
+        rawText = rawText.replace(phoneMsgMatch[0], "");
+      }
+
+      // 2) AI가 태그 누락하고 본문에 [이름]: "대사"로 썼을 때 자동 감지
       if (!newPhoneMsg) {
         const inlineMsgMatch = rawText.match(/\[([^\]]+)\]\s*[:：]\s*["'“]([^"'”\n\r]+)["'”]/);
         if (inlineMsgMatch) {
