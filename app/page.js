@@ -5907,137 +5907,250 @@ return (
               <textarea value={playPreference} onChange={e => setPlayPreference(e.target.value)} placeholder="#GL #쌍방구원 #달달" style={{ width: "100%", height: "55px", padding: "10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.82rem", resize: "none" }} />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
+           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", width: "100%", minWidth: 0 }}>
               
-              {/* 내 프로필 */}
-              <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* 1. 내 프로필 (PC) 카드 */}
+              <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
                   <span style={{ fontWeight: "800", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
                     {wizardMode.startsWith("dating") ? "내 프로필 (주인공)" : "내 프로필 (PC)"}
                   </span>
-                  <button onClick={() => openModal(setShowPresetModal)} style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text, whiteSpace: "nowrap", flexShrink: 0 }}>
+                  <button 
+                    type="button"
+                    onClick={() => openModal(setShowPresetModal)} 
+                    style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.text, whiteSpace: "nowrap", flexShrink: 0 }}
+                  >
                     {isMobile ? "📁 프리셋" : "📁 프리셋 불러오기"}
                   </button>
                 </div>
 
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <div onClick={() => { setActivePortraitTarget("pc"); openModal(setShowPortraitEditModal); }} style={{ width: "64px", height: "64px", borderRadius: "50%", border: `1.5px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", flexShrink: 0 }}>
-  {charPortraitUrl ? <img src={charPortraitUrl} alt="PC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>초상화</span>}
-</div>
-<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", paddingRight: kpcList.length > 1 ? "24px" : "0", minWidth: 0 }}>
-  {/* 1행: 파트너 이름 (가로 꽉 채움) */}
-  <input 
-    type="text" 
-    value={kpc.name} 
-    onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
-    placeholder={wizardMode.startsWith("dating") ? "상대 이름" : "파트너"} 
-    style={{ width: "100%", minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
-  />
+                {/* 초상화 + 기본 3단 정보 */}
+                <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", width: "100%" }}>
+                  <div 
+                    onClick={() => { setActivePortraitTarget("pc"); openModal(setShowPortraitEditModal); }} 
+                    style={{ width: "64px", height: "64px", borderRadius: "50%", border: `1.5px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", flexShrink: 0, backgroundColor: theme.inputBg }}
+                  >
+                    {charPortraitUrl ? <img src={charPortraitUrl} alt="PC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>초상화</span>}
+                  </div>
 
-  {/* 2행: 성별 + 나이 (50%씩 반반 분배) */}
-  <div style={{ display: "flex", gap: "6px", width: "100%" }}>
-    <input 
-      type="text" 
-      value={kpc.gender} 
-      onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, gender: e.target.value } : k))} 
-      placeholder="성별" 
-      style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
-    />
-    <input 
-      type="text" 
-      value={kpc.age} 
-      onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, age: e.target.value } : k))} 
-      placeholder="나이" 
-      style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
-    />
-  </div>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
+                    {/* 1행: 이름 */}
+                    <input 
+                      type="text" 
+                      value={charName} 
+                      onChange={e => setCharName(e.target.value)} 
+                      placeholder="이름" 
+                      style={{ width: "100%", minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                    />
 
-  {/* 3행: 직업 / 역할 */}
-  <input 
-    type="text" 
-    value={kpc.job} 
-    onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, job: e.target.value } : k))} 
-    placeholder={wizardMode.startsWith("dating") ? "관계 / 신분 (예: 공작 영애)" : "역할 / 직업 (예: 주연 배우)"} 
-    style={{ width: "100%", boxSizing: "border-box", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
-  />
-</div>
-</div>
+                    {/* 2행: 성별 + 나이 */}
+                    <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                      <input 
+                        type="text" 
+                        value={charGender} 
+                        onChange={e => setCharGender(e.target.value)} 
+                        placeholder="성별" 
+                        style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                      />
+                      <input 
+                        type="text" 
+                        value={charAge} 
+                        onChange={e => setCharAge(e.target.value)} 
+                        placeholder="나이" 
+                        style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                      />
+                    </div>
 
-{/* 2. 외모 및 성격 상세 설정 (이제 정상적으로 아랫줄로 내려옴) */}
-<div>
-  <textarea 
-    rows={3}
-    value={kpc.detail} 
-    onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, detail: e.target.value } : k))} 
-    placeholder={wizardMode.startsWith("dating") ? "외모, 매력적인 특징, 나와의 미묘한 관계성..." : "외모, 성격, PC와의 관계"} 
-    style={{ 
-      width: "100%", 
-      boxSizing: "border-box",
-      padding: "8px 10px", 
-      backgroundColor: theme.inputBg, 
-      border: `1px solid ${theme.border}`, 
-      borderRadius: "6px", 
-      color: theme.text, 
-      fontSize: "0.82rem",
-      lineHeight: "1.45",
-      resize: "vertical"
-    }} 
-  />
-</div>
+                    {/* 3행: 직업 / 역할 */}
+                    <input 
+                      type="text" 
+                      value={charJob} 
+                      onChange={e => setCharJob(e.target.value)} 
+                      placeholder="직업/역할" 
+                      style={{ width: "100%", minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                    />
+                  </div>
+                </div>
 
-{/* 3. 비밀/진심 토글 버튼 */}
-<button 
-  type="button" 
-  onClick={() => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, showSecret: !k.showSecret } : k))} 
-  style={{ 
-    width: "100%", 
-    padding: "7px", 
-    backgroundColor: kpc.showSecret ? `${theme.danger}15` : theme.panelAlt, 
-    border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, 
-    borderRadius: "6px", 
-    color: kpc.showSecret ? theme.danger : theme.text, 
-    cursor: "pointer", 
-    fontSize: "0.75rem", 
-    fontWeight: "700",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "6px",
-    boxSizing: "border-box"
-  }} 
->
-  {kpc.showSecret 
-    ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 비밀 닫기") 
-    : (wizardMode.startsWith("dating") ? "👀 숨겨진 진심 / 약점 열람" : "👀 이 인물의 비밀 열람 및 수정")}
-</button>
+                {/* 백스토리 및 성격 */}
+                <textarea 
+                  rows={3}
+                  value={charBackground} 
+                  onChange={e => setCharBackground(e.target.value)} 
+                  placeholder="백스토리 및 성격..." 
+                  style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", lineHeight: "1.45", resize: "vertical" }} 
+                />
 
-{/* 4. 열린 비밀/속마음 텍스트 영역 */}
-{kpc.showSecret && (
-  <textarea 
-    rows={3}
-    value={kpc.secret} 
-    onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, secret: e.target.value } : k))} 
-    placeholder={wizardMode.startsWith("dating") ? "당신에게 쉽게 드러내지 않는 진짜 속마음이나 약점..." : "숨겨진 진심이나 비밀"} 
-    style={{ 
-      width: "100%", 
-      boxSizing: "border-box",
-      padding: "8px 10px", 
-      backgroundColor: theme.inputBg, 
-      border: `1px solid ${theme.danger}`, 
-      borderRadius: "6px", 
-      color: theme.danger, 
-      fontSize: "0.8rem", 
-      lineHeight: "1.4", 
-      resize: "vertical" 
-    }} 
-  />
-)}
-</div>
-                ))}
+                {/* 내 캐릭터의 숨겨진 비밀 */}
+                <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCharSecret(!showCharSecret)} 
+                    style={{ width: "100%", padding: "7px", backgroundColor: showCharSecret ? `${theme.danger}15` : theme.panelAlt, border: `1px solid ${showCharSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: showCharSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", boxSizing: "border-box" }}
+                  >
+                    {showCharSecret ? "🔒 내 캐릭터의 비밀 닫기" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)"}
+                  </button>
+                  {showCharSecret && (
+                    <textarea 
+                      rows={3}
+                      value={charSecret} 
+                      onChange={e => setCharSecret(e.target.value)} 
+                      placeholder="나만의 숨겨진 비밀이나 진짜 사명..." 
+                      style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", marginTop: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", lineHeight: "1.4", resize: "vertical" }} 
+                    />
+                  )}
                 </div>
               </div>
-            </div>
 
+              {/* 2. 등장인물 (KPC / 히로인) 카드 */}
+              <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontWeight: "800", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
+                      {wizardMode.startsWith("dating") ? "등장인물 (상대방)" : "등장인물 (KPC)"}
+                    </span>
+                    <span style={{ fontSize: "0.68rem", padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.textMuted, fontWeight: "700" }}>
+                      {kpcList.length}명
+                    </span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setKpcList([...kpcList, { id: Date.now(), name: "", gender: "여성", age: "20", job: "", detail: "", secret: "", portraitUrl: "", showSecret: false }])} 
+                    style={{ padding: "4px 8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", fontWeight: "600", cursor: "pointer", color: theme.accent, whiteSpace: "nowrap", flexShrink: 0 }}
+                  >
+                    + 인물 추가
+                  </button>
+                </div>
+
+                {/* KPC 목록 반복문 */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {kpcList.map((kpc, idx) => (
+                    <div key={kpc.id || idx} style={{ border: `1px solid ${theme.border}`, borderRadius: "8px", padding: "12px", backgroundColor: theme.panel, display: "flex", flexDirection: "column", gap: "10px", position: "relative", width: "100%", boxSizing: "border-box" }}>
+                      
+                      {kpcList.length > 1 && (
+                        <button 
+                          type="button" 
+                          onClick={() => setKpcList(kpcList.filter((_, i) => i !== idx))} 
+                          style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", color: theme.danger, cursor: "pointer", fontSize: "0.85rem", padding: "2px" }}
+                          title="이 인물 삭제"
+                        >
+                          🗑️
+                        </button>
+                      )}
+
+                      {/* 사진 + 3단 정보 */}
+                      <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", width: "100%" }}>
+                        <div 
+                          onClick={() => { setActivePortraitTarget(kpc.id); openModal(setShowPortraitEditModal); }} 
+                          style={{ width: "56px", height: "56px", borderRadius: "50%", border: `1px dashed ${theme.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", color: theme.textMuted, flexShrink: 0, backgroundColor: theme.inputBg, cursor: "pointer", overflow: "hidden" }}
+                        >
+                          {kpc.portraitUrl ? <img src={kpc.portraitUrl} alt="KPC" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : "사진"}
+                        </div>
+
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", minWidth: 0, paddingRight: kpcList.length > 1 ? "24px" : "0" }}>
+                          {/* 1행: 이름 */}
+                          <input 
+                            type="text" 
+                            value={kpc.name} 
+                            onChange={e => {
+                              const updated = [...kpcList];
+                              updated[idx].name = e.target.value;
+                              setKpcList(updated);
+                            }} 
+                            placeholder={wizardMode.startsWith("dating") ? "상대 이름" : "파트너"} 
+                            style={{ width: "100%", minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                          />
+
+                          {/* 2행: 성별 + 나이 */}
+                          <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+                            <input 
+                              type="text" 
+                              value={kpc.gender} 
+                              onChange={e => {
+                                const updated = [...kpcList];
+                                updated[idx].gender = e.target.value;
+                                setKpcList(updated);
+                              }} 
+                              placeholder="성별" 
+                              style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                            />
+                            <input 
+                              type="text" 
+                              value={kpc.age} 
+                              onChange={e => {
+                                const updated = [...kpcList];
+                                updated[idx].age = e.target.value;
+                                setKpcList(updated);
+                              }} 
+                              placeholder="나이" 
+                              style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+                            />
+                          </div>
+
+                          {/* 3행: 직업 / 역할 */}
+                          <input 
+                            type="text" 
+                            value={kpc.job} 
+                            onChange={e => {
+                              const updated = [...kpcList];
+                              updated[idx].job = e.target.value;
+                              setKpcList(updated);
+                            }} 
+                            placeholder={wizardMode.startsWith("dating") ? "관계 / 신분 (예: 공작 영애)" : "역할 / 직업 (예: 주연 배우)"} 
+                            style={{ width: "100%", minWidth: 0, boxSizing: "border-box", padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* 외모, 성격, PC와의 관계 */}
+                      <textarea 
+                        rows={3}
+                        value={kpc.detail} 
+                        onChange={e => {
+                          const updated = [...kpcList];
+                          updated[idx].detail = e.target.value;
+                          setKpcList(updated);
+                        }} 
+                        placeholder={wizardMode.startsWith("dating") ? "외모, 매력적인 특징, 나와의 미묘한 관계성..." : "외모, 성격, PC와의 관계"} 
+                        style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", lineHeight: "1.45", resize: "vertical" }} 
+                      />
+
+                      {/* 비밀 열람 및 수정 */}
+                      <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const updated = [...kpcList];
+                            updated[idx].showSecret = !updated[idx].showSecret;
+                            setKpcList(updated);
+                          }} 
+                          style={{ width: "100%", padding: "7px", backgroundColor: kpc.showSecret ? `${theme.danger}15` : theme.panelAlt, border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: kpc.showSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", boxSizing: "border-box" }}
+                        >
+                          {kpc.showSecret 
+                            ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 비밀 닫기") 
+                            : (wizardMode.startsWith("dating") ? "👀 숨겨진 진심 / 약점 열람" : "👀 이 인물의 비밀 열람 및 수정")}
+                        </button>
+                        {kpc.showSecret && (
+                          <textarea 
+                            rows={3}
+                            value={kpc.secret} 
+                            onChange={e => {
+                              const updated = [...kpcList];
+                              updated[idx].secret = e.target.value;
+                              setKpcList(updated);
+                            }} 
+                            placeholder={wizardMode.startsWith("dating") ? "당신에게 쉽게 드러내지 않는 진짜 속마음이나 약점..." : "숨겨진 진심이나 비밀"} 
+                            style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", marginTop: "6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.danger}`, borderRadius: "6px", color: theme.danger, fontSize: "0.8rem", lineHeight: "1.4", resize: "vertical" }} 
+                          />
+                        )}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
             {/* CoC 스탯 블록 */}
             {wizardMode === "coc" && (
               <div className="glass-card" style={{ padding: "20px", border: `1.5px solid ${theme.danger}` }}>
