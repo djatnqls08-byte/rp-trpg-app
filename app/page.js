@@ -787,6 +787,7 @@ const [isCallModalOpen, setIsCallModalOpen] = useState(true); // 통화창 열�
   const [isCallInputFocused, setIsCallInputFocused] = useState(false); // 키보드 포커스 상태
  const [collapsedPhotos, setCollapsedPhotos] = useState({}); // 사진 접기/펼치기 상태
 
+
 // 🎬 시네마틱 CG 및 컷씬 상태
   const [activeCutsceneCg, setActiveCutsceneCg] = useState(null); // 현재 화면에 뜬 16:9 CG { url, title, caption }
   const [unlockedCgList, setUnlockedCgList] = useState([]); // 해금되어 앨범에 저장된 CG 목록
@@ -7212,45 +7213,60 @@ return (
 <button
   type="button"
   onClick={() => {
-    // 1. 취소한 내 대사를 입력창에 복원
-    const originalText = m.text || "";
-    if (typeof setInputText === "function") setInputText(originalText);
-    else if (typeof setUserInput === "function") setUserInput(originalText);
-    else if (typeof setInput === "function") setInput(originalText);
+    try {
+      // 1. 객체 안전 탐색 (m이든 msg든 안전하게 텍스트 추출)
+      const targetMsg = (typeof m !== "undefined" && m) ? m : (typeof msg !== "undefined" && msg) ? msg : null;
+      const originalText = targetMsg?.text || "";
+      
+      if (typeof setInput === "function") setInput(originalText);
+      else if (typeof setInputText === "function") setInputText(originalText);
+      else if (typeof setUserInput === "function") setUserInput(originalText);
 
-    // 2. 본문 대화 및 메신저에 방금 온 문자까지 동시 롤백
-    setSessions(prev => prev.map(s => {
-      if (s.id === activeSessionId) {
-        const msgs = s.messages || [];
-        let targetIdx = m.id ? msgs.findIndex(item => item.id === m.id) : -1;
-        if (targetIdx === -1) targetIdx = idx;
-
-        // 📱 메신저 톡에 방금 쌓인 메시지도 같이 롤백
-        const currentChats = { ...(s.sheet?.phoneChats || {}) };
-        Object.keys(currentChats).forEach(contactId => {
-          const chatList = currentChats[contactId];
-          if (Array.isArray(chatList) && chatList.length > 0) {
-            currentChats[contactId] = chatList.slice(0, -1);
-          }
-        });
-
-        if (targetIdx !== -1) {
-          return {
-            ...s,
-            messages: msgs.slice(0, targetIdx),
-            sheet: {
-              ...s.sheet,
-              phoneChats: currentChats
+      // 2. 세션 롤백 (실패해도 화면이 죽지 않도록 방어)
+      if (typeof setSessions === "function") {
+        setSessions(prev => prev.map(s => {
+          if (s && s.id === activeSessionId) {
+            const msgs = Array.isArray(s.messages) ? s.messages : [];
+            let targetIdx = -1;
+            
+            if (targetMsg?.id) {
+              targetIdx = msgs.findIndex(item => item.id === targetMsg.id);
             }
-          };
-        }
-      }
-      return s;
-    }));
+            if (targetIdx === -1 && targetMsg?.text) {
+              targetIdx = msgs.findIndex(item => item.text === targetMsg.text && item.role === "user");
+            }
+            if (targetIdx === -1 && typeof idx === "number") {
+              targetIdx = idx;
+            }
 
-    // 3. 통신 락 강제 해제
-    if (typeof setIsGenerating === "function") setIsGenerating(false);
-    if (typeof setIsLoading === "function") setIsLoading(false);
+            // 메신저 문자 동시 롤백
+            const currentChats = { ...(s.sheet?.phoneChats || {}) };
+            Object.keys(currentChats).forEach(cId => {
+              if (Array.isArray(currentChats[cId]) && currentChats[cId].length > 0) {
+                currentChats[cId] = currentChats[cId].slice(0, -1);
+              }
+            });
+
+            if (targetIdx > 0) {
+              return {
+                ...s,
+                messages: msgs.slice(0, targetIdx),
+                sheet: {
+                  ...s.sheet,
+                  phoneChats: currentChats
+                }
+              };
+            }
+          }
+          return s;
+        }));
+      }
+
+      if (typeof setIsGenerating === "function") setIsGenerating(false);
+      if (typeof setIsLoading === "function") setIsLoading(false);
+    } catch (err) {
+      console.error("전송 취소 중 안전 차단됨:", err);
+    }
   }}
   style={{
     background: "transparent",
@@ -7268,6 +7284,7 @@ return (
 >
   ⎌ 전송 취소 및 다시 쓰기
 </button>
+
                       )}
                     </div>
                   </div>
