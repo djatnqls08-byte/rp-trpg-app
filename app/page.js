@@ -11765,146 +11765,196 @@ ${statusGuide}
         const sceneDesc = descMatch ? descMatch[1].trim() : null;
         const hasTextContent = Boolean(quote || displayCgTitle || sceneDesc);
 
-        return (
-          <div 
-            onClick={() => setZoomedCardUrl(null)}
+      return (
+      <div
+        onClick={() => setZoomedCardUrl(null)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 99999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "radial-gradient(circle at center, rgba(15, 17, 26, 0.9) 0%, rgba(5, 6, 10, 0.98) 100%)",
+          backdropFilter: "blur(12px)",
+          cursor: "pointer",
+          padding: "20px",
+          animation: "fadeIn 0.4s ease-out"
+        }}
+      >
+        {imgUrl ? (
+          /* 🖼️ 1) 일러스트 이미지가 있을 때 (기존 풀스크린 라이트박스 + 글자 숨김 토글) */
+          <div
+            onClick={e => e.stopPropagation()}
             style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 999999,
-              backgroundColor: "rgba(0, 0, 0, 0.92)",
-              backdropFilter: "blur(10px)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "20px",
-              cursor: "zoom-out"
+              position: "relative",
+              maxWidth: "960px",
+              width: "100%",
+              aspectRatio: "16 / 9",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.9)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              backgroundColor: "#000"
             }}
           >
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                position: "relative",
-                maxWidth: "880px",
-                width: "100%",
-                borderRadius: "14px",
-                overflow: "hidden",
-                boxShadow: "0 25px 60px rgba(0, 0, 0, 0.9)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                backgroundColor: "#0b0f19"
-              }}
-            >
-              {/* 👁️ 텍스트 숨기기 / 보기 토글 버튼 */}
-              {hasTextContent && (
-                <button
-                  type="button"
-                  onClick={() => setShowCgDialog(prev => !prev)}
-                  style={{
-                    position: "absolute",
-                    top: "12px",
-                    right: "12px",
-                    zIndex: 10,
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    backgroundColor: "rgba(0, 0, 0, 0.65)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
-                    color: "#f1f5f9",
-                    fontSize: "0.75rem",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    backdropFilter: "blur(4px)",
-                    transition: "all 0.2s ease"
-                  }}
-                >
-                  {showCgDialog ? "👁️ 텍스트 숨기기" : "💬 텍스트 보기"}
-                </button>
-              )}
+            {/* 우측 상단: 👁️ 글자/대사창 숨기기/보이기 토글 버튼 */}
+            {hasTextContent && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCgDialog(prev => !prev);
+                }}
+                title={showCgDialog ? "글자 숨기기" : "글자 보이기"}
+                style={{
+                  position: "absolute",
+                  top: "16px",
+                  right: "16px",
+                  zIndex: 10,
+                  backgroundColor: "rgba(0, 0, 0, 0.65)",
+                  backdropFilter: "blur(6px)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: showCgDialog ? "#38bdf8" : "#94a3b8",
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  fontSize: "0.78rem",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                <span>{showCgDialog ? "👁️ 텍스트 숨기기" : "💬 텍스트 보기"}</span>
+              </button>
+            )}
 
-              <img 
-                src={imgUrl} 
-                alt="이벤트 일러스트" 
-                style={{ 
-                  width: "100%", 
-                  height: "auto", 
-                  maxHeight: isMobile ? (showCgDialog ? "42vh" : "75vh") : ((hasTextContent && showCgDialog) ? "68vh" : "82vh"),
-                  objectFit: "contain", 
-                  display: "block", 
-                  margin: "0 auto",
-                  transition: "max-height 0.25s ease"
-                }} 
-              />
+            {/* 원본 일러스트 이미지 */}
+            <img
+              src={imgUrl}
+              alt={displayCgTitle || "CG"}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
 
-              {/* 💬 미연시 스타일 하단 대사창 */}
-              {hasTextContent && showCgDialog && (
-               <div style={{
-    position: isMobile ? "relative" : "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: isMobile ? "12px 14px" : "16px 22px",
-    background: isMobile 
-      ? "rgba(15, 23, 42, 0.98)" 
-      : "linear-gradient(to top, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.82) 75%, transparent 100%)",
-    borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-    color: "#f8fafc"
-  }}>
-                  {/* 화자 이름 태그 */}
-                  <div style={{
-                    display: "inline-block",
-                    padding: "2px 10px",
-                    borderRadius: "4px",
-                    backgroundColor: "rgba(217, 119, 6, 0.25)",
-                    border: "1px solid rgba(245, 158, 11, 0.4)",
-                    color: "#fbbf24",
-                    fontSize: "0.82rem",
-                    fontWeight: "800",
-                    marginBottom: "8px",
-                    letterSpacing: "-0.01em"
-                  }}>
-                    {speaker || isObj.title}
+            {/* 하단 대사 및 묘사 자막 바 (showCgDialog가 true일 때만 노출) */}
+            {showCgDialog && hasTextContent && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: "32px 28px 24px",
+                  background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 70%, transparent 100%)",
+                  color: "#fff",
+                  animation: "fadeIn 0.25s ease-in-out"
+                }}
+              >
+                {quote && (
+                  <div style={{ fontSize: "1.12rem", fontWeight: "700", color: "#38bdf8", marginBottom: "6px" }}>
+                    {quote}
                   </div>
-
-                  {/* 인물 대사 (줄바꿈 & 단어 보존 스타일 적용) */}
-                  {quote && (
-                    <div style={{
-                      fontSize: "0.95rem",
-                      fontWeight: "600",
-                      lineHeight: 1.6,
-                      color: "#ffffff",
-                      letterSpacing: "-0.02em",
-                      textShadow: "0 2px 4px rgba(0,0,0,0.8)",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "keep-all"
-                    }}>
-                      {quote}
-                    </div>
-                  )}
-
-                  {/* 장면 묘사 (줄바꿈 & 단어 보존 스타일 적용) */}
-                  {sceneDesc && (
-                    <div style={{
-                      fontSize: "0.78rem",
-                      color: "#94a3b8",
-                      marginTop: "6px",
-                      lineHeight: 1.5,
-                      fontStyle: "italic",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "keep-all"
-                    }}>
-                      {sceneDesc}
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
+                {sceneDesc && (
+                  <div style={{ fontSize: "0.88rem", color: "#cbd5e1", lineHeight: "1.6" }}>
+                    {sceneDesc}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 🎬 2) 이미지가 없을 때: 타입문식 시네마틱 텍스트 컷씬 */
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: "680px",
+              width: "100%",
+              textAlign: "center",
+              padding: "48px 32px",
+              position: "relative"
+            }}
+          >
+            <div style={{
+              display: "inline-block",
+              fontSize: "0.72rem",
+              letterSpacing: "0.3em",
+              color: "rgba(255, 255, 255, 0.4)",
+              textTransform: "uppercase",
+              marginBottom: "20px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+              paddingBottom: "6px"
+            }}>
+              Memorable Scene
             </div>
 
-            <span style={{ color: "rgba(255, 255, 255, 0.7)", fontSize: "0.82rem", marginTop: "14px" }}>
-              화면 아무 곳이나 누르면 닫힙니다 ✕
-            </span>
+            <h2 style={{
+              fontSize: "1.5rem",
+              fontWeight: "600",
+              color: "#f8fafc",
+              letterSpacing: "-0.02em",
+              marginBottom: "32px",
+              fontFamily: "var(--font-serif, serif)"
+            }}>
+              {displayCgTitle}
+            </h2>
+
+            {sceneDesc && (
+              <p style={{
+                fontSize: "1.02rem",
+                lineHeight: "2.1",
+                color: "#cbd5e1",
+                wordBreak: "keep-all",
+                fontFamily: "var(--font-serif, serif)",
+                fontStyle: "italic",
+                marginBottom: "36px",
+                textShadow: "0 2px 10px rgba(0,0,0,0.5)"
+              }}>
+                “ {sceneDesc} ”
+              </p>
+            )}
+
+            {quote && (
+              <div style={{
+                padding: "16px 20px",
+                background: "rgba(255, 255, 255, 0.04)",
+                borderLeft: "2px solid #38bdf8",
+                borderRight: "2px solid #38bdf8",
+                borderRadius: "4px",
+                marginBottom: "40px"
+              }}>
+                <p style={{
+                  fontSize: "1.08rem",
+                  fontWeight: "500",
+                  color: "#38bdf8",
+                  margin: 0,
+                  lineHeight: "1.7"
+                }}>
+                  {quote}
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setZoomedCardUrl(null)}
+              style={{
+                background: "none",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                color: "rgba(255, 255, 255, 0.6)",
+                padding: "8px 24px",
+                borderRadius: "20px",
+                fontSize: "0.8rem",
+                cursor: "pointer"
+              }}
+            >
+              화면을 클릭하여 닫기
+            </button>
           </div>
-        );
-      })()}
+        )}
+      </div>
+    );
+  })()}
 
       {/* 📱 1. 통화 축소 시 상단 플로팅 미니 바 */}
       {isVoiceCallActive && !isCallModalOpen && (
