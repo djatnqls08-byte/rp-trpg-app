@@ -6052,29 +6052,44 @@ return (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", paddingRight: kpcList.length > 1 ? "24px" : "0" }}>
             {/* 1행: 이름 + 성별 + 나이 */}
             <div style={{ display: "flex", gap: "6px" }}>
-              <input 
-                type="text" 
-                value={kpc.name} 
-                onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, name: e.target.value } : k))} 
-                placeholder="이름" 
-                style={{ flex: 1, minWidth: 0, padding: "7px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
-              />
-              <input 
-                type="text" 
-                value={kpc.gender || ""} 
-                onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, gender: e.target.value } : k))} 
-                placeholder="성별" 
-                style={{ width: "50px", textAlign: "center", padding: "7px 4px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
-              />
-              <input 
-                type="text" 
-                value={kpc.age || ""} 
-                onChange={e => setKpcList(kpcList.map(k => k.id === kpc.id ? { ...k, age: e.target.value } : k))} 
-                placeholder="나이" 
-                style={{ width: "45px", textAlign: "center", padding: "7px 4px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem" }} 
-              />
-            </div>
+            {/* 1줄: 파트너 이름 꽉 채우기 */}
+<input 
+  type="text" 
+  value={kpc.name} 
+  onChange={e => {
+    const updated = [...kpcList];
+    updated[idx].name = e.target.value;
+    setKpcList(updated);
+  }} 
+  placeholder={wizardMode.startsWith("dating") ? "상대 이름" : "파트너"} 
+  style={{ width: "100%", minWidth: 0, padding: "8px 10px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+/>
 
+{/* 2줄: 성별 + 나이 반반 나누기 */}
+<div style={{ display: "flex", gap: "6px", width: "100%" }}>
+  <input 
+    type="text" 
+    value={kpc.gender} 
+    onChange={e => {
+      const updated = [...kpcList];
+      updated[idx].gender = e.target.value;
+      setKpcList(updated);
+    }} 
+    placeholder="성별" 
+    style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+  />
+  <input 
+    type="text" 
+    value={kpc.age} 
+    onChange={e => {
+      const updated = [...kpcList];
+      updated[idx].age = e.target.value;
+      setKpcList(updated);
+    }} 
+    placeholder="나이" 
+    style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "8px 6px", backgroundColor: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.82rem", boxSizing: "border-box" }} 
+  />
+</div>
             {/* 2행: 직업 / 역할 */}
             <input 
               type="text" 
