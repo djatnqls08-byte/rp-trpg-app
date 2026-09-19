@@ -506,11 +506,33 @@ export default function App() {
         ...s,
         sheet: { ...s.sheet, actionUsed: true }
       } : s));
-
+    
       executeMessage(logText);
     }, animationEnabled ? 600 : 100);
   };
 
+// 🎯 [현재 대면 상대 자동 인식 및 동기화]
+    const allNpcs = activeSession.sheet?.npcs || [];
+    let matchedPartner = null;
+
+    // 대사/이동 지문에서 [인물명] 또는 인물 이름 추출
+    for (const npc of allNpcs) {
+      if (textToSend.includes(npc.name) || textToSend.includes(`[${npc.name}]`)) {
+        matchedPartner = npc;
+        break;
+      }
+    }
+
+    // 대면 상대가 감지되면 세션의 현재 타깃을 즉시 교체
+    if (matchedPartner) {
+      setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+        ...s,
+        activeTargetNpcId: matchedPartner.id,
+        sheet: { ...s.sheet, activeTargetNpcId: matchedPartner.id }
+      } : s));
+    }
+
+ 
 // 2. 3대 주요 행동 - 조사 완료 처리 (범용 ID 및 동적 명칭 매칭)
   const handleExecuteInvestigation = (targetType, targetObj, skillName) => {
     setInvestigationModal(null);
