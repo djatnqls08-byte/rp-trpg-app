@@ -3812,6 +3812,11 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   <!-- SNAP_PHOTO: {"prompt": "1girl, solo, looking at viewer, casual clothes, anime masterpiece", "caption": "사진 한 줄 설명"} -->
   - prompt는 고화질 일러스트가 생성될 수 있도록 반드시 배경이 포함된 영문(English) 키워드로 작성하십시오.
 
+  [🚨 미등장/초면 NPC 행동 및 방문 절대 수칙]
+1. 본편 서사 내에서 아직 플레이어와 직접 조우하지 않은 NPC는 기본적으로 '초면' 상태입니다. 시트의 백스토리 관계가 있더라도 첫 대면 연출 없이 이미 친근하거나 일정을 잡은 사이처럼 날조하지 마십시오.
+2. 플레이어가 먼저 부르거나 사전 메신저/통화로 방문을 예고하지 않은 NPC가 플레이어의 집이나 작업실 등 사적 공간으로 돌발 방문하는 것을 엄격히 금지합니다.
+3. 새로운 NPC가 등장할 때는 반드시 플레이어의 이동 또는 사전 연락(전화, 톡)을 거쳐 자연스러운 인과관계를 형성하십시오.
+
 6. [돌발 전화 수신 (INCOMING_CALL) 트리거 수칙]
   - 긴급한 사건, 약속 확인, 혹은 밤/새벽 시간대 감정적인 대화가 필요한 타이밍에 다른 장소에 있는 NPC가 플레이어에게 전화를 걸어오게 할 수 있습니다. (전체 세션 중 1~2회 자연스럽게 연출)
   - 형식: 맨 끝에 <!-- INCOMING_CALL: {"name": "발신NPC이름", "urgent": true} -->
@@ -4539,6 +4544,32 @@ ${npcsSummary}
         const currentChats = newSheet.phoneChats || {};
         const contactMsgs = currentChats[contactId] || [];
         const currentTime = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+
+       // 통화 종료 시 해당 NPC 메신저에 통화 내역 브릿지 삽입
+const endCallNotice = {
+  id: Date.now(),
+  sender: "system",
+  text: `[📞 '${voiceCallNpc?.name || "상대방"}'와의 음성 통화 종료 - 통화 직후 메신저 연결됨]`,
+  time: currentTime
+};
+
+setSessions(prev => prev.map(s => {
+  if (s.id === activeSessionId) {
+    const pChats = s.sheet?.phoneChats || {};
+    const targetId = voiceCallNpc?.id || activePhoneContactId;
+    return {
+      ...s,
+      sheet: {
+        ...s.sheet,
+        phoneChats: {
+          ...pChats,
+          [targetId]: [...(pChats[targetId] || []), endCallNotice]
+        }
+      }
+    };
+  }
+  return s;
+}));
 
 // 🌟 수정 후: 일반 문장도 문장 부호 기준으로 자동 분할
 let rawItems = [];
@@ -7116,52 +7147,42 @@ return (
                       </div>
 
                       {isLastUser && !isLoading && (
-                       <button
+<button
   type="button"
   onClick={() => {
-    setTextToSend(m.text || "");
-    const cutoffTime = m.id || 0;
+    // 1. 취소한 내 대사를 입력창에 복원
+    const originalText = m.text || "";
+    if (typeof setInputText === "function") setInputText(originalText);
+    else if (typeof setUserInput === "function") setUserInput(originalText);
+    else if (typeof setInput === "function") setInput(originalText);
 
+    // 2. 메시지 롤백
     setSessions(prev => prev.map(s => {
-      if (s.id !== activeSessionId) return s;
-
-      // 1) 메인 대화 취소 (내가 취소 누른 말풍선 직전으로 되돌리기)
-      const currentMsgs = s.messages || [];
-      const targetIndex = currentMsgs.findIndex(item => item.id === m.id);
-      const newMessages = targetIndex !== -1 ? currentMsgs.slice(0, targetIndex) : currentMsgs;
-
-      // 2) 스마트폰 문자함도 해당 말풍선 이후에 온 미래 문자들 싹 제거
-      const currentChats = s.sheet?.phoneChats || {};
-      const updatedPhoneChats = {};
-
-      Object.keys(currentChats).forEach(contactId => {
-        updatedPhoneChats[contactId] = (currentChats[contactId] || []).filter(
-          pMsg => (pMsg.id || 0) < cutoffTime
-        );
-      });
-
-      return {
-        ...s,
-        messages: newMessages,
-        sheet: {
-          ...s.sheet,
-          phoneChats: updatedPhoneChats
+      if (s.id === activeSessionId) {
+        const msgs = s.messages || [];
+        let targetIdx = m.id ? msgs.findIndex(item => item.id === m.id) : -1;
+        if (targetIdx === -1) {
+          targetIdx = msgs.findIndex(item => item === m || (item.text === m.text && item.role === "user"));
         }
-      };
+        if (targetIdx === -1 && typeof idx === "number") {
+          targetIdx = idx;
+        }
+
+        if (targetIdx !== -1) {
+          return {
+            ...s,
+            messages: msgs.slice(0, targetIdx)
+          };
+        }
+      }
+      return s;
     }));
+
+    // 3. 락 강제 해제
+    if (typeof setIsGenerating === "function") setIsGenerating(false);
+    if (typeof setIsLoading === "function") setIsLoading(false);
   }}
-  style={{
-    background: "transparent",
-    border: "none",
-    color: theme?.accent || "#a855f7",
-    fontSize: "0.72rem",
-    cursor: "pointer",
-    padding: "4px 8px",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "4px",
-    opacity: 0.85
-  }}
+  style={{ /* 기존에 네가 쓰던 버튼 style 그대로 유지 */ }}
 >
   ⎌ 전송 취소 및 다시 쓰기
 </button>
@@ -8892,6 +8913,9 @@ return (
 4. [주인공의 상태메시지/전언 인지 수칙]
 ${statusGuide}
 - 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 담겨 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 이를 화제로 삼으며 대화를 시작해도 좋습니다.
+
+// phoneContextNotice 구역
+- [중요]: 바로 직전에 플레이어와 음성 통화를 나눴거나 메인 서사에서 마주친 사건이 있다면, 그 대화 내용과 감정을 기억하고 메신저 대화에 적극적으로 반영하십시오.
 
 5. [일상 사진 / 스냅 사진 전송 규칙]
 - 유저가 "사진 보내줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
