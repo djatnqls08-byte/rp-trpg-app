@@ -4390,53 +4390,31 @@ ${npcsSummary}
       }
       rawText = rawText.replace(phoneRegex, "");
 
-      // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱 (셀카 배제 & 세계관 자동 매칭)
+     // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱
       let autoSnapPhotoUrl = null;
       const autoSnapMatch = rawText.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
       if (autoSnapMatch) {
         try {
           const snapData = JSON.parse(autoSnapMatch[1]);
-          // 셀카/인물 키워드(girl, portrait, face 등)를 강제 제거하고 사물/배경 위주로 정제
           let p = (snapData.prompt || snapData.photo || snapData.caption || "")
             .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer)\b/gi, "")
             .trim();
-          if (!p) p = "aesthetic scenery, cozy atmosphere, anime background masterpiece, no humans";
+          if (!p) p = "aesthetic room scenery, cozy atmosphere, anime background masterpiece, no humans";
           autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p + ", no humans, scenery only")}?width=800&height=1000&nologo=true`;
         } catch (e) {}
         rawText = rawText.replace(autoSnapMatch[0], "");
       }
 
-      // 🌟 2) [스마트 Fallback] 태그 누락 시 시대관/사물 분석 (셀카 완전 제외)
-      if (!autoSnapPhotoUrl && newPhoneMsg) {
-        const combinedText = `${textToSend} ${newPhoneMsg.text || ""} ${rawText}`.toLowerCase();
-        const isPhotoRequested = /사진|스냅|찍|풍경|보여줘|진열장|서재|거리/.test(combinedText);
+     // 🌟 2) 유저가 명확하게 풍경/사물 사진을 요청했을 때만 안전하게 작동 (셀카/인물 완전 배제)
+          if (!autoSnapPhotoUrl && newPhoneMsg) {
+            const userSpeech = textToSend.toLowerCase();
+            const isExplicitPhotoReq = /사진\s*(?:보내|찍어|보여|줘)|풍경|인증샷/.test(userSpeech);
 
-        if (isPhotoRequested) {
-          // 장르 분석 (판타지/사극 vs SF vs 현대)
-          const fullGenre = `${activeSession?.title || ""} ${activeSession?.preference || ""}`.toLowerCase();
-          const isFantasy = /판타지|중세|황실|사극|옥션|경매장|마법|귀족/.test(fullGenre);
-
-          let topic = "aesthetic antique room scenery, warm lighting, anime masterpiece, no humans";
-
-          if (/진열장|쇼케이스|장식장|보석|유물|성유물/.test(combinedText)) {
-            topic = isFantasy 
-              ? "ornate royal antique showcase displaying glowing magical relics and jewels, grand fantasy auction hall, velvet interior, warm chandelier lighting, masterpiece background, no humans"
-              : "vintage glass showcase with subtle warm lighting, antique display cabinet, clean boutique interior, masterpiece, no humans";
-          } else if (/차|찻잔|티|커피|테이블/.test(combinedText)) {
-            topic = isFantasy
-              ? "luxurious royal porcelain tea cup on antique mahogany table, vintage lace tablecloth, afternoon sunlight, elegant fantasy indoor, no humans"
-              : "cozy cafe table with warm cup of tea, soft sunlight, aesthetic interior, no humans";
-          } else if (/서재|책|도서관|문서/.test(combinedText)) {
-            topic = "massive classical dark academia library, towering bookshelves, ancient tomes, warm candle light, dust motes in sunbeams, no humans";
-          } else if (/거리|풍경|하늘|야경|정원/.test(combinedText)) {
-            topic = isFantasy
-              ? "grand fantasy capital street, cobblestone roads, magnificent imperial architecture, twilight sky, glowing lanterns, no humans"
-              : "quiet picturesque European street at sunset, soft atmospheric lighting, beautiful background, no humans";
+            if (isExplicitPhotoReq) {
+              const topic = "aesthetic working room desk with art tablet, sketch papers, warm soft lighting, anime background masterpiece, no humans, scenery only";
+              autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic)}?width=800&height=1000&nologo=true`;
+            }
           }
-
-          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic)}?width=800&height=1000&nologo=true`;
-        }
-      }
      
 // [호감도 변화 추출 - value 및 delta 둘 다 완벽 지원]
       let affChanges = [];
@@ -8830,7 +8808,7 @@ return (
           triggerVibration("light");
 
           try {
-            const messagesForApi = updatedChatList.map(m => ({ role: m.sender === "user" ? "user" : "model", text: m.text }));
+            const messagesForApi = updatedChatList.map(m => ({ role: m.sender === "user" ? "user" : "model", text: m.photo ? `[사진 전송] ${m.text}` : m.text }));
             const recentStoryContext = (activeSession.messages || []).slice(-3).map(m => m.text).join("\n\n");
 
             const fullGenreText = `${activeSession?.title || ""} ${activeSession?.preference || ""} ${activeSession?.scenarioText || ""}`.toLowerCase();
