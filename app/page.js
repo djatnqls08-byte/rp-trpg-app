@@ -1463,33 +1463,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
   const activePalette = THEME_PALETTES[currentPalette] || THEME_PALETTES.cloud;
   const theme = isDarkMode ? activePalette.dark : activePalette.light;
 
-// 🕒 과거 대화 기록을 스캔하여 기존 세션 시간대 자동 동기화 (새로고침 즉시 반영)
-  useEffect(() => {
-    if (!activeSession?.messages || activeSession.messages.length === 0) return;
-
-    const msgs = activeSession.messages;
-    const introText = (activeSession?.sheet?.scenario || activeSession?.scenarioText || "") + " " + (msgs[0]?.text || "");
-    const recentMsgs = msgs.slice(-6);
-    const combinedText = introText + " " + recentMsgs.map(m => m.text || "").join(" ");
-
-    let detectedPhase = null;
-    if (/밤까지|자정을|밤이\s*되|어두워|촛불|깊은\s*어둠/.test(combinedText)) {
-      detectedPhase = "밤";
-    } else if (/새벽|심야|푸르스름|동이\s*트기\s*전/.test(combinedText)) {
-      detectedPhase = "새벽";
-    } else if (/아침|기상|눈을\s*뜬|다음\s*날\s*아침/.test(combinedText)) {
-      detectedPhase = "아침";
-    } else if (/저녁|노을|황혼|해질/.test(combinedText)) {
-      detectedPhase = "저녁";
-    } else if (/정오|한낮|대낮/.test(combinedText)) {
-      detectedPhase = "낮";
-    }
-
-    if (detectedPhase && detectedPhase !== currentPhase) {
-      setCurrentPhase(detectedPhase);
-    }
-  }, [activeSession?.id, activeSession?.messages?.length]);
-
+// 🕒 텍스트 단어 감지로 인한 시간 강제 워프 버그 방지를 위해 자동 동기화 비활성화
 // 🎨 [과거 기록 전수 조사] 잘못 들어간 엔딩/미도달 CG 자동 청소 및 정상 CG만 보관
   useEffect(() => {
     if (!activeSession || !activeSession.messages || activeSession.messages.length === 0) return;
@@ -3848,22 +3822,25 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   (예: "14화 피드백 대기 중", "작업실 방문 예정", "체육관 청소 중")
   
 
-4. [독점 방지, 장소 이동 배너 및 장면 순환 수칙]
-  - [독점 방지]: 특정 NPC와 대화/지문이 5~8턴 이상 길어지면 한 인물이 화면을 독점하지 않도록 자연스럽게 장면을 마무리하십시오. (예: 용건 완료, 업무/약속 시간 도래, 상호 작별 인사 등)
-  - [장소 이동 배너 발송]: PC가 다른 장소로 이동하거나 장면이 전환될 때는 반드시 아래 이동 태그를 출력하여 시스템 배너를 호출하십시오.
-    <!-- MOVE_LOCATION: {"place": "이동한 장소명", "desc": "장소 분위기나 이동 사유 (1줄)"} -->
-  - [정상적인 전환 동선 준수 (억지 난입/집착 엄금)]:
-    1) 방금 퇴장한 인물이 문을 따고 다시 들어오거나, 현관 밖에서 발소리를 내며 서성거리는 억지 침입 연출은 엄격히 금지합니다.
-    2) 새로운 장면은 [PC가 이동하여 새로운 인물을 마주치기] 또는 [사전 약속/공식적인 스케줄에 따른 조우] 방식으로만 전환하십시오.
-    3) NPC는 각자의 본업과 사회적 체면을 가진 독립적인 인격체입니다. 질투나 유치한 소유욕 때문에 사적인 경계를 무너뜨리는 얀데레식 개입을 절대 하지 마십시오.
+4. [독점 방지, 동적 장소 선택 카드(LOCATION_CARDS) 및 장면 순환 수칙]
+  - [독점 방지 & 이동 타이밍]: 대화가 일단락되거나(용건 종료, 미팅 마무리, 퇴근/귀가 등), 플레이어가 새로운 장소로 이동해야 하는 타이밍에는 지문 끝에 반드시 이동 가능한 장소 선택지 카드 2~3개를 아래 규격으로 출력하십시오:
+    <!-- LOCATION_CARDS: [
+      {"name": "목표 장소명 1", "desc": "장소 분위기 및 가야 할 사유 (1줄)", "npc": "그곳에 있는 인물명"},
+      {"name": "목표 장소명 2", "desc": "장소 분위기 및 사유", "npc": "그곳에 있는 인물명"}
+    ] -->
+  - [장소 카드 필수 포함 규칙]: 미해금된 CG 조건의 무대가 되는 장소나, 약속이 잡힌 장소(스튜디오, 펜트하우스, 작업실 등)를 반드시 최소 1곳 이상 선택지에 포함하십시오.
+  - [실제 이동 완료 시]: 플레이어가 카드를 누르거나 지문으로 이동을 선언해 새로운 장소에 도착했을 때만 아래 도착 태그를 1회 출력하십시오:
+    <!-- MOVE_LOCATION: {"place": "도착한 장소명", "desc": "도착 현장 분위기"} -->
+  - [정상적인 전환 동선 준수]: 방금 헤어진 인물이 다시 문을 열고 난입하는 억지 연출을 금지하며, 새로운 인물 조우는 오직 이동이나 사전 연락을 통해서만 전개하십시오.
 
 5. [부재중 NPC의 메신저 선톡 및 일상 사진 전송 수칙]
   - 플레이어가 현재 인물과 대화를 4~8턴 이상 주고받았을 때, **다른 장소에 있는 다른 NPC(연락처가 있는 인물)**가 플레이어에게 안부, 용건, 질투, 혹은 비밀스러운 선톡을 1회 발송하게 하십시오.
   - **[자동 사진 전송]** 유저가 요청하지 않아도, NPC의 현재 상황에 맞춰 자연스럽게 자신의 주변 풍경 사진을 함께 첨부해 보낼 수 있습니다.
   - 형식:
+ - 형식:
   <!-- PHONE_MSG: {"from": "발신NPC이름", "text": "선톡 내용 (1~2줄)"} -->
-  <!-- SNAP_PHOTO: {"prompt": "1girl, solo, looking at viewer, casual clothes, anime masterpiece", "caption": "사진 한 줄 설명"} -->
-  - prompt는 고화질 일러스트가 생성될 수 있도록 반드시 배경이 포함된 영문(English) 키워드로 작성하십시오.
+  <!-- SNAP_PHOTO: {"prompt": "cozy aesthetic cafe desk with coffee cup, warm soft lighting, anime background scenery, no humans, nobody", "caption": "사진 한 줄 설명"} -->
+  - 🚨 [사진 생성 절대 금지 수칙]: 인물, 사람, 얼굴, 셀카 생성을 엄격히 금지합니다. 오직 배경 풍경, 책상, 사물, 음식, 거리 풍경(no humans, nobody, scenery only)만 영문 키워드로 묘사하십시오.
 
   [🚨 미등장/초면 NPC 행동 및 방문 절대 수칙]
 1. 본편 서사 내에서 아직 플레이어와 직접 조우하지 않은 NPC는 기본적으로 '초면' 상태입니다. 시트의 백스토리 관계가 있더라도 첫 대면 연출 없이 이미 친근하거나 일정을 잡은 사이처럼 날조하지 마십시오.
@@ -3914,11 +3891,15 @@ currentPhase === "클라이맥스" ? `
     }
 
     if (isR19) {
-      dynamicRules += `\n\n[R19 성인 서사 특화 수칙]
-- 정사, 스킨십, 배덕감 상호작용 상황에서는 점잖은 태도를 버리고 관능적인 소설 작가로 전환하십시오.
-- NPC는 수동적인 태도에 머물지 않습니다. PC의 행동에 맞춰 상대를 밀쳐 눕히거나 옷을 벗기며 주도권을 쥐십시오.
-- 입맞춤이나 날씨 묘사에서 쳇바퀴를 돌지 말고, 신체적 접촉, 은밀한 부위의 마찰, 애무, 절정(오르가즘)의 신체 반응을 암전 없이 끝까지 직접 서술하십시오.
-- BDSM, 감각 차단, 통제, 배덕적인 언어(더티톡)를 문맥에 맞게 과감하고 자극적으로 살려내십시오.`;
+      dynamicRules += `\n\n[R19 성인 서사 & 백합(GL) 심리 수칙]
+1. [관능적 묘사]:
+- 정사, 스킨십 상황에서는 점잖은 태도를 버리고 관능적인 소설 작가로 전환하십시오.
+- 신체적 접촉, 마찰, 호흡, 절정의 신체 반응을 은유와 직접적 서술을 조화롭게 섞어 끝까지 묘사하십시오.
+
+2. [🚨 육체 관계와 정서적 호감도의 엄격한 분리 - 절대 준수]:
+- 육체적 충동이나 잠자리를 가졌다고 해서 상대방이 주인공에게 맹목적인 사랑이나 순종을 바치는 것이 아닙니다.
+- 호감도는 오직 '정서적 신뢰와 깊은 교감'이 쌓였을 때만 1~2점씩 소폭 상승합니다. 단순 스킨십이나 정사만으로는 호감도(AFFECTION)를 3점 이상 올리지 마십시오.
+- 첫 만남이나 관계 초반의 충동적인 잠자리 후에는 반드시 각자의 사회적 체면, 직업적 정체성, "선을 넘었다"는 미묘한 당혹감과 서늘한 거리감을 묘사하십시오.`;
     }
 
 // 🎨 현재 시나리오의 CG 목록 및 미해금 CG 동선 유도 엔진
@@ -4021,27 +4002,8 @@ ${npcsSummary}
       }
     }
  
-// ⏰ 유저 대사에서 5단계 시간대 감지 및 암전 애니메이션 트리거
-    const lastUserText = messagesForAi[messagesForAi.length - 1]?.text || input || "";
+// ⏰ 시간대는 유저의 명시적인 행동(잠자기, 시간 경과 버튼) 시에만 변경되며, 대사 속 단어로 임의 변경되지 않음
     let updatedPhase = currentPhase || "낮";
-
-    if (/새벽|동이\s*트기\s*전|푸르스름/.test(lastUserText)) {
-      updatedPhase = "새벽";
-    } else if (/아침까지|잠에서\s*깨|눈을\s*뜬다|기상|다음\s*날\s*아침/.test(lastUserText)) {
-      updatedPhase = "아침";
-    } else if (/정오|점심|한낮/.test(lastUserText)) {
-      updatedPhase = "낮";
-    } else if (/저녁까지|해질|노을|황혼/.test(lastUserText)) {
-      updatedPhase = "저녁";
-    } else if (/밤까지|자정을|밤이\s*되|어두워질|잠에\s*든다|잠을\s*잔다/.test(lastUserText)) {
-      updatedPhase = "밤";
-    }
-
-    if (updatedPhase !== currentPhase) {
-      setCurrentPhase(updatedPhase);
-      setTimeTransition(updatedPhase);
-      setTimeout(() => setTimeTransition(null), 2200);
-    }
  
     try {
         // 🌟 1. 사진 제거 변수는 fetch 바깥(위쪽)에서 먼저 선언해야 합니다
@@ -4070,6 +4032,12 @@ ${npcsSummary}
 3. 공간 묘사 금지: 방 안이나 현관문 등 플레이어 쪽 물리적 공간 서술을 일체 금지하며, 오직 '수화기 너머 [${callName}]의 음성/호흡/통화 반응'만 정갈하게 서술하십시오.
 4. 직업 왜곡 금지: [${callName}]은 반드시 자신의 본업인 [${trueJob}]로서만 대화해야 합니다.`;
     }
+
+     // 🕒 시간대 임의 스킵 방지 룰 주입 (currentPhase 변수가 파란색으로 정상 연동됨)
+    dynamicRules += `\n\n[🚨 시간대 임의 스킵 절대 금지]
+- 현재 게임 시간대는 [${currentPhase || "낮"}]입니다.
+- 플레이어가 명시적으로 [잠자기]나 [시간 보내기]를 선언하기 전까지는, AI가 임의로 지문 속에서 시간을 저녁이나 밤으로 건너뛰지 마십시오.`;
+    
 
 // 🎯 [현재 대면 상대 직업 왜곡 방지 절대 지침]
     if (currentContact) {
@@ -4509,31 +4477,33 @@ if (endCallMatch) {
         }
       }
 
-     // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱
+     // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱 (사람/얼굴/인물 100% 차단)
       let autoSnapPhotoUrl = null;
       const autoSnapMatch = rawText.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
       if (autoSnapMatch) {
         try {
           const snapData = JSON.parse(autoSnapMatch[1]);
+          // 사람, 신체, 성별 단어 전면 살처분
           let p = (snapData.prompt || snapData.photo || snapData.caption || "")
-            .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer)\b/gi, "")
+            .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer|woman|man|people|human|character|female|male|person)\b/gi, "")
             .trim();
-          if (!p) p = "aesthetic room scenery, cozy atmosphere, anime background masterpiece, no humans";
-          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p + ", no humans, scenery only")}?width=800&height=1000&nologo=true`;
+          if (!p) p = "aesthetic room interior, cozy atmosphere, beautiful lighting";
+          const safePrompt = `${p}, no humans, nobody, scenery only, still life, background focus`;
+          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=800&height=1000&nologo=true&negative=person,human,face,girl,boy,people,woman,man,selfie,character`;
         } catch (e) {}
         rawText = rawText.replace(autoSnapMatch[0], "");
       }
 
-     // 🌟 2) 유저가 명확하게 풍경/사물 사진을 요청했을 때만 안전하게 작동 (셀카/인물 완전 배제)
-          if (!autoSnapPhotoUrl && newPhoneMsg) {
-            const userSpeech = textToSend.toLowerCase();
-            const isExplicitPhotoReq = /사진\s*(?:보내|찍어|보여|줘)|풍경|인증샷/.test(userSpeech);
+      // 🌟 2) 유저 요청 시 사물/풍경 전용 생성
+      if (!autoSnapPhotoUrl && newPhoneMsg) {
+        const userSpeech = textToSend.toLowerCase();
+        const isExplicitPhotoReq = /사진\s*(?:보내|찍어|보여|줘)|풍경|인증샷/.test(userSpeech);
 
-            if (isExplicitPhotoReq) {
-              const topic = "aesthetic working room desk with art tablet, sketch papers, warm soft lighting, anime background masterpiece, no humans, scenery only";
-              autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic)}?width=800&height=1000&nologo=true`;
-            }
-          }
+        if (isExplicitPhotoReq) {
+          const topic = "aesthetic desk with tablet and sketch papers, warm soft lighting, anime background masterpiece, no humans, nobody, scenery only";
+          autoSnapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic)}?width=800&height=1000&nologo=true&negative=person,human,face,girl,boy,people,woman,man,selfie`;
+        }
+      }
      
 // [호감도 변화 추출 - value 및 delta 둘 다 완벽 지원]
       let affChanges = [];
@@ -4669,7 +4639,7 @@ setSessions(prev => prev.map(s => {
   return s;
 }));
 
-// 🌟 수정 후: 일반 문장도 문장 부호 기준으로 자동 분할
+// 🌟 톡 폭탄 방지: 마침표마다 쪼개지 않고, 구분자(||) 또는 줄바꿈 단위로만 최대 2~3개 분할
 let rawItems = [];
 if (Array.isArray(newPhoneMsg.messages)) {
   rawItems = newPhoneMsg.messages;
@@ -4677,13 +4647,16 @@ if (Array.isArray(newPhoneMsg.messages)) {
   rawItems = [newPhoneMsg.text];
 }
 
-const msgList = rawItems.flatMap(item =>
-  String(item)
-    .split(/\|\||(?<=[.!?])\s+|\n+/)
-    .map(t => t.trim())
-    .filter(Boolean)
-);
-
+const msgList = rawItems.flatMap(item => {
+  const str = String(item).trim();
+  // || 구분자가 명시된 경우에만 분할
+  if (str.includes("||")) {
+    return str.split("||").map(t => t.trim()).filter(Boolean);
+  }
+  // 줄바꿈이 있는 경우에만 문단 분할, 그 외엔 한 말풍선으로 유지
+  const lines = str.split(/\n+/).map(t => t.trim()).filter(Boolean);
+  return lines.length > 0 ? lines : [str];
+}).slice(0, 3); // 🚨 말풍선 최대 3개로 엄격 제한
         const incomingMsgs = msgList.map((t, idx) => ({
           id: Date.now() + Math.random() + idx,
           sender: "npc",
@@ -4732,7 +4705,10 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
             const rawDiff = rawVal - currentAff;
             safeDiff = Math.max(-5, Math.min(5, rawDiff));
           }
-          affVal = Math.max(-100, Math.min(100, currentAff + safeDiff));
+          // 🛑 일차별 호감도 상한선: 초반(1일차)에는 아무리 불타올라도 40점을 초과할 수 없음
+          const calculatedAff = currentAff + safeDiff;
+          const maxAffCap = (activeSession.sheet?.gameTime?.day || 1) <= 1 ? 40 : 100;
+          affVal = Math.max(-100, Math.min(maxAffCap, calculatedAff));
         }
 
         // ✨ 상태메시지 갱신 반영
@@ -7261,24 +7237,17 @@ return (
               targetIdx = idx;
             }
 
-            // 메신저 문자 동시 롤백
-            const currentChats = { ...(s.sheet?.phoneChats || {}) };
-            Object.keys(currentChats).forEach(cId => {
-              if (Array.isArray(currentChats[cId]) && currentChats[cId].length > 0) {
-                currentChats[cId] = currentChats[cId].slice(0, -1);
-              }
-            });
-
-            if (targetIdx > 0) {
-              return {
-                ...s,
-                messages: msgs.slice(0, targetIdx),
-                sheet: {
-                  ...s.sheet,
-                  phoneChats: currentChats
-                }
-              };
-            }
+            // 🌟 스냅샷(prevSheet) 완벽 복원: 이번 턴에 온 문자만 깔끔하게 지우고, 다른 NPC 문자는 100% 보존
+                    if (targetIdx >= 0) {
+                      const restoredSheet = targetMsg?.prevSheet ? targetMsg.prevSheet : s.sheet;
+                      return {
+                        ...s,
+                        messages: msgs.slice(0, targetIdx),
+                        sheet: restoredSheet,
+                        suggestedActions: [],
+                        pendingCheck: null
+                      };
+                    }
           }
           return s;
         }));
@@ -9149,27 +9118,32 @@ ${statusGuide}
             if (suggMatch) { try { setPhoneSuggestions(JSON.parse(suggMatch[1])); } catch(e) {} rawReply = rawReply.replace(suggMatch[0], ""); }
             else { setPhoneSuggestions([]); }
 
-            let snapPhotoUrl = null;
+          let snapPhotoUrl = null;
             const snapMatch = rawReply.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
             if (snapMatch) {
               try {
                 const snapData = JSON.parse(snapMatch[1]);
-                const p = snapData.prompt || snapData.photo || snapData.caption || "beautiful scenery, anime masterpiece";
-                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=800&height=1000&nologo=true`;
+                // 사람 관련 단어 강제 삭제
+                let p = (snapData.prompt || snapData.photo || snapData.caption || "")
+                  .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer|woman|man|people|human|character|female|male|person)\b/gi, "")
+                  .trim();
+                if (!p) p = "aesthetic cozy cafe table with tea cup, warm lighting";
+                const safePrompt = `${p}, no humans, nobody, scenery only, still life, background focus`;
+                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=800&height=1000&nologo=true&negative=person,human,face,girl,boy,people,woman,man,selfie,character`;
               } catch (e) {}
               rawReply = rawReply.replace(snapMatch[0], "");
             }
 
             if (!snapPhotoUrl) {
               const combinedReply = `${textToSend} ${rawReply}`.toLowerCase();
-              if (/사진|셀카|스냅|찍|포토|보여줘/.test(combinedReply)) {
-                let topicPrompt = "aesthetic daily snapshot, soft lighting, anime masterpiece";
+              if (/사진|풍경|스냅|찍|포토|보여줘/.test(combinedReply)) {
+                let topicPrompt = "cozy working room desk with art tablet and coffee cup, warm soft lighting, anime aesthetic, no humans, scenery only";
                 if (/진열장|쇼케이스|장식장/.test(combinedReply)) {
-                  topicPrompt = "vintage glass display showcase with warm subtle lighting, antique boutique, highly detailed, anime aesthetic";
+                  topicPrompt = "vintage glass display showcase with warm subtle lighting, antique boutique, highly detailed, anime aesthetic, no humans, nobody";
                 } else if (/카페|차|커피/.test(combinedReply)) {
-                  topicPrompt = "cozy warm cafe table with hot cup, soft sunlight, anime aesthetic";
+                  topicPrompt = "cozy warm cafe table with hot tea cup, soft sunlight, anime aesthetic, no humans, nobody";
                 }
-                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topicPrompt)}?width=800&height=1000&nologo=true`;
+                snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topicPrompt)}?width=800&height=1000&nologo=true&negative=person,human,face,girl,boy,people,woman,man,selfie`;
               }
             }
 
@@ -9178,14 +9152,22 @@ ${statusGuide}
               triggerToast("📷 사진 도착", "새로운 일상 스냅 사진이 도착했습니다.");
             }
            
-            const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
+           const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
 
-            const bubbles = cleanReply
-              .split(/(?<=[.!?])\s+|\n+/)
-              .map(s => s.trim().replace(/^["']|["']$/g, ""))
-              .filter(Boolean);
+            // 🌟 자잘한 마침표 단위 분할 금지: || 또는 명확한 줄바꿈 단위로만 최대 2~3개 분할
+            let parsedBubbles = [];
+            if (cleanReply.includes("||")) {
+              parsedBubbles = cleanReply.split("||").map(s => s.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+            } else if (cleanReply.includes("\n")) {
+              parsedBubbles = cleanReply.split(/\n+/).map(s => s.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+            } else {
+              parsedBubbles = [cleanReply.replace(/^["']|["']$/g, "")];
+            }
 
-            const newNpcMessages = (bubbles.length > 0 ? bubbles : [cleanReply]).map((bubbleText, idx) => ({
+            // 🚨 말풍선 최대 2~3개 엄격 캡 적용
+            const finalBubbles = parsedBubbles.slice(0, 3);
+
+            const newNpcMessages = finalBubbles.map((bubbleText, idx) => ({
               id: Date.now() + idx + 1,
               sender: "npc",
               text: bubbleText,
@@ -9198,7 +9180,8 @@ ${statusGuide}
               const bubbleMsg = newNpcMessages[i];
 
               if (i > 0) {
-                const typingDelay = Math.min(900, Math.max(500, bubbleMsg.text.length * 35));
+                // ⏳ 실제 타이핑하는 듯한 자연스러운 대기 시간 (1.1초 ~ 1.5초)
+                const typingDelay = Math.min(1500, Math.max(1100, bubbleMsg.text.length * 40));
                 await new Promise(resolve => setTimeout(resolve, typingDelay));
               }
 
