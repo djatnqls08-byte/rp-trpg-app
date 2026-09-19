@@ -4429,14 +4429,22 @@ ${npcsSummary}
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-// [선톡 자동 수신 & 스냅 사진 동시 감지]
-      let newPhoneMsg = null;
-      const phoneRegex = /<!--\s*PHONE_MSG:\s*(\{[\s\S]*?\})\s*-->/gi;
-      let phoneMatch;
-      while ((phoneMatch = phoneRegex.exec(rawText)) !== null) {
-        try { newPhoneMsg = JSON.parse(phoneMatch[1]); } catch (e) {}
+// 🌟 [본문 메시지 자동 감지] AI가 태그를 빼먹고 본문에 [이름]: "내용"으로 썼을 때 자동 선톡 처리
+      if (!newPhoneMsg) {
+        const inlineMsgMatch = rawText.match(/\[([^\]]+)\]\s*[:：]\s*["'“]([^"'”\n\r]+)["'”]/);
+        if (inlineMsgMatch) {
+          const candidateName = inlineMsgMatch[1].trim();
+          const allNpcs = activeSession.sheet?.npcs || activeSession.sheet?.kpcList || kpcList || [];
+          const matchedNpc = allNpcs.find(n => n.name === candidateName || candidateName.includes(n.name));
+          
+          if (matchedNpc) {
+            newPhoneMsg = {
+              from: matchedNpc.name,
+              text: inlineMsgMatch[2].trim()
+            };
+          }
+        }
       }
-      rawText = rawText.replace(phoneRegex, "");
 
      // 📷 1) AI가 출력한 SNAP_PHOTO 태그 파싱
       let autoSnapPhotoUrl = null;
