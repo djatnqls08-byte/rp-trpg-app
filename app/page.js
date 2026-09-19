@@ -1542,7 +1542,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
       const targetNpcName = targetNpc?.name || "";
 
       // 2. 1번 CG (프롤로그 / 첫 대면 소급 인정)
-      const isFirstMeetingTrigger = /프롤로그|첫\s*대면|첫\s*만남|시작/.test(triggerCond);
+      const isFirstMeetingTrigger = /프롤로그|첫\s*대면|첫\s*만남|시작|첫|회의/.test(triggerCond);
       const isAlreadyMetInHistory = targetNpcName ? fullHistory.includes(targetNpcName) : false;
 
       if (idx === 0 || (isFirstMeetingTrigger && (idx === 0 || isAlreadyMetInHistory))) {
@@ -4117,7 +4117,7 @@ ${npcsSummary}
     }
 
      // ── [신규 태그 파싱: 미연시 & 이벤트 처리] ──
-      // 1. 동적 장소 카드 감지
+     // 1. 동적 장소 카드 감지
       const locationMatch = rawText.match(/<!--\s*LOCATION_CARDS:\s*(\[[\s\S]*?\])\s*-->/);
       if (locationMatch) {
         try {
@@ -4126,6 +4126,21 @@ ${npcsSummary}
         rawText = rawText.replace(locationMatch[0], "").trim();
       }
 
+      // 📍 MOVE_LOCATION 태그 파서 (장소 태그 정상 수신 및 토스트 팝업)
+      const moveLocMatch = rawText.match(/<!--\s*MOVE_LOCATION:\s*(\{[\s\S]*?\})\s*-->/i);
+      if (moveLocMatch) {
+        try {
+          const locData = JSON.parse(moveLocMatch[1]);
+          if (locData.place) {
+            triggerToast("📍 장소 이동", `${locData.place}에 도착했습니다.`, "🗺️");
+            setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+              ...s,
+              sheet: { ...s.sheet, currentPlace: locData.place }
+            } : s));
+          }
+        } catch (e) { console.error("이동 장소 파싱 실패", e); }
+        rawText = rawText.replace(moveLocMatch[0], "").trim();
+      }
       // 2. 실시간 전화 수신 감지 (프로필 자동 결속 및 진동/알림 연동)
       const callMatch = rawText.match(/<!--\s*INCOMING_CALL:\s*(\{[\s\S]*?\})\s*-->/);
       if (callMatch) {
@@ -4183,7 +4198,7 @@ if (endCallMatch) {
       }
       
       // 2) AI 태그 누락 시 시트 조건 자동 판정
-      if (false && !newlyUnlockedCg && allScenarioCgs.length > 0) {
+      if (false && !newlyUnlockeif (!newlyUnlockedCg && allScenarioCgs.length > 0) {dCg && allScenarioCgs.length > 0) {
         const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
         const fullRecentContext = `${textToSend} ${rawText}`;
         const npcs = activeSession.sheet?.npcs || [];
@@ -4238,11 +4253,12 @@ if (endCallMatch) {
             continue;
           }
 
-          // ① 호감도 조건 검사
+         // ① 호감도 조건 검사 ('호감도 0' 기재 시 0점 이상으로 정상 통과)
           const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
-          const reqFav = favMatch ? parseInt(favMatch[1], 10) : 0;
-          const passFav = reqFav > 0 ? (curAff >= reqFav) : false;
-
+          const hasFavCond = favMatch !== null;
+          const reqFav = hasFavCond ? parseInt(favMatch[1], 10) : 0;
+          const passFav = hasFavCond ? (curAff >= reqFav) : true;
+         
           // ② 5단계 시간대 동적 검사
           let passTime = true;
           if (/새벽|심야/.test(triggerCond)) {
@@ -4291,10 +4307,8 @@ if (endCallMatch) {
           // 2. 플레이어의 이동 선언이나 선택지에 해당 장소 단어가 포함되었는지 검사
           const isLocationMatched = targetLocationWords.length === 0 || targetLocationWords.some(kw => fullRecentContext.includes(kw));
 
-          // 🌟 최종 판정: 호감도가 찼더라도, 실제로 해당 '장소로 이동'했을 때만 해금!
-          const isUnlockTriggered = (reqFav > 0)
-            ? (passFav && passNpc && isLocationMatched)
-            : (passTime && passNpc && passKeyword);
+         // 🌟 최종 판정: 호감도 충족 + 인물 일치 + (장소/키워드 일치) 충족 시 해금
+          const isUnlockTriggered = passFav && passNpc && (isLocationMatched || passKeyword);
 
           if (isUnlockTriggered) {
             newlyUnlockedCg = cg;
@@ -4810,12 +4824,17 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         newSheet.handouts = [...(newSheet.handouts || []), ...added];
       }
 
-      // [세션 상태 최종 반영]
+    // [세션 상태 최종 반영 및 대면 NPC 자동 동기화]
+      const foundInReply = (newSheet.npcs || []).find(n => n.name && (cleanText.includes(n.name) || rawText.includes(n.name)));
+      const finalActiveContactId = foundInReply ? foundInReply.id : currentContactId;
+
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
+        activeContactId: finalActiveContactId,
         sheet: {
           ...s.sheet,
           ...newSheet,
+          activeContactId: finalActiveContactId,
           hp: s.sheet?.hp ?? newSheet.hp,
           enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
           currentPlot: s.sheet?.currentPlot ?? newSheet.currentPlot,
@@ -4828,12 +4847,11 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
           phase: newSheet.phase || s.sheet?.phase,
           actionUsed: s.sheet?.phase === "도입" ? false : (textToSend.includes("장면 닫기") ? false : (s.sheet?.actionUsed ?? false))
         },
-        messages: [...updatedMessages, { role: "model", text: cleanText, cg: newlyUnlockedCg || null, contactId: currentContactId, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }],
+        messages: [...updatedMessages, { role: "model", text: cleanText, cg: newlyUnlockedCg || null, contactId: finalActiveContactId, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }],
         suggestedActions: parsedData.suggActions,
         investigationSpots: parsedData.investigationSpots,
         pendingCheck: parsedData.pendingCheck
       } : s));
-
       if (parsedData.shouldAdvanceScene && activeSession.ruleMode === "insane") {
         advanceInsaneScene(activeSessionId);
       }
@@ -9070,12 +9088,23 @@ ${statusGuide}
               portrait: (currentContact.portrait || "").startsWith("data:image") ? "" : currentContact.portrait
             } : null;
 
+            // 🎯 문자 AI에게도 미해금 CG 장소/시간 정보 주입 (약속 장소 날조 원천 차단)
+            const activeCgListForPhone = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
+            const unlockedForPhone = activeSession.sheet?.unlockedCgs || [];
+            const remainingForPhone = activeCgListForPhone.filter(cg => 
+              !unlockedForPhone.some(u => (u?.title && u.title === cg.title) || u === cg.title)
+            );
+            const phoneCgGuide = remainingForPhone.length > 0
+              ? `\n\n[🚨 향후 미팅/만남 약속 필수 지침]\n플레이어와 만나기로 일정을 잡을 때는 임의의 장소를 지어내지 말고, 아래 미해금 CG의 조건에 명시된 시간과 장소로 반드시 약속을 제안하십시오:\n` +
+                remainingForPhone.map(c => `- ${c.title}: ${c.trigger || c.condition}`).join("\n")
+              : "";
+
             const res = await fetch("/api/chat", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: messagesForApi.slice(-20),
-                scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
+                scenarioText: (activeSession.scenarioText || "") + phoneContextNotice + phoneCgGuide,
                 playerSheet: cleanPlayerSheet,
                 ruleMode: "dating",
                 playPreference: activeSession.preference,
