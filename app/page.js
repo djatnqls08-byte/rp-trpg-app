@@ -11783,7 +11783,7 @@ ${statusGuide}
         }}
       >
         {imgUrl ? (
-          /* 🖼️ 1) 일러스트 이미지가 있을 때 (기존 풀스크린 라이트박스 + 글자 숨김 토글) */
+          /* 🖼️ 1) 일러스트가 있을 때: [일러스트 + 이름표 + 대사 + 묘사 + UI 토글] */
           <div
             onClick={e => e.stopPropagation()}
             style={{
@@ -11798,7 +11798,7 @@ ${statusGuide}
               backgroundColor: "#000"
             }}
           >
-            {/* 우측 상단: 👁️ 글자/대사창 숨기기/보이기 토글 버튼 */}
+            {/* 👁️ 우측 상단: 텍스트/대사창 보이기·숨기기 토글 버튼 */}
             {hasTextContent && (
               <button
                 onClick={(e) => {
@@ -11830,14 +11830,14 @@ ${statusGuide}
               </button>
             )}
 
-            {/* 원본 일러스트 이미지 */}
+            {/* 16:9 원본 일러스트 */}
             <img
               src={imgUrl}
               alt={displayCgTitle || "CG"}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
 
-            {/* 하단 대사 및 묘사 자막 바 (showCgDialog가 true일 때만 노출) */}
+            {/* 하단 미연시 자막 바: [이름표 + 대사 + 묘사] */}
             {showCgDialog && hasTextContent && (
               <div
                 style={{
@@ -11845,19 +11845,53 @@ ${statusGuide}
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  padding: "32px 28px 24px",
-                  background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 70%, transparent 100%)",
+                  padding: "36px 32px 24px",
+                  background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.68) 70%, transparent 100%)",
                   color: "#fff",
                   animation: "fadeIn 0.25s ease-in-out"
                 }}
               >
+                {/* 🏷️ 화자 이름표 (Speaker Badge) */}
+                {speaker && (
+                  <div style={{
+                    display: "inline-block",
+                    padding: "3px 10px",
+                    backgroundColor: "rgba(56, 189, 248, 0.18)",
+                    border: "1px solid rgba(56, 189, 248, 0.5)",
+                    borderRadius: "6px",
+                    color: "#38bdf8",
+                    fontSize: "0.82rem",
+                    fontWeight: "700",
+                    marginBottom: "8px",
+                    letterSpacing: "0.02em"
+                  }}>
+                    {speaker}
+                  </div>
+                )}
+
+                {/* 💬 대사창 */}
                 {quote && (
-                  <div style={{ fontSize: "1.12rem", fontWeight: "700", color: "#38bdf8", marginBottom: "6px" }}>
+                  <div style={{
+                    fontSize: "1.12rem",
+                    fontWeight: "600",
+                    color: "#ffffff",
+                    marginBottom: sceneDesc ? "8px" : "0",
+                    lineHeight: "1.6",
+                    textShadow: "0 2px 4px rgba(0,0,0,0.8)"
+                  }}>
                     {quote}
                   </div>
                 )}
+
+                {/* 📖 장면 묘사 지문 */}
                 {sceneDesc && (
-                  <div style={{ fontSize: "0.88rem", color: "#cbd5e1", lineHeight: "1.6" }}>
+                  <div style={{
+                    fontSize: "0.86rem",
+                    color: "#cbd5e1",
+                    lineHeight: "1.6",
+                    fontStyle: "italic",
+                    opacity: 0.9
+                  }}>
                     {sceneDesc}
                   </div>
                 )}
@@ -11865,7 +11899,7 @@ ${statusGuide}
             )}
           </div>
         ) : (
-          /* 🎬 2) 이미지가 없을 때: 타입문식 시네마틱 텍스트 컷씬 */
+          /* 🎬 2) 이미지가 없을 때: [타입문식 시네마틱 텍스트 컷씬] */
           <div
             onClick={e => e.stopPropagation()}
             style={{
@@ -11889,17 +11923,19 @@ ${statusGuide}
               Memorable Scene
             </div>
 
+            {/* CG 제목 */}
             <h2 style={{
               fontSize: "1.5rem",
               fontWeight: "600",
               color: "#f8fafc",
               letterSpacing: "-0.02em",
-              marginBottom: "32px",
+              marginBottom: "28px",
               fontFamily: "var(--font-serif, serif)"
             }}>
               {displayCgTitle}
             </h2>
 
+            {/* 장면 묘사 지문 */}
             {sceneDesc && (
               <p style={{
                 fontSize: "1.02rem",
@@ -11908,14 +11944,15 @@ ${statusGuide}
                 wordBreak: "keep-all",
                 fontFamily: "var(--font-serif, serif)",
                 fontStyle: "italic",
-                marginBottom: "36px",
+                marginBottom: "32px",
                 textShadow: "0 2px 10px rgba(0,0,0,0.5)"
               }}>
                 “ {sceneDesc} ”
               </p>
             )}
 
-            {quote && (
+            {/* 화자 이름표 & 대사 강조 박스 */}
+            {(speaker || quote) && (
               <div style={{
                 padding: "16px 20px",
                 background: "rgba(255, 255, 255, 0.04)",
@@ -11924,15 +11961,22 @@ ${statusGuide}
                 borderRadius: "4px",
                 marginBottom: "40px"
               }}>
-                <p style={{
-                  fontSize: "1.08rem",
-                  fontWeight: "500",
-                  color: "#38bdf8",
-                  margin: 0,
-                  lineHeight: "1.7"
-                }}>
-                  {quote}
-                </p>
+                {speaker && (
+                  <div style={{ fontSize: "0.82rem", color: "#94a3b8", fontWeight: "700", marginBottom: "4px" }}>
+                    {speaker}
+                  </div>
+                )}
+                {quote && (
+                  <p style={{
+                    fontSize: "1.08rem",
+                    fontWeight: "500",
+                    color: "#38bdf8",
+                    margin: 0,
+                    lineHeight: "1.7"
+                  }}>
+                    {quote}
+                  </p>
+                )}
               </div>
             )}
 
