@@ -4098,7 +4098,7 @@ ${npcsSummary}
       }
 
       // 2) AI 태그 누락 시 시트 조건 자동 판정
-      if (!newlyUnlockedCg && allScenarioCgs.length > 0) {
+      if (false && !newlyUnlockedCg && allScenarioCgs.length > 0) {
         const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
         const fullRecentContext = `${textToSend} ${rawText}`;
         const npcs = activeSession.sheet?.npcs || [];
