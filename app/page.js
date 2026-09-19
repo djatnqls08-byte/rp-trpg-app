@@ -3625,7 +3625,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
         } else {
           alert(`[${appliedName}] 호감도가 ${targetVal}(으)로 변경되었습니다.`);
         }
-        setUserInput("");
+        setInput("");
         return; // 🌟 AI 서버 통신 차단하고 즉시 완료
       }
     }
@@ -8752,7 +8752,7 @@ return (
           setDragStartY(null); setDragCurrentY(0);
         };
 
-        // 1:1 메시지 전송
+       // 1:1 메시지 전송
         const handleSendPhoneMessage = async () => {
           if (!phoneInput.trim() || isPhoneSending || !activeSession || !activePhoneContactId) return;
           const textToSend = phoneInput.trim();
@@ -8776,18 +8776,14 @@ return (
             const messagesForApi = updatedChatList.map(m => ({ role: m.sender === "user" ? "user" : "model", text: m.text }));
             const recentStoryContext = (activeSession.messages || []).slice(-3).map(m => m.text).join("\n\n");
 
-// ☀️ 장르 자동 감지 (판타지/사극 vs 현대/일상)
-          const fullGenreText = `${activeSession?.title || ""} ${activeSession?.preference || ""} ${activeSession?.scenarioText || ""}`.toLowerCase();
-          const isFantasySetting = /판타지|중세|무협|동양|사극|황실|마법|오컬트|차원/.test(fullGenreText) || phoneTheme === "parchment";
+            const fullGenreText = `${activeSession?.title || ""} ${activeSession?.preference || ""} ${activeSession?.scenarioText || ""}`.toLowerCase();
+            const isFantasySetting = /판타지|중세|무협|동양|사극|황실|마법|오컬트|차원/.test(fullGenreText) || phoneTheme === "parchment";
 
-          const statusGuide = isFantasySetting
-            ? `- [판타지/시대극 배경]: 주인공이 통신석/마도구에 띄워둔 전언: "${activeSession?.sheet?.statusMessage || "(남겨진 글귀 없음)"}"
-- 현대적 단어(상태메시지, 카톡 등)를 금지하고 "통신석의 글귀", "마도구 너머로 비친 심경", "남겨두신 전언"으로 격조 높게 표현하십시오.`
-            : `- [현대/일상 배경]: 주인공의 메신저 프로필 상태메시지: "${activeSession?.sheet?.statusMessage || "(상태메시지 없음)"}"
-- "프로필에 적어둔 상태메시지", "상메", "프로필 글귀" 등 자연스러운 일상 어휘로 언급하며 대화를 풀어가십시오.`;
+            const statusGuide = isFantasySetting
+              ? `- [판타지/시대극 배경]: 주인공이 통신석/마도구에 띄워둔 전언: "${activeSession?.sheet?.statusMessage || "(남겨진 글귀 없음)"}"\n- 현대적 단어(상태메시지, 카톡 등)를 금지하고 "통신석의 글귀", "마도구 너머로 비친 심경", "남겨두신 전언"으로 격조 높게 표현하십시오.`
+              : `- [현대/일상 배경]: 주인공의 메신저 프로필 상태메시지: "${activeSession?.sheet?.statusMessage || "(상태메시지 없음)"}"\n- "프로필에 적어둔 상태메시지", "상메", "프로필 글귀" 등 자연스러운 일상 어휘로 언급하며 대화를 풀어가십시오.`;
 
-          // ☀️ 상대방 인격/성격/말투 100% 고정
-          const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수칙]
+            const phoneContextNotice = `\n\n[🚨 메신저 톡 캐릭터 빙의 필수 수칙]
 1. 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact?.title || "인물"})
 - [인물 외모 및 성격/관계성]: ${currentContact?.detail || "설정 없음"}
 - [감춰둔 속마음/비밀]: ${currentContact?.secret || "없음"}
@@ -8808,32 +8804,31 @@ ${statusGuide}
 - 유저가 "사진 보내줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
 <!-- SNAP_PHOTO: {"prompt": "1girl, solo, portrait, realistic lighting, anime masterpiece", "caption": "사진 한 줄 설명"} -->
 - prompt는 고화질 일러스트가 생성될 수 있도록 인물의 외모와 의상이 포함된 영문(English) 키워드로 상세히 작성하십시오.`;
-           
-           // 🌟 413 용량 폭탄 방지: 거대 Base64 사진 제거 및 경량화
-        const cleanPlayerSheet = activeSession.sheet ? {
-          ...activeSession.sheet,
-          portraitUrl: (activeSession.sheet.portraitUrl || "").startsWith("data:image") ? "" : activeSession.sheet.portraitUrl
-        } : null;
 
-        const cleanTargetNpc = currentContact ? {
-          ...currentContact,
-          portrait: (currentContact.portrait || "").startsWith("data:image") ? "" : currentContact.portrait
-        } : null;
+            const cleanPlayerSheet = activeSession.sheet ? {
+              ...activeSession.sheet,
+              portraitUrl: (activeSession.sheet.portraitUrl || "").startsWith("data:image") ? "" : activeSession.sheet.portraitUrl
+            } : null;
 
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: messagesForApi.slice(-20),
-            scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
-            playerSheet: cleanPlayerSheet,
-            ruleMode: "dating",
-            playPreference: activeSession.preference,
-            isPhoneChat: true,
-            targetNpc: cleanTargetNpc,
-            lastStoryContext: (recentStoryContext || "").slice(-1000)
-          })
-        });
+            const cleanTargetNpc = currentContact ? {
+              ...currentContact,
+              portrait: (currentContact.portrait || "").startsWith("data:image") ? "" : currentContact.portrait
+            } : null;
+
+            const res = await fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: messagesForApi.slice(-20),
+                scenarioText: (activeSession.scenarioText || "") + phoneContextNotice,
+                playerSheet: cleanPlayerSheet,
+                ruleMode: "dating",
+                playPreference: activeSession.preference,
+                isPhoneChat: true,
+                targetNpc: cleanTargetNpc,
+                lastStoryContext: (recentStoryContext || "").slice(-1000)
+              })
+            });
 
             if (!res.ok) throw new Error(`서버 응답 오류 (${res.status})`);
             const data = await res.json();
@@ -8843,7 +8838,14 @@ ${statusGuide}
             const affMatch = rawReply.match(/<!--\s*AFFECTION:\s*(\{.*?\})\s*-->/i);
             if (affMatch) { try { affDelta = JSON.parse(affMatch[1]); } catch(e) {} rawReply = rawReply.replace(affMatch[0], ""); }
 
-// 🌟 상태메시지 태그 파싱 및 자연어("~라고 해둘게") 자동 감지
+            // 🌟 [에러 해결 지점] 취향(newClue) 정상 선언 및 파싱
+            let newClue = null;
+            const clueMatch = rawReply.match(/<!--\s*CLUE:\s*(\{[\s\S]*?\})\s*-->/i);
+            if (clueMatch) { 
+              try { newClue = JSON.parse(clueMatch[1]); } catch(e) {} 
+              rawReply = rawReply.replace(clueMatch[0], ""); 
+            }
+
             let newStatusMsg = null;
             const statusMatch = rawReply.match(/<!--\s*STATUS:\s*(\{.*?\})\s*-->/i);
             if (statusMatch) {
@@ -8863,7 +8865,6 @@ ${statusGuide}
             if (suggMatch) { try { setPhoneSuggestions(JSON.parse(suggMatch[1])); } catch(e) {} rawReply = rawReply.replace(suggMatch[0], ""); }
             else { setPhoneSuggestions([]); }
 
-         // 📷 [메신저 전용] 일상 스냅 사진 감지 & 스마트 Fallback
             let snapPhotoUrl = null;
             const snapMatch = rawReply.match(/<!--\s*SNAP_PHOTO:\s*(\{[\s\S]*?\})\s*-->/i);
             if (snapMatch) {
@@ -8875,7 +8876,6 @@ ${statusGuide}
               rawReply = rawReply.replace(snapMatch[0], "");
             }
 
-            // 🌟 메신저 채팅 중 사진 요청 시 Fallback 자동 생성
             if (!snapPhotoUrl) {
               const combinedReply = `${textToSend} ${rawReply}`.toLowerCase();
               if (/사진|셀카|스냅|찍|포토|보여줘/.test(combinedReply)) {
@@ -8894,16 +8894,13 @@ ${statusGuide}
               triggerToast("📷 사진 도착", "새로운 일상 스냅 사진이 도착했습니다.");
             }
            
-           // ⭕ 수정 후 (답장을 문장별 카톡 버블로 나누어 저장)
-const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
+            const cleanReply = rawReply.replace(/<!--.*?-->/gs, "").trim();
 
-// 마침표, 물음표, 느낌표, 줄바꿈 기준으로 버블 분할
-const bubbles = cleanReply
-  .split(/(?<=[.!?])\s+|\n+/)
-  .map(s => s.trim().replace(/^["']|["']$/g, ""))
-  .filter(Boolean);
+            const bubbles = cleanReply
+              .split(/(?<=[.!?])\s+|\n+/)
+              .map(s => s.trim().replace(/^["']|["']$/g, ""))
+              .filter(Boolean);
 
-// 🌟 1. 말풍선 목록 생성
             const newNpcMessages = (bubbles.length > 0 ? bubbles : [cleanReply]).map((bubbleText, idx) => ({
               id: Date.now() + idx + 1,
               sender: "npc",
@@ -8913,11 +8910,9 @@ const bubbles = cleanReply
               unread: false
             }));
 
-            // 🌟 2. 시간차(0.5~0.9초)를 두고 말풍선 순차 전송 + 호감도/취향 자동 반영
             for (let i = 0; i < newNpcMessages.length; i++) {
               const bubbleMsg = newNpcMessages[i];
 
-              // 첫 번째 말풍선 이후부터는 글자 수에 맞춰 타이핑 딜레이 대기
               if (i > 0) {
                 const typingDelay = Math.min(900, Math.max(500, bubbleMsg.text.length * 35));
                 await new Promise(resolve => setTimeout(resolve, typingDelay));
@@ -8930,7 +8925,6 @@ const bubbles = cleanReply
                 const prevChats = sSheet.phoneChats || {};
                 const contactList = prevChats[activePhoneContactId] || [];
 
-               // 첫 말풍선 도착 시 호감도 변화와 취향 수첩을 함께 시트에 저장
                 if (i === 0) {
                   if (affDelta && (affDelta.value !== undefined || affDelta.affection !== undefined)) {
                     const incomingRaw = Number(affDelta.value !== undefined ? affDelta.value : affDelta.affection);
@@ -8939,7 +8933,6 @@ const bubbles = cleanReply
                     sSheet.npcs = (sSheet.npcs || []).map(n => n.id === activePhoneContactId ? { ...n, affection: Math.max(0, Math.min(100, currentAff + safeDiff)) } : n);
                   }
 
-                  // 🌟 바로 이 자리에 아래 코드를 추가해 주시면 됩니다!
                   if (newStatusMsg) {
                     sSheet.npcs = (sSheet.npcs || []).map(n => (n.id === activePhoneContactId || n.name === partnerName) ? { ...n, statusMessage: newStatusMsg } : n);
                     triggerToast("📱 상태메시지 변경", `${partnerName}: "${newStatusMsg}"`, "💬");
@@ -8958,7 +8951,6 @@ const bubbles = cleanReply
                 return prev.map(s => s.id === activeSessionId ? { ...s, sheet: sSheet } : s);
               });
 
-              // 말풍선이 꽂힐 때마다 부드러운 햅틱 진동
               if (typeof triggerVibration === "function") triggerVibration("light");
             }
           } catch(err) { 
