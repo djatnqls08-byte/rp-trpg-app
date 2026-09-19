@@ -2754,7 +2754,7 @@ const adjustStat = (statName, delta) => {
     executeMessage(`[🎬 2D6 장면표 굴림: ${d1}+${d2}=${sum}번]\n"${desc}"\n(이 분위기 속에서 장면을 시작합니다.)`);
   };
  
-const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet) => {
+const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null) => {
     let cleanText = rawText || "";
     let parsedData = { 
       suggActions: [], pendingCheck: null, newSheetVars: {}, 
@@ -2764,12 +2764,13 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet) => {
     };
 
     try {
-      // 🌟 [Phase 5] 배드엔딩 세이프가드 (턴 수 / 일차 가드)
-      const isBadEndTag = /\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/i.test(cleanText);
-      const currentDay = sessionSheet?.day || 1;
-      const currentTurnCount = sessionSheet?.turnCount || 0;
+      // 🌟 [Phase 5] 배드엔딩 세이프가드 (2일차 미만 또는 20턴 미만 조기 배드엔딩 차단)
+      const targetSheet = sessionSheet || activeSession?.sheet;
+      const currentDay = targetSheet?.day || 1;
+      const currentTurnCount = targetSheet?.turnCount || 0;
       const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
 
+      const isBadEndTag = /\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/i.test(cleanText);
       if (isBadEndTag) {
         if (isEarlyGame) {
           cleanText = cleanText.replace(/\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/gi, "");
@@ -2779,67 +2780,50 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet) => {
         }
       }
 
-      // 🌟 [Phase 3] CG 명시적 해금 및 메타데이터 맵핑
+      // 🌟 [Phase 3] CG 명시적 해금 및 원본 데이터 매핑
       const cgMatch = cleanText.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/i);
       if (cgMatch) {
         try { 
           const parsedCg = JSON.parse(cgMatch[1]); 
-          const activeCgList = sessionSheet?.scenarioCgs || sessionSheet?.cgs || [];
+          const activeCgList = targetSheet?.scenarioCgs || targetSheet?.cgs || scenarioCgs || [];
           parsedData.unlockedCg = activeCgList.find(c => c.title === parsedCg.title || c.title.includes(parsedCg.title)) || parsedCg;
         } catch(e) {}
         cleanText = cleanText.replace(cgMatch[0], "").trim();
       }
-     
-const isBadEndTag = /\[(?:Bad|Dead|파멸|사망)\s*End[^\]]*\]/i.test(cleanText);
-      const currentDay = activeSession?.sheet?.day || 1;
-      const currentTurnCount = activeSession?.sheet?.turnCount || 0;
-      const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
 
-      if (isBadEndTag) {
-        if (isEarlyGame) {
-          cleanText = cleanText.replace(/\[(?:Bad|Dead|파멸|사망)\s*End[^\]]*\]/gi, "");
-        } else {
-          parsedData.badEndTriggered = true;
-        }
-      }
-     
       const madnessMatch = cleanText.match(/<!--\s*TRIGGER_MADNESS:\s*({[\s\S]*?})\s*-{1,3}>/i);
-      if (madnessMatch) try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
+      if (madnessMatch) {
+        try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
+      }
 
       const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>\vert{}\])/i);
-      if (checkMatch) try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
+      if (checkMatch) {
+        try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
+      }
 
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
-      if (suggMatch) try { parsedData.suggActions = JSON.parse(suggMatch[1]).map(s => s.replace(/\bKPC\b/g, partnerName || "파트너")); } catch(e) {}
+      if (suggMatch) {
+        try {
+          const rawSuggs = JSON.parse(suggMatch[1]);
+          parsedData.suggActions = rawSuggs.map(s => s.replace(/\bKPC\b/g, partnerName || "파트너"));
+        } catch(e) {}
+      }
 
       if (currentRule !== "insane") {
         const spotsMatch = cleanText.match(/<!--\s*SPOTS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
-        if (spotsMatch) try { parsedData.investigationSpots = JSON.parse(spotsMatch[1]); } catch(e) {}
+        if (spotsMatch) {
+          try { parsedData.investigationSpots = JSON.parse(spotsMatch[1]); } catch(e) {}
+        }
       }
 
       const revHandoutRegex = /<!--\s*REVEAL_HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
       for (const m of cleanText.matchAll(revHandoutRegex)) {
-        try { const obj = JSON.parse(m[1]); if (obj.title) parsedData.revealedHandoutTitles.push(obj.title); } catch (e) {}
+        try {
+          const obj = JSON.parse(m[1]);
+          if (obj.title) parsedData.revealedHandoutTitles.push(obj.title);
+        } catch (e) {}
       }
 
-      const masterSceneMatch = cleanText.match(/<!--\s*TRIGGER_MASTER_SCENE:\s*({[\s\S]*?})\s*-{1,3}>/i);
-      if (masterSceneMatch) try { parsedData.triggerMasterScene = JSON.parse(masterSceneMatch[1]); } catch (e) {}
-      if (cleanText.includes("<!-- END_MASTER_SCENE")) parsedData.endMasterScene = true;
-      if (cleanText.includes("<!-- ADVANCE_SCENE") || cleanText.includes("<!-- END_SCENE")) parsedData.shouldAdvanceScene = true;
-
-      const handoutRegex = /<!--\s*HANDOUT:\s*({[\s\S]*?})\s*-{1,3}>/gi;
-      for (const m of cleanText.matchAll(handoutRegex)) {
-        try { parsedData.newHandouts.push(JSON.parse(m[1])); } catch (e) {}
-      }
-      const statMatch = cleanText.match(/<!--\s*STATUS:\s*({[\s\S]*?})\s*-{1,3}>/i);
-      if (statMatch) try { parsedData.newSheetVars = JSON.parse(statMatch[1]); } catch (e) {}
-    } catch (e) {}
-
-    cleanText = cleanText.replace(/```html|```json|```/gi, "").replace(/(?:<!--|\[)\s*CHECK:\s*{[\s\S]*?}\s*(?:-{1,3}>|\])/gi, "").replace(/<!--[\s\S]*?-{1,3}>/g, "").replace(/<[^>]+>/g, "").replace(/\bKPC\b/g, partnerName || "파트너").trim();
-    return { cleanText, parsedData };
-  };
- 
-// 🌟 인세인 마스터 씬(Master Scene) 트리거 및 종료 감지
       const masterSceneMatch = cleanText.match(/<!--\s*TRIGGER_MASTER_SCENE:\s*({[\s\S]*?})\s*-{1,3}>/i);
       if (masterSceneMatch) {
         try { parsedData.triggerMasterScene = JSON.parse(masterSceneMatch[1]); } catch (e) {}
