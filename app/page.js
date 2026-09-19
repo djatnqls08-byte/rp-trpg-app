@@ -7209,9 +7209,10 @@ return (
                       </div>
 
                       {isLastUser && !isLoading && (
-<span
+<button
+  type="button"
   onClick={() => {
-    // 1. 입력창 글 복원
+    // 1. 취소한 내 대사를 입력창에 복원
     const originalText = m.text || "";
     if (typeof setInputText === "function") setInputText(originalText);
     else if (typeof setUserInput === "function") setUserInput(originalText);
@@ -7247,10 +7248,14 @@ return (
       return s;
     }));
 
+    // 3. 통신 락 강제 해제
     if (typeof setIsGenerating === "function") setIsGenerating(false);
     if (typeof setIsLoading === "function") setIsLoading(false);
   }}
   style={{
+    background: "transparent",
+    border: "none",
+    padding: 0,
     cursor: "pointer",
     fontSize: "0.75rem",
     color: "#888",
@@ -7262,7 +7267,7 @@ return (
   }}
 >
   ⎌ 전송 취소 및 다시 쓰기
-</span>
+</button>
                       )}
                     </div>
                   </div>
