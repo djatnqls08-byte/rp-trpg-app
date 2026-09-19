@@ -48,12 +48,20 @@ export async function POST(req) {
         { role: "user", parts: [{ text: lastMessageText }] }
       ];
     } else {
+      // 👤 PC(플레이어) 정보
       const pName = playerSheet?.name || "주인공";
+      const pGender = playerSheet?.gender || "미상";
+      const pAge = playerSheet?.age || "미상";
+      const pJob = playerSheet?.job || "주인공";
       const pcTone = playerSheet?.background || "자연스러운 성격과 말투";
       
-      // 🎯 대화 상대 확정
+      // 🎯 대화 상대(KPC) 확정 및 정보 추출
       const activePartner = targetNpc || playerSheet?.npcs?.[0] || { name: "상대", job: "조력자" };
       const partnerName = activePartner.name || "상대";
+      const partnerGender = activePartner.gender || "미상";
+      const partnerAge = activePartner.age || "미상";
+      const partnerJob = activePartner.job || activePartner.title || "인물";
+      const partnerDetail = activePartner.detail || activePartner.desc || activePartner.setting || "주인공과 아는 사이";
       const currentAffinity = activePartner.affinity ?? activePartner.affection ?? 0;
       const allNpcNames = (playerSheet?.npcs || []).map(n => n.name).filter(Boolean).join(", ") || partnerName;
 
@@ -70,9 +78,9 @@ export async function POST(req) {
 
       let romanceGenrePrompt = "시나리오 및 캐릭터 시트에 정의된 인물들의 성별, 외모, 관계성 설정을 왜곡 없이 그대로 준수하십시오.";
       if (isGL) {
-        romanceGenrePrompt = "현재 태그 [#GL / #백합] 적용 중: 모든 주요 인물은 여성으로 묘사하며, 섬세한 감정선과 유대를 다룹니다.";
+        romanceGenrePrompt = "현재 태그 [#GL / #백합] 적용 중: 주요 로맨스는 여성 간의 섬세한 감정선과 유대를 다룹니다. (단, 시트에 [남성]으로 정의된 인물은 본래 성별 설정을 훼손하지 마십시오.)";
       } else if (isBL) {
-        romanceGenrePrompt = "현재 태그 [#BL] 적용 중: 중심 인물들은 남성 간의 서사와 감정선을 바탕으로 묘사합니다.";
+        romanceGenrePrompt = "현재 태그 [#BL] 적용 중: 중심 인물들은 남성 간의 서사와 감정선을 바탕으로 묘사합니다. (단, 시트에 [여성]으로 정의된 인물은 본래 성별 설정을 훼손하지 마십시오.)";
       } else if (isHL) {
         romanceGenrePrompt = "현재 태그 [#HL / #헤테로] 적용 중: 남녀 간의 서사와 설레는 관계성을 바탕으로 묘사합니다.";
       }
@@ -115,10 +123,10 @@ export async function POST(req) {
 
           systemInstruction = `${coreIdentityPrompt}
 [1:1 실시간 음성 통화 모드]
-- 통화 상대(수화기 너머): '${curVoiceNpc}'
+- 통화 상대(수화기 너머): '${curVoiceNpc}' (성별: ${partnerGender}, 나이: ${partnerAge}, 직업: ${partnerJob})
 - 현장 대면 인물(눈앞의 상대): ${curFacingNpc ? `'${curFacingNpc}'` : "없음 (단독)"}
-[상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
-[인물 설정 및 관계]: ${activePartner.detail || activePartner.desc || "주인공과 오랜 친분이 있는 사이"}
+[상대 호감도] 현재: ${currentAffinity}점
+[인물 상세 설정 및 관계]: ${partnerDetail}
 
 [🚨 직전 현장 상황]
 """
@@ -160,7 +168,10 @@ ${isFacingSame ? `
           systemInstruction = `${coreIdentityPrompt}
 [1:1 스마트폰 메신저 모드]
 당신은 '${pName}'과 1:1 톡을 주고받고 있는 '${partnerName}' 본인입니다!
-[상대 정보] 역할: ${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점
+[상대 정보]
+- 이름: '${partnerName}' (성별: ${partnerGender}, 나이: ${partnerAge}, 역할: ${partnerJob})
+- 현재 호감도: ${currentAffinity}점
+- 인물 상세 설정 및 성격: ${partnerDetail}
 
 """
 ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다."}
@@ -168,7 +179,7 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
 
 [🚨 메신저 사회적 거리감 및 예의 수칙]
 1. [호감도별 말투 및 태도 엄수]:
-      - 호감도 0 ~ 29점:
+   - 호감도 0 ~ 29점:
      * [초면 / 비즈니스 관계]: 예외 없이 정중하고 격식 있는 존댓말(~요/합니다)과 사회적 거리감을 유지하십시오.
      * [원래 친구 / 동창 / 지인 관계]: 시트 설정에 맞춰 원래의 편안한 반말과 친근한 말투를 그대로 유지하십시오. (억지 존댓말 금지)
    - 호감도 30 ~ 69점 (친밀 / 사적 교류): 서서히 부드러워지는 어조, 은근한 배려와 챙김.
@@ -211,9 +222,9 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
           systemInstruction = `${coreIdentityPrompt}
 [비주얼 노벨 / 인터랙티브 로맨스 모드]
 당신은 두 사람의 관계를 이끄는 비주얼 노벨 마스터입니다.
-- 주인공: '${pName}' (${pcTone})
-- 현재 대면 상대: '${partnerName}' (${activePartner.job || "인물"}, 현재 호감도: ${currentAffinity}점)
-- 상대방 상세 설정 및 성별: ${activePartner.detail || activePartner.desc || activePartner.setting || "설정 없음"}
+- 주인공(PC): '${pName}' (성별: ${pGender}, 나이: ${pAge}, 직업: ${pJob}, 특징: ${pcTone})
+- 현재 대면 상대: '${partnerName}' (성별: ${partnerGender}, 나이: ${partnerAge}, 역할: ${partnerJob}, 현재 호감도: ${currentAffinity}점)
+- 상대방 상세 외모/성격/관계: ${partnerDetail}
 - 전체 등장인물 명단: [${allNpcNames}]
 - 현재 시간대: [${currentPhase}]
 - 최근 기억 및 사건 수첩:
@@ -299,6 +310,8 @@ ${recentPhoneSummary}
 1. 'PC', 'KPC' 금지. 주인공은 '${pName}', 동행 파트너는 '${partnerName}'(으)로만 지칭하십시오.
 ${(playPreference || "").includes("#달달") || (playPreference || "").includes("#일상") ? "2. 고어/유혈 묘사를 배제하고 따뜻하게 재해석하십시오." : ""}`;
 
+        const trpgPcJob = playerSheet?.job || "탐사자";
+
         systemInstruction = `당신은 탁월한 텍스트 TRPG의 마스터(Keeper)입니다.
 
 ${coreIdentityPrompt}
@@ -308,7 +321,8 @@ ${relationshipPrompt}
 시나리오 본문 및 배후 진상:
 ${scenarioText || "미상의 시나리오"}
 
-주인공: ${pName} (${playerSheet?.job || "탐사자"}), 파트너: ${partnerName}
+주인공: ${pName} (성별: ${pGender}, 나이: ${pAge}, 직업: ${trpgPcJob}), 파트너: ${partnerName} (성별: ${partnerGender}, 나이: ${partnerAge}, 역할: ${partnerJob})
+상대방 상세 설정: ${partnerDetail}
 현재 시간대: [${currentPhase}]
 최근 기억:
 ${eventsSummary}
