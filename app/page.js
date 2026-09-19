@@ -7156,7 +7156,7 @@ return (
     else if (typeof setUserInput === "function") setUserInput(originalText);
     else if (typeof setInput === "function") setInput(originalText);
 
-    // 2. 세션 메시지에서 현재 유저 메시지 및 그 이후 답변 일괄 롤백
+    // 2. 세션 메시지 및 해당 턴 이후 들어온 메신저(phoneChats) 동기화 롤백
     setSessions(prev => prev.map(s => {
       if (s.id === activeSessionId) {
         const msgs = s.messages || [];
@@ -7169,22 +7169,45 @@ return (
         }
 
         if (targetIdx !== -1) {
+          const targetMsg = msgs[targetIdx];
+          const rollbackTimestamp = targetMsg?.id && typeof targetMsg.id === "number" ? targetMsg.id : Date.now();
+
+          // 메신저에 그 턴 이후 들어온 선톡/답장도 함께 롤백하여 시간선 일치시킴
+          const currentPhoneChats = s.sheet?.phoneChats || {};
+          const rolledBackPhoneChats = {};
+          
+          Object.keys(currentPhoneChats).forEach(contactKey => {
+            rolledBackPhoneChats[contactKey] = (currentPhoneChats[contactKey] || []).filter(pMsg => {
+              if (pMsg.id && typeof pMsg.id === "number") {
+                return pMsg.id < rollbackTimestamp;
+              }
+              return true;
+            });
+          });
+
           return {
             ...s,
-            messages: msgs.slice(0, targetIdx)
+            messages: msgs.slice(0, targetIdx),
+            sheet: {
+              ...s.sheet,
+              phoneChats: rolledBackPhoneChats
+            }
           };
         }
       }
       return s;
     }));
 
-    // 3. 락 강제 해제
+    // 3. 통신 및 로딩 락 해제
     if (typeof setIsGenerating === "function") setIsGenerating(false);
     if (typeof setIsLoading === "function") setIsLoading(false);
   }}
   style={{
-    background: "none",
+    background: "transparent",
+    backgroundColor: "transparent",
     border: "none",
+    outline: "none",
+    boxShadow: "none",
     cursor: "pointer",
     fontSize: "0.72rem",
     color: "#999",
@@ -9723,7 +9746,7 @@ ${statusGuide}
           lineHeight: 1.3
         }}
       >
-        {collapsedPhotos[m.id || idx] ? "▼ 사진 보기" : "▲ 사진 접기"}
+        {collapsedPhotos[m.id || idx] ? "▲" : "▼"}
       </button>
     </div>
 
