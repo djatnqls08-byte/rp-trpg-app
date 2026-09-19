@@ -9010,11 +9010,6 @@ ${statusGuide}
 <!-- SNAP_PHOTO: {"prompt": "aesthetic work room desk with tablet and papers, warm lighting, anime masterpiece background, no humans", "caption": "작업실 풍경"} -->
 `;
 
-5. [일상 사진 / 스냅 사진 전송 규칙]
-- 유저가 "사진 보내줘", "지금 뭐해?", "주변 풍경 찍어줘"라고 요청하거나 상황을 사진으로 공유하고 싶을 때는 지문 맨 끝에 아래 태그를 반드시 첨부하십시오:
-<!-- SNAP_PHOTO: {"prompt": "1girl, solo, portrait, realistic lighting, anime masterpiece", "caption": "사진 한 줄 설명"} -->
-- prompt는 고화질 일러스트가 생성될 수 있도록 인물의 외모와 의상이 포함된 영문(English) 키워드로 상세히 작성하십시오.`;
-
             const cleanPlayerSheet = activeSession.sheet ? {
               ...activeSession.sheet,
               portraitUrl: (activeSession.sheet.portraitUrl || "").startsWith("data:image") ? "" : activeSession.sheet.portraitUrl
