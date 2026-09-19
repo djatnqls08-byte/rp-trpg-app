@@ -1701,9 +1701,9 @@ useEffect(() => {
       const isFantasySetting = /판타지|중세|무협|동양|사극|황실|마법|오컬트|차원/.test(fullGenreText) || phoneTheme === "parchment";
       const statusGuide = isFantasySetting ? `- [판타지/시대극 배경]: 통신석 전언: "${activeSession?.sheet?.statusMessage || "(없음)"}"` : `- [현대/일상 배경]: 메신저 상태메시지: "${activeSession?.sheet?.statusMessage || "(없음)"}"`;
       
-      // 쉼표(,) 앞에 + cgInvitePrompt 가 들어갔습니다!
-body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activeSession.scenarioText || "") + phoneContextNotice + cgInvitePrompt, // ... 뒷부분은 그대로 둡니다 ...
-     // 🌟 [복구 완료] 메신저 선톡 시 미해금 CG 장소로 유도하는 프롬프트 추가
+      const phoneContextNotice = `\n\n[🎉 메신저 톡 캐릭터 빙의 필수 수칙]\n1. 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact?.title || "인물"})\n- [외모/성격/관계성]: ${currentContact?.detail || "설정 없음"}\n- [감춰둔 비밀/진심]: ${currentContact?.secret || "없음"}\n${statusGuide}\n- 🚨 [정보 격리 절대 수칙]: 당신은 플레이어(PC)가 방 안에서 혼자 겪은 일이나 비밀 약속을 전혀 알지 못합니다! 먼저 말해주기 전까지 아는 척하지 마십시오.\n2. [캐붕 금지] 설정된 말투, 억양, 성격을 철저히 고수하십시오.\n3. 현실의 메신저처럼 1~3문장 이내로 간결히 답장하며, 소설 지문이나 해설은 절대 출력하지 마십시오.\n4. [사진 전송 규칙] 유저가 사진을 요구하면 <!-- SNAP_PHOTO: {"prompt": "...", "caption": "..."} --> 태그를 출력하십시오 (인물 제외, 배경/사물 전용).`;
+
+      // 🌟 [복구 완료] 메신저 선톡 시 미해금 CG 장소로 유도하는 프롬프트 추가
       const activeCgList = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
       const currentUnlocked = activeSession.sheet?.unlockedCgs || [];
       const remainingCgs = activeCgList.filter(cg => !currentUnlocked.some(u => (u?.title && u.title === cg.title) || u === cg.title));
@@ -1712,10 +1712,22 @@ body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activ
       if (remainingCgs.length > 0) {
          cgInvitePrompt = `\n\n[🎬 이벤트 CG 명분 유도]\n미해금 CG 조건: ${remainingCgs.map(c => `[${c.title}]:${c.trigger || c.condition}`).join(", ")}\n위 장소나 상황으로 플레이어를 자연스럽게 이끄는 용건을 메신저 선톡의 명분으로 삼으십시오.`;
       }
+
       const res = await fetch("/api/chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activeSession.scenarioText || "") + phoneContextNotice, playerSheet: cleanSheetForAi(activeSession.sheet), ruleMode: "dating", playPreference: activeSession.preference, isPhoneChat: true, targetNpc: currentContact ? { ...currentContact, portrait: "" } : null, lastStoryContext: (recentStoryContext || "").slice(-1000) })
+        method: "POST", 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messages: messagesForApi.slice(-20), 
+          scenarioText: (activeSession.scenarioText || "") + phoneContextNotice + cgInvitePrompt, 
+          playerSheet: cleanSheetForAi(activeSession.sheet), 
+          ruleMode: "dating", 
+          playPreference: activeSession.preference, 
+          isPhoneChat: true, 
+          targetNpc: currentContact ? { ...currentContact, portrait: "" } : null, 
+          lastStoryContext: (recentStoryContext || "").slice(-1000) 
+        })
       });
+
       if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
       const data = await res.json();
       let rawReply = data.text || "";
@@ -1730,7 +1742,7 @@ body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activ
         try { const snapData = JSON.parse(snapMatch[1]); const p = snapData.prompt || snapData.caption || "beautiful scenery"; snapPhotoUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=800&height=1000&nologo=true`; setUnlockedCgList(prev => [...prev, snapPhotoUrl]); triggerToast("📷 사진 도착", "새로운 일상 스냅 사진이 도착했습니다."); } catch (e) {}
         rawReply = rawReply.replace(snapMatch[0], "");
       }
-      if (!snapPhotoUrl && /사진|셀카|스냅|찍|포토/.test(`${textToSend} ${rawReply}`.toLowerCase())) {
+      if (!snapPhotoUrl && /사진|스냅|찍|포토/.test(`${textToSend} ${rawReply}`.toLowerCase())) {
         let topicPrompt = "aesthetic daily snapshot, soft lighting, anime masterpiece";
         if (/진열장|쇼케이스/.test(textToSend.toLowerCase())) topicPrompt = "vintage glass display showcase with warm lighting, highly detailed, anime aesthetic";
         else if (/카페|커피/.test(textToSend.toLowerCase())) topicPrompt = "cozy warm cafe table with hot cup, soft sunlight, anime aesthetic";
@@ -2405,10 +2417,10 @@ body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activ
                   {activeSession ? activeSession.title : "로비 (세션 생성)"}
                 </span>
 
-                {/* 🕒 [Phase 1] 시간 머신 달력 배지 */}
+                {/* 🕒 [Phase 1] 시간 머신 달력 배지 (보기 전용) */}
                 {activeSession && (() => {
                   const curPhase = gameTime.phase;
-                  const phaseTheme = { "오전": { icon: "🌅", bg: "#431407", color: "#fed7aa" }, "낮": { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" }, "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" }, "심야": { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" } }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
+                  const phaseTheme = { "오전": { icon: "🌅", bg: "#431407", color: "#fed7aa" }, "낮": { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" }, "저녁": { icon: "🌆", bg: "#4a2818", color: "#fdba74" }, "심야": { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" }, "밤": { icon: "🌙", bg: "#2d1b4e", color: "#d8b4fe" } }[curPhase] || { icon: "☀️", bg: "#1e3a5f", color: "#93c5fd" };
                   return (
                     <div title="현재 진행 중인 일차와 시간대" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", padding: "3px 8px", borderRadius: "10px", backgroundColor: phaseTheme.bg, color: phaseTheme.color, fontWeight: "bold", flexShrink: 0, userSelect: "none" }}>
                       <span>{phaseTheme.icon}</span><span>{gameTime.day}일차 {curPhase}</span>
@@ -2814,19 +2826,25 @@ body: JSON.stringify({ messages: messagesForApi.slice(-20), scenarioText: (activ
                         </>
                       )}
 
-                      {/* 🌟 잠자기 (날짜 변경) 버튼 */}
+                     {/* 🌟 시간 흐름 & 수면 (언제든 선택 가능) */}
                       <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
+                      
                       <button 
-                        onClick={() => { sleepNextDay(); executeMessage(`[수면] 잠자리에 들어 다음 날을 맞이합니다.`); setIsActionDrawerOpen(false); }} 
-                        style={{ padding: "8px 10px", textAlign: "left", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}
+                        type="button"
+                        onClick={() => { advanceTimePhase(); setIsActionDrawerOpen(false); }} 
+                        style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", color: theme.text, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                       >
-                        🛏️ 잠자리에 들기 (다음 날)
+                        ⏳ 다음 시간대로 이동 (현재: {gameTime.phase})
                       </button>
-
-                    </div>
-                  </>
-                )}
-              </div>
+                      
+                      <button 
+                        type="button"
+                        onClick={() => { sleepNextDay(); executeMessage(`[수면] 잠자리에 들어 다음 날을 맞이합니다.`); setIsActionDrawerOpen(false); }} 
+                        style={{ padding: "8px 10px", textAlign: "left", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "8px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        🛏️ 수면 / 다음 날로 넘어가기
+                      </button>
+                      )}
 
               {/* 중앙 입력칸 */}
               <textarea 
