@@ -6168,9 +6168,10 @@ return (
                             resize: "vertical" 
                           }} 
                         />
-                      )}
+)}
                     </div>
-                  ))}
+                  </div>
+                ))}
                 </div>
               </div>
             </div>
