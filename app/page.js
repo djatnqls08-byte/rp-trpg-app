@@ -341,14 +341,14 @@ function convertRowToPreset(row, index, headers = []) {
   const curiosity = getVal(/^(호기심|호기심분야)$/i, 14);
   const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
 
-  // 🌟 NPC 1번 ~ 10번 동적 추출
+// 🌟 NPC 1번 ~ 10번 동적 추출
   const kpcList = [];
 
   for (let i = 1; i <= 10; i++) {
     const offset = 16 + (i - 1) * 5;
     const name = getVal(new RegExp(`^(npc${i}이름|kpc${i}이름${i === 1 ? '|kpc이름|파트너이름' : ''})$`, 'i'), offset);
     const job = getVal(new RegExp(`^(npc${i}직업|kpc${i}직업${i === 1 ? '|kpc직업|파트너직업' : ''})$`, 'i'), offset + 1);
-    const detail = getVal(new RegExp(`^(npc${i}상세|kpc${i}상세${i === 1 ? '|npc1특징' : ''})$`, 'i'), offset + 2);
+    let detail = getVal(new RegExp(`^(npc${i}상세|kpc${i}상세${i === 1 ? '|npc1특징' : ''})$`, 'i'), offset + 2);
     const secret = getVal(new RegExp(`^(npc${i}비밀|kpc${i}비밀${i === 1 ? '|kpc비밀' : ''})$`, 'i'), offset + 3);
     const img = getVal(new RegExp(`^(npc${i}이미지|kpc${i}이미지${i === 1 ? '|kpc이미지' : ''})$`, 'i'), offset + 4);
 
@@ -359,9 +359,18 @@ function convertRowToPreset(row, index, headers = []) {
     const statMatch = (detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
     const extractedStatus = statMatch ? statMatch[1].trim() : "";
 
+    // 🌟 시트 본문에서 성별, 나이 추출
+    const genderMatch = (detail || "").match(/성별\s*[:：]\s*([^\n\r,/]+)/i);
+    const ageMatch = (detail || "").match(/나이\s*[:：]\s*([^\n\r,/]+)/i);
+
+    // 🌟 외모/성격 큰 상자에 남는 성별, 나이, 역할 줄글 찌꺼기 정리
+    detail = (detail || "").replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
+
     kpcList.push({
       id: Date.now() + i,
       name: name.trim(),
+      gender: genderMatch ? genderMatch[1].trim() : "",
+      age: ageMatch ? ageMatch[1].trim().replace(/[^0-9]/g, "") : "",
       job: job || "",
       detail: detail || "",
       secret: secret || "",
@@ -370,7 +379,6 @@ function convertRowToPreset(row, index, headers = []) {
       statusMessage: extractedStatus
     });
   }
-
   // 🌟 [2] CG 열 자동 탐색 (헤더에 없으면 원래 CG 시작 자리인 61번 사용)
   const cgStartIdx = findIdx(/^(cg1|이벤트cg1|cg\s*1|cg1제목)/i);
   const startCol = cgStartIdx !== -1 ? cgStartIdx : (61 + (titleIdx > 0 ? titleIdx : 0));
