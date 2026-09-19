@@ -3816,12 +3816,12 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     const isDating = activeSession.ruleMode?.startsWith("dating");
     const pcTone = activeSession.sheet?.background || "자연스러운 성격";
 
-const currentDay = activeSession.sheet?.day || 1;
+
+// 🌟 [Phase 1] 시스템 시간 절대 앵커 (구버전 호환)
+    const currentDay = activeSession.sheet?.day || Math.max(1, Math.floor((activeSession.messages?.length || 0) / 15) + 1);
     const currentPhaseStr = currentPhase || activeSession.sheet?.currentPhase || "낮";
     
- let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhaseStr}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.
-    
-    [키퍼 마스터링 및 완급 조절 절대 수칙]
+    let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhaseStr}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
 1. [🚨 진상 스포일러 절대 누설 금지]
 - 시나리오의 [키퍼 전용 기밀/진상]은 마스터만 알고 있는 비밀 배경입니다.
 - 플레이어가 주사위 판정(조사/심리학 등)을 성공하거나 직접적인 증거를 목격하기 전까지는, 지문이나 해설 독백으로 흑막의 정체나 사건의 진상을 절대로 미리 설명하지 마십시오.
@@ -5523,33 +5523,7 @@ return (
                     <span>{activeSession?.sheet?.day || Math.max(1, Math.floor((activeSession?.messages?.length || 0) / 15) + 1)}일차 {currentPhase || activeSession?.sheet?.currentPhase || "낮"}</span>
                   </div>
                 )}
-
-// 🌟 [Phase 1] 시스템 시간 절대 앵커 (구버전 호환)
-    const currentDay = activeSession.sheet?.day || Math.max(1, Math.floor((activeSession.messages?.length || 0) / 15) + 1);
-    let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhase || "낮"}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.`;
-                  return (
-                    <div 
-                      onClick={() => {
-                        const next = phaseCycle[(phaseCycle.indexOf(curPhase === "노을" ? "저녁" : curPhase) + 1) % phaseCycle.length];
-                        setCurrentPhase(next);
-                        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
-                          ...s,
-                          currentPhase: next,
-                          sheet: { ...s.sheet, currentPhase: next }
-                        } : s));
-                      }}
-                      title="클릭하여 시간대 변경 (아침/낮/저녁/밤/새벽)"
-                      style={{
-                        display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", padding: "2px 7px", borderRadius: "10px", backgroundColor: phaseTheme.bg, color: phaseTheme.color, fontWeight: "bold", flexShrink: 0, cursor: "pointer", userSelect: "none"
-                      }}
-                    >
-                      <span>{phaseTheme.icon}</span>
-                      {/* 🌟 여기에 "N일차" 가 다시 들어갑니다! */}
-                      <span>{currentDay}일차 {curPhase}</span>
-                    </div>
-                  );
-})()}
-             
+          
                 {activeSession && activeSession.ruleMode === "insane" && (
                   <span style={{ 
                     padding: "2px 7px", 
