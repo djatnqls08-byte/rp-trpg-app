@@ -4496,9 +4496,9 @@ if (endCallMatch) {
         rawText = rawText.replace(phoneMsgMatch[0], "");
       }
 
-      // 2) AI가 태그 누락하고 본문에 [이름]: "대사"로 썼을 때 자동 감지
+      // 2) AI가 태그 누락하고 본문에 [이름]: "대사"로 썼을 때 자동 감지 (따옴표 누락도 유연하게 캐치)
       if (!newPhoneMsg) {
-        const inlineMsgMatch = rawText.match(/\[([^\]]+)\]\s*[:：]\s*["'“]([^"'”\n\r]+)["'”]/);
+        const inlineMsgMatch = rawText.match(/\[([^\]]+)\]\s*[:：]\s*["'“]?([^"'”\n\r]+?)["'”]?\s*(?=\n|$)/);
         if (inlineMsgMatch) {
           const candidateName = inlineMsgMatch[1].trim();
           const allNpcs = activeSession.sheet?.npcs || activeSession.sheet?.kpcList || kpcList || [];
@@ -7801,7 +7801,11 @@ return (
              // 🌟 2. 미해금 CG 장소 자동 매칭 검사 (금빛 묘한 예감 힌트)
               const allScenarioCgs = activeSession?.sheet?.scenarioCgs || activeSession?.sheet?.cgs || scenarioCgs || [];
               const currentUnlocked = activeSession?.sheet?.unlockedCgs || [];
-              const cardWords = (card.name || "").replace(/[^가-힣a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 2);
+              
+              // 💡 1글자 핵심 장소(예: 방, 집)도 캐치하고, AI가 생성한 장소 설명(desc)까지 힌트 검사 범위를 대폭 확장!
+              const nameWords = (card.name || "").replace(/[^가-힣a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 1);
+              const descWords = (card.desc || "").replace(/[^가-힣a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 2);
+              const cardWords = [...nameWords, ...descWords];
               
               const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
               const targetNpcName = activeSession?.sheet?.npcs?.[0]?.name || "상대방";
