@@ -2881,6 +2881,7 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       const currentTurnCount = targetSheet?.turnCount || 0;
       const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
 
+      // 🌟 [수정 완료] 깨져있던 기호(\vert{})를 | 기호로 정상 복구
       const isBadEndTag = /\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/i.test(cleanText);
       if (isBadEndTag) {
         if (isEarlyGame) {
@@ -2907,6 +2908,7 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
       }
 
+      // 🌟 [수정 완료] 주사위 판정 팝업이 안 뜨던 원인인 깨진 정규식을 완벽 복구
       const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>\vert{}\])/i);
       if (checkMatch) {
         try { parsedData.pendingCheck = JSON.parse(checkMatch[1]); } catch(e) {}
@@ -2969,7 +2971,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
 
     return { cleanText, parsedData };
   };
-
   const cleanSheetForAi = (sheet) => {
     if (!sheet) return {};
     const { portrait, ...rest } = sheet;
