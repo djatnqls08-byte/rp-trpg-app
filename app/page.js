@@ -3358,23 +3358,30 @@ const startNewSession = async () => {
     sessionSheet.currentPhase = initialDetectedPhase;
   const hasOpening = Boolean(finalOpening && finalOpening.trim());
 
+   // 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
     let openingPrompt = "";
     if (wizardMode === "dating") {
-      if (hasOpening) {
-        // 🌟 서막이 이미 있는 경우: 선택지만 요청
-        openingPrompt = `시나리오의 [초기 배경/서막]을 플레이어가 확인했습니다.
-주인공 '${pName}'이 취할 만한 첫 번째 행동 선택지 3개만 아래 형식으로 출력하십시오:
+      openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
+시나리오의 [초기 배경/서막]을 플레이어가 몰입할 수 있는 도입부 지문으로 유려하게 윤색하여 서술하십시오.
+[🚨 마스터링 절대 수칙]
+1. 원본 텍스트에 적힌 메타 정보, 괄호 속 해설, '도입:', 키퍼용 기믹 등 스포일러는 절대 노출하지 마십시오!
+2. 오직 주인공 '${pName}'의 시점에서 현장 분위기, 인물 간의 시선과 공기의 온도를 4~5문장으로 서술하십시오.
+3. 지문 끝에 주인공 '${pName}'이 취할 만한 선택지 3개를 반드시 출력하십시오:
 <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
-      } else {
-        // 🌟 서막이 비어있는 경우: AI가 직접 서막 집필
-        openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
-시나리오의 [공개 시놉시스]와 [키퍼 전용 기밀/진상]을 바탕으로 두 사람의 첫 만남 혹은 사건의 순간을 감각적으로 열어주십시오.
-- 3인칭 소설 문체로 현장 분위기, 인물 간의 시선과 공기의 온도를 담아 4~5문장으로 서술하십시오.
-- 주사위 판정이나 시스템 용어를 배제하고 감정선에 집중하십시오.
-- 'PC', 'KPC'라는 단어를 일절 쓰지 말고 '${pName}'과 '${partnerName}'(으)로만 지칭하십시오.
-- 지문 끝에 주인공 '${pName}'(성향: [${charBackground || "자연스러운 성향"}])이 취할 만한 선택지 3개를 반드시 출력하십시오:
-<!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
-      }
+    } else if (wizardMode === "dating_msg") {
+      openingPrompt = `[세션 시작: 첫 메신저 톡 수신 요청]
+당신은 지금 '${partnerName}' 본인입니다.
+시나리오의 [초기 배경/서막]에 담긴 상황을 파악하여, 상대방 '${pName}'에게 가볍게 말을 건네는 첫 카톡(메시지)을 1~2줄로 보내주십시오.
+- 스포일러 해설, 메타 정보, 따옴표, 괄호 묘사를 일절 배제하고 오직 '${partnerName}'이 스마트폰 키보드로 직접 친 텍스트만 출력하십시오.`;
+    } else {
+      openingPrompt = `[세션 시작: 첫 서막 지문 요청]
+시나리오의 [초기 배경/서막]을 플레이어가 몰입할 수 있도록 TRPG 도입부 지문으로 매끄럽게 윤색하여 서술하십시오.
+[🚨 마스터링 절대 수칙]
+1. 원본 텍스트에 포함된 스포일러, 메타 정보(예: '도입:', 괄호 속 해설, 마스터 기믹)를 철저히 필터링하고 절대 노출하지 마십시오!
+2. 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
+3. 오직 플레이어 '${pName}'가 현장에서 오감으로 느낄 수 있는 상황과 파트너 '${partnerName}'의 모습만을 4~5문장으로 서술하십시오.
+4. 지문 끝에 씬 행동을 위한 선택지 3개를 출력하십시오:
+<!-- SUGGESTIONS: ["주변 단서를 살펴본다", "${partnerName}에게 말을 건다", "기능 판정을 시도한다"] -->`;
     } else if (wizardMode === "dating_msg") {
       // 💬 메신저형 첫 문자 톡
       openingPrompt = `[세션 시작: 첫 메신저 톡 수신 요청]
@@ -3446,10 +3453,10 @@ const startNewSession = async () => {
             scenarioCgs: currentCgs,
             unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
           },
-          messages: [{ 
+         messages: [{ 
             role: "model", 
-            // 🌟 바로 이 줄입니다! 아래 코드로 교체하세요:
-            text: (typeof finalOpening !== "undefined" && finalOpening) ? finalOpening : (cleanDisplayOpening || cleanText),
+            // 🌟 [수정 완료] 원본 텍스트(스포일러)를 띄우지 않고, AI가 스포일러를 걸러낸 깨끗한 텍스트만 출력합니다!
+            text: cleanText,
             cg: unlockedCgObj || null 
           }],
           suggestedActions: parsedData.suggActions,
