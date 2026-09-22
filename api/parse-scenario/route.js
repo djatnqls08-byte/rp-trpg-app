@@ -5,11 +5,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req) {
   try {
-    // 🌟 프론트엔드에서 텍스트(rawText) 또는 이미지(imageData)를 받습니다.
     const { rawText, imageData } = await req.json();
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
+    // 🌟 수정된 부분: api/chat 과 동일하게 여러 API 키와 대소문자를 모두 지원하도록 변경합니다.
+    const rawKeys = process.env.GEMINI_API_KEY || process.env.Gemini_API_Key || "";
+    const apiKeys = rawKeys.split(",").map(k => k.trim()).filter(Boolean);
+    
+    if (apiKeys.length === 0) {
+      throw new Error("서버에 등록된 API 키(Gemini_API_Key)를 찾을 수 없습니다.");
+    }
+    const apiKey = apiKeys[0]; // 첫 번째 키를 사용합니다.
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
@@ -34,14 +39,11 @@ export async function POST(req) {
   ]
 }`;
 
-    // 🌟 AI에게 전달할 데이터 꾸러미를 준비합니다.
     const promptParts = [{ text: systemPrompt }];
     
-    // 텍스트가 있으면 텍스트 추가
     if (rawText) {
       promptParts.push({ text: `[시나리오 원문]\n${rawText}` });
     }
-    // 🌟 이미지가 있으면 이미지 데이터 추가 (Gemini가 눈으로 직접 읽습니다!)
     if (imageData) {
       promptParts.push({
         inlineData: {
@@ -64,6 +66,7 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("Scenario Parse Error:", err);
+    // 프론트엔드로 정확한 에러 메시지를 전달합니다.
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
