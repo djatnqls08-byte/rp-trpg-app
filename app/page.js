@@ -2402,15 +2402,39 @@ const processScenarioText = (rawText) => {
   alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
 };
 
-// ── [파일 업로드 이벤트 핸들러] ──
+// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (이미지/텍스트/PDF 완벽 지원)]
 const handleFileUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (file.name.toLowerCase().endsWith(".pdf")) {
-    setIsPdfLoading(true);
-    try {
-      // ⬇️ 아래처럼 따옴표 안에 순수 URL만 남겨주세요
+  setIsPdfLoading(true);
+  
+  if (typeof triggerToast === "function") {
+    triggerToast("시나리오 분석 중", "AI가 문서를 꼼꼼히 분석하고 있습니다. 잠시만 기다려주세요!", "📚");
+  }
+
+  try {
+    let payload = {};
+
+    if (file.type.startsWith("image/")) {
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      payload = {
+        imageData: {
+          base64: base64String,
+          mimeType: file.type
+        }
+      };
+    } 
+    else if (file.name.toLowerCase().endsWith(".pdf")) {
       if (!window.pdfjsLib) {
         await new Promise((res, rej) => {
           const script = document.createElement("script");
@@ -2422,24 +2446,69 @@ const handleFileUpload = async (e) => {
       }
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      let text = "";
+      
+      let rawText = "";
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        text += `[${i}P] ${content.items.map((it) => it.str).join(" ")}\n\n`;
+        rawText += content.items.map((it) => it.str).join(" ") + "\n";
       }
-      processScenarioText(text);
-    } catch (err) {
-      alert("PDF 오류: " + err.message);
-    } finally {
-      setIsPdfLoading(false);
+      payload = { rawText: rawText.slice(0, 50000) };
+    } 
+    else {
+      payload = { rawText: (await file.text()).slice(0, 50000) };
     }
-  } else {
-    const reader = new FileReader();
-    reader.onload = (ev) => processScenarioText(ev.target.result);
-    reader.readAsText(file, "UTF-8");
+
+    const response = await fetch("/api/parse-scenario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload) 
+    });
+
+    if (!response.ok) throw new Error("AI 시나리오 분석에 실패했습니다.");
+
+    const parsedData = await response.json();
+
+    if (parsedData.scenarioTitle) setScenarioTitle(parsedData.scenarioTitle);
+    if (parsedData.publicSynopsis) setPublicSynopsis(parsedData.publicSynopsis);
+    if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
+    if (parsedData.hiddenTruth) setHiddenTruth(parsedData.hiddenTruth);
+
+    if (parsedData.kpcName) {
+      setKpcList([{
+        id: Date.now(),
+        name: parsedData.kpcName,
+        job: "파트너",
+        detail: parsedData.kpcDetail || "",
+        secret: parsedData.kpcSecret || "",
+        portraitUrl: "", 
+        showSecret: false
+      }]);
+    }
+
+    if (parsedData.handouts && parsedData.handouts.length > 0) {
+      const newHandouts = parsedData.handouts.map((h, i) => ({
+        id: "parsed_ho_" + i,
+        title: h.title,
+        overview: h.overview,
+        secret: h.secret,
+        revealed: false
+      }));
+      setGeneratedHandouts(newHandouts);
+    }
+
+    if (typeof triggerToast === "function") {
+      triggerToast("분석 완료!", "성공적으로 시나리오를 분해하여 폼에 자동 입력했습니다.", "✨");
+    } else {
+      alert("시나리오 분석 완료! 세팅창을 확인해 주세요.");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
+  } finally {
+    setIsPdfLoading(false);
   }
-  e.target.value = null;
 };
    
   const applyCustomPortrait = () => {
