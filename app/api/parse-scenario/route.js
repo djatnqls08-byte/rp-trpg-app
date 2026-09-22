@@ -23,33 +23,38 @@ export async function POST(req) {
       throw new Error("서버에 등록된 API 키(Gemini_API_Key)를 찾을 수 없습니다.");
     }
 
-// 🌟 [수정 완료] PC와 KPC의 정보를 완벽하게 분리해서 추출하도록 JSON 구조를 확장했습니다.
+// 🌟 [수정 완료] KPC1 인식 문제 해결 및 문서 데이터 최우선 규칙 적용
     const systemPrompt = `
-당신은 TRPG 시나리오 분석 및 캐릭터 시트 해석 전문가입니다.
-아래에 제공된 텍스트(또는 이미지)를 꼼꼼히 읽고 완벽한 JSON 포맷으로 추출하십시오.
+당신은 TRPG 시나리오 분석 및 캐릭터 시트 데이터 추출 전문가입니다.
+제공된 텍스트(또는 이미지)를 완벽한 JSON 포맷으로 분석 및 추출하십시오.
 
-[🚨 매우 중요한 추출 규칙]
-1. 문서 유형 파악: 문서에 'PC'와 'KPC'의 설정(이름, 직업, 나이, 성별, 백스토리, 비밀 등)이 적혀 있다면, 아래 JSON 구조의 pcName, pcJob 등 PC 관련 필드와 kpcName, kpcDetail 등 KPC 관련 필드에 각각 정확히 분리하여 채워 넣으십시오.
-2. 기호 출력 절대 금지: 필드에 '\${pcName}' 같은 변수명이나 코드를 그대로 출력하지 마십시오. 반드시 문서에서 읽어낸 실제 이름(예: 고죠 사토루)만 출력해야 합니다.
-3. 시나리오 문서일 경우: 시나리오 원문이라면 서막을 상세히 추출하되, 캐릭터 시트만 주어졌다면 시나리오 관련 필드(Title, Synopsis, Opening, Truth)는 빈 문자열("")로 두십시오.
+[현재 로비에 임시 설정된 기본값]
+- PC 기본 이름: ${pcName || '없음'}
+- KPC 기본 이름: ${kpcName || '없음'}
+🚨 중요 규칙: 업로드된 문서 안에 'PC이름', 'KPC이름' 등 캐릭터 정보가 명시되어 있다면, 위의 임시 기본값을 완전히 무시하고 **반드시 문서 안에 적힌 이름과 설정을 최우선으로 추출**해야 합니다.
+
+[캐릭터 시트 인식 특수 규칙]
+1. PC 추출: 문서의 'PC이름' 항목을 찾아 정확히 "pcName" 필드에 넣으십시오.
+2. KPC 추출 (숫자 무시): 문서에 'KPC1', 'KPC1이름', 'KPC1상세'처럼 숫자가 붙어 있더라도, 이를 메인 KPC 데이터로 인식하여 "kpcName", "kpcJob", "kpcDetail", "kpcSecret" 필드에 통합하여 추출하십시오. 누락은 절대 금지됩니다.
+3. 문서 유형 파악: 이 문서처럼 캐릭터 설정(시트)만 존재하고 시나리오 서막/시놉시스가 없는 경우, 억지로 지어내지 말고 시나리오 관련 필드는 강제로 빈 문자열("")로 처리하십시오.
 
 [추출해야 할 JSON 구조]
 {
-  "scenarioTitle": "시나리오 제목 (없으면 빈 문자열)",
-  "publicSynopsis": "시놉시스 (없으면 빈 문자열)",
-  "openingScene": "서막 지문 (없으면 빈 문자열)",
-  "hiddenTruth": "진상 (없으면 빈 문자열)",
-  "pcName": "문서에 명시된 PC 이름 (없으면 빈 문자열)",
-  "pcJob": "문서에 명시된 PC 직업",
-  "pcAge": "문서에 명시된 PC 나이 (숫자만 추출)",
-  "pcGender": "문서에 명시된 PC 성별",
-  "pcBackground": "문서에 명시된 PC 백스토리 및 소지품",
-  "pcMission": "문서에 명시된 PC 사명",
-  "pcSecret": "문서에 명시된 PC 비밀",
-  "kpcName": "문서에 명시된 KPC 이름 (없으면 빈 문자열)",
-  "kpcJob": "문서에 명시된 KPC 직업",
-  "kpcDetail": "KPC의 나이, 성별, 외모, 성격, 관계성 요약 (매우 상세히)",
-  "kpcSecret": "KPC의 숨겨진 비밀",
+  "scenarioTitle": "",
+  "publicSynopsis": "",
+  "openingScene": "",
+  "hiddenTruth": "",
+  "pcName": "문서에서 추출한 PC 이름 (예: 고죠 사토루)",
+  "pcJob": "문서에서 추출한 PC 직업",
+  "pcAge": "문서에서 추출한 PC 나이 (숫자만 추출)",
+  "pcGender": "문서에서 추출한 PC 성별",
+  "pcBackground": "문서에서 추출한 PC 백스토리 및 소지품 전체",
+  "pcMission": "문서에서 추출한 PC 사명",
+  "pcSecret": "문서에서 추출한 PC 비밀",
+  "kpcName": "문서에서 추출한 KPC 이름 (예: 게토 스구루)",
+  "kpcJob": "문서에서 추출한 KPC 직업",
+  "kpcDetail": "문서의 KPC 상세 내용 전체 (외모, 성격, 상태메시지, 호불호 등 빠짐없이 상세히 통합)",
+  "kpcSecret": "문서에서 추출한 KPC 비밀",
   "handouts": []
 }`;
     const promptParts = [{ text: systemPrompt }];
