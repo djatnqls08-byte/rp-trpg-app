@@ -2984,6 +2984,14 @@ const startNewSession = async () => {
     const pName = charName.trim() || "클레어";
     const partnerName = kpcList[0]?.name || "아델";
 
+    // 🌟 [추가/수정] 안전하게 원본 텍스트를 불러오는 코드를 맨 위로 올렸습니다!
+    let safeRawText = "";
+    try {
+      safeRawText = typeof originalRawText !== "undefined" ? originalRawText : "";
+    } catch (e) {
+      safeRawText = "";
+    }
+
     // 🌟 [추가] 새 세션 시작 시 장르 태그를 읽어 즉시 톡 테마 자동 적용!
     const autoTheme = detectAutoPhoneTheme(`${playPreference} ${sessionTitle} ${publicSynopsis}`);
     setPhoneTheme(autoTheme);
@@ -3223,9 +3231,9 @@ const startNewSession = async () => {
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
 
-    // 5) 치환 완료된 시나리오 컨텍스트 생성 (원본 데이터 몰래 주입!)
+// 5) 치환 완료된 시나리오 컨텍스트 생성 (원본 데이터 몰래 주입!)
     const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}
-${originalRawText ? `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${originalRawText}` : ""}`;
+${safeRawText ? `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}` : ""}`;
  
  // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
