@@ -13339,30 +13339,79 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
             />
 
             <div style={{ display: "flex", gap: "8px" }}>
-              <button
+<button
                 type="button"
-                onClick={() => setShowPasteModal(false)}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  backgroundColor: theme.panelAlt || "#27272a",
-                  border: `1px solid ${theme.border || "#3f3f46"}`,
-                  borderRadius: "8px",
-                  color: theme.textMuted || "#a1a1aa",
-                  fontSize: "0.8rem",
-                  cursor: "pointer",
-                  fontWeight: "700"
-                }}
-              >
-                닫기
-              </button>
-              <button
-                type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (!pastedScenarioText.trim()) return alert("붙여넣은 내용이 없습니다.");
-                  processScenarioText(pastedScenarioText);
-                  setShowPasteModal(false);
-                  setPastedScenarioText("");
+
+                  // 🌟 1. 로딩 스피너 켜기 및 알림
+                  setIsPdfLoading(true);
+                  if (typeof triggerToast === "function") {
+                    triggerToast("AI 텍스트 분석 중", "붙여넣은 텍스트를 AI가 분석하고 있습니다...", "📚");
+                  }
+
+                  try {
+                    // 🌟 2. 텍스트 데이터를 백엔드 AI로 전송할 준비
+                    const payload = {
+                      rawText: pastedScenarioText.slice(0, 50000),
+                      pcName: charName.trim() || "탐사자",
+                      kpcName: kpcList.length > 0 ? kpcList[0].name : "KPC",
+                      kpcDetail: kpcList.length > 0 ? kpcList[0].detail : "",
+                      playPreference: playPreference
+                    };
+
+                    // 🌟 3. 우리가 만든 똑똑한 AI API 호출! (과거의 구형 processScenarioText 삭제)
+                    const response = await fetch("/api/parse-scenario", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error("서버 오류가 발생했습니다.");
+                    const parsedData = await response.json();
+
+                    // 4. 시나리오 정보 맵핑
+                    if (parsedData.scenarioTitle) setScenarioTitle(parsedData.scenarioTitle);
+                    if (parsedData.publicSynopsis) setPublicSynopsis(parsedData.publicSynopsis);
+                    if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
+                    if (parsedData.hiddenTruth) setHiddenTruth(parsedData.hiddenTruth);
+
+                    // 5. PC 정보 맵핑
+                    if (parsedData.pcName) setCharName(parsedData.pcName);
+                    if (parsedData.pcJob) setCharJob(parsedData.pcJob);
+                    if (parsedData.pcAge) setCharAge(parsedData.pcAge.toString().replace(/[^0-9]/g, ""));
+                    if (parsedData.pcGender) setCharGender(parsedData.pcGender);
+                    if (parsedData.pcBackground) setCharBackground(parsedData.pcBackground);
+                    if (parsedData.pcMission) setCharMission(parsedData.pcMission);
+                    if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
+
+                    // 6. 다수 NPC/KPC 맵핑
+                    if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
+                      const newNpcs = parsedData.npcs.map((npc, index) => ({
+                        id: Date.now() + index,
+                        name: npc.name || "미상",
+                        job: npc.job || "조력자",
+                        detail: npc.detail || "",
+                        secret: npc.secret || "",
+                        portraitUrl: "",
+                        showSecret: false
+                      }));
+                      setKpcList(newNpcs);
+                    }
+
+                    // 7. 모달 닫기 및 초기화
+                    setShowPasteModal(false);
+                    setPastedScenarioText("");
+                    if (typeof triggerToast === "function") {
+                      triggerToast("파싱 성공!", "AI가 텍스트에서 캐릭터를 성공적으로 추출했습니다.", "✨");
+                    }
+
+                  } catch (err) {
+                    console.error("텍스트 분석 에러:", err);
+                    alert("분석 중 오류가 발생했습니다: " + err.message);
+                  } finally {
+                    setIsPdfLoading(false);
+                  }
                 }}
                 style={{
                   flex: 2,
@@ -13376,8 +13425,8 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                   cursor: "pointer"
                 }}
              >
-                        🪄 로비에 자동 적용하기
-                      </button>
+                🪄 로비에 자동 적용하기
+              </button>
                     </div>
                   </div>
                 </div>
