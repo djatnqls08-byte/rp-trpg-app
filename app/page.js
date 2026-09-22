@@ -3976,10 +3976,13 @@ ${remainingCgs.length > 0
       : rawMessagesForAi;
 
     // 🌟 [413 방어 2] 최근 15개 턴만 슬라이스하고 순수 텍스트만 전송 (용량 98% 절감)
-    const messagesForAi = baseAiList.slice(-50).map(m => ({
-      role: m.role,
-      text: m.text
-    }));
+    const messagesForAi = baseAiList.slice(-40).map(m => {
+      // 시스템이 보낸 "[주사위 굴림]" 같은 로그는 AI가 사람의 대화로 착각하지 않도록 제외하거나 정리할 수 있습니다.
+      return {
+        role: m.role,
+        text: m.text 
+      };
+    });
 
 // 🌟 [외모 왜곡 및 직업/신분 날조 방지 앵커 - 범용 버전]
     const pcNameStr = activeSession.sheet?.name || charName.trim() || "주인공";
@@ -4032,8 +4035,7 @@ ${npcsSummary}
 // ⏰ 시간대는 유저의 명시적인 행동(잠자기, 시간 경과 버튼) 시에만 변경되며, 대사 속 단어로 임의 변경되지 않음
     let updatedPhase = currentPhase || "낮";
  
-    try {
-        // 🌟 1. 사진 제거 변수는 fetch 바깥(위쪽)에서 먼저 선언해야 합니다
+  try {
         const rawSheet = typeof cleanSheetForAi === "function" ? cleanSheetForAi(activeSession.sheet) : activeSession.sheet;
         const safePlayerSheet = rawSheet ? {
           ...rawSheet,
@@ -4073,23 +4075,22 @@ ${npcsSummary}
 - ❌ 절대 주의: 다른 인물(강태주-피트니스 센터 대표 등)의 신분이나 직업을 [${currentContact.name}]에게 절대로 뒤집어씌우지 마십시오.`;
     }
      
-        const res = await fetch("/api/chat", {
+const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({
-            messages: (messagesForAi || []).slice(-30),
+            // 🌟 [수정할 부분 2] 이미 위에서 40개를 잘랐으므로 바로 messagesForAi를 보냅니다.
+            messages: messagesForAi, 
             scenarioText: (activeSession.scenarioText || "") + (dynamicRules || "") + (typeof appearanceAnchor !== "undefined" ? appearanceAnchor : ""),
             playerSheet: safePlayerSheet,
             ruleMode: activeSession.ruleMode,
             playPreference: activeSession.preference,
             currentPhase: updatedPhase || currentPhase || "낮",
             recentEvents: recentEvents || [],
-            // 📱 통화 & 대면 정보 동시 전달
             isVoiceCall: isVoiceCallActive,
             voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
             facingNpc: currentContact?.name || null,
-            // ✨ 여기에 아래 한 줄을 추가합니다!
             isPhoneChat: activeSession.ruleMode === "dating_msg"
           })
         });
