@@ -2402,7 +2402,7 @@ const processScenarioText = (rawText) => {
   alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
 };
 
-// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (이미지/텍스트/PDF 완벽 지원)]
+// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (상세 에러 표시 추가)]
 const handleFileUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -2465,7 +2465,11 @@ const handleFileUpload = async (e) => {
       body: JSON.stringify(payload) 
     });
 
-    if (!response.ok) throw new Error("AI 시나리오 분석에 실패했습니다.");
+    // 🌟 수정된 부분: 서버에서 온 진짜 에러 메시지를 꺼내서 띄워줍니다!
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
+    }
 
     const parsedData = await response.json();
 
@@ -2505,6 +2509,7 @@ const handleFileUpload = async (e) => {
 
   } catch (err) {
     console.error(err);
+    // 🌟 수정된 부분: alert 창에 정확한 에러 메시지가 뜹니다.
     alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
   } finally {
     setIsPdfLoading(false);
