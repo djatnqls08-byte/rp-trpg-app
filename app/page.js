@@ -2030,14 +2030,33 @@ try {
     }
   };
 
-  // 🌟 PC/KPC 치환 완료 알림 (alert 대신 토스트)
+  // 🌟 [업그레이드된 이름 치환 핸들러] 
+  // PC, KPC뿐만 아니라 탐사자, 파트너도 모두 실제 캐릭터 이름으로 바꿔줍니다!
   const handleAutoReplaceKpcPc = () => {
     const pName = charName.trim() || "주인공";
     const kName = kpcList[0]?.name || "파트너";
-    setPublicSynopsis(publicSynopsis.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
-    setOpeningScene(openingScene.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
-    setHiddenTruth(hiddenTruth.replace(/\bKPC\b/gi, kName).replace(/\bPC\b/gi, pName));
-    triggerToast(`'PC' ➔ '${pName}', 'KPC' ➔ '${kName}' 치환 완료! 🔄`);
+
+    // 정규식을 사용해 바꿀 단어들을 모두 찾아 실제 이름으로 교체하는 마법의 공식입니다.
+    const replaceNames = (text) => {
+      if (!text) return "";
+      return text
+        .replace(/\bKPC\b/gi, kName) // KPC, kpc 모두 찾아 바꿈
+        .replace(/파트너/g, kName)    // 파트너 찾아 바꿈
+        .replace(/\bPC\b/gi, pName)  // PC, pc 모두 찾아 바꿈
+        .replace(/탐사자/g, pName);   // 탐사자 찾아 바꿈
+    };
+
+    // 시놉시스, 오프닝, 진상 3곳의 텍스트를 모두 교체하여 다시 화면에 띄웁니다.
+    setPublicSynopsis(replaceNames(publicSynopsis));
+    setOpeningScene(replaceNames(openingScene));
+    setHiddenTruth(replaceNames(hiddenTruth));
+
+    // 유저에게 완료 알림 띄우기
+    if (typeof triggerToast === "function") {
+      triggerToast("이름 치환 완료!", `'PC/탐사자' ➔ '${pName}', 'KPC/파트너' ➔ '${kName}'(으)로 변경되었습니다.`, "🔄");
+    } else {
+      alert(`'PC/탐사자' ➔ '${pName}', 'KPC/파트너' ➔ '${kName}' 치환 완료!`);
+    }
   };
 
   const handleSaveCurrentAsPreset = () => {
@@ -4172,35 +4191,47 @@ const res = await fetch("/api/chat", {
       const data = await res.json();
       let rawText = data.text || "";
 
-   // 🕒 AI 지문 서술 속 시간대 자동 감지 보완 (자정/밤 등)
-    if (!phaseMatch) {
-      let textDetectedPhase = null;
-      if (/자정을|자정\b|심야|깊은\s*밤|오늘\s*밤|밤이\s*되/.test(rawText)) {
-        textDetectedPhase = "밤";
-      } else if (/새벽|동이\s*트기|푸르스름/.test(rawText)) {
-        textDetectedPhase = "새벽";
-      } else if (/해질|노을|황혼|저녁/.test(rawText)) {
-        textDetectedPhase = "저녁";
-      } else if (/아침|눈을\s*뜬|기상/.test(rawText)) {
-        textDetectedPhase = "아침";
-      }
-      if (textDetectedPhase && textDetectedPhase !== currentPhase) {
-        setCurrentPhase(textDetectedPhase);
-        setTimeTransition(textDetectedPhase);
-        setTimeout(() => setTimeTransition(null), 2000);
-      }
-    }
+  const data = await res.json();
+      let rawText = data.text || "";
 
-     // ── [신규 태그 파싱: 미연시 & 이벤트 처리] ──
-     // 1. 동적 장소 카드 감지
-      const locationMatch = rawText.match(/<!--\s*LOCATION_CARDS:\s*(\[[\s\S]*?\])\s*-->/);
-      if (locationMatch) {
-        try {
-          setLocationCards(JSON.parse(locationMatch[1]));
-        } catch (e) { console.error("장소 카드 파싱 실패", e); }
-        rawText = rawText.replace(locationMatch[0], "").trim();
-      }
+      // 🌟 [수정 완료] 시간대 감지를 위한 phaseMatch 변수를 안전하게 선언합니다.
+      // AI가 태그(<!-- PHASE: "밤" -->) 형태로 명시적으로 보내준 시간대가 있는지 먼저 확인합니다.
+      const phaseMatch = rawText.match(/<!--\s*PHASE:\s*["']?([^"'\s]+)["']?\s*-->/i);
 
+      // 🕒 AI 지문 서술 속 시간대 자동 감지 보완 (명시적 태그가 없을 때)
+      if (!phaseMatch) {
+        let textDetectedPhase = null;
+        if (/자정을|자정\b|심야|깊은\s*밤|오늘\s*밤|밤이\s*되/.test(rawText)) {
+          textDetectedPhase = "밤";
+        } else if (/새벽|동이\s*트기|푸르스름/.test(rawText)) {
+          textDetectedPhase = "새벽";
+        } else if (/해질|노을|황혼|저녁/.test(rawText)) {
+          textDetectedPhase = "저녁";
+        } else if (/아침|눈을\s*뜬|기상/.test(rawText)) {
+          textDetectedPhase = "아침";
+        }
+        
+        // 시간대가 바뀌었다면 상태를 업데이트하고 화면 전환 효과를 줍니다.
+        if (textDetectedPhase && textDetectedPhase !== currentPhase) {
+          setCurrentPhase(textDetectedPhase);
+          if (typeof setTimeTransition === "function") {
+            setTimeTransition(textDetectedPhase);
+            setTimeout(() => setTimeTransition(null), 2000);
+          }
+        }
+      } else {
+        // AI가 태그로 시간대를 줬다면 태그 값을 그대로 사용합니다.
+        const taggedPhase = phaseMatch[1];
+        if (taggedPhase && taggedPhase !== currentPhase) {
+          setCurrentPhase(taggedPhase);
+          if (typeof setTimeTransition === "function") {
+            setTimeTransition(taggedPhase);
+            setTimeout(() => setTimeTransition(null), 2000);
+          }
+        }
+        // 화면에 보여줄 텍스트에서는 태그 부분을 지워줍니다.
+        rawText = rawText.replace(phaseMatch[0], "").trim();
+      }
       // 📍 MOVE_LOCATION 태그 파서 (장소 태그 정상 수신 및 토스트 팝업)
       const moveLocMatch = rawText.match(/<!--\s*MOVE_LOCATION:\s*(\{[\s\S]*?\})\s*-->/i);
       if (moveLocMatch) {
