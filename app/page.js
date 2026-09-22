@@ -2406,15 +2406,15 @@ const processScenarioText = (rawText) => {
   alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
 };
 
-// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (무반응 해결 및 용량 방어)]
+// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (PDF 직접 인식 기능 도입!)]
 const handleFileUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  // 🚨 1. Vercel 서버 용량 제한 방어 (4MB 이상 이미지 차단)
+  // 🚨 Vercel 서버 용량 제한 방어 (4MB 이상 차단)
   if (file.size > 4 * 1024 * 1024) {
-    alert("파일 용량이 너무 큽니다! 4MB 이하의 이미지나 문서만 업로드해주세요.");
-    e.target.value = null; // 입력창 초기화
+    alert("파일 용량이 너무 큽니다! Vercel 무료 서버 제한으로 인해 4MB 이하의 파일만 업로드 가능합니다.");
+    e.target.value = null; 
     return;
   }
 
@@ -2427,7 +2427,8 @@ const handleFileUpload = async (e) => {
   try {
     let payload = {};
 
-    if (file.type.startsWith("image/")) {
+    // 🌟 1. 파일이 이미지이거나 PDF일 경우 (AI가 눈으로 직접 읽게 만듭니다!)
+    if (file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".pdf")) {
       const base64String = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result.split(",")[1]);
@@ -2435,38 +2436,22 @@ const handleFileUpload = async (e) => {
         reader.readAsDataURL(file);
       });
 
+      // PDF인지 이미지인지 확장자(마임타입)를 명확히 구분해 줍니다.
+      const mimeType = file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : file.type;
+
       payload = {
-        imageData: {
+        imageData: { // 변수명은 imageData지만 PDF도 이 통로로 전송됩니다.
           base64: base64String,
-          mimeType: file.type
+          mimeType: mimeType
         }
       };
     } 
-    else if (file.name.toLowerCase().endsWith(".pdf")) {
-      if (!window.pdfjsLib) {
-        await new Promise((res, rej) => {
-          const script = document.createElement("script");
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-          script.onload = res;
-          script.onerror = rej;
-          document.head.appendChild(script);
-        });
-      }
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      
-      let rawText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        rawText += content.items.map((it) => it.str).join(" ") + "\n";
-      }
-      payload = { rawText: rawText.slice(0, 50000) };
-    } 
+    // 2. 일반 텍스트 파일(.txt, .md)일 경우 (순수 텍스트만 전송)
     else {
       payload = { rawText: (await file.text()).slice(0, 50000) };
     }
 
+    // 🌟 3. 백엔드 독서 담당 AI에게 전송
     const response = await fetch("/api/parse-scenario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2480,6 +2465,7 @@ const handleFileUpload = async (e) => {
 
     const parsedData = await response.json();
 
+    // 4. 분석 결과를 화면에 맵핑
     if (parsedData.scenarioTitle) setScenarioTitle(parsedData.scenarioTitle);
     if (parsedData.publicSynopsis) setPublicSynopsis(parsedData.publicSynopsis);
     if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
@@ -2519,7 +2505,6 @@ const handleFileUpload = async (e) => {
     alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
   } finally {
     setIsPdfLoading(false);
-    // 🚨 2. 매우 중요! 선택했던 파일을 지워주어, 다음번에 똑같은 파일을 눌러도 다시 작동하게 만듭니다.
     e.target.value = null; 
   }
 };
