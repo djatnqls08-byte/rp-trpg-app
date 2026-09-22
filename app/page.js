@@ -4924,12 +4924,30 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         if (skillName?.includes("회피") || (activeSession.sheet?.phase === "클라이맥스" && climaxStep === "dodge")) {
           setClimaxStep("action");
         }
-      } else if (mode === "coc") {
+     } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1;
         const targetVal = Number(overrideTarget !== null ? overrideTarget : activeSession.sheet?.san ?? 50);
-        let outcome = roll === 1 ? "대성공" : roll <= Math.floor(targetVal / 5) ? "극단적 성공" : roll <= Math.floor(targetVal / 2) ? "어려운 성공" : roll <= targetVal ? "보통 성공" : roll >= 96 ? "대실패" : "실패";
+        
+        let outcome = "";
+        
+        // 💡 CoC 7판 정규 성공/실패 판별 로직 적용
+        if (roll === 1) {
+          outcome = "대성공";
+        } else if (roll <= Math.floor(targetVal / 5)) {
+          outcome = "극단적 성공";
+        } else if (roll <= Math.floor(targetVal / 2)) {
+          outcome = "어려운 성공";
+        } else if (roll <= targetVal) {
+          outcome = "보통 성공";
+        } else if ((targetVal < 50 && roll >= 96) || roll === 100) {
+          // 목표치가 50 미만이면 96~100이 대실패, 50 이상이면 100만 대실패
+          outcome = "대실패(펌블)";
+        } else {
+          outcome = "실패";
+        }
+
         rollFormatted = `[🎲 CoC 1D100 ${skillName ? `${skillName} ` : ""}판정: ${roll} / 목표치: ${targetVal}% ➔ 결과: ${outcome}]`;
-      } else {
+      }
         const roll = Math.floor(Math.random() * 20) + 1;
         rollFormatted = `[🎲 판정: 1D20 결과 ${roll}]`;
       }
