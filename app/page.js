@@ -2984,13 +2984,8 @@ const startNewSession = async () => {
     const pName = charName.trim() || "클레어";
     const partnerName = kpcList[0]?.name || "아델";
 
-    // 🌟 [추가/수정] 안전하게 원본 텍스트를 불러오는 코드를 맨 위로 올렸습니다!
-    let safeRawText = "";
-    try {
-      safeRawText = typeof originalRawText !== "undefined" ? originalRawText : "";
-    } catch (e) {
-      safeRawText = "";
-    }
+    // 🌟 [수정] 원본 텍스트 변수가 비어있을 때를 대비한 가장 안전한 선언 방식입니다.
+    const safeRawText = originalRawText ? originalRawText : "";
 
     // 🌟 [추가] 새 세션 시작 시 장르 태그를 읽어 즉시 톡 테마 자동 적용!
     const autoTheme = detectAutoPhoneTheme(`${playPreference} ${sessionTitle} ${publicSynopsis}`);
@@ -3223,17 +3218,21 @@ const startNewSession = async () => {
       });
     });
 
-    // 3) [서막], [도입부] 머리말 태그 말끔히 제거
+  // 3) [서막], [도입부] 머리말 태그 말끔히 제거
     const cleanDisplayOpening = finalOpening
-      .replace(/^\[(?:서막|도입|도입부|오프닝|시작)\]\s*/i, "")
+      .replace(/^\[(?:서막\vert{}도입\vert{}도입부\vert{}오프닝\vert{}시작)\]\s*/i, "")
       .trim();
-// 🌟 1번 파트너 이름 및 외모 정보 정의 (누락되었던 부분 추가)
+
+    // 🌟 1번 파트너 이름 및 외모 정보 정의
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
 
-// 5) 치환 완료된 시나리오 컨텍스트 생성 (원본 데이터 몰래 주입!)
-    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}
-${safeRawText ? `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}` : ""}`;
+    // 🌟 5) 치환 완료된 시나리오 컨텍스트 생성 (가장 안전한 문자열 덧붙이기 방식)
+    let fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
+    
+    if (safeRawText !== "") {
+      fullScenarioContext += `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}`;
+    }
  
  // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
