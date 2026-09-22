@@ -2497,19 +2497,29 @@ const handleFileUpload = async (e) => {
       throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
     }
 
-    const parsedData = await response.json();
+const parsedData = await response.json();
 
-    // 4. 분석 결과를 화면에 맵핑
+    // 1. 시나리오 정보 업데이트
     if (parsedData.scenarioTitle) setScenarioTitle(parsedData.scenarioTitle);
     if (parsedData.publicSynopsis) setPublicSynopsis(parsedData.publicSynopsis);
     if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
     if (parsedData.hiddenTruth) setHiddenTruth(parsedData.hiddenTruth);
 
-    if (parsedData.kpcName) {
+    // 🌟 2. PC(내 캐릭터) 정보 자동 업데이트
+    if (parsedData.pcName) setCharName(parsedData.pcName);
+    if (parsedData.pcJob) setCharJob(parsedData.pcJob);
+    if (parsedData.pcAge) setCharAge(parsedData.pcAge.toString().replace(/[^0-9]/g, ""));
+    if (parsedData.pcGender) setCharGender(parsedData.pcGender);
+    if (parsedData.pcBackground) setCharBackground(parsedData.pcBackground);
+    if (parsedData.pcMission) setCharMission(parsedData.pcMission);
+    if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
+
+    // 🌟 3. KPC(등장인물) 정보 자동 업데이트
+    if (parsedData.kpcName || parsedData.kpcDetail) {
       setKpcList([{
         id: Date.now(),
-        name: parsedData.kpcName,
-        job: "파트너",
+        name: parsedData.kpcName || "파트너",
+        job: parsedData.kpcJob || "조력자",
         detail: parsedData.kpcDetail || "",
         secret: parsedData.kpcSecret || "",
         portraitUrl: "", 
