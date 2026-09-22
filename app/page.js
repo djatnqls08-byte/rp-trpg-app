@@ -341,7 +341,7 @@ function convertRowToPreset(row, index, headers = []) {
   const curiosity = getVal(/^(호기심|호기심분야)$/i, 14);
   const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
 
-// 🌟 NPC 1번 ~ 10번 동적 추출
+  // 🌟 NPC 1번 ~ 10번 동적 추출
   const kpcList = [];
 
   for (let i = 1; i <= 10; i++) {
@@ -379,22 +379,12 @@ function convertRowToPreset(row, index, headers = []) {
       statusMessage: extractedStatus
     });
   }
-// 🌟 [수정 완료] 이벤트 CG 동적 추출 (NPC 목록 이후 열부터 탐색)
+
+  // 🌟 [수정 완료] 이벤트 CG 동적 추출 (NPC 목록 이후 열부터 탐색)
   const eventCgs = [];
-  const cgStartCol = 61; // 구글 시트에서 이벤트 CG 데이터가 시작되는 열 번호 (필요에 따라 조정)
+  const cgStartCol = 61; // 구글 시트에서 이벤트 CG 데이터가 시작되는 열 번호
   for (let c = cgStartCol; c + 2 < row.length; c += 3) {
     const cgTitle = row[c]?.trim();
-    const cgTrigger = row[c + 1]?.trim();
-    const cgUrl = row[c + 2]?.trim();
-    // 🌟 이미지가 없어도 제목이나 지문/조건(글)이 있으면 이벤트 씬으로 수집
-    if (cgTitle && (cgTrigger || cgUrl)) {
-      eventCgs.push({ 
-        title: cgTitle, 
-        trigger: cgTrigger || "", 
-        imageUrl: (cgUrl && cgUrl.startsWith("http")) ? cgUrl : "" 
-      });
-    }
-  }
     const cgTrigger = row[c + 1]?.trim();
     const cgUrl = row[c + 2]?.trim();
     // 🌟 이미지가 없어도 제목이나 지문/조건(글)이 있으면 이벤트 씬으로 수집
@@ -456,7 +446,6 @@ function convertRowToPreset(row, index, headers = []) {
     eventCgs: eventCgs
   };
 }
-
 export default function App() {
  const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [showCgAlbumModal, setShowCgAlbumModal] = useState(false);
