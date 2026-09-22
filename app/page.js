@@ -2446,7 +2446,12 @@ const handleFileUpload = async (e) => {
   try {
     let payload = {};
 
-    // 🌟 1. 파일이 이미지이거나 PDF일 경우 (AI가 눈으로 직접 읽게 만듭니다!)
+    // 🌟 1. 현재 로비에 설정된 캐릭터 정보를 가져옵니다.
+    const pName = charName.trim() || "탐사자";
+    const kName = kpcList.length > 0 ? kpcList[0].name : "KPC";
+    const kDetail = kpcList.length > 0 ? kpcList[0].detail : "";
+
+    // 🌟 2. 이미지 또는 PDF 파일일 경우
     if (file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".pdf")) {
       const base64String = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -2455,22 +2460,32 @@ const handleFileUpload = async (e) => {
         reader.readAsDataURL(file);
       });
 
-      // PDF인지 이미지인지 확장자(마임타입)를 명확히 구분해 줍니다.
       const mimeType = file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : file.type;
 
       payload = {
-        imageData: { // 변수명은 imageData지만 PDF도 이 통로로 전송됩니다.
+        imageData: {
           base64: base64String,
           mimeType: mimeType
-        }
+        },
+        // 백엔드로 캐릭터 정보를 함께 전송합니다.
+        pcName: pName,
+        kpcName: kName,
+        kpcDetail: kDetail,
+        playPreference: playPreference
       };
     } 
-    // 2. 일반 텍스트 파일(.txt, .md)일 경우 (순수 텍스트만 전송)
+    // 🌟 3. 일반 텍스트 파일일 경우
     else {
-      payload = { rawText: (await file.text()).slice(0, 50000) };
+      payload = { 
+        rawText: (await file.text()).slice(0, 50000),
+        pcName: pName,
+        kpcName: kName,
+        kpcDetail: kDetail,
+        playPreference: playPreference
+      };
     }
 
-    // 🌟 3. 백엔드 독서 담당 AI에게 전송
+    // 서버로 데이터 전송
     const response = await fetch("/api/parse-scenario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
