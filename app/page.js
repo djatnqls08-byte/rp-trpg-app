@@ -3358,7 +3358,7 @@ const startNewSession = async () => {
     sessionSheet.currentPhase = initialDetectedPhase;
   const hasOpening = Boolean(finalOpening && finalOpening.trim());
 
-   // 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
+// 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
     let openingPrompt = "";
     if (wizardMode === "dating") {
       openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
@@ -3382,12 +3382,6 @@ const startNewSession = async () => {
 3. 오직 플레이어 '${pName}'가 현장에서 오감으로 느낄 수 있는 상황과 파트너 '${partnerName}'의 모습만을 4~5문장으로 서술하십시오.
 4. 지문 끝에 씬 행동을 위한 선택지 3개를 출력하십시오:
 <!-- SUGGESTIONS: ["주변 단서를 살펴본다", "${partnerName}에게 말을 건다", "기능 판정을 시도한다"] -->`;
-    } else if (wizardMode === "dating_msg") {
-      // 💬 메신저형 첫 문자 톡
-      openingPrompt = `[세션 시작: 첫 메신저 톡 수신 요청]
-당신은 지금 '${partnerName}' 본인입니다.
-시나리오의 [초기 배경/서막]에 맞춰 상대방 '${pName}'에게 가볍게 말을 건네는 첫 카톡(메시지)을 1~2줄로 보내주십시오.
-- 해설 지문, 따옴표, 괄호 묘사를 일절 배제하고 오직 '${partnerName}'이 스마트폰 키보드로 직접 친 실제 전송 텍스트만 출력하십시오.`;
     } else {
       // 🐙 CoC / 인세인 TRPG 서막
       if (hasOpening) {
