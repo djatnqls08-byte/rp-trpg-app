@@ -2908,8 +2908,8 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
       }
 
-      // 🌟 [수정 완료] 주사위 판정 팝업이 안 뜨는 문제 완벽 해결! (깨진 기호 복구 및 강력한 파싱 구조대)
-      const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>\vert{}\])/i);
+    // 🌟 [수정 완료] 주사위 판정 팝업이 안 뜨는 문제 완벽 해결! (깨진 기호 복구 및 강력한 파싱 구조대)
+      const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>|\])/i);
       if (checkMatch) {
         try { 
           // 1차 시도: 정석대로 해석해 봅니다.
@@ -2927,6 +2927,16 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
             };
           }
         }
+      } // <--- 여기가 기존 checkMatch 블록이 끝나는 부분입니다.
+
+      // 🌟 [여기에 새로 추가해 주세요!] 3차 시도 (최후의 보루): AI가 태그 작성 자체를 깜빡하고 말로만 "주사위 굴려"라고 했을 때!
+      if (!parsedData.pendingCheck && /주사위[를가]?\s*굴려|판정[이을]?\s*필요|다이스를\s*굴려|판정해/i.test(cleanText)) {
+        // AI가 태그를 빼먹었으므로, 텍스트를 감지해서 팝업을 강제로 띄웁니다.
+        const isCoc = currentRule === "coc";
+        parsedData.pendingCheck = {
+          skill: "행동 판정",
+          target: isCoc ? 50 : 5 // CoC면 기본 50%, 인세인이면 기본 5를 줍니다.
+        };
       }
 
       const suggMatch = cleanText.match(/<!--\s*SUGGESTIONS:\s*(\[[\s\S]*?\])\s*-{1,3}>/i);
