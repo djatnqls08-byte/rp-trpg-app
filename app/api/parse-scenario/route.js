@@ -12,7 +12,8 @@ const FALLBACK_MODELS = [
 
 export async function POST(req) {
   try {
-    const { rawText, imageData, pcName, kpcName, kpcDetail, playPreference } = await req.json();
+    // 🌟 프론트엔드에서 보낸 ruleMode를 받아옵니다.
+    const { rawText, imageData, pcName, kpcName, kpcDetail, playPreference, ruleMode } = await req.json();
 
     const rawKeys = process.env.GEMINI_API_KEY || process.env.Gemini_API_Key || "";
     const apiKeys = rawKeys.split(",").map(k => k.trim()).filter(Boolean);
@@ -21,28 +22,34 @@ export async function POST(req) {
       throw new Error("서버에 등록된 API 키가 없습니다.");
     }
 
-    // 🌟 [수정 완료] 관계성 데이터 주입 및 '완벽한 맞춤 개변'과 '시스템 룰 필터링' 명령 강화
-    const systemPrompt = `
-당신은 TRPG 데이터 파싱 및 서사 개변(Adaptation)의 최고 전문가입니다.
-제공된 문서(텍스트/이미지)가 '시나리오 원문'이든 '캐릭터 설정(시트)'이든 완벽하게 분석하여 아래의 JSON 포맷으로 추출하십시오.
+// 🌟 현재 선택된 룰에 따라 AI에게 내리는 특수 명령을 다르게 설정합니다.
+    const isDatingSim = ruleMode === "dating" || ruleMode === "dating_msg";
+    
+    const modeSpecificRules = isDatingSim 
+      ? `1. 미연시 원본 스크립트 보존 (개변 금지): 이 문서는 대사와 지문이 정해져 있는 미연시 스크립트입니다. '도입부(openingScene)'를 추출할 때, 소설처럼 과도하게 윤색하거나 문장을 새로 지어내지 마십시오. 오직 'KPC', 'PC' 등의 단어만 제공된 실제 이름(${pcName}, ${kpcName})으로 치환하고, 원래 정해진 대사와 지문의 형태를 100% 그대로 추출하십시오.`
+      : `1. TRPG 맞춤 개변 및 호흡 조절 (급전개 방지): 제공된 캐릭터 관계성을 반영하되, 여러 사건을 하나의 문단에 성급하게 압축하지 마십시오. 평온한 순간과 위기가 닥치는 순간 사이의 간극을 살려 섬세하고 절제된 문장으로 묘사하십시오. 장면이 전환되거나 새로운 인물이 등장할 때는 반드시 줄바꿈(\\n\\n)을 적극적으로 사용하여 플레이어가 읽는 호흡을 늦춰주십시오.
+2. 시스템 룰 완벽 필터링: 'SAN 1/1D3', '주사위 판정' 등 플레이어의 몰입을 깨는 TRPG 시스템 용어 및 수치는 서막과 시놉시스에서 완벽하게 삭제하십시오.`;
 
-[현재 로비에 설정된 캐릭터 데이터 (서사 개변의 핵심 단서)]
-- 주인공(PC) 이름: ${pcName || '탐사자'}
+    const systemPrompt = `
+당신은 TRPG 및 비주얼 노벨 데이터 파싱의 최고 전문가입니다.
+제공된 문서(텍스트/이미지)를 완벽하게 분석하여 아래의 JSON 포맷으로 추출하십시오.
+
+[현재 로비에 설정된 캐릭터 및 룰 데이터]
+- 주인공(PC) 이름: ${pcName || '주인공'}
 - 파트너(KPC) 이름: ${kpcName || '파트너'}
 - 파트너 설정 및 관계: ${kpcDetail || '알 수 없음'}
-- 서사 지향 태그: ${playPreference || '기본'}
+- 룰 모드: ${ruleMode || '미지정'}
 
 [🚨 서사 개변 및 데이터 추출 절대 규칙]
-1. 완벽한 맞춤 개변 (서막/시놉시스): 시나리오 원문을 처리할 때, 단순히 'KPC', 'PC'라는 글자를 이름으로 치환하는 1차원적인 작업을 하지 마십시오. 위에서 제공된 [캐릭터 데이터]와 두 사람의 관계성을 깊이 반영하여, 어색한 조사나 '당신' 같은 대명사를 완전히 없애고 아주 자연스러운 한 편의 소설처럼 문맥을 완전히 재창조(개변) 하십시오.
-2. 시스템 룰 완벽 필터링: 'SAN 1/1D3', '이성 판정', '관찰력 굴림' 등 플레이어의 몰입을 깨는 TRPG 시스템 용어, 수치, 키퍼 지시문은 서막과 시놉시스에서 100% 삭제하십시오.
-3. 요약 금지: 메타 텍스트(룰)는 지우되, 원문에 있는 감각적인 묘사나 아름다운 풍경 서술 등은 절대 요약하거나 생략하지 말고 풍성하게 살려 길게 서술하십시오.
+${modeSpecificRules}
+3. 요약 금지: 원문에 있는 감각적인 묘사나 대사 등은 절대 요약하거나 생략하지 말고 풍성하게 살려 길게 추출하십시오.
 4. 강제 빈칸 규칙: 문서가 캐릭터 시트라서 시나리오 서막이나 진상 내용이 없다면 억지로 지어내지 말고 해당 필드는 강제로 "" (빈 문자열)로 둡니다.
 
 [필수 반환 JSON 구조]
 {
   "scenarioTitle": "",
-  "publicSynopsis": "두 사람의 서사에 맞게 개변된 시놉시스 (시스템 룰 제외, 요약 없이 상세히)",
-  "openingScene": "두 사람의 관계성이 완벽히 반영된 소설적 도입부 지문 (시스템 룰 완벽 제거, 어색한 대명사 제거, 풍부한 묘사 유지)",
+  "publicSynopsis": "",
+  "openingScene": "줄바꿈(\\n\\n)을 2~3회 이상 활용하여 섬세하고 절제된 호흡으로 개변된 도입부 지문 (급전개 절대 방지)",
   "hiddenTruth": "",
   "pcName": "",
   "pcJob": "",
@@ -83,8 +90,8 @@ export async function POST(req) {
           const result = await model.generateContent({
             contents: [{ role: "user", parts: promptParts }],
             generationConfig: { 
-              // 🌟 창의성을 약간 올려서 기계적인 치환 대신 자연스러운 소설 작문을 유도합니다.
-              temperature: 0.35, 
+              // 🌟 미연시면 원문 보존을 위해 온도를 낮추고, TRPG면 개변을 위해 온도를 살짝 높입니다.
+              temperature: isDatingSim ? 0.1 : 0.35, 
               responseMimeType: "application/json" 
             } 
           });
