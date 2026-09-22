@@ -269,13 +269,16 @@ ${recentPhoneSummary}
         const currentPhaseVal = playerSheet?.phase || "MAIN";
 
         let rulePrompt = "";
-        if (ruleMode === "coc") {
-          rulePrompt = `[크툴루의 부름 7판 CoC 진행 수칙]
-- 단서 탐색 시 판정 태그 출력 후 서술 중단: <!-- CHECK: {"skill": "기능명", "target": 수치, "reason": "이유"} -->
-- 물리적 탐색 구역: <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] -->
-- 이성(SAN) 체크: <!-- SAN_CHECK: {"lossSuccess": "0", "lossFail": "1d4", "reason": "원인"} -->
-- 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
-        } else if (ruleMode === "insane") {
+       if (ruleMode === "coc") {
+          rulePrompt = `[크툴루의 부름 7판 CoC 진행 수칙 - 🚨 판정 강제 연동]
+1. [행동 판정 엄수]: 플레이어가 '조사', '관찰', '듣기', '심리학', '전투' 등 불확실한 결과가 따르는 행동을 선언하면, AI는 절대로 결과(성공/실패 여부, 단서 발견)를 임의로 지어내 서술하지 마십시오.
+2. [판정 태그 및 대기]: 대신, 결과를 알 수 없는 직전의 긴장감까지만 묘사한 뒤 지문 맨 끝에 아래 태그를 반드시 출력하여 주사위 굴림을 유도하십시오.
+   예시: <!-- CHECK: {"skill": "관찰력", "target": 50, "reason": "숨겨진 문양을 찾기 위해"} -->
+3. [태그 후 서술 중단]: 태그 출력 후에는 "결과를 확인하려면 주사위를 굴려주세요."와 같은 짧은 안내로 답변을 즉시 종료하십시오.
+4. 물리적 탐색 구역: <!-- SPOTS: [{"name": "오브젝트", "stat": "기능명"}] -->
+5. 이성(SAN) 체크: <!-- CHECK: {"skill": "이성", "target": ${playerSheet?.san || 50}, "reason": "기괴한 현상 목격"} -->
+6. 아이템 획득: <!-- ACQUIRE_ITEM: {"name": "아이템명", "desc": "설명"} -->`;
+       } else if (ruleMode === "insane") {
           rulePrompt = `[멀티 호러 TRPG 인세인(inSANe) 통합 게임마스터 수칙]
 현재 상태: ${currentPhaseVal} 페이즈 | ${currentCycle}사이클 / ${currentScene}씬 (리미트: ${limitCycle})
 - 언어 규칙: 한국어 정규 용어(성공, 실패, 펌블, 쇼크, 공포 판정, 광기 발현 등)만 사용하십시오. 영어 병기 금지.
@@ -290,16 +293,19 @@ ${recentPhoneSummary}
 - 도입 페이즈(Introduction)에서는 어떠한 조사/공포 주사위 판정도 요구하지 마십시오.
 - PC와 NPC들의 초기 상황과 사명을 소개하고, 대화가 마무리되면 <!-- ADVANCE_SCENE -->로 메인 1사이클로 진입시키십시오.
 
-[📜 3. 조사 성공 및 공포 판정 정석 루틴]
+[🚨 3. 일반 조사/행동 판정 강제 규칙]
+- 플레이어가 대화 중 특정 행동이나 조사를 시도할 때, AI가 임의로 결과를 서술하여 상황을 끝내지 마십시오.
+- 반드시 어울리는 특기를 지정하여 주사위 굴림을 요구하는 태그를 출력하고 답변을 대기하십시오.
+- 조사 요구: <!-- CHECK: {"skill": "특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
+
+[📜 4. 핸드아웃 조사 성공 및 공포 판정 정석 루틴]
 - 플레이어가 핸드아웃 조사에 성공했을 때:
   1단계: 반드시 <!-- REVEAL_HANDOUT: {"title": "대상명"} --> 태그를 출력해 비밀을 공개하십시오.
   2단계: 공개된 비밀에 공포(쇼크)가 있다면, AI가 자의적으로 이성을 깎거나 광기를 주지 말고 반드시 공포 판정을 요구하십시오:
   <!-- CHECK: {"skill": "지정특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
   3단계: 플레이어가 다음 턴에 실제로 주사위를 굴려 '실패'했을 때만 이성 감소 처리가 이루어집니다.
 
-[🎲 4. 시스템 출력 태그 규격]
-- 조사 요구: <!-- CHECK: {"skill": "특기명", "target": 5, "type": "INVESTIGATION", "targetName": "대상명"} -->
-- 공포 판정: <!-- CHECK: {"skill": "특기명", "target": 5, "type": "FEAR", "targetName": "${pName}"} -->
+[🎲 5. 시스템 출력 태그 규격 요약]
 - 감정 판정: <!-- EMOTION: {"target": "${partnerName}"} -->
 - 마스터 장면: <!-- MASTER_SCENE: {"title": "사건명"} -->
 - 장면 전환: <!-- ADVANCE_SCENE -->
