@@ -1960,17 +1960,19 @@ const advanceInsaneScene = (sessionId) => {
   ]
 }`;
     
-    try {
-      const response = await fetch("/api/chat", {
+try {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: [{ role: "user", text: systemPrompt }],
-          scenarioText: "",
-          playerSheet: {},
+          messages: [{ role: "user", text: openingPrompt }],
+          scenarioText: fullScenarioContext,
+          playerSheet: cleanSheetForAi(initialSheet),
           ruleMode: wizardMode,
-          playPreference
+          playPreference,
+          // ✨ 여기에 아래 한 줄을 추가합니다!
+          isPhoneChat: wizardMode === "dating_msg"
         })
       });
 
@@ -4077,7 +4079,6 @@ ${npcsSummary}
           signal: controller.signal,
           body: JSON.stringify({
             messages: (messagesForAi || []).slice(-30),
-            // 🌟 currentRuleSnippet을 지우고 방금 만든 범용 appearanceAnchor를 연결합니다
             scenarioText: (activeSession.scenarioText || "") + (dynamicRules || "") + (typeof appearanceAnchor !== "undefined" ? appearanceAnchor : ""),
             playerSheet: safePlayerSheet,
             ruleMode: activeSession.ruleMode,
@@ -4088,6 +4089,8 @@ ${npcsSummary}
             isVoiceCall: isVoiceCallActive,
             voiceCallNpc: voiceCallNpc?.name || (typeof voiceCallNpc === "string" ? voiceCallNpc : null),
             facingNpc: currentContact?.name || null,
+            // ✨ 여기에 아래 한 줄을 추가합니다!
+            isPhoneChat: activeSession.ruleMode === "dating_msg"
           })
         });
 
