@@ -4881,19 +4881,27 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
     }
   };
 
+  // 🌟 주사위 굴림을 처리하는 전체 함수 (CoC 정규 룰 및 괄호 오류 수정 완료)
   const rollDiceDirectly = (overrideTarget = null, skillName = "") => {
     if (isRolling || !activeSession) return;
     setIsRolling(true);
-    playDiceSound();
+    
+    // 사운드 재생 함수가 있다면 실행
+    if (typeof playDiceSound === "function") playDiceSound();
+    
     const mode = activeSession.ruleMode;
 
+    // 주사위가 데구르르 굴러가는 애니메이션 (0.05초마다 숫자 변경)
     const rollInterval = setInterval(() => {
       setRollingDisplayNum(Math.floor(Math.random() * (mode === "coc" ? 100 : 20)) + 1);
     }, 50);
 
+    // 애니메이션이 끝난 후 최종 결과 계산
     setTimeout(() => {
       clearInterval(rollInterval);
       let rollFormatted = "";
+
+      // 1. 인세인(inSANe) 모드일 때 (2D6)
       if (mode === "insane") {
         const d1 = Math.floor(Math.random() * 6) + 1;
         const d2 = Math.floor(Math.random() * 6) + 1;
@@ -4903,7 +4911,6 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
 
         if (sum === 12) {
           outcome = "✨ 대성공(스페셜)! 이성치/생명력 1점 회복";
-          // 12 대성공: 이성치 1점 자동 회복 (최대 6)
           setSessions(prev => prev.map(s => {
             if (s.id !== activeSessionId) return s;
             const curSan = s.sheet?.san ?? 6;
@@ -4918,19 +4925,22 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         } else {
           outcome = "실패";
         }
+        
         rollFormatted = `[🎲 2D6 판정: ${d1}+${d2}=${sum} / 목표치: ${targetVal}${skillName ? ` (${skillName})` : ""} ➔ 결과: ${outcome}]`;
         
-        // 🌟 [추가] 회피 주사위를 굴렸다면 즉시 플레이어 공격/의식 단계로 전환!
+        // 회피 주사위였다면 행동 단계로 전환
         if (skillName?.includes("회피") || (activeSession.sheet?.phase === "클라이맥스" && climaxStep === "dodge")) {
           setClimaxStep("action");
         }
-     } else if (mode === "coc") {
+
+      // 2. 크툴루의 부름(CoC) 모드일 때 (1D100)
+      } else if (mode === "coc") {
         const roll = Math.floor(Math.random() * 100) + 1;
         const targetVal = Number(overrideTarget !== null ? overrideTarget : activeSession.sheet?.san ?? 50);
         
         let outcome = "";
         
-        // 💡 CoC 7판 정규 성공/실패 판별 로직 적용
+        // 💡 CoC 7판 정규 성공/실패 및 펌블 판별 로직
         if (roll === 1) {
           outcome = "대성공";
         } else if (roll <= Math.floor(targetVal / 5)) {
@@ -4947,12 +4957,19 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         }
 
         rollFormatted = `[🎲 CoC 1D100 ${skillName ? `${skillName} ` : ""}판정: ${roll} / 목표치: ${targetVal}% ➔ 결과: ${outcome}]`;
-      }
+
+      // 3. 자유 서사 등 기타 모드일 때 (1D20)
+      } else {
         const roll = Math.floor(Math.random() * 20) + 1;
         rollFormatted = `[🎲 판정: 1D20 결과 ${roll}]`;
       }
+      
+      // 상태 업데이트 및 채팅창에 결과 전송
       setIsRolling(false);
-      executeMessage(rollFormatted);
+      if (typeof executeMessage === "function") {
+        executeMessage(rollFormatted);
+      }
+      
     }, animationEnabled ? 600 : 100);
   };
 
