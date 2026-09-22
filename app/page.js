@@ -379,17 +379,18 @@ function convertRowToPreset(row, index, headers = []) {
       statusMessage: extractedStatus
     });
   }
-  // 🌟 [2] CG 열 자동 탐색 (헤더에 없으면 원래 CG 시작 자리인 61번 사용)
-  const cgStartIdx = findIdx(/^(cg1|이벤트cg1|cg\s*1|cg1제목)/i);
-  const startCol = cgStartIdx !== -1 ? cgStartIdx : (61 + (titleIdx > 0 ? titleIdx : 0));
-
-  const eventCgs = [];
+ const eventCgs = [];
   for (let c = startCol; c + 2 < row.length; c += 3) {
     const cgTitle = row[c]?.trim();
     const cgTrigger = row[c + 1]?.trim();
     const cgUrl = row[c + 2]?.trim();
-    if (cgTitle && cgUrl && cgUrl.startsWith("http")) {
-      eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
+    // 🌟 이미지가 없어도 제목이나 지문/조건(글)이 있으면 이벤트 씬으로 수집
+    if (cgTitle && (cgTrigger || cgUrl)) {
+      eventCgs.push({ 
+        title: cgTitle, 
+        trigger: cgTrigger || "", 
+        imageUrl: (cgUrl && cgUrl.startsWith("http")) ? cgUrl : "" 
+      });
     }
   }
 
@@ -2500,14 +2501,18 @@ const handleFileUpload = async (e) => {
       // 4. 세션 카드 추출
       const thumbIdx = headers.findIndex(h => /세션카드|대표이미지|썸네일|표지/i.test(h?.replace(/\s+/g, '') || ""));
       const sessionCardImg = thumbIdx !== -1 ? matchedRow[thumbIdx]?.trim() : "";
-      // 5. 이벤트 CG 추출
+      // 5. 이벤트 CG 추출 (글만 있어도 이벤트 씬으로 등록)
       const eventCgs = [];
       for (let c = 61; c < matchedRow.length; c += 3) {
         const cgTitle = matchedRow[c]?.trim();
         const cgTrigger = matchedRow[c + 1]?.trim();
         const cgUrl = matchedRow[c + 2]?.trim();
-        if (cgTitle && cgUrl) {
-          eventCgs.push({ title: cgTitle, trigger: cgTrigger || "", imageUrl: cgUrl });
+        if (cgTitle && (cgTrigger || cgUrl)) {
+          eventCgs.push({ 
+            title: cgTitle, 
+            trigger: cgTrigger || "", 
+            imageUrl: (cgUrl && cgUrl.startsWith("http")) ? cgUrl : "" 
+          });
         }
       }
 
@@ -3169,6 +3174,19 @@ const startNewSession = async () => {
   setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
     setIsLoading(true);
+ // 🕒 서막 텍스트 기반 초기 시간대 자동 판별
+    let initialDetectedPhase = "낮";
+    if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) {
+      initialDetectedPhase = "밤";
+    } else if (/새벽|동이\s*트/.test(finalOpening || "")) {
+      initialDetectedPhase = "새벽";
+    } else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) {
+      initialDetectedPhase = "저녁";
+    } else if (/아침|오전|기상/.test(finalOpening || "")) {
+      initialDetectedPhase = "아침";
+    }
+    setCurrentPhase(initialDetectedPhase);
+    sessionSheet.currentPhase = initialDetectedPhase;
   const hasOpening = Boolean(finalOpening && finalOpening.trim());
 
     let openingPrompt = "";
@@ -4083,12 +4101,23 @@ ${npcsSummary}
       const data = await res.json();
       let rawText = data.text || "";
 
-    // 🕒 AI 응답 태그 감지 및 5단계 시간대 자동 동기화
-    const phaseMatch = rawText.match(/<!--\s*(?:PHASE|TIME_PHASE):\s*["']?(새벽|아침|낮|저녁|노을|밤)["']?\s*-->/i);
-    if (phaseMatch) {
-      const nextPhase = phaseMatch[1] === "노을" ? "저녁" : phaseMatch[1];
-      setCurrentPhase(nextPhase);
-      rawText = rawText.replace(phaseMatch[0], "").trim();
+   // 🕒 AI 지문 서술 속 시간대 자동 감지 보완 (자정/밤 등)
+    if (!phaseMatch) {
+      let textDetectedPhase = null;
+      if (/자정을|자정\b|심야|깊은\s*밤|오늘\s*밤|밤이\s*되/.test(rawText)) {
+        textDetectedPhase = "밤";
+      } else if (/새벽|동이\s*트기|푸르스름/.test(rawText)) {
+        textDetectedPhase = "새벽";
+      } else if (/해질|노을|황혼|저녁/.test(rawText)) {
+        textDetectedPhase = "저녁";
+      } else if (/아침|눈을\s*뜬|기상/.test(rawText)) {
+        textDetectedPhase = "아침";
+      }
+      if (textDetectedPhase && textDetectedPhase !== currentPhase) {
+        setCurrentPhase(textDetectedPhase);
+        setTimeTransition(textDetectedPhase);
+        setTimeout(() => setTimeTransition(null), 2000);
+      }
     }
 
      // ── [신규 태그 파싱: 미연시 & 이벤트 처리] ──
@@ -7168,27 +7197,40 @@ return (
                             boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
                           }}
                         >
-{/* 🖼️ 지문 속에 해금된 이벤트 CG 배너 (깔끔한 인라인 뷰) */}
-        {m.cg && (
+{m.cg && (
           <div 
             style={{
               marginBottom: "14px",
               borderRadius: "10px",
               overflow: "hidden",
-              position: "relative"
+              position: "relative",
+              border: "1px solid rgba(245, 158, 11, 0.35)",
+              backgroundColor: "rgba(15, 23, 42, 0.85)"
             }}
           >
-            <img 
-              src={m.cg.imageUrl || m.cg.url} 
-              alt={m.cg.title || "이벤트 CG"} 
-              style={{ 
-                width: "100%", 
-                maxHeight: "380px", 
-                objectFit: "cover", 
-                display: "block" 
-              }} 
-            />
-            {m.cg.title && (
+            {(m.cg.imageUrl || m.cg.url) ? (
+              <img 
+                src={m.cg.imageUrl || m.cg.url} 
+                alt={m.cg.title || "이벤트 CG"} 
+                style={{ 
+                  width: "100%", 
+                  maxHeight: "380px", 
+                  objectFit: "cover", 
+                  display: "block" 
+                }} 
+              />
+            ) : (
+              <div style={{ padding: "16px 14px", textAlign: "center", background: "linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95))" }}>
+                <span style={{ fontSize: "1.4rem", display: "block", marginBottom: "4px" }}>🎬</span>
+                <span style={{ fontSize: "0.85rem", fontWeight: "800", color: "#fbbf24" }}>[이벤트 씬 개막] {m.cg.title}</span>
+                {m.cg.trigger && (
+                  <p style={{ margin: "6px 0 0", fontSize: "0.74rem", color: "#94a3b8", fontStyle: "italic", lineHeight: "1.4" }}>
+                    "{m.cg.trigger}"
+                  </p>
+                )}
+              </div>
+            )}
+            {(m.cg.imageUrl || m.cg.url) && m.cg.title && (
               <div style={{
                 position: "absolute",
                 bottom: 0,
