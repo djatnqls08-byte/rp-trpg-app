@@ -4191,9 +4191,6 @@ const res = await fetch("/api/chat", {
       const data = await res.json();
       let rawText = data.text || "";
 
-  const data = await res.json();
-      let rawText = data.text || "";
-
       // 🌟 [수정 완료] 시간대 감지를 위한 phaseMatch 변수를 안전하게 선언합니다.
       // AI가 태그(<!-- PHASE: "밤" -->) 형태로 명시적으로 보내준 시간대가 있는지 먼저 확인합니다.
       const phaseMatch = rawText.match(/<!--\s*PHASE:\s*["']?([^"'\s]+)["']?\s*-->/i);
