@@ -2514,15 +2514,18 @@ const handleFileUpload = async (e) => {
     if (parsedData.pcMission) setCharMission(parsedData.pcMission);
     if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
 
-// 3. NPC/KPC 다수 처리 (기존 데이터 보존 병합 로직 추가)
+// 🌟 3. NPC/KPC 다수 처리 (기존 데이터 완벽 보존 병합 로직)
     if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
       setKpcList((prevKpcList) => {
-        // 1. 기존 KPC 목록에서 유효한 캐릭터(이름이 빈칸이 아닌 경우)만 남깁니다.
-        const validExistingKpcs = prevKpcList.filter(kpc => kpc.name && kpc.name.trim() !== "" && kpc.name.trim() !== "파트너");
-        
-        // 2. 새로 파싱된 NPC 목록을 고유 ID와 함께 매핑합니다.
+        // 1. 기존 목록에서 아무것도 안 적힌 텅 빈 기본 '파트너' 카드만 걸러냅니다. (이름이나 설정이 하나라도 있으면 보존)
+        const validExistingKpcs = prevKpcList.filter(kpc => {
+          const isBlankDefault = (kpc.name === "파트너" || !kpc.name) && !kpc.detail && !kpc.secret;
+          return !isBlankDefault;
+        });
+
+        // 2. AI가 새로 가져온 NPC 목록
         const parsedNpcs = parsedData.npcs.map((npc, index) => ({
-          id: Date.now() + index + Math.random(), // 고유 ID 충돌 방지
+          id: Date.now() + index + Math.random(),
           name: npc.name || "미상",
           job: npc.job || "조력자",
           detail: npc.detail || "",
@@ -2531,19 +2534,16 @@ const handleFileUpload = async (e) => {
           showSecret: false
         }));
 
-        // 3. 기존 KPC 목록 뒤에 새 NPC 목록을 병합하여 반환합니다.
-        if (validExistingKpcs.length > 0) {
-           // 중복 방지: 이름이 같은 NPC가 있다면 덮어쓰지 않고 무시합니다.
-           const filteredParsedNpcs = parsedNpcs.filter(
-              pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
-           );
-           return [...validExistingKpcs, ...filteredParsedNpcs];
-        } else {
-           return parsedNpcs;
-        }
+        // 3. 기존 인물과 새로 들어온 인물의 이름이 겹치면 새 인물은 뺍니다 (기존에 유저가 입력한 데이터 최우선 보호)
+        const filteredParsedNpcs = parsedNpcs.filter(
+          pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
+        );
+
+        // 4. 기존 KPC/NPC 목록 뒤에 새 캐릭터들을 안전하게 이어 붙입니다.
+        return [...validExistingKpcs, ...filteredParsedNpcs];
       });
     }
-
+   
     // 4. 핸드아웃 처리
     if (parsedData.handouts && Array.isArray(parsedData.handouts) && parsedData.handouts.length > 0) {
       const newHandouts = parsedData.handouts.map((h, i) => ({
@@ -13401,20 +13401,31 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                     if (parsedData.pcMission) setCharMission(parsedData.pcMission);
                     if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
 
-                    // 6. 다수 NPC/KPC 맵핑
+                   // 🌟 6. 다수 NPC/KPC 맵핑 (기존 데이터 완벽 보존 병합 로직)
                     if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
-                      const newNpcs = parsedData.npcs.map((npc, index) => ({
-                        id: Date.now() + index,
-                        name: npc.name || "미상",
-                        job: npc.job || "조력자",
-                        detail: npc.detail || "",
-                        secret: npc.secret || "",
-                        portraitUrl: "",
-                        showSecret: false
-                      }));
-                      setKpcList(newNpcs);
-                    }
+                      setKpcList((prevKpcList) => {
+                        const validExistingKpcs = prevKpcList.filter(kpc => {
+                          const isBlankDefault = (kpc.name === "파트너" || !kpc.name) && !kpc.detail && !kpc.secret;
+                          return !isBlankDefault;
+                        });
 
+                        const parsedNpcs = parsedData.npcs.map((npc, index) => ({
+                          id: Date.now() + index + Math.random(),
+                          name: npc.name || "미상",
+                          job: npc.job || "조력자",
+                          detail: npc.detail || "",
+                          secret: npc.secret || "",
+                          portraitUrl: "",
+                          showSecret: false
+                        }));
+
+                        const filteredParsedNpcs = parsedNpcs.filter(
+                          pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
+                        );
+
+                        return [...validExistingKpcs, ...filteredParsedNpcs];
+                      });
+                    }
                     // 7. 모달 닫기 및 초기화
                     setShowPasteModal(false);
                     setPastedScenarioText("");
