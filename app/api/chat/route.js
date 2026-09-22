@@ -113,8 +113,9 @@ export async function POST(req) {
 
       let systemInstruction = "";
 
-      // ── [1. 미연시 모드: "dating" / "미연시"] ──
-      if (ruleMode === "dating" || ruleMode === "미연시") {
+     // ── [1. 미연시 모드: "dating" / "미연시"] ──
+      // ✨ 기존 코드에 || ruleMode === "dating_msg" 를 추가합니다.
+      if (ruleMode === "dating" || ruleMode === "미연시" || ruleMode === "dating_msg") {
         if (isVoiceCall) {
           const curVoiceNpc = (typeof voiceCallNpc !== "undefined" && voiceCallNpc) ? voiceCallNpc : partnerName;
           const curFacingNpc = (typeof facingNpc !== "undefined" && facingNpc) ? facingNpc : null;
