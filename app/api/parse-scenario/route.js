@@ -1,23 +1,26 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const maxDuration = 60; 
-export const dynamic = "force-dynamic"; 
+export const dynamic = "force-dynamic";
+
+// 🌟 유저님이 설계하신 완벽한 우선순위! (Lite 모델 최우선)
+const FALLBACK_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
+];
 
 export async function POST(req) {
   try {
     const { rawText, imageData } = await req.json();
 
-    // 🌟 수정된 부분: api/chat 과 동일하게 여러 API 키와 대소문자를 모두 지원하도록 변경합니다.
     const rawKeys = process.env.GEMINI_API_KEY || process.env.Gemini_API_Key || "";
     const apiKeys = rawKeys.split(",").map(k => k.trim()).filter(Boolean);
     
     if (apiKeys.length === 0) {
       throw new Error("서버에 등록된 API 키(Gemini_API_Key)를 찾을 수 없습니다.");
     }
-    const apiKey = apiKeys[0]; // 첫 번째 키를 사용합니다.
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     const systemPrompt = `
 당신은 TRPG 시나리오 분석 전문가입니다.
@@ -39,6 +42,7 @@ export async function POST(req) {
   ]
 }`;
 
+    // AI에게 전달할 데이터 꾸러미 준비
     const promptParts = [{ text: systemPrompt }];
     
     if (rawText) {
@@ -53,12 +57,46 @@ export async function POST(req) {
       });
     }
 
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: promptParts }],
-      generationConfig: { temperature: 0.2 } 
-    });
+    let responseText = null;
+    let lastError = null;
 
-    let responseText = result.response.text();
+    // 🌟 1. API 키 섞기 (로드 밸런싱)
+    const shuffledKeys = [...apiKeys].sort(() => Math.random() - 0.5);
+
+    for (const currentKey of shuffledKeys) {
+      const genAI = new GoogleGenerativeAI(currentKey);
+
+      // 🌟 2. 유저님의 1순위(Lite) 모델부터 차례대로 시도합니다!
+      for (const modelName of FALLBACK_MODELS) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent({
+            contents: [{ role: "user", parts: promptParts }],
+            generationConfig: { temperature: 0.2 } 
+          });
+
+          responseText = result.response.text();
+          
+          // 성공적으로 답변을 받았으면 반복문 즉시 탈출!
+          if (responseText) break; 
+
+        } catch (err) {
+          console.warn(`[Parse Fallback] 키(${currentKey.slice(0, 6)}...) - ${modelName} 모델 실패: ${err.message}`);
+          lastError = err;
+          // 한도 초과(429 에러) 등이 발생하면 멈추지 않고 다음 모델(Lite -> Flash)로 넘어갑니다.
+          continue; 
+        }
+      }
+      
+      // 첫 번째 API 키에서 성공했다면 다음 키는 시도하지 않습니다.
+      if (responseText) break;
+    }
+
+    // 모든 키와 모델을 다 돌았는데도 실패한 경우
+    if (!responseText) {
+      throw lastError || new Error("모든 API 키 및 예비 모델의 한도가 초과되었습니다.");
+    }
+
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
     return new Response(responseText, {
@@ -66,7 +104,6 @@ export async function POST(req) {
     });
   } catch (err) {
     console.error("Scenario Parse Error:", err);
-    // 프론트엔드로 정확한 에러 메시지를 전달합니다.
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
