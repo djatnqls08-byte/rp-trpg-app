@@ -3382,21 +3382,7 @@ const startNewSession = async () => {
 3. 오직 플레이어 '${pName}'가 현장에서 오감으로 느낄 수 있는 상황과 파트너 '${partnerName}'의 모습만을 4~5문장으로 서술하십시오.
 4. 지문 끝에 씬 행동을 위한 선택지 3개를 출력하십시오:
 <!-- SUGGESTIONS: ["주변 단서를 살펴본다", "${partnerName}에게 말을 건다", "기능 판정을 시도한다"] -->`;
-    } else {
-      // 🐙 CoC / 인세인 TRPG 서막
-      if (hasOpening) {
-        openingPrompt = `시나리오의 [초기 배경/서막] 이후 플레이어가 취할 만한 첫 행동 선택지 3개만 출력하십시오:
-<!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
-      } else {
-        openingPrompt = `[세션 시작: 첫 서막 지문 요청]
-시나리오의 [배후 진상]과 [초기 배경/서막]을 충실히 반영하여 서막을 여십시오.
-반드시 정중하고 격조 높은 키퍼의 경어체(~합니다/였습니다)를 고정하십시오.
-- 'KPC'라는 단어를 일절 쓰지 말고, 파트너의 실제 이름 '${partnerName}'(으)로만 지칭하십시오.
-- '${pName}'과 '${partnerName}'의 온기를 살려 4~5문장으로 서술하십시오.
-- 지문 끝에 씬 행동을 위한 <!-- SUGGESTIONS: ["${partnerName}에게 말을 건다", "주변 단서를 살펴본다", "장면표 굴림"] --> 태그를 출력하십시오.`;
-      }
     }
-
     const controller = new AbortController();
     setAbortController(controller);
 
