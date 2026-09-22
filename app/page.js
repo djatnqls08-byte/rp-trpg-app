@@ -2514,19 +2514,35 @@ const handleFileUpload = async (e) => {
     if (parsedData.pcMission) setCharMission(parsedData.pcMission);
     if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
 
-    // 3. NPC/KPC 다수 처리
+// 3. NPC/KPC 다수 처리 (기존 데이터 보존 병합 로직 추가)
     if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
-      const newNpcs = parsedData.npcs.map((npc, index) => ({
-        id: Date.now() + index,
-        name: npc.name || "미상",
-        job: npc.job || "조력자",
-        detail: npc.detail || "",
-        secret: npc.secret || "",
-        portraitUrl: "", 
-        showSecret: false
-      }));
-      setKpcList(newNpcs);
-    } 
+      setKpcList((prevKpcList) => {
+        // 1. 기존 KPC 목록에서 유효한 캐릭터(이름이 빈칸이 아닌 경우)만 남깁니다.
+        const validExistingKpcs = prevKpcList.filter(kpc => kpc.name && kpc.name.trim() !== "" && kpc.name.trim() !== "파트너");
+        
+        // 2. 새로 파싱된 NPC 목록을 고유 ID와 함께 매핑합니다.
+        const parsedNpcs = parsedData.npcs.map((npc, index) => ({
+          id: Date.now() + index + Math.random(), // 고유 ID 충돌 방지
+          name: npc.name || "미상",
+          job: npc.job || "조력자",
+          detail: npc.detail || "",
+          secret: npc.secret || "",
+          portraitUrl: "",
+          showSecret: false
+        }));
+
+        // 3. 기존 KPC 목록 뒤에 새 NPC 목록을 병합하여 반환합니다.
+        if (validExistingKpcs.length > 0) {
+           // 중복 방지: 이름이 같은 NPC가 있다면 덮어쓰지 않고 무시합니다.
+           const filteredParsedNpcs = parsedNpcs.filter(
+              pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
+           );
+           return [...validExistingKpcs, ...filteredParsedNpcs];
+        } else {
+           return parsedNpcs;
+        }
+      });
+    }
 
     // 4. 핸드아웃 처리
     if (parsedData.handouts && Array.isArray(parsedData.handouts) && parsedData.handouts.length > 0) {
