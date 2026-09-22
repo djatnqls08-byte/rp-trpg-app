@@ -17,7 +17,7 @@ export async function POST(req) {
     const apiKey = apiKeys[0]; // 첫 번째 키를 사용합니다.
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
     const systemPrompt = `
 당신은 TRPG 시나리오 분석 전문가입니다.
