@@ -5,8 +5,8 @@ export const dynamic = "force-dynamic";
 
 // 🌟 유저님이 설계하신 완벽한 우선순위! (Lite 모델 최우선)
 const FALLBACK_MODELS = [
-  "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
+  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
   "gemini-2.5-flash",
 ];
