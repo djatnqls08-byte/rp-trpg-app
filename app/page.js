@@ -3227,14 +3227,17 @@ const startNewSession = async () => {
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
 
-    // 🌟 5) 치환 완료된 시나리오 컨텍스트 생성 (가장 안전한 문자열 덧붙이기 방식)
+ // 🌟 5) 치환 완료된 시나리오 컨텍스트 생성 (가장 안전한 문자열 덧붙이기 방식)
     let fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
     
     if (safeRawText !== "") {
       fullScenarioContext += `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}`;
     }
- 
- // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
+
+    // 🌟 [핵심 해결] 세션에 부여할 고유 ID 변수 부활!
+    const newId = Date.now();
+
+    // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
     if (wizardMode === "insane") {
       const generated = generateInsaneThemeAssets(sessionTitle, fullScenarioContext);
