@@ -2908,49 +2908,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
       }
 
-      const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null) => {
-    let cleanText = rawText || "";
-    let parsedData = { 
-      suggActions: [], pendingCheck: null, newSheetVars: {}, 
-      revealedSecrets: [], investigationSpots: [], newHandouts: [],
-      revealedHandoutTitles: [], shouldAdvanceScene: false,
-      triggeredMadness: null, badEndTriggered: false, unlockedCg: null
-    };
-
-    try {
-      // 🌟 [Phase 5] 배드엔딩 세이프가드 (2일차 미만 또는 20턴 미만 조기 배드엔딩 차단)
-      const targetSheet = sessionSheet || activeSession?.sheet;
-      const currentDay = targetSheet?.day || 1;
-      const currentTurnCount = targetSheet?.turnCount || 0;
-      const isEarlyGame = currentDay < 2 || currentTurnCount < 20;
-
-      // 🌟 [수정 완료] 깨져있던 기호(\vert{})를 | 기호로 정상 복구 1
-      const isBadEndTag = /\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/i.test(cleanText);
-      if (isBadEndTag) {
-        if (isEarlyGame) {
-          cleanText = cleanText.replace(/\[(?:Bad\vert{}Dead\vert{}파멸\vert{}사망)\s*End[^\]]*\]/gi, "");
-          console.warn("[Phase 5 Guard] 턴 수 부족으로 AI의 조기 배드엔딩 텍스트를 차단했습니다.");
-        } else {
-          parsedData.badEndTriggered = true;
-        }
-      }
-
-      // 🌟 [Phase 3] CG 명시적 해금 및 원본 데이터 매핑
-      const cgMatch = cleanText.match(/<!--\s*UNLOCK_CG:\s*(\{[\s\S]*?\})\s*-->/i);
-      if (cgMatch) {
-        try { 
-          const parsedCg = JSON.parse(cgMatch[1]); 
-          const activeCgList = targetSheet?.scenarioCgs || targetSheet?.cgs || scenarioCgs || [];
-          parsedData.unlockedCg = activeCgList.find(c => c.title === parsedCg.title || c.title.includes(parsedCg.title)) || parsedCg;
-        } catch(e) {}
-        cleanText = cleanText.replace(cgMatch[0], "").trim();
-      }
-
-      const madnessMatch = cleanText.match(/<!--\s*TRIGGER_MADNESS:\s*({[\s\S]*?})\s*-{1,3}>/i);
-      if (madnessMatch) {
-        try { parsedData.triggeredMadness = JSON.parse(madnessMatch[1]); } catch (e) {}
-      }
-
       // 🌟 [수정 완료] 주사위 판정 팝업이 안 뜨는 문제 완벽 해결! (깨진 기호 복구 및 강력한 파싱 구조대)
       const checkMatch = cleanText.match(/(?:<!--|\[)\s*CHECK:\s*({[\s\S]*?})\s*(?:-{1,3}>\vert{}\])/i);
       if (checkMatch) {
