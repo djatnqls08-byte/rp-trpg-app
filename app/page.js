@@ -4000,7 +4000,11 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
   - 형식: 맨 끝에 <!-- INCOMING_CALL: {"name": "발신NPC이름", "urgent": true} -->
   - 🚨 절대 주의: 현재 눈앞에서 마주보고 있는 인물은 전화를 걸 수 없습니다. 다른 구역에 있는 인물만 전화를 겁니다!`;
   
- 
+// 🌟 [추가] 파트너(KPC)의 분신 및 다중 형태 완벽 인식 규칙
+    dynamicRules += `\n\n[🚨 다중 KPC/분신(환영) 인식 절대 규칙]
+1. 시나리오 등장인물 중 'KPC (보라색 방)', 'KPC (분홍색 방)' 등 이름에 'KPC'라는 단어나 괄호(...)가 포함된 인물들은 결코 새로운 제3자가 아닙니다.
+2. 이들은 모두 메인 파트너인 [${partnerName}]의 내면이 분리된 환영이거나, 마법/괴이에 의해 모습과 성격이 변형된 [${partnerName}] 본인입니다.
+3. 이들의 대사와 행동을 묘사할 때는 기본적으로 [${partnerName}]의 외모와 신체적 특징을 그대로 유지하되, 각 시트에 적힌 극단적인 성향(예: 섹시, 큐트 등)만 덧씌워서 1인 다역처럼 연기하십시오.`;
  
  // 🌟 인세인(inSANe) 정규 룰 AI 행동 제약 수칙
     if (activeSession.ruleMode === "insane") {
