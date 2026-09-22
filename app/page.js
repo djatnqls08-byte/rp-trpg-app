@@ -1449,6 +1449,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
 
   // 시나리오 폼 상태
   const [scenarioTitle, setScenarioTitle] = useState("");
+ const [originalRawText, setOriginalRawText] = useState(""); // 🌟 시나리오 원본 통째로 기억하는 변수
   const [publicSynopsis, setPublicSynopsis] = useState("");
   const [openingScene, setOpeningScene] = useState("");
   const [hiddenTruth, setHiddenTruth] = useState("");
@@ -2476,15 +2477,17 @@ const handleFileUpload = async (e) => {
     } 
     // 🌟 3. 일반 텍스트 파일일 경우
     else {
+      const extractedText = (await file.text()).slice(0, 50000);
+      setOriginalRawText(extractedText); // 🌟 원본 텍스트 통째로 저장!
       payload = { 
-        rawText: (await file.text()).slice(0, 50000),
+        rawText: extractedText,
         pcName: pName,
         kpcName: kName,
         kpcDetail: kDetail,
-        playPreference: playPreference
+        playPreference: playPreference,
+        ruleMode: wizardMode
       };
     }
-
  const response = await fetch("/api/parse-scenario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3220,9 +3223,9 @@ const startNewSession = async () => {
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
 
-    // 5) 치환 완료된 시나리오 컨텍스트 생성
-    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
-   const newId = Date.now();
+    // 5) 치환 완료된 시나리오 컨텍스트 생성 (원본 데이터 몰래 주입!)
+    const fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}
+${originalRawText ? `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${originalRawText}` : ""}`;
  
  // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
@@ -13361,10 +13364,10 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
             <div style={{ display: "flex", gap: "8px" }}>
 <button
                 type="button"
-                onClick={async () => {
+               onClick={async () => {
                   if (!pastedScenarioText.trim()) return alert("붙여넣은 내용이 없습니다.");
 
-                  // 🌟 1. 로딩 스피너 켜기 및 알림
+                  setOriginalRawText(pastedScenarioText); // 🌟 붙여넣은 원문 텍스트 통째로 저장!
                   setIsPdfLoading(true);
                   if (typeof triggerToast === "function") {
                     triggerToast("AI 텍스트 분석 중", "붙여넣은 텍스트를 AI가 분석하고 있습니다...", "📚");
