@@ -2485,8 +2485,7 @@ const handleFileUpload = async (e) => {
       };
     }
 
-    // 서버로 데이터 전송
-    const response = await fetch("/api/parse-scenario", {
+ const response = await fetch("/api/parse-scenario", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload) 
@@ -2494,18 +2493,19 @@ const handleFileUpload = async (e) => {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
+      throw new Error(errData.error || `서버 오류 (${response.status})`);
     }
 
-const parsedData = await response.json();
+    // 🌟 강제 JSON 모드 덕분에 이제 문자열 정제(replace) 없이 안심하고 파싱할 수 있습니다.
+    const parsedData = await response.json();
 
-    // 1. 시나리오 정보 업데이트
+    // 1. 시나리오 정보 맵핑
     if (parsedData.scenarioTitle) setScenarioTitle(parsedData.scenarioTitle);
     if (parsedData.publicSynopsis) setPublicSynopsis(parsedData.publicSynopsis);
     if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
     if (parsedData.hiddenTruth) setHiddenTruth(parsedData.hiddenTruth);
 
-    // 🌟 2. PC(내 캐릭터) 정보 자동 업데이트
+    // 2. PC(내 캐릭터) 정보 맵핑
     if (parsedData.pcName) setCharName(parsedData.pcName);
     if (parsedData.pcJob) setCharJob(parsedData.pcJob);
     if (parsedData.pcAge) setCharAge(parsedData.pcAge.toString().replace(/[^0-9]/g, ""));
@@ -2514,20 +2514,22 @@ const parsedData = await response.json();
     if (parsedData.pcMission) setCharMission(parsedData.pcMission);
     if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
 
-    // 🌟 3. KPC(등장인물) 정보 자동 업데이트
-    if (parsedData.kpcName || parsedData.kpcDetail) {
-      setKpcList([{
-        id: Date.now(),
-        name: parsedData.kpcName || "파트너",
-        job: parsedData.kpcJob || "조력자",
-        detail: parsedData.kpcDetail || "",
-        secret: parsedData.kpcSecret || "",
+    // 3. NPC/KPC 다수 처리
+    if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
+      const newNpcs = parsedData.npcs.map((npc, index) => ({
+        id: Date.now() + index,
+        name: npc.name || "미상",
+        job: npc.job || "조력자",
+        detail: npc.detail || "",
+        secret: npc.secret || "",
         portraitUrl: "", 
         showSecret: false
-      }]);
-    }
+      }));
+      setKpcList(newNpcs);
+    } 
 
-    if (parsedData.handouts && parsedData.handouts.length > 0) {
+    // 4. 핸드아웃 처리
+    if (parsedData.handouts && Array.isArray(parsedData.handouts) && parsedData.handouts.length > 0) {
       const newHandouts = parsedData.handouts.map((h, i) => ({
         id: "parsed_ho_" + i,
         title: h.title,
@@ -2539,9 +2541,9 @@ const parsedData = await response.json();
     }
 
     if (typeof triggerToast === "function") {
-      triggerToast("분석 완료!", "성공적으로 시나리오를 분해하여 폼에 자동 입력했습니다.", "✨");
+      triggerToast("파싱 성공!", "문서에서 성공적으로 정보를 추출했습니다.", "✨");
     } else {
-      alert("시나리오 분석 완료! 세팅창을 확인해 주세요.");
+      alert("파싱 성공!");
     }
 
   } catch (err) {
@@ -2549,10 +2551,9 @@ const parsedData = await response.json();
     alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
   } finally {
     setIsPdfLoading(false);
-    e.target.value = null; 
+    e.target.value = null; // 버튼 초기화
   }
 };
-   
   const applyCustomPortrait = () => {
     if (!customPortraitPrompt.trim()) return;
     const newUrl = customPortraitPrompt.startsWith("http") ? customPortraitPrompt : getPortraitUrl(customPortraitPrompt);
