@@ -342,9 +342,10 @@ function convertRowToPreset(row, index, headers = []) {
   const fear = getVal(/^(공포심|공포|공포특기)$/i, 15);
 
   // 🌟 NPC 1번 ~ 10번 동적 추출
-  const kpcList = [];
-
-  for (let i = 1; i <= 10; i++) {
+const kpcList = [];
+  
+  // 반복문을 10이 아니라 9까지만 돌게 하여 뒤쪽의 CG 열과 절대 겹치지 않게 만듭니다.
+  for (let i = 1; i <= 9; i++) {
     const offset = 16 + (i - 1) * 5;
     const name = getVal(new RegExp(`^(npc${i}이름|kpc${i}이름${i === 1 ? '|kpc이름|파트너이름' : ''})$`, 'i'), offset);
     const job = getVal(new RegExp(`^(npc${i}직업|kpc${i}직업${i === 1 ? '|kpc직업|파트너직업' : ''})$`, 'i'), offset + 1);
@@ -353,17 +354,16 @@ function convertRowToPreset(row, index, headers = []) {
     const img = getVal(new RegExp(`^(npc${i}이미지|kpc${i}이미지${i === 1 ? '|kpc이미지' : ''})$`, 'i'), offset + 4);
 
     if (!name || !name.trim()) continue;
+    // CG 제목이 NPC 이름으로 잘못 들어오는 것을 막는 안전장치입니다.
     if (/^(cg\s*\d+|이벤트\s*cg|cg_)/i.test(name.trim())) continue;
     if (name.trim().startsWith("http")) continue;
 
     const statMatch = (detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
     const extractedStatus = statMatch ? statMatch[1].trim() : "";
 
-    // 🌟 시트 본문에서 성별, 나이 추출
     const genderMatch = (detail || "").match(/성별\s*[:：]\s*([^\n\r,/]+)/i);
     const ageMatch = (detail || "").match(/나이\s*[:：]\s*([^\n\r,/]+)/i);
 
-    // 🌟 외모/성격 큰 상자에 남는 성별, 나이, 역할 줄글 찌꺼기 정리
     detail = (detail || "").replace(/(?:역할|성별|나이)\s*[:：][^\n\r]+(?:\r?\n)?/gi, "").trim();
 
     kpcList.push({
@@ -380,14 +380,16 @@ function convertRowToPreset(row, index, headers = []) {
     });
   }
 
-  // 🌟 [수정 완료] 이벤트 CG 동적 추출 (NPC 목록 이후 열부터 탐색)
+  // 🌟 [수정된 부분 2] 이벤트 CG 동적 추출 (유저님의 시트 기준 BL열 = 인덱스 63부터 시작!)
   const eventCgs = [];
-  const cgStartCol = 61; // 구글 시트에서 이벤트 CG 데이터가 시작되는 열 번호
+  const cgStartCol = 63; // 구글 시트의 BL열은 0부터 셌을 때 63번 인덱스입니다.
+
   for (let c = cgStartCol; c + 2 < row.length; c += 3) {
     const cgTitle = row[c]?.trim();
     const cgTrigger = row[c + 1]?.trim();
     const cgUrl = row[c + 2]?.trim();
-    // 🌟 이미지가 없어도 제목이나 지문/조건(글)이 있으면 이벤트 씬으로 수집
+    
+    // 이미지가 없어도 제목이나 지문/조건(글)이 있으면 이벤트 씬으로 수집합니다.
     if (cgTitle && (cgTrigger || cgUrl)) {
       eventCgs.push({ 
         title: cgTitle, 
@@ -2404,10 +2406,17 @@ const processScenarioText = (rawText) => {
   alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
 };
 
-// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (상세 에러 표시 추가)]
+// 🌟 [수정된 파일 업로드 & AI 분석 핸들러 (무반응 해결 및 용량 방어)]
 const handleFileUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+
+  // 🚨 1. Vercel 서버 용량 제한 방어 (4MB 이상 이미지 차단)
+  if (file.size > 4 * 1024 * 1024) {
+    alert("파일 용량이 너무 큽니다! 4MB 이하의 이미지나 문서만 업로드해주세요.");
+    e.target.value = null; // 입력창 초기화
+    return;
+  }
 
   setIsPdfLoading(true);
   
@@ -2421,10 +2430,7 @@ const handleFileUpload = async (e) => {
     if (file.type.startsWith("image/")) {
       const base64String = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result.split(",")[1];
-          resolve(base64);
-        };
+        reader.onload = () => resolve(reader.result.split(",")[1]);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
@@ -2467,7 +2473,6 @@ const handleFileUpload = async (e) => {
       body: JSON.stringify(payload) 
     });
 
-    // 🌟 수정된 부분: 서버에서 온 진짜 에러 메시지를 꺼내서 띄워줍니다!
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
@@ -2510,11 +2515,12 @@ const handleFileUpload = async (e) => {
     }
 
   } catch (err) {
-    console.error(err);
-    // 🌟 수정된 부분: alert 창에 정확한 에러 메시지가 뜹니다.
+    console.error("파일 처리 에러:", err);
     alert("파일을 처리하는 중 오류가 발생했습니다: " + err.message);
   } finally {
     setIsPdfLoading(false);
+    // 🚨 2. 매우 중요! 선택했던 파일을 지워주어, 다음번에 똑같은 파일을 눌러도 다시 작동하게 만듭니다.
+    e.target.value = null; 
   }
 };
    
