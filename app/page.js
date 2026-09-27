@@ -3140,6 +3140,8 @@ const startNewSession = async () => {
     }
 
     let initialSheet = {
+      day: 1,
+      currentPhase: initialDetectedPhase,
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
       background: charBackground, secret: charSecret, mission: charMission,
       portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
@@ -3969,7 +3971,7 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 
 
 // 🌟 [Phase 1] 시스템 시간 절대 앵커 (구버전 호환)
-    const currentDay = activeSession.sheet?.day || Math.max(1, Math.floor((activeSession.messages?.length || 0) / 15) + 1);
+    const currentDay = activeSession.sheet?.day || 1;
     const currentPhaseStr = currentPhase || activeSession.sheet?.currentPhase || "낮";
     
     let dynamicRules = `\n\n[⏰ 시스템 시간 절대 앵커]\n- 현재 시각: ${currentDay}일차 [${currentPhaseStr}]\n- AI는 자의적으로 시간을 건너뛰거나 날짜를 바꿀 수 없습니다.\n\n[키퍼 마스터링 및 완급 조절 절대 수칙]
@@ -4224,10 +4226,17 @@ ${npcsSummary}
 4. 직업 왜곡 금지: [${callName}]은 반드시 자신의 본업인 [${trueJob}]로서만 대화해야 합니다.`;
     }
 
-     // 🕒 시간대 임의 스킵 방지 룰 주입 (currentPhase 변수가 파란색으로 정상 연동됨)
-    dynamicRules += `\n\n[🚨 시간대 임의 스킵 절대 금지]
-- 현재 게임 시간대는 [${currentPhase || "낮"}]입니다.
-- 플레이어가 명시적으로 [잠자기]나 [시간 보내기]를 선언하기 전까지는, AI가 임의로 지문 속에서 시간을 저녁이나 밤으로 건너뛰지 마십시오.`;
+    // 🕒 시간대 및 하루 진행 규칙 (스마트 전환)
+    dynamicRules += `\n\n[⏰ 시간대(Phase) 및 날짜(Day) 절대 수칙]
+1. [날짜(Day) 임의 변경 전면 금지]:
+- 현재는 [${currentDay}일차]입니다. AI가 자의적으로 날짜를 2일차, 3일차로 올리거나 내일로 건너뛰는 행위를 엄격히 금지합니다. (날짜는 오직 유저의 수면으로만 전진)
+2. [하루 속 시간대(낮 ➔ 저녁 ➔ 밤) 자연스러운 전진]:
+- 현재 시간대: [${currentPhaseStr}]
+- 대화가 5~7턴 이상 무르익거나, 한 장소에서의 일정이 마무리되어 헤어지는 타이밍(퇴근, 약속 종료, 귀가 등)에는 공기의 색을 묘사하며 자연스럽게 다음 시간대로 넘어가십시오.
+- 시간대를 전환할 때는 지문 맨 끝에 아래 태그를 반드시 1회 출력하십시오:
+  <!-- PHASE: "저녁" --> (선택 가능: "낮", "저녁", "밤", "새벽")
+3. [밤/새벽의 취침 유도]:
+- 시간대가 '밤'이나 '새벽'에 도달하면, 상대방이 피로를 내비치거나 "오늘은 이만 쉬자", "내일 봐"라며 귀가와 취침을 자연스럽게 권유하게 하십시오.`;
     
 
 // 🎯 [현재 대면 상대 직업 왜곡 방지 절대 지침]
@@ -5786,7 +5795,7 @@ return (
                     }}
                   >
                     <span>{({ "새벽": "🌌", "아침": "🌅", "낮": "☀️", "저녁": "🌆", "노을": "🌆", "밤": "🌙" }[currentPhase || activeSession?.sheet?.currentPhase || "낮"] || "☀️")}</span>
-                    <span>{activeSession?.sheet?.day || Math.max(1, Math.floor((activeSession?.messages?.length || 0) / 15) + 1)}일차 {currentPhase || activeSession?.sheet?.currentPhase || "낮"}</span>
+                    <span>{activeSession?.sheet?.day || 1}일차 {currentPhase || activeSession?.sheet?.currentPhase || "낮"}</span>
                   </div>
                 )}
           
@@ -10693,51 +10702,87 @@ ${statusGuide}
         </div>
       )}
 
-{/* 🌟 휴식 및 수면 선택 모달 */}
+{/* 🌟 휴식 및 수면 선택 모달 (정상 시간 흐름 연동) */}
       {showSleepOptions && (
         <div onClick={() => setShowSleepOptions(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 160, padding: "20px" }}>
           <div onClick={e => e.stopPropagation()} className="glass-card" style={{ width: "100%", maxWidth: "340px", padding: "24px 20px", borderRadius: "18px", color: theme.text, display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 16px 40px rgba(0,0,0,0.35)", textAlign: "center" }}>
-            <div style={{ fontWeight: "800", fontSize: "1.05rem", marginBottom: "8px" }}>🛏️ 휴식 및 수면</div>
-            <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>시간을 얼마나 보낼지 선택하세요.</div>
-            
+            <div style={{ fontWeight: "800", fontSize: "1.05rem", marginBottom: "4px" }}>🛏️ 휴식 및 수면</div>
+            <div style={{ fontSize: "0.75rem", color: theme.textMuted, marginBottom: "8px" }}>
+              현재 시각: <strong>{activeSession?.sheet?.day || 1}일차 [{currentPhase || "낮"}]</strong>
+            </div>
+
+            {/* 1. 시간 보내기: 아침 ➔ 낮 ➔ 저녁 ➔ 밤 ➔ 새벽 (새벽에서 넘어가면 다음 날 아침) */}
             <button onClick={() => {
               const phases = ["아침", "낮", "저녁", "밤", "새벽"];
               const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
-              const nextIdx = (phases.indexOf(curPhase) + 1) % 5;
+              const curIdx = phases.indexOf(curPhase);
+              const nextIdx = (curIdx + 1) % 5;
               const next = phases[nextIdx];
-              const dayPlus = nextIdx === 0 ? 1 : 0;
+              const isNewDay = nextIdx === 0; // 새벽에서 아침으로 넘어갈 때만 날짜 +1
+              const nextDay = (activeSession?.sheet?.day || 1) + (isNewDay ? 1 : 0);
+
               setCurrentPhase(next);
-              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
-              executeMessage(`[휴식] 잠시 휴식을 취하며 시간을 보냅니다. 어느덧 ${next}입니다.`); 
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                ...s,
+                currentPhase: next,
+                sheet: { ...s.sheet, currentPhase: next, day: nextDay }
+              } : s));
+
+              if (typeof setTimeTransition === "function") {
+                setTimeTransition(next);
+                setTimeout(() => setTimeTransition(null), 1800);
+              }
+
+              executeMessage(`[시간 경과] 시간이 흘러 어느덧 ${nextDay}일차 ${next}입니다.`); 
               setShowSleepOptions(false);
             }} style={{ padding: "12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}>
-              ⏳ 시간 보내기 (현재: {currentPhase || "낮"} ➔ 다음)
+              ⏳ 시간 보내기 (다음 시간대로 이동)
             </button>
 
+            {/* 2. 잠자기: 언제 잤든 상쾌하게 [다음 날 아침]으로 기상! */}
             <button onClick={() => {
-              const phases = ["아침", "낮", "저녁", "밤", "새벽"];
-              const curPhase = currentPhase || activeSession?.sheet?.currentPhase || "낮";
-              const nextIdx = (phases.indexOf(curPhase) + 2) % 5;
-              const next = phases[nextIdx];
-              const dayPlus = (phases.indexOf(curPhase) + 2) >= 5 ? 1 : 0;
-              setCurrentPhase(next);
-              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: next, sheet: { ...s.sheet, currentPhase: next, day: (s.sheet?.day || 1) + dayPlus } } : s));
-              executeMessage(`[수면] 잠자리에 들어 푹 쉬고 일어납니다. 어느덧 ${next}입니다.`); 
-              setShowSleepOptions(false);
-            }} style={{ padding: "12px", backgroundColor: "rgba(16, 185, 129, 0.1)", border: `1px solid rgba(16, 185, 129, 0.3)`, borderRadius: "10px", color: "#10b981", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}>
-              🛋️ 수면 취하기 (8시간 경과)
-            </button>
-            
-            <button onClick={() => {
+              const curDay = activeSession?.sheet?.day || 1;
+              const nextDay = curDay + 1;
+
               setCurrentPhase("아침");
-              setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, currentPhase: "아침", sheet: { ...s.sheet, currentPhase: "아침", day: (s.sheet?.day || 1) + 1 } } : s));
-              executeMessage(`[시간 경과] 하루가 지나, 다음 날이 되었습니다.`); 
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                ...s,
+                currentPhase: "아침",
+                sheet: {
+                  ...s.sheet,
+                  currentPhase: "아침",
+                  day: nextDay,
+                  hp: Math.min(s.sheet?.maxHp || 20, (s.sheet?.hp || 20) + 5) // 체력 소폭 회복 보너스
+                }
+              } : s));
+
+              if (typeof setTimeTransition === "function") {
+                setTimeTransition(`${nextDay}일차 아침`);
+                setTimeout(() => setTimeTransition(null), 2000);
+              }
+
+              executeMessage(`[수면] 편안하게 잠자리에 듭니다. 눈을 떠보니 새로운 하루, ${nextDay}일차 아침입니다.`); 
               setShowSleepOptions(false);
-            }} style={{ padding: "12px", backgroundColor: "rgba(99, 102, 241, 0.15)", border: `1px solid rgba(99, 102, 241, 0.4)`, borderRadius: "10px", color: "#818cf8", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer" }}>
-              📅 하루 통째로 넘기기 (날짜 +1)
+            }} style={{ padding: "12px", backgroundColor: "rgba(16, 185, 129, 0.12)", border: `1px solid rgba(16, 185, 129, 0.35)`, borderRadius: "10px", color: "#10b981", fontSize: "0.82rem", fontWeight: "800", cursor: "pointer" }}>
+              🛋️ 수면 취하기 (다음 날 아침으로)
             </button>
 
-            <button onClick={() => setShowSleepOptions(false)} style={{ padding: "10px", background: "none", border: "none", color: theme.textMuted, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", marginTop: "4px" }}>
+            {/* 3. 하루 통째로 넘기기 */}
+            <button onClick={() => {
+              const nextDay = (activeSession?.sheet?.day || 1) + 1;
+              setCurrentPhase("아침");
+              setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                ...s,
+                currentPhase: "아침",
+                sheet: { ...s.sheet, currentPhase: "아침", day: nextDay }
+              } : s));
+              executeMessage(`[시간 경과] 하루가 완전히 지나, ${nextDay}일차 아침이 되었습니다.`); 
+              setShowSleepOptions(false);
+            }} style={{ padding: "11px", backgroundColor: "rgba(99, 102, 241, 0.12)", border: `1px solid rgba(99, 102, 241, 0.35)`, borderRadius: "10px", color: "#818cf8", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer" }}>
+              📅 하루 통째로 건너뛰기 (+1일)
+            </button>
+
+            <button onClick={() => setShowSleepOptions(false)} style={{ padding: "8px", background: "none", border: "none", color: theme.textMuted, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", marginTop: "4px" }}>
               닫기
             </button>
           </div>
