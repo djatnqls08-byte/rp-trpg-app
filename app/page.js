@@ -3025,6 +3025,8 @@ const startNewSession = async () => {
       return {
         id: k.id,
         name: k.name,
+        gender: k.gender || "여성",
+        age: k.age || "20",
         title: k.job || "조력자",
         detail: k.detail || "",
         portrait: k.portraitUrl || getPortraitUrl(k.name),
@@ -3831,12 +3833,13 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
  
   // 📵 유저가 전화를 끊는 말을 입력했을 때 즉시 통화 State 강제 해제
     const endCallKeywords = ["전화끊", "전화 끊", "통화 종료", "끊을게", "끊겠습니다", "끊는다"];
-    if (isVoiceCallActive && endCallKeywords.some(k => textToSend.includes(k))) {
+    const isTryingToHold = textToSend.includes("끊지") || textToSend.includes("끊지마") || textToSend.includes("끊지 마");
+    if (isVoiceCallActive && endCallKeywords.some(k => textToSend.includes(k)) && !isTryingToHold) {
       setIsVoiceCallActive(false);
       setIsCallModalOpen(false);
       setVoiceCallNpc(null);
     }
-
+ 
  // 📞 [부재중 전화 자동 처리] 전화가 오는 중에 전화를 안 받고 일반 채팅을 쳤을 때!
   let missedCallNotice = "";
   if (incomingCall) {
@@ -4269,28 +4272,7 @@ const res = await fetch("/api/chat", {
       const phaseMatch = rawText.match(/<!--\s*PHASE:\s*["']?([^"'\s]+)["']?\s*-->/i);
 
       // 🕒 AI 지문 서술 속 시간대 자동 감지 보완 (명시적 태그가 없을 때)
-      if (!phaseMatch) {
-        let textDetectedPhase = null;
-        if (/자정을|자정\b|심야|깊은\s*밤|오늘\s*밤|밤이\s*되/.test(rawText)) {
-          textDetectedPhase = "밤";
-        } else if (/새벽|동이\s*트기|푸르스름/.test(rawText)) {
-          textDetectedPhase = "새벽";
-        } else if (/해질|노을|황혼|저녁/.test(rawText)) {
-          textDetectedPhase = "저녁";
-        } else if (/아침|눈을\s*뜬|기상/.test(rawText)) {
-          textDetectedPhase = "아침";
-        }
-        
-        // 시간대가 바뀌었다면 상태를 업데이트하고 화면 전환 효과를 줍니다.
-        if (textDetectedPhase && textDetectedPhase !== currentPhase) {
-          setCurrentPhase(textDetectedPhase);
-          if (typeof setTimeTransition === "function") {
-            setTimeTransition(textDetectedPhase);
-            setTimeout(() => setTimeTransition(null), 2000);
-          }
-        }
-      } else {
-        // AI가 태그로 시간대를 줬다면 태그 값을 그대로 사용합니다.
+if (phaseMatch) {
         const taggedPhase = phaseMatch[1];
         if (taggedPhase && taggedPhase !== currentPhase) {
           setCurrentPhase(taggedPhase);
@@ -4298,6 +4280,9 @@ const res = await fetch("/api/chat", {
             setTimeTransition(taggedPhase);
             setTimeout(() => setTimeTransition(null), 2000);
           }
+        }
+        rawText = rawText.replace(phaseMatch[0], "").trim();
+      }
         }
         // 화면에 보여줄 텍스트에서는 태그 부분을 지워줍니다.
         rawText = rawText.replace(phaseMatch[0], "").trim();
@@ -5511,8 +5496,8 @@ return (
 
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-thumb { background: rgba(140, 160, 210, 0.2); border-radius: 4px; }
-      .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
-      .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid${theme.border}; }
+      .glass-card { background: ${theme.panel}; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid ${theme.border}; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border-radius: 18px; }
+      .glass-alt { background: ${theme.panelAlt}; backdrop-filter: blur(10px); border: 1px solid ${theme.border}; }
       @keyframes diceTumble { 0% { transform: rotate(0deg) scale(0.85); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
       .anim-dice-rolling { animation: diceTumble 0.35s infinite linear; }
       @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.3; } 30% { transform: translateY(-5px); opacity: 1; } }
@@ -11345,7 +11330,7 @@ ${statusGuide}
                     type="checkbox" 
                     checked={selectedExportSessionIds.includes(s.id)} 
                     onChange={(e) => {
-                      if (e.checked) setSelectedExportSessionIds([...selectedExportSessionIds, s.id]);
+                      if (e.target.checked) setSelectedExportSessionIds([...selectedExportSessionIds, s.id]);
                       else setSelectedExportSessionIds(selectedExportSessionIds.filter(id => id !== s.id));
                     }} 
                   />
