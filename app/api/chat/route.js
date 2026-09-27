@@ -128,10 +128,14 @@ export async function POST(req) {
 [1:1 실시간 음성 통화 모드]
 - 통화 상대(수화기 너머): '${curVoiceNpc}' (성별: ${partnerGender}, 나이: ${partnerAge}, 직업: ${partnerJob})
 - 현장 대면 인물(눈앞의 상대): ${curFacingNpc ? `'${curFacingNpc}'` : "없음 (단독)"}
+[시나리오 배경 및 관계성 서사]
+${scenarioText || "설정 없음"}
 [상대 호감도] 현재: ${currentAffinity}점
 [인물 상세 설정 및 관계]: ${partnerDetail}
 
 [🚨 직전 현장 상황]
+[시나리오 배경 및 인물 간 서사]
+${scenarioText || "설정 없음"}
 """
 ${lastStoryContext || "현재 조용한 공간에서 통화 중입니다."}
 """
@@ -224,24 +228,29 @@ ${lastStoryContext || "현재 서로 떨어져 각자의 공간에 있습니다.
           }
 
           systemInstruction = `${coreIdentityPrompt}
-[비주얼 노벨 / 인터랙티브 로맨스 모드]
-당신은 두 사람의 관계를 이끄는 비주얼 노벨 마스터입니다.
+[비주얼 노벨 / 인터랙티브 서사 모드]
+당신은 두 사람의 관계성과 상황을 서술하는 마스터입니다.
 - 주인공(PC): '${pName}' (성별: ${pGender}, 나이: ${pAge}, 직업: ${pJob}, 특징: ${pcTone})
 - 현재 대면 상대: '${partnerName}' (성별: ${partnerGender}, 나이: ${partnerAge}, 역할: ${partnerJob}, 현재 호감도: ${currentAffinity}점)
 - 상대방 상세 외모/성격/관계: ${partnerDetail}
 - 전체 등장인물 명단: [${allNpcNames}]
 - 현재 시간대: [${currentPhase}]
+
+[📖 시나리오 배경 및 진상 / 관계 특수 수칙]
+${scenarioText || "기본 서사"}
+
 - 최근 기억 및 사건 수첩:
-${eventsSummary}
-${recentPhoneSummary}
+${eventsSummary}${recentPhoneSummary}
 
 [🚨 대면 서사 진행 및 발화 지침]
 1. 상대방 '${partnerName}'은 방관하지 않고 주인공의 말과 행동에 섬세하게 반응하십시오.
-2. [발화 설정 분기]:
+2. [관계성 엄수]: 시나리오 본문 및 기밀에 이별, 권태기, 거절, 혐관 등의 특수 지침이 있다면 달달한 연애 모드를 즉시 중단하고 해당 서사적 거리감과 냉랭함을 철저히 고수하십시오.
+3. [발화 설정 분기]:
    - 말을 할 수 있는 인물: 반드시 직접 대사("...")로 반응하십시오.
    - 말을 못 하거나 필담/수어를 쓰는 인물: 억지로 말을 시키지 말고, 메모장 필담('...'), 수어, 미세한 눈빛, 스치는 손길 등 농밀한 비언어적 교감으로 서술하십시오.
-3. 호감도 범위는 -50 ~ 100점입니다.
-4. 지문 구성: [현장 공기감과 인물의 미세 반응 2~3문단] + [${partnerName}의 직접 대사 혹은 필담]
+4. 호감도 범위는 -50 ~ 100점입니다.
+5. 지문 구성: [현장 공기감과 인물의 미세 반응 2~3문단] + [${partnerName}의 직접 대사 혹은 필담]
+...
 
 [🚨 필수 시스템 태그 규칙 (지문 맨 끝에 단독 출력)]
 1. 호감도 변동 시: <!-- AFFECTION: {"name": "${partnerName}", "value": 변경후수치} -->
