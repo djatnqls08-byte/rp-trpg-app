@@ -4281,6 +4281,26 @@ const res = await fetch("/api/chat", {
         rawText = rawText.replace(phaseMatch[0], "").trim();
       }
 
+// 📅 APPOINTMENT 약속 태그 파서 (약속 장소 & 겹침 활성화)
+      const appointmentMatch = rawText.match(/<!--\s*APPOINTMENT:\s*(\{[\s\S]*?\})\s*-->/i);
+      if (appointmentMatch) {
+        try {
+          const appData = JSON.parse(appointmentMatch[1]);
+          if (appData.npc || appData.place) {
+            triggerToast("📅 약속 성립", `${appData.npc || "상대방"}와(과) 약속이 잡혔습니다: [${appData.place || "약속 장소"}]`, "💌");
+            setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+              ...s,
+              sheet: {
+                ...s.sheet,
+                appointments: [...(s.sheet?.appointments || []), appData]
+              }
+            } : s));
+          }
+        } catch (e) { console.error("약속 파싱 실패", e); }
+        rawText = rawText.replace(appointmentMatch[0], "").trim();
+      }
+   
+   
       // 📍 MOVE_LOCATION 태그 파서 (장소 태그 정상 수신 및 토스트 팝업)
       const moveLocMatch = rawText.match(/<!--\s*MOVE_LOCATION:\s*(\{[\s\S]*?\})\s*-->/i);
       if (moveLocMatch) {
