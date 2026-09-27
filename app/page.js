@@ -4267,12 +4267,9 @@ const res = await fetch("/api/chat", {
       const data = await res.json();
       let rawText = data.text || "";
 
-      // 🌟 [수정 완료] 시간대 감지를 위한 phaseMatch 변수를 안전하게 선언합니다.
-      // AI가 태그(<!-- PHASE: "밤" -->) 형태로 명시적으로 보내준 시간대가 있는지 먼저 확인합니다.
+      // 🌟 시간대 감지 (AI가 명시적 태그를 보냈을 때만 시간 변경)
       const phaseMatch = rawText.match(/<!--\s*PHASE:\s*["']?([^"'\s]+)["']?\s*-->/i);
-
-      // 🕒 AI 지문 서술 속 시간대 자동 감지 보완 (명시적 태그가 없을 때)
-if (phaseMatch) {
+      if (phaseMatch) {
         const taggedPhase = phaseMatch[1];
         if (taggedPhase && taggedPhase !== currentPhase) {
           setCurrentPhase(taggedPhase);
@@ -4283,10 +4280,7 @@ if (phaseMatch) {
         }
         rawText = rawText.replace(phaseMatch[0], "").trim();
       }
-        }
-        // 화면에 보여줄 텍스트에서는 태그 부분을 지워줍니다.
-        rawText = rawText.replace(phaseMatch[0], "").trim();
-      }
+
       // 📍 MOVE_LOCATION 태그 파서 (장소 태그 정상 수신 및 토스트 팝업)
       const moveLocMatch = rawText.match(/<!--\s*MOVE_LOCATION:\s*(\{[\s\S]*?\})\s*-->/i);
       if (moveLocMatch) {
