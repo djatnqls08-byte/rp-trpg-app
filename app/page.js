@@ -4281,18 +4281,46 @@ const res = await fetch("/api/chat", {
         rawText = rawText.replace(phaseMatch[0], "").trim();
       }
 
-// 📅 APPOINTMENT 약속 태그 파서 (약속 장소 & 겹침 활성화)
+// 📅 APPOINTMENT 약속 태그 파서 (다일차 D-Day 스마트 연산)
       const appointmentMatch = rawText.match(/<!--\s*APPOINTMENT:\s*(\{[\s\S]*?\})\s*-->/i);
       if (appointmentMatch) {
         try {
           const appData = JSON.parse(appointmentMatch[1]);
           if (appData.npc || appData.place) {
-            triggerToast("📅 약속 성립", `${appData.npc || "상대방"}와(과) 약속이 잡혔습니다: [${appData.place || "약속 장소"}]`, "💌");
+            const curDay = activeSession?.sheet?.day || 1;
+            const timeStr = `${appData.time || ""} ${appData.when || ""}`;
+            
+            // 🌟 며칠 뒤 약속인지 자동 연산 (내일: +1, 모레: +2, 글피: +3, 일주일: +7, 'N일 뒤')
+            let addDays = 0;
+            const numMatch = timeStr.match(/(\d+)\s*일\s*(?:뒤|후)/);
+
+            if (appData.day && Number(appData.day) > curDay) {
+              addDays = Number(appData.day) - curDay;
+            } else if (numMatch) {
+              addDays = parseInt(numMatch[1], 10);
+            } else if (timeStr.includes("일주일") || timeStr.includes("7일")) {
+              addDays = 7;
+            } else if (timeStr.includes("글피")) {
+              addDays = 3;
+            } else if (timeStr.includes("모레")) {
+              addDays = 2;
+            } else if (timeStr.includes("내일")) {
+              addDays = 1;
+            } else if (timeStr.includes("주말")) {
+              addDays = Math.max(1, 6 - (curDay % 7)); // 주말로 보정
+            }
+
+            const targetDay = curDay + addDays;
+            const savedApp = { ...appData, targetDay, createdDay: curDay };
+            const dDayText = addDays === 0 ? "오늘" : addDays === 1 ? "내일" : `${addDays}일 뒤`;
+
+            triggerToast("📅 약속 성립", `${appData.npc || "상대방"}와(과) 약속: [${appData.place}] (${targetDay}일차 / ${dDayText})`, "💌");
+            
             setSessions(prev => prev.map(s => s.id === activeSessionId ? {
               ...s,
               sheet: {
                 ...s.sheet,
-                appointments: [...(s.sheet?.appointments || []), appData]
+                appointments: [...(s.sheet?.appointments || []), savedApp]
               }
             } : s));
           }
@@ -4730,17 +4758,17 @@ if (endCallMatch) {
 
       // 💬 [상태메시지(STATUS) 추출 & 본문 지문(-[ ... ]) 자동 감지 Fallback]
       let statusChanges = [];
-      const statusRegex = /<!--\s*STATUS:\s*(\{.*?\})\s*-->/gs;
-      let statMatch;
-      while ((statMatch = statusRegex.exec(rawText)) !== null) {
-        try {
-          const statObj = JSON.parse(statMatch[1]);
-          const msg = statObj.msg || statObj.status || statObj.message;
-          if (statObj.name && msg) {
-            statusChanges.push({ name: statObj.name.trim(), msg: msg.trim() });
-          }
-        } catch (e) {}
-      }
+const statusRegex = /<!--\s*(?:STATUS|STATUS_MSG):\s*(\{.*?\})\s*-->/gis;
+let statMatch;
+while ((statMatch = statusRegex.exec(rawText)) !== null) {
+  try {
+    const statObj = JSON.parse(statMatch[1]);
+    const msg = statObj.msg || statObj.status || statObj.message || statObj.text;
+    if (statObj.name && msg) {
+      statusChanges.push({ name: statObj.name.trim(), msg: msg.trim() });
+    }
+  } catch (e) {}
+}
       rawText = rawText.replace(statusRegex, "");
 
       // AI가 태그 대신 소설 본문에 -[ 문구 ]로만 작성했을 때도 실시간 포착
@@ -4912,9 +4940,13 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
             const rawDiff = rawVal - currentAff;
             safeDiff = Math.max(-5, Math.min(5, rawDiff));
           }
-          // 🛑 일차별 호감도 상한선: 초반(1일차)에는 아무리 불타올라도 40점을 초과할 수 없음
-          const calculatedAff = currentAff + safeDiff;
-          const maxAffCap = (activeSession.sheet?.gameTime?.day || 1) <= 1 ? 40 : 100;
+          // 📈 일차별 호감도 점진 해금 공식:
+          // 1일차: 최대 40점 (조심스러운 첫 만남/호기심)
+          // 2일차: 최대 60점 (친밀감/설렘/썸)
+          // 3일차: 최대 80점 (깊은 유대/비밀 공유/루트 확정)
+          // 4일차 이상: 최대 100점 (연인 성립/최종 엔딩 도달)
+          const currentSessionDay = activeSession?.sheet?.day || 1;
+          const maxAffCap = Math.min(100, 20 + (currentSessionDay * 20));
           affVal = Math.max(-100, Math.min(maxAffCap, calculatedAff));
         }
 
@@ -5008,9 +5040,7 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
       }
 
     // [세션 상태 최종 반영 및 대면 NPC 자동 동기화]
-      const foundInReply = (newSheet.npcs || []).find(n => n.name && (cleanText.includes(n.name) || rawText.includes(n.name)));
-      const finalActiveContactId = foundInReply ? foundInReply.id : currentContactId;
-
+      const finalActiveContactId = currentContactId;
       setSessions(prev => prev.map(s => s.id === activeSessionId ? {
         ...s,
         activeContactId: finalActiveContactId,
@@ -5375,7 +5405,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
     const top2Aff = Number(top2?.affection) || 0;
 
     // 1. 배드 엔딩 (1순위마저 25점 미만이거나 파탄)
-    if (top1Aff < 25 || sorted.some(n => Number(n.affection) <= -10)) {
+   if (top1Aff < 25) {
       return {
         type: "Bad End",
         title: "Bad End: 어긋난 시선과 차가운 침묵",
@@ -7999,11 +8029,18 @@ return (
             marginBottom: "6px",
           }}>
             {locationCards.map((card, idx) => {
-              // 1. 약속 장소 확인 (빨간 배지)
-              const isAppointed = (activeSession?.sheet?.appointments || []).some(
+             // 1. 다일차 약속 장소 판정 (D-Day 카운트다운)
+              const curDay = activeSession?.sheet?.day || 1;
+              const matchedApp = (activeSession?.sheet?.appointments || []).find(
                 app => (app.place && card.name?.includes(app.place)) || (app.npc && card.npc?.includes(app.npc))
               );
+              
+              const targetDay = matchedApp?.targetDay ?? curDay;
+              const diffDays = targetDay - curDay;
 
+              const isTodayApp = matchedApp && diffDays === 0;   // 오늘 가야 함 (D-Day)
+              const isFutureApp = matchedApp && diffDays > 0;    // 미래의 약속 (D-1 ~ D-7)
+             
              // 🌟 2. 미해금 CG 장소 자동 매칭 검사 (금빛 묘한 예감 힌트)
               const allScenarioCgs = activeSession?.sheet?.scenarioCgs || activeSession?.sheet?.cgs || scenarioCgs || [];
               const currentUnlocked = activeSession?.sheet?.unlockedCgs || [];
@@ -8075,19 +8112,23 @@ return (
                       : (isAppointed ? "0 0 10px rgba(244, 63, 94, 0.25)" : "none"),
                   }}
                 >
-                  {/* ⭐ 약속 장소 배지 */}
-                  {isAppointed && (
+               {/* ⭐ 약속 장소 D-Day 배지 */}
+                  {isTodayApp && (
                     <div style={{
-                      display: "inline-block",
-                      fontSize: "0.62rem",
-                      fontWeight: "800",
-                      color: "#fff",
-                      backgroundColor: "#f43f5e",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      marginBottom: "4px"
+                      display: "inline-block", fontSize: "0.62rem", fontWeight: "800", color: "#fff",
+                      backgroundColor: "#f43f5e", padding: "1px 6px", borderRadius: "4px", marginBottom: "4px"
                     }}>
-                      ⭐ 약속 장소
+                      ⭐ 오늘 약속 장소 (D-Day)
+                    </div>
+                  )}
+
+                  {isFutureApp && (
+                    <div style={{
+                      display: "inline-block", fontSize: "0.62rem", fontWeight: "800", color: "#fff",
+                      backgroundColor: diffDays === 1 ? "#6366f1" : "#475569", 
+                      padding: "1px 6px", borderRadius: "4px", marginBottom: "4px"
+                    }}>
+                      ⏳ {diffDays === 1 ? "내일 약속 (D-1)" : `${targetDay}일차 약속 (D-${diffDays})`}
                     </div>
                   )}
 
@@ -9383,7 +9424,7 @@ ${statusGuide}
               try {
                 const snapData = JSON.parse(snapMatch[1]);
                 // 사람 관련 단어 강제 삭제
-                let p = (snapData.prompt || snapData.photo || snapData.caption || "")
+                let p = (snapData.subject || snapData.prompt || snapData.photo || snapData.caption || "")
                   .replace(/\b(1girl|1boy|girl|boy|solo|portrait|face|selfie|looking at viewer|woman|man|people|human|character|female|male|person)\b/gi, "")
                   .trim();
                 if (!p) p = "aesthetic cozy cafe table with tea cup, warm lighting";
