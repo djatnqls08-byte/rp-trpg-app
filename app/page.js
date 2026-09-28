@@ -13510,37 +13510,53 @@ ${studioPromptForm.npcAppearance ? `7. 선호 NPC 외형: ${studioPromptForm.npc
                     if (parsedData.openingScene) setOpeningScene(parsedData.openingScene);
                     if (parsedData.hiddenTruth) setHiddenTruth(parsedData.hiddenTruth);
 
-                    // 5. PC 정보 맵핑
+                    // 🌟 [추가] 태그 프론트엔드 직접 정밀 파싱
+                    const tagMatch = pastedScenarioText.match(/(?:태그|장르\s*톤|키워드)\s*[:：]\s*([^\n\r]+)/i);
+                    if (tagMatch) setPlayPreference(tagMatch[1].trim());
+
+                    // 🌟 5. PC 정보 정밀 파싱 (JSON 누락 대비 원문 직접 스캔)
+                    const pcMatch = pastedScenarioText.match(/###\s*1\.\s*내\s*프로필([\s\S]*?)(?=###\s*2\.|\[파트너|$)/i);
+                    const pcText = pcMatch ? pcMatch[1] : pastedScenarioText;
+                    const pGenderMatch = pcText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i);
+                    const pAgeMatch = pcText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i);
+
                     if (parsedData.pcName) setCharName(parsedData.pcName);
                     if (parsedData.pcJob) setCharJob(parsedData.pcJob);
-                    if (parsedData.pcAge) setCharAge(parsedData.pcAge.toString().replace(/[^0-9]/g, ""));
-                    if (parsedData.pcGender) setCharGender(parsedData.pcGender);
                     if (parsedData.pcBackground) setCharBackground(parsedData.pcBackground);
                     if (parsedData.pcMission) setCharMission(parsedData.pcMission);
                     if (parsedData.pcSecret) setCharSecret(parsedData.pcSecret);
 
-                   // 🌟 6. 다수 NPC/KPC 맵핑 (기존 데이터 완벽 보존 병합 로직)
-                    if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
-                      setKpcList((prevKpcList) => {
-                        const validExistingKpcs = prevKpcList.filter(kpc => {
-                          const isBlankDefault = (kpc.name === "파트너" || !kpc.name) && !kpc.detail && !kpc.secret;
-                          return !isBlankDefault;
-                        });
+                    // 성별/나이는 정규식 추출 결과를 최우선으로 적용
+                    setCharGender((pGenderMatch ? pGenderMatch[1].trim() : parsedData.pcGender) || "여성");
+                    setCharAge((pAgeMatch ? pAgeMatch[1].trim().replace(/[^0-9]/g, "") : parsedData.pcAge) || "20");
 
-                        const parsedNpcs = parsedData.npcs.map((npc, index) => ({
+                    // 🌟 6. 다수 NPC/KPC 맵핑
+                    if (parsedData.npcs && Array.isArray(parsedData.npcs) && parsedData.npcs.length > 0) {
+                      const parsedNpcs = parsedData.npcs.map((npc, index) => {
+                        const nName = npc.name || "미상";
+                        // 해당 NPC 이름 바로 밑에 있는 정보 블록을 정확히 스캔
+                        const npcBlockMatch = pastedScenarioText.match(new RegExp(`이름\\s*[:：]\\s*${nName}([\\s\\S]*?)(?=\\[서브|\\[파트너|###|$)`, "i"));
+                        const npcText = npcBlockMatch ? npcBlockMatch[1] : pastedScenarioText;
+                        
+                        const nGenderMatch = npcText.match(/성별\s*[:：]\s*([^\n\r,/]+)/i);
+                        const nAgeMatch = npcText.match(/나이\s*[:：]\s*([^\n\r,/]+)/i);
+
+                        return {
                           id: Date.now() + index + Math.random(),
-                          name: npc.name || "미상",
+                          name: nName,
                           job: npc.job || "조력자",
+                          gender: nGenderMatch ? nGenderMatch[1].trim() : (npc.gender || "여성"),
+                          age: nAgeMatch ? nAgeMatch[1].trim().replace(/[^0-9]/g, "") : (npc.age || "20"),
                           detail: npc.detail || "",
                           secret: npc.secret || "",
                           portraitUrl: "",
                           showSecret: false
-                        }));
+                        };
+                      });
 
-                        const filteredParsedNpcs = parsedNpcs.filter(
-                          pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
-                        );
-
+                      setKpcList((prevKpcList) => {
+                        const validExistingKpcs = prevKpcList.filter(kpc => !((kpc.name === "파트너" || !kpc.name) && !kpc.detail && !kpc.secret));
+                        const filteredParsedNpcs = parsedNpcs.filter(pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name));
                         return [...validExistingKpcs, ...filteredParsedNpcs];
                       });
                     }
