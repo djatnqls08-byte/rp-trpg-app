@@ -9742,10 +9742,10 @@ ${statusGuide}
                       </div>
                     )}
 
-                    <div>
+                   <div>
                       <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", color: theme.text }}>
-    {activeSession?.ruleMode === "freeform" ? "💼 물증 보관함" : "🎒 소지품 가방"}
-  </h4
+                        {activeSession?.ruleMode === "freeform" ? "💼 물증 보관함" : "🎒 소지품 가방"}
+                      </h4>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {(activeSession.sheet?.items || []).map((it, idx) => (
                           <span key={idx} style={{ padding: "4px 10px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "14px", fontSize: "0.72rem", color: activePhoneSkin.text }}>
