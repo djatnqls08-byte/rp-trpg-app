@@ -4709,7 +4709,17 @@ while ((statMatch = statusRegex.exec(rawText)) !== null) {
       }
       
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
-   if (newObjective) newSheet.currentObjective = newObjective;
+      if (newObjective) newSheet.currentObjective = newObjective;
+
+      // 💥 [추리 모드] 데미지(신뢰도 하락) 태그 자동 연산
+      const damageMatch = rawText.match(/<!--\s*DAMAGE:\s*(\d+)\s*-->/i);
+      if (damageMatch) {
+        const dmgAmount = parseInt(damageMatch[1], 10);
+        const curHp = newSheet.hp ?? activeSession.sheet?.hp ?? 20;
+        newSheet.hp = Math.max(0, curHp - dmgAmount);
+        
+        triggerToast("신뢰도 하락", "엉뚱한 추리 및 증거 제시로 상대의 신뢰를 잃었습니다!", "⚠️");
+      }
 
       // 🌟 [핵심 1: 인세인 게임 페이즈 완벽 자동 전환 로직]
       if (activeSession.ruleMode === "insane") {
