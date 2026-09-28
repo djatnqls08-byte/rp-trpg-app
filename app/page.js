@@ -3139,6 +3139,18 @@ const startNewSession = async () => {
       }
     }
 
+// 🕒 서막 텍스트 기반 초기 시간대 자동 판별
+    let initialDetectedPhase = "낮";
+    if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) {
+      initialDetectedPhase = "밤";
+    } else if (/새벽|동이\s*트/.test(finalOpening || "")) {
+      initialDetectedPhase = "새벽";
+    } else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) {
+      initialDetectedPhase = "저녁";
+    } else if (/아침|오전|기상/.test(finalOpening || "")) {
+      initialDetectedPhase = "아침";
+    }
+
     let initialSheet = {
       day: 1,
       currentPhase: initialDetectedPhase,
@@ -3346,20 +3358,10 @@ const startNewSession = async () => {
 
   setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
-    setIsLoading(true);
- // 🕒 서막 텍스트 기반 초기 시간대 자동 판별
-    let initialDetectedPhase = "낮";
-    if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) {
-      initialDetectedPhase = "밤";
-    } else if (/새벽|동이\s*트/.test(finalOpening || "")) {
-      initialDetectedPhase = "새벽";
-    } else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) {
-      initialDetectedPhase = "저녁";
-    } else if (/아침|오전|기상/.test(finalOpening || "")) {
-      initialDetectedPhase = "아침";
-    }
+setIsLoading(true);
     setCurrentPhase(initialDetectedPhase);
     sessionSheet.currentPhase = initialDetectedPhase;
+ 
   const hasOpening = Boolean(finalOpening && finalOpening.trim());
 
 // 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
