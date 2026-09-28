@@ -4358,39 +4358,24 @@ if (endCallMatch) {
             ? (fullRecentContext.includes(targetNpcName) || currentContact?.name === targetNpcName) 
             : true;
 
-          // ④ 상황 키워드 정밀 검사
+// 🔴 변경 전 코드를 아래 코드로 통째로 덮어씌우세요!
+          // ④ 상황 키워드 정밀 검사 (단어 하나 스쳤다고 터지는 뜬금포 완벽 차단!)
           let passKeyword = false;
-          if (reqFav === 0) {
-            const stopWords = [
-              "해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", 
-              "경우", "이상", "이하", "처음", "첫", "대면", "만남", targetNpcName
-            ].filter(Boolean);
-
-            const dynamicKeywords = triggerCond
-              .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
-              .split(/\s+/)
-              .filter(w => w.length >= 2 && !stopWords.includes(w));
-
-            if (dynamicKeywords.length > 0) {
-              passKeyword = dynamicKeywords.some(kw => fullRecentContext.includes(kw));
-            }
+          const stopWords = ["해금", "조건", "판정", "무조건", "진입", "발생", "만날", "혹은", "직후", "경우", "이상", "이하", "처음", "첫", "대면", "만남", targetNpcName];
+          const dynamicKeywords = triggerCond.replace(/[^가-힣a-zA-Z0-9\s]/g, " ").split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w));
+          
+          // 🌟 조건문에 적힌 단어가 '전부' 현재 상황에 등장해야만 인정 (.some -> .every 로 변경)
+          if (dynamicKeywords.length > 0) {
+            passKeyword = dynamicKeywords.every(kw => fullRecentContext.includes(kw));
+          } else {
+            passKeyword = true; // 조건에 특별한 키워드가 없으면 일단 통과 (호감도/루트 조건 전용)
           }
 
-          // 1. CG 조건문에서 장소/행동 키워드 추출 (호감도, 숫자, 이름 제외)
-          const targetLocationWords = triggerCond
-            .replace(/조건|호감도|\d+|이상|이하|달성|후|첫|대면|만남/gi, " ")
-            .replace(new RegExp(targetNpcName || "NPC", "g"), " ")
-            .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
-            .split(/\s+/)
-            .filter(w => w.length >= 2 && !["경우", "진입", "시간대"].includes(w));
+          // 🌟 최종 판정: 호감도, 시간, 인물 일치가 완벽하고 + 키워드도 완벽 일치 시에만 프론트엔드 강제 해금
+          const isUnlockTriggered = passFav && passTime && passNpc && passKeyword;
 
-          // 2. 플레이어의 이동 선언이나 선택지에 해당 장소 단어가 포함되었는지 검사
-          const isLocationMatched = targetLocationWords.length === 0 || targetLocationWords.some(kw => fullRecentContext.includes(kw));
-
-         // 🌟 최종 판정: 호감도 충족 + 인물 일치 + (장소/키워드 일치) 충족 시 해금
-          const isUnlockTriggered = passFav && passNpc && (isLocationMatched || passKeyword);
-
-          if (isUnlockTriggered) {
+          // 키워드 조건이나 호감도 조건이 명확히 있었을 때만 강제 해금 발동
+          if (isUnlockTriggered && (dynamicKeywords.length > 0 || hasFavCond || isRouteTrigger)) {
             newlyUnlockedCg = cg;
             break;
           }
