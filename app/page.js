@@ -6191,7 +6191,7 @@ return (
               <div className="glass-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px", width: "100%", minWidth: 0, boxSizing: "border-box" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
                   <span style={{ fontWeight: "800", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
-                    {wizardMode.startsWith("dating") ? "내 프로필 (주인공)" : "내 프로필 (PC)"}
+                    {wizardMode.startsWith("dating") ? "내 프로필 (주인공)" : (wizardMode === "freeform" ? "내 프로필 (수사관/탐정)" : "내 프로필 (PC)")}
                   </span>
                   <button 
                     type="button"
@@ -6266,7 +6266,7 @@ return (
                     onClick={() => setShowCharSecret(!showCharSecret)} 
                     style={{ width: "100%", padding: "7px", backgroundColor: showCharSecret ? `${theme.danger}15` : theme.panelAlt, border: `1px solid ${showCharSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: showCharSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", boxSizing: "border-box" }}
                   >
-                    {showCharSecret ? "🔒 내 캐릭터의 비밀 닫기" : (wizardMode.startsWith("dating") ? "👀 내 캐릭터의 숨겨진 비밀 / 과거" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)")}
+                    {showCharSecret ? "🔒 내 캐릭터의 비밀 닫기" : (wizardMode.startsWith("dating") ? "👀 내 캐릭터의 숨겨진 비밀 / 과거" : (wizardMode === "freeform" ? "👀 내 캐릭터의 숨겨진 사연 / 알리바이" : "👀 내 캐릭터의 숨겨진 비밀 (인세인/사명)"))}
                   </button>
                   {showCharSecret && (
                     <textarea 
@@ -6285,7 +6285,7 @@ return (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ fontWeight: "800", fontSize: "0.9rem", whiteSpace: "nowrap" }}>
-                      {wizardMode.startsWith("dating") ? "등장인물 (상대방)" : "등장인물 (KPC)"}
+                      {wizardMode.startsWith("dating") ? "등장인물 (상대방)" : (wizardMode === "freeform" ? "등장인물 (용의자/조력자)" : "등장인물 (KPC)")}
                     </span>
                     <span style={{ fontSize: "0.68rem", padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.textMuted, fontWeight: "700" }}>
                       {kpcList.length}명
@@ -6404,9 +6404,9 @@ return (
                           }} 
                           style={{ width: "100%", padding: "7px", backgroundColor: kpc.showSecret ? `${theme.danger}15` : theme.panelAlt, border: `1px solid ${kpc.showSecret ? theme.danger : theme.border}`, borderRadius: "6px", color: kpc.showSecret ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.75rem", fontWeight: "700", boxSizing: "border-box" }}
                         >
-                          {kpc.showSecret 
-                            ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 비밀 닫기") 
-                            : (wizardMode.startsWith("dating") ? "👀 숨겨진 진심 / 약점 열람" : "👀 이 인물의 비밀 열람 및 수정")}
+                         {kpc.showSecret 
+                          ? (wizardMode.startsWith("dating") ? "🔒 속마음 닫기" : "🔒 비밀 닫기") 
+                          : (wizardMode.startsWith("dating") ? "👀 숨겨진 진심 / 약점 열람" : (wizardMode === "freeform" ? "👀 이 인물의 알리바이 및 비밀 열람" : "👀 이 인물의 비밀 열람 및 수정"))}
                         </button>
                         {kpc.showSecret && (
                           <textarea 
@@ -6639,7 +6639,7 @@ return (
               {/* 카드 상단 헤더: 제목 및 3대 버튼 (모바일 한 줄 유지) */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "6px" }}>
                 <h3 style={{ margin: 0, fontSize: isMobile ? "0.84rem" : "0.95rem", fontWeight: "800", color: theme.text, whiteSpace: "nowrap", flexShrink: 0 }}>
-                  {wizardMode.startsWith("dating") ? "📖 에피소드 설정 및 서막" : "📖 시나리오 정보 및 서막"}
+                  {wizardMode.startsWith("dating") ? "📖 에피소드 설정 및 서막" : (wizardMode === "freeform" ? "📁 사건 정보 및 서막" : "📖 시나리오 정보 및 서막")}
                 </h3>
 
                 <div style={{ display: "flex", gap: isMobile ? "3px" : "5px", flexShrink: 0, alignItems: "center" }}>
@@ -6715,7 +6715,7 @@ return (
               
               <div>
                 <label style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", display: "block" }}>
-                  {wizardMode.startsWith("dating") ? "[공개 시놉시스] 두 사람을 둘러싼 배경 및 현재 상황" : "[공개 시놉시스] 플레이어에게 주어지는 초기 정보"}
+                  {wizardMode.startsWith("dating") ? "[공개 시놉시스] 두 사람을 둘러싼 배경 및 현재 상황" : (wizardMode === "freeform" ? "[사건 개요] 수사관에게 주어지는 초기 정보" : "[공개 시놉시스] 플레이어에게 주어지는 초기 정보")}
                 </label>
                 <textarea 
                   value={publicSynopsis} 
@@ -6738,11 +6738,11 @@ return (
               </div>
 
               <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "8px" }}>
-                <button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "8px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "6px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>
-                  {showHiddenTruth 
-                    ? (wizardMode.startsWith("dating") ? "🔒 엔딩 분기 닫기" : "🔒 키퍼 전용 진상 닫기") 
-                    : (wizardMode.startsWith("dating") ? "👀 히든 엔딩 분기 & 둘만의 숨겨진 과거" : "👀 키퍼 전용 스포일러/진상 수동 입력")}
-                </button>
+<button type="button" onClick={() => setShowHiddenTruth(!showHiddenTruth)} style={{ width: "100%", padding: "8px", backgroundColor: showHiddenTruth ? "rgba(247, 101, 133, 0.1)" : theme.panelAlt, border: `1px solid ${showHiddenTruth ? theme.danger : theme.border}`, borderRadius: "6px", color: showHiddenTruth ? theme.danger : theme.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: "700" }}>
+              {showHiddenTruth 
+                ? (wizardMode.startsWith("dating") ? "🔒 엔딩 분기 닫기" : (wizardMode === "freeform" ? "🔒 사건의 진상 닫기" : "🔒 키퍼 전용 진상 닫기")) 
+                : (wizardMode.startsWith("dating") ? "👀 엔딩 분기 및 숨겨진 과거" : (wizardMode === "freeform" ? "👀 사건의 진상 및 트릭" : "👀 스포일러/진상"))}
+            </button>
                 {showHiddenTruth && (
                   <div style={{ marginTop: "10px" }}>
                     <div style={{ fontSize: "0.72rem", color: theme.danger, marginBottom: "6px" }}>
@@ -8800,11 +8800,14 @@ return (
                           const isDislike = clue.type === "dislike";
                           const iconBadge = isDislike ? "💔" : (activeSession.ruleMode === "freeform" ? "📌" : "💖");
                           return (
-                            <div 
-                              key={cIdx} 
-                              title={clue.desc}
-                              style={{ 
-                                display: "inline-flex",
+                                    <div 
+                                      key={cIdx} 
+                                      onClick={() => {
+                                        triggerToast(`증거 상세: ${clue.name}`, clue.desc || "상세 정보가 없습니다.", iconBadge);
+                                      }}
+                                      style={{ 
+                                        cursor: "pointer",
+                                        display: "inline-flex",
                                 alignItems: "center",
                                 gap: "4px",
                                 padding: "4px 9px", 
