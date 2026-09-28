@@ -4390,14 +4390,26 @@ if (endCallMatch) {
   setVoiceCallNpc(null);
   rawText = rawText.replace(endCallMatch[0], "").trim();
 }
-*/
-      // 4. 사건 기억 플래그 박제
+*/// 4. 사건 기억 플래그 박제
       const eventMatch = rawText.match(/<!--\s*EVENT_FLAG:\s*"([^"]+)"\s*-->/);
       if (eventMatch) {
         setRecentEvents(prev => [...(prev || []), eventMatch[1]]);
         rawText = rawText.replace(eventMatch[0], "").trim();
       }
 
+// 🟢 새로 추가할 코드 (여기에 복사-붙여넣기!)
+      // 🎯 5. OBJECTIVE 현재 목표 파서 (장르 범용 나침반)
+      let newObjective = null;
+      const objectiveMatch = rawText.match(/<!--\s*OBJECTIVE:\s*(\{[\s\S]*?\})\s*-->/i);
+      if (objectiveMatch) {
+        try {
+          newObjective = JSON.parse(objectiveMatch[1]);
+          triggerToast("🧭 목표 업데이트", newObjective.step || newObjective.main, "🎯");
+        } catch (e) { console.error("목표 파싱 실패", e); }
+        rawText = rawText.replace(objectiveMatch[0], "").trim();
+      }
+
+   
 // ── 🎨 [스마트 이벤트 CG 자동 감지 & 강제 해금 엔진] ──
       const allScenarioCgs = activeSession.sheet?.scenarioCgs || activeSession.sheet?.cgs || scenarioCgs || [];
       let newlyUnlockedCg = null;
@@ -4834,6 +4846,7 @@ while ((statMatch = statusRegex.exec(rawText)) !== null) {
       }
       
       let newSheet = { ...(activeSession.sheet || {}), ...parsedData.newSheetVars };
+   if (newObjective) newSheet.currentObjective = newObjective;
 
       // 🌟 [핵심 1: 인세인 게임 페이즈 완벽 자동 전환 로직]
       if (activeSession.ruleMode === "insane") {
@@ -8741,6 +8754,25 @@ return (
                 <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{activeSession.sheet.job}</div>
               </div>
             </div>
+
+// 🟢 새로 추가할 코드 (이 코드를 먼저 붙여넣기!)
+            {/* 🎯 현재 당면한 목표 (서사 나침반) */}
+            {activeSession.sheet?.currentObjective && (
+              <div className="glass-card" style={{ padding: "12px 14px", borderRadius: "10px", borderLeft: `3.5px solid ${theme.accent}`, marginBottom: "12px" }}>
+                <div style={{ fontSize: "0.72rem", color: theme.accent, fontWeight: "800", marginBottom: "6px" }}>
+                  {activeSession.ruleMode?.startsWith("dating") ? "💡 현재 관계 목표" : "🧭 당면한 목표 / 퀘스트"}
+                </div>
+                <div style={{ fontWeight: "800", fontSize: "0.9rem", color: theme.text, lineHeight: "1.4" }}>
+                  {activeSession.sheet.currentObjective.main}
+                </div>
+                {activeSession.sheet.currentObjective.step && (
+                  <div style={{ fontSize: "0.78rem", color: theme.textMuted, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "0.8rem" }}>👉</span>
+                    {activeSession.sheet.currentObjective.step}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 🌟 내 캐릭터 상세 설정 & 비밀 열람 */}
             <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
