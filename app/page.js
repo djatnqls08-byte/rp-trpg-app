@@ -8607,8 +8607,6 @@ return (
                 <div style={{ fontSize: "0.72rem", color: theme.textMuted }}>{activeSession.sheet.job}</div>
               </div>
             </div>
-
-// 🟢 새로 추가할 코드 (이 코드를 먼저 붙여넣기!)
             {/* 🎯 현재 당면한 목표 (서사 나침반) */}
             {activeSession.sheet?.currentObjective && (
               <div className="glass-card" style={{ padding: "12px 14px", borderRadius: "10px", borderLeft: `3.5px solid ${theme.accent}`, marginBottom: "12px" }}>
