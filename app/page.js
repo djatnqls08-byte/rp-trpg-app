@@ -4824,9 +4824,10 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
           // 2일차: 최대 60점 (친밀감/설렘/썸)
           // 3일차: 최대 80점 (깊은 유대/비밀 공유/루트 확정)
           // 4일차 이상: 최대 100점 (연인 성립/최종 엔딩 도달)
-          const currentSessionDay = activeSession?.sheet?.day || 1;
-          const maxAffCap = Math.min(100, 20 + (currentSessionDay * 20));
-          affVal = Math.max(-100, Math.min(maxAffCap, calculatedAff));
+        const calculatedAff = currentAff + safeDiff; // 👈 이 줄이 빠져있었습니다!
+        const currentSessionDay = activeSession?.sheet?.day || 1;
+        const maxAffCap = Math.min(100, 20 + (currentSessionDay * 20));
+        affVal = Math.max(-100, Math.min(maxAffCap, calculatedAff));
         }
 
         // ✨ 상태메시지 갱신 반영
