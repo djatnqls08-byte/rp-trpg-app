@@ -4315,11 +4315,6 @@ if (endCallMatch) {
             continue;
           }
 
-          // 🚨 [가드 4: "묘한 예감" 장소 이동 카드를 클릭했을 때만 터지도록 완벽 차단!]
-          const isUserMoving = /향한다|향하여|이동|도착|간다/.test(textToSend);
-          if (!isUserMoving && !isRouteTrigger && !hasFavCond) {
-             continue; // 장소 카드를 누르지 않은 '제자리에서의 일반 대화/농담' 중이면 무조건 스킵!
-          }
 
           // 🎯 대상 인물 및 호감도 동적 탐색
           const targetNpc = npcs.find(n => n.name && triggerCond.includes(n.name)) || currentContact;
@@ -4339,11 +4334,17 @@ if (endCallMatch) {
             continue;
           }
 
-         // ① 호감도 조건 검사 ('호감도 0' 기재 시 0점 이상으로 정상 통과)
+          // ① 호감도 조건 검사 ('호감도 0' 기재 시 0점 이상으로 정상 통과)
           const favMatch = triggerCond.match(/호감도[^\d]*(\d+)/);
           const hasFavCond = favMatch !== null;
           const reqFav = hasFavCond ? parseInt(favMatch[1], 10) : 0;
           const passFav = hasFavCond ? (curAff >= reqFav) : true;
+
+          // 🚨 [가드 4: "묘한 예감" 장소 이동 카드를 클릭했을 때만 터지도록 완벽 차단!]
+          const isUserMoving = /향한다|향하여|이동|도착|간다/.test(textToSend);
+          if (!isUserMoving && !hasFavCond && !isRouteTrigger) {
+             continue; // 장소 카드를 누르지 않은 제자리 대화는 무조건 스킵!
+          }
          
           // ② 5단계 시간대 동적 검사
           let passTime = true;
