@@ -4250,7 +4250,6 @@ if (endCallMatch) {
         rawText = rawText.replace(eventMatch[0], "").trim();
       }
 
-// 🟢 새로 추가할 코드 (여기에 복사-붙여넣기!)
       // 🎯 5. OBJECTIVE 현재 목표 파서 (장르 범용 나침반)
       let newObjective = null;
       const objectiveMatch = rawText.match(/<!--\s*OBJECTIVE:\s*(\{[\s\S]*?\})\s*-->/i);
