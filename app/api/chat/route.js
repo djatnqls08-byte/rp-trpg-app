@@ -1,12 +1,16 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// 🟢 [504 에러 해결] 버셀의 10초 타임아웃을 무시하고 가볍고 빠른 Edge 서버를 쓰도록 강제합니다!
 export const runtime = "edge";
-export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const FALLBACK_MODELS = [
   "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
   "gemini-3.5-flash",
+  "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
   "gemini-2.5-flash",
 ];
 
@@ -86,8 +90,6 @@ export async function POST(req) {
         romanceGenrePrompt = "현재 태그 [#HL / #헤테로] 적용 중: 남녀 간의 서사와 설레는 관계성을 바탕으로 묘사합니다.";
       }
 
-// 백엔드 파일 내부 coreIdentityPrompt 변수 수정
-
       const coreIdentityPrompt = `
 [🚨 절대 서사 원칙 - 관계성 미학 및 캐릭터성 존중]
 1. [장르 및 성별 지침]: ${romanceGenrePrompt}
@@ -115,8 +117,7 @@ export async function POST(req) {
 
       let systemInstruction = "";
 
-     // ── [1. 미연시 모드: "dating" / "미연시"] ──
-      // ✨ 기존 코드에 || ruleMode === "dating_msg" 를 추가합니다.
+      // ── [1. 미연시 모드: "dating" / "미연시"] ──
       if (ruleMode === "dating" || ruleMode === "미연시" || ruleMode === "dating_msg") {
         if (isVoiceCall) {
           const curVoiceNpc = (typeof voiceCallNpc !== "undefined" && voiceCallNpc) ? voiceCallNpc : partnerName;
@@ -267,7 +268,6 @@ ${eventsSummary}${recentPhoneSummary}
 11. 최종 결말 도달 시: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->
 12. 주인공의 3지선다 선택지: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->
 13. 당면한 목표/퀘스트 갱신 시: <!-- OBJECTIVE: {"main": "전체 목적", "step": "당장 해야 할 행동"} -->`;
-          
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
           formattedContents.push({ role: "model", parts: [{ text: `네, 1번 NPC 고정 없이 [${partnerName}]과의 대면 서사에 몰입하며 시간 스킵 없이 정갈하게 진행하겠습니다.` }] });
@@ -328,8 +328,8 @@ ${eventsSummary}${recentPhoneSummary}
 1. [페어 플레이의 원칙]: 시나리오 [기밀/진상]에 적힌 범인, 동기, 트릭은 절대 훼손하거나 도중에 바꾸지 마십시오.
 2. [스포일러 엄금]: 플레이어가 [현장 조사]나 [심문]을 통해 정곡을 찌르기 전까지는 절대 먼저 진상이나 힌트를 발설하지 마십시오.
 3. [수사 시스템 태그 활용]:
-   - 현장 조사 중 결정적 물증 발견 시: <!-- ITEM: {"name": "피 묻은 시계", "desc": "사건 현장에서 발견된 깨진 시계"} -->
-   - 용의자의 증언이나 중요한 힌트 획득 시: <!-- CLUE: {"name": "엇갈린 알리바이", "desc": "밤 10시에 자고 있었다고 했으나 옷이 젖어있음"} -->
+   - 현장 조사 중 결정적 물증 발견 시: <!-- ITEM: {"name": "아이템명", "desc": "발견된 아이템 설명"} -->
+   - 용의자의 증언이나 중요한 힌트 획득 시: <!-- CLUE: {"name": "단서명", "desc": "얻어낸 증언이나 힌트 내용"} -->
    - 수사 목표 갱신 시: <!-- OBJECTIVE: {"main": "밀실 트릭 파헤치기", "step": "피해자의 행적 쫓기"} -->
 4. [진상 추리 및 신뢰도(HP) 판정]: 
    - 플레이어가 [진상 추리 선언] 시 그 논리가 [진상]과 일치한다면 범인이 붕괴하며 자백하는 짜릿한 클라이맥스를 연출하십시오.
@@ -361,7 +361,10 @@ ${eventsSummary}
 1. 모든 지문 서술은 정중한 경어체(~합니다/했습니다)로 100% 일관되게 서술하십시오.
 2. 판정 요구 시 태그 출력 후 서술을 즉시 멈추십시오.
 3. 임의 시간 스킵 금지 및 1턴 1행동 원칙 준수.
-4. 서사의 당면 목표/퀘스트 갱신 시: <!-- OBJECTIVE: {"main": "전체 목적", "step": "당장 해야 할 행동"} -->`;
+4. 서사의 당면 목표/퀘스트 갱신 시: <!-- OBJECTIVE: {"main": "전체 목적", "step": "당장 해야 할 행동"} -->
+5. 특이 사건/실수 박제 시: <!-- EVENT_FLAG: "사건 요약문" -->
+6. 억지 추리 및 신뢰도 하락 페널티 부여 시: <!-- DAMAGE: 1 -->
+7. 신규 인물 첫 등장 시: <!-- NEW_NPC: {"name": "인물명", "job": "역할", "detail": "외모/성격"} -->`;
 
         formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
         formattedContents.push({ role: "model", parts: [{ text: "경어체로 일관되게 서술하며 정규 룰을 준수하여 진행하겠습니다." }] });
