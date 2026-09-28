@@ -809,7 +809,7 @@ const [showCgDialog, setShowCgDialog] = useState(true); // 🌟 CG 대사창 보
   }, [incomingCall]);
  
   // 🌟 [추가] 버전 관리 및 공지사항/가이드 상태
-  const APP_VERSION = "v1.4.0";
+  const APP_VERSION = "v1.5.0";
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [activeNoticeTab, setActiveNoticeTab] = useState("update");
   const [hideNoticeCheckbox, setHideNoticeCheckbox] = useState(false);
@@ -2422,7 +2422,7 @@ const processScenarioText = (rawText) => {
     setGeneratedHandouts([]);
   }
 
-  const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "자유 서사", dating: "미연시" };
+  const modeNames = { coc: "크툴루(CoC)", insane: "인세인(inSANe)", freeform: "추리/수사", dating: "미연시" };
   alert(`🎉 [${modeNames[detectedMode] || "맞춤"}] 시나리오 연동 완료!\n룰 선택, 캐릭터 시트, NPC 명단, 서막/진상이 모두 세팅되었습니다.`);
 };
 
@@ -3633,9 +3633,14 @@ const startNewSession = async () => {
 const executeMessage = async (textToSend, aiPromptOverride = null) => {
   if (!textToSend.trim() || !activeSession) return;
 
+  // 🚨 [추리 모드] 피로도 100% 도달 시 행동 강제 차단
+  if (activeSession.ruleMode === "freeform" && (activeSession.sheet?.fatigue || 0) >= 100) {
+    triggerToast("수사 불가", "피로도가 한계에 달했습니다. 화면 하단 [+] 메뉴에서 [🛏️ 휴식 및 수면]을 취해주세요.", "🛑");
+    return;
+  }
+
   // 🗺️ 플레이어가 채팅을 치거나 행동을 시작하면 이전 장소 배너 즉시 닫기
   setLocationCards([]);
-
 // 💖 [호감도 복구/조정 치트키]
     // 사용법 1: /호감도 발렌틴 80
     // 사용법 2: /호감도 80
@@ -3802,12 +3807,26 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     // 📞 통화 팝업창에서 말한 것만 통화 태그를 달고, 일반 채팅창 입력은 일반 대화로 유지
     const isDirectCallSpeech = textToSend.startsWith("[전화 통화]");
 
-    const updatedMessages = [
+   const updatedMessages = [
       ...(activeSession.messages || []), 
       { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
     ];
 
-    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null, sheet: { ...s.sheet, turnCount: (s.sheet?.turnCount || 0) + 1 } } : s));
+    // 🌟 [추리 모드] 3대 수사 액션 시 피로도 30% 증가 로직
+    let addedFatigue = 0;
+    if (activeSession.ruleMode === "freeform") {
+      if (textToSend.includes("[🔍 현장 조사]") || textToSend.includes("[🤫 특수 정보 수집]") || textToSend.includes("[💬 심문/추궁]")) {
+         addedFatigue = 10; // 수사 액션 1번당 피로도 10% 증가로 넉넉하게 완화!
+      }
+    }
+    const currentFatigue = activeSession.sheet?.fatigue || 0;
+    const nextFatigue = Math.min(100, currentFatigue + addedFatigue);
+
+    if (addedFatigue > 0 && nextFatigue >= 100) {
+       triggerToast("피로도 한계 도달!", "시야가 흐려집니다. 조사를 멈추고 휴식을 취해 다음 날로 넘어가야 합니다.", "💤");
+    }
+
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, messages: updatedMessages, suggestedActions: [], pendingCheck: null, sheet: { ...s.sheet, turnCount: (s.sheet?.turnCount || 0) + 1, fatigue: nextFatigue } } : s));
     setIsLoading(true);
 
     const controller = new AbortController();
@@ -6022,15 +6041,15 @@ return (
   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: "10px" }}>
     {[
       {
-        key: "freeform",
-        name: "자유 서사",
-                    sub: "주사위 없이 즐기는 서사",
-                    badge: "순수 텍스트",
-                    icon: "✍️",
+                    key: "freeform",
+                    name: "추리 / 수사",
+                    sub: "단서를 모아 진상을 파헤치는 두뇌 게임",
+                    badge: "사건 해결",
+                    icon: "🕵️",
                     points: [
-                      { title: "핵심 판정", desc: "주사위 판정과 스탯 계산이 배제된 순수 텍스트 인터랙티브 소설 모드입니다." },
-                      { title: "자유로운 진행", desc: "기계적인 행동 지시문 없이 인물의 호흡과 대사, 감각적인 묘사의 여운으로 이어집니다." },
-                      { title: "추천 분위기", desc: "주사위 실패 스트레스 없이 두 사람의 감정선, 달달한 일상, 자유로운 티키타카에 적합합니다." }
+                      { title: "현장 탐색과 증거 수집", desc: "장소를 이동하며 현장을 조사하고 숨겨진 증거(물증)를 확보합니다." },
+                      { title: "용의자 심문", desc: "인물들과 대화하며 알리바이를 캐묻고 모순된 증언을 찾아내세요." },
+                      { title: "진상 추리", desc: "수집한 증거들을 조합해 범인과 트릭을 밝혀내는 클라이맥스를 경험합니다." }
                     ]
                   },
                   {
@@ -8401,40 +8420,66 @@ return (
                           </>
                         )}
 
-                        {/* 4. ✍️ 자유 서사 방일 때 */}
+                       {/* 4. 🕵️ 추리/수사 방일 때 (구 자유 서사) */}
                         {activeSession?.ruleMode === "freeform" && (
                           <>
                             <button
                               type="button"
-                              onClick={() => { rollDiceDirectly(null, "1D20 운명 주사위"); setIsActionDrawerOpen(false); }}
+                              onClick={() => { setInput("[🔍 현장 조사] 주변의 수상한 점이나 단서를 유심히 살펴본다. "); setIsActionDrawerOpen(false); }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              🎲 1D20 운명 주사위
+                              🔍 현장 조사 (물증 탐색)
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => { setInput("[🤫 특수 정보 수집] 남몰래 기기를 해킹하거나 은밀하게 정보를 캐낸다. "); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              🤫 특수 정보 수집 (해킹/잠입)
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => { setInput("[💬 심문/추궁] 상대방의 말에서 모순점이나 수상한 알리바이를 날카롭게 캐묻는다. "); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              💬 알리바이 심문 및 추궁
                             </button>
 
                             <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
-                           <button
-                                type="button"
-                                onClick={() => {
-                                  setRuleHelpModal({
-                                    icon: "✍️",
-                                    name: "자유 서사",
-                                    sub: "주사위 없이 즐기는 순수 텍스트 서사",
-                                    points: [
-                                      { title: "순수 텍스트 모드", desc: "주사위나 스탯 제약 없이 오직 롤플레잉과 문학적 서사에 집중합니다." },
-                                      { title: "자유로운 호흡", desc: "기계적인 턴이나 시스템 제한 없이 자연스러운 감정선을 이어갈 수 있습니다." }
-                                    ]
-                                  });
-                                  setIsActionDrawerOpen(false);
-                                }}
-                                style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-                              >
-                                ❓ 자유 서사 가이드
-                              </button>
-                            </>
-                          )}
+                            <button
+                              type="button"
+                              onClick={() => { setInput("[💡 진상 추리 선언] 지금까지 모은 단서들을 바탕으로 이 사건의 진실을 밝혀낸다! "); setIsActionDrawerOpen(false); }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.danger || "#ef4444", fontSize: "0.8rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              💡 진상 추리 선언 (클라이맥스)
+                            </button>
+                            
+                            <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
 
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRuleHelpModal({
+                                  icon: "🕵️",
+                                  name: "추리 / 수사 모드 가이드",
+                                  sub: "단서를 모아 진상을 파헤치는 두뇌 게임",
+                                  points: [
+                                    { title: "현장 탐색과 증거 수집", desc: "장소를 이동하며 [🔍 현장 조사] 및 [🤫 특수 정보 수집] 액션으로 증거를 확보합니다." },
+                                    { title: "용의자 심문", desc: "인물들과 대화하며 [💬 심문/추궁] 액션으로 엇갈린 알리바이(사건 파일)를 찾아내세요." },
+                                    { title: "진상 추리 선언", desc: "단서가 모두 모이면 [💡 진상 추리 선언]으로 범인과 트릭을 폭로하는 클라이맥스에 돌입합니다." }
+                                  ]
+                                });
+                                setIsActionDrawerOpen(false);
+                              }}
+                              style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                            >
+                              ❓ 수사 모드 가이드 보기
+                            </button>
+                          </>
+                        )}
 {/* 🌟 휴식 및 수면 (깔끔한 단일 버튼으로 통합) */}
                           <div style={{ height: "1px", backgroundColor: theme.border, margin: "4px 0" }} />
                           <button 
@@ -8713,52 +8758,57 @@ return (
               </details>
             </div>
 
-{/* 🌟 미연시 모드일 때는 [취향 & 관심사 노트], TRPG일 때는 [증거 수첩] */}
+{/* 🌟 미연시 모드일 때는 [취향 & 관심사 노트], TRPG일 때는 [증거 수첩], 추리 모드일 때는 [사건 파일] */}
             <div className="glass-card" style={{ padding: "10px 12px", borderRadius: "10px" }}>
               <details open style={{ cursor: "pointer" }}>
                 <summary style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent, outline: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>{activeSession.ruleMode?.startsWith("dating") ? "💡 취향 & 관심사 노트" : "📋 증거 수첩"}</span>
+                  <span>
+                    {activeSession.ruleMode === "freeform" ? "📝 사건 파일" : (activeSession.ruleMode?.startsWith("dating") ? "💡 취향 노트" : "📋 증거 수첩")}
+                  </span>
                   <span style={{ fontSize: "0.7rem", color: theme.textMuted }}>{(activeSession.sheet?.clues || []).length}개</span>
                 </summary>
                 <div style={{ marginTop: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "6px", display: "flex", flexDirection: "column", gap: "4px" }}>
                   {(!activeSession.sheet?.clues || activeSession.sheet.clues.length === 0) ? (
                     <div style={{ fontSize: "0.7rem", color: theme.textMuted, padding: "4px 0" }}>
-                      {activeSession.ruleMode?.startsWith("dating") 
-                        ? "상대가 좋아하는 취향이나 관심사가 아직 기록되지 않았습니다." 
-                        : "아직 발견된 결정적 단서가 없습니다."}
+                      {activeSession.ruleMode === "freeform" 
+                        ? "아직 기록된 용의자의 알리바이나 증언이 없습니다."
+                        : (activeSession.ruleMode?.startsWith("dating") 
+                          ? "상대가 좋아하는 취향이나 관심사가 아직 기록되지 않았습니다." 
+                          : "아직 발견된 결정적 단서가 없습니다.")}
                     </div>
                   ) : (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {activeSession.sheet.clues
-  .filter(clue => {
-    const n = (clue.name || "").trim();
-    if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
-    // 💡 형용사/관형사형 어미(-적인, -있는, -하는, -인, -한)로 끝나면 무조건 숨김
-    if (/(?:있는|없는|하는|되는|같은|않은|적인|스런|스러운|로운|[인한])$/.test(n)) return false;
-    return true;
-  })
-  .map((clue, cIdx) => {
-                    const isDislike = clue.type === "dislike";
-                    return (
-                      <div 
-                        key={cIdx} 
-                        title={clue.desc}
-                        style={{ 
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          padding: "4px 9px", 
-                          backgroundColor: isDislike ? "rgba(239, 68, 68, 0.1)" : theme.panelAlt, 
-                          borderRadius: "14px", 
-                          fontSize: "0.74rem", 
-                          fontWeight: "600",
-                          border: `1px solid ${isDislike ? "rgba(239, 68, 68, 0.4)" : theme.border}`,
-                          color: isDislike ? (theme.danger || "#ef4444") : theme.text
-                        }}
-                      >
-                        <span style={{ fontSize: "0.72rem" }}>{isDislike ? "💔" : "💖"}</span>
-                        <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^[가-힣]+(?:지|도)?\s*않은\s*/, "").trim()}</span>
-</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {activeSession.sheet.clues
+                        .filter(clue => {
+                          const n = (clue.name || "").trim();
+                          if (n.length < 2 || n === "것" || n === "점" || n === "때") return false;
+                          // 💡 형용사/관형사형 어미(-적인, -있는, -하는, -인, -한)로 끝나면 무조건 숨김
+                          if (/(?:있는|없는|하는|되는|같은|않은|적인|스런|스러운|로운|[인한])$/.test(n)) return false;
+                          return true;
+                        })
+                        .map((clue, cIdx) => {
+                          const isDislike = clue.type === "dislike";
+                          const iconBadge = isDislike ? "💔" : (activeSession.ruleMode === "freeform" ? "📌" : "💖");
+                          return (
+                            <div 
+                              key={cIdx} 
+                              title={clue.desc}
+                              style={{ 
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                padding: "4px 9px", 
+                                backgroundColor: isDislike ? "rgba(239, 68, 68, 0.1)" : theme.panelAlt, 
+                                borderRadius: "14px", 
+                                fontSize: "0.74rem", 
+                                fontWeight: "600",
+                                border: `1px solid ${isDislike ? "rgba(239, 68, 68, 0.4)" : theme.border}`,
+                                color: isDislike ? (theme.danger || "#ef4444") : theme.text
+                              }}
+                            >
+                              <span style={{ fontSize: "0.72rem" }}>{iconBadge}</span>
+                              <span>{clue.name.replace(/^[단은는이가을를]\s*/, "").replace(/^[가-힣]+(?:지|도)?\s*않은\s*/, "").trim()}</span>
+                            </div>
                           );
                         })}
                     </div>
@@ -8818,28 +8868,57 @@ return (
     </div>
   );
 })() : (
+            // 🔴 기존 코드를 아래 코드로 통째로 덮어씌우세요!
               <div className="glass-card" style={{ padding: "12px", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
-                  <span style={{ fontWeight: "700", color: theme.danger }}>이성 (SAN):</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <button onClick={() => adjustStat("san", -1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>-</button>
-                    <strong style={{ minWidth: "45px", textAlign: "center" }}>{activeSession.sheet.san} / {activeSession.sheet.maxSan}</strong>
-                    <button onClick={() => adjustStat("san", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
-                  </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
-                  <span style={{ fontWeight: "700", color: theme.warning }}>생명 (HP):</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <button onClick={() => adjustStat("hp", -1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>-</button>
-                    <strong style={{ minWidth: "45px", textAlign: "center" }}>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong>
-                    <button onClick={() => adjustStat("hp", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
-                  </div>
-                </div>
-                {activeSession.ruleMode === "coc" && (
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
-                    <span>행운: <strong>{activeSession.sheet.luck}</strong></span>
-                    <span>DB: <strong>{activeSession.sheet.db}</strong></span>
-                  </div>
+                {activeSession.ruleMode === "freeform" ? (
+                  <>
+                    {/* 🕵️ 추리 모드: 신뢰도 & 피로도 UI */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
+                      <span style={{ fontWeight: "800", color: theme.success }}>신뢰도 (HP):</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <button onClick={() => adjustStat("hp", -1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>-</button>
+                        <strong style={{ minWidth: "45px", textAlign: "center", color: theme.success }}>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong>
+                        <button onClick={() => adjustStat("hp", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
+                      <span style={{ fontWeight: "800", color: (activeSession.sheet.fatigue >= 100) ? theme.danger : theme.warning }}>수사 피로도:</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flex: 1, marginLeft: "10px" }}>
+                        <div style={{ flex: 1, height: "8px", backgroundColor: theme.inputBg, borderRadius: "4px", overflow: "hidden" }}>
+                          <div style={{ width: `${Math.min(100, activeSession.sheet.fatigue || 0)}%`, height: "100%", backgroundColor: (activeSession.sheet.fatigue >= 100) ? theme.danger : theme.warning, transition: "width 0.3s ease" }} />
+                        </div>
+                        <strong style={{ minWidth: "35px", textAlign: "right", color: (activeSession.sheet.fatigue >= 100) ? theme.danger : theme.text }}>
+                          {activeSession.sheet.fatigue || 0}%
+                        </strong>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* 🐙 기존 TRPG 모드: SAN & HP UI */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
+                      <span style={{ fontWeight: "700", color: theme.danger }}>이성 (SAN):</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <button onClick={() => adjustStat("san", -1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>-</button>
+                        <strong style={{ minWidth: "45px", textAlign: "center" }}>{activeSession.sheet.san} / {activeSession.sheet.maxSan}</strong>
+                        <button onClick={() => adjustStat("san", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem" }}>
+                      <span style={{ fontWeight: "700", color: theme.warning }}>생명 (HP):</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <button onClick={() => adjustStat("hp", -1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.danger, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>-</button>
+                        <strong style={{ minWidth: "45px", textAlign: "center" }}>{activeSession.sheet.hp} / {activeSession.sheet.maxHp}</strong>
+                        <button onClick={() => adjustStat("hp", 1)} style={{ padding: "2px 6px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, color: theme.success, borderRadius: "4px", cursor: "pointer", fontWeight: "700" }}>+</button>
+                      </div>
+                    </div>
+                    {activeSession.ruleMode === "coc" && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: theme.textMuted, borderTop: `1px dashed ${theme.border}`, paddingTop: "4px" }}>
+                        <span>행운: <strong>{activeSession.sheet.luck}</strong></span>
+                        <span>DB: <strong>{activeSession.sheet.db}</strong></span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -9664,7 +9743,9 @@ ${statusGuide}
                     )}
 
                     <div>
-                      <div style={{ fontSize: "0.68rem", color: activePhoneSkin.textMuted, fontWeight: "700", marginBottom: "6px" }}>소지품 가방</div>
+                      <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", color: theme.text }}>
+    {activeSession?.ruleMode === "freeform" ? "💼 물증 보관함" : "🎒 소지품 가방"}
+  </h4
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {(activeSession.sheet?.items || []).map((it, idx) => (
                           <span key={idx} style={{ padding: "4px 10px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "14px", fontSize: "0.72rem", color: activePhoneSkin.text }}>
@@ -10650,10 +10731,16 @@ ${statusGuide}
             <button onClick={() => {
               const nextDay = (activeSession?.sheet?.day || 1) + 1;
               setCurrentPhase("아침");
-              setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+             setSessions(prev => prev.map(s => s.id === activeSessionId ? {
                 ...s,
                 currentPhase: "아침",
-                sheet: { ...s.sheet, currentPhase: "아침", day: nextDay }
+                sheet: {
+                  ...s.sheet,
+                  currentPhase: "아침",
+                  day: nextDay,
+                  hp: Math.min(s.sheet?.maxHp || 20, (s.sheet?.hp || 20) + 5), // 체력 소폭 회복 보너스
+                  fatigue: 0 // 🌟 수면 시 피로도 0%로 완벽 회복!
+                }
               } : s));
               executeMessage(`[시간 경과] 하루가 완전히 지나, ${nextDay}일차 아침이 되었습니다.`); 
               setShowSleepOptions(false);
@@ -11619,15 +11706,16 @@ ${statusGuide}
               </button>
             </div>
 
-            {/* 본문 영역 (업데이트 노트가 기본 1순위 출력) */}
+{/* 본문 영역 (업데이트 노트가 기본 1순위 출력) */}
             <div style={{ padding: isMobile ? "16px" : "20px", overflowY: "auto", flex: 1, fontSize: "0.88rem", lineHeight: "1.75" }}>
               {activeNoticeTab === "update" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                  {/* 🚀 최신 버전 v1.4.0 */}
+                  
+                  {/* 🚀 최신 버전 v1.5.0 */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
-                        🚀 v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
+                        🚀 v1.5.0 본격 추리/수사 모드 (Mystery & Investigation) 업데이트
                       </h3>
                       <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
                         LATEST
@@ -11636,14 +11724,27 @@ ${statusGuide}
 
                     <div style={{ backgroundColor: theme.panelAlt, padding: "14px", borderRadius: "10px", border: `1px solid ${theme.border}`, display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ fontSize: "0.84rem", color: theme.accent, fontStyle: "italic", borderBottom: `1px dashed ${theme.border}`, paddingBottom: "6px" }}>
-                        "머릿속의 설정을 손쉽게 — 키워드 조합부터 Gemini 스튜디오 연동, 로비 자동 배치까지 한 번에 완성됩니다."
+                        "기존의 자유 서사가 숨 막히는 두뇌 공방전으로 전면 개편되었습니다! 시대와 배경을 가리지 않는 완벽한 수사 시스템을 경험해 보세요."
                       </div>
                       <div style={{ fontSize: "0.85rem", lineHeight: "1.7", color: theme.text }}>
-                        • <strong>🎬 3분 튜토리얼 & 시나리오 양식 빌더:</strong> CoC/인세인 조작법 튜토리얼과 함께 룰, 추천 키워드(#집착 #오컬트 #신분차 등), 인물 설정을 선택해 AI 스튜디오용 프롬프트를 즉시 조립·복사하는 가이드 모달이 탑재되었습니다.<br/>
-                        • <strong>🪄 통합 불러오기 & 텍스트 붙여넣기 모달:</strong> [📄 파일 첨부] 버튼에서 파일 업로드뿐만 아니라 복사한 텍스트 붙여넣기를 함께 지원합니다. 스튜디오 생성문을 넣고 적용을 누르면 룰, 시놉시스, 서막, 진상, PC/KPC 프로필(상메/취향 포함)이 로비에 100% 자동 배치됩니다.<br/>
-                        • <strong>💡 스튜디오 복귀 길잡이 배너:</strong> 스튜디오에서 글을 복사해 로비로 복귀했을 때 유저가 헤매지 않도록 상단에 원클릭 자동 주입 안내 배너가 점등됩니다.<br/>
-                        • <strong>⚡ 통신 최적화 & 외모 왜곡 방지:</strong> Vercel 413(Payload Too Large) 방지를 위해 요청 메시지를 경량화하고, 캐릭터 외모(머리색 등) 날조를 차단하는 시스템 앵커를 강화했습니다.
+                        • <strong>🔍 UI의 완벽한 역할 변신:</strong> 가방 ➔ [물증 보관함], 취향 수첩 ➔ [사건 파일], 나침반 ➔ [실시간 수사망]으로 변경<br/>
+                        • <strong>⏳ 피로도 & 타임 리밋 시스템:</strong> 굵직한 수사 액션 시 피로도가 소모되며, 한계치 도달 시 강제 취침(Day+1). 제한된 날짜 안에 진상을 밝혀야 합니다.<br/>
+                        • <strong>💥 4대 범용 수사 액션 추가:</strong> 십자키(+) 메뉴에 [🔍현장 조사], [🤫특수 정보 수집(해킹/잠입)], [💬심문 및 추궁], [💡진상 추리 선언] 액션 탑재<br/>
+                        • <strong>⚖️ 신뢰도(HP) 페널티:</strong> 아무 증거 없이 억지 추리를 하거나 엉뚱한 물증을 제시하면 용의자의 비웃음과 함께 신뢰도 하락 (0 도달 시 게임 오버)
                       </div>
+                    </div>
+                  </div>
+
+                  {/* 📦 이전 버전 v1.4.0 */}
+                  <div>
+                    <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
+                      📦 v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
+                    </h4>
+                    <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
+                      • <strong>🎬 3분 튜토리얼 & 시나리오 양식 빌더:</strong> CoC/인세인 조작법 튜토리얼과 함께 룰, 추천 키워드(#집착 #오컬트 #신분차 등), 인물 설정을 선택해 AI 스튜디오용 프롬프트를 즉시 조립·복사하는 가이드 모달이 탑재되었습니다.<br/>
+                      • <strong>🪄 통합 불러오기 & 텍스트 붙여넣기 모달:</strong> [📄 파일 첨부] 버튼에서 파일 업로드뿐만 아니라 복사한 텍스트 붙여넣기를 함께 지원합니다. 스튜디오 생성문을 넣고 적용을 누르면 룰, 시놉시스, 서막, 진상, PC/KPC 프로필(상메/취향 포함)이 로비에 100% 자동 배치됩니다.<br/>
+                      • <strong>💡 스튜디오 복귀 길잡이 배너:</strong> 스튜디오에서 글을 복사해 로비로 복귀했을 때 유저가 헤매지 않도록 상단에 원클릭 자동 주입 안내 배너가 점등됩니다.<br/>
+                      • <strong>⚡ 통신 최적화 & 외모 왜곡 방지:</strong> Vercel 413(Payload Too Large) 방지를 위해 요청 메시지를 경량화하고, 캐릭터 외모(머리색 등) 날조를 차단하는 시스템 앵커를 강화했습니다.
                     </div>
                   </div>
 
