@@ -2527,16 +2527,25 @@ const handleFileUpload = async (e) => {
         });
 
         // 2. AI가 새로 가져온 NPC 목록
-        const parsedNpcs = parsedData.npcs.map((npc, index) => ({
-          id: Date.now() + index + Math.random(),
-          name: npc.name || "미상",
-          job: npc.job || "조력자",
-          detail: npc.detail || "",
-          secret: npc.secret || "",
-          portraitUrl: "",
-          showSecret: false
-        }));
+                        const parsedNpcs = parsedData.npcs.map((npc, index) => {
+                          // 🌟 AI가 혹시라도 빼먹었을 경우를 대비해 원문 텍스트에서 한 번 더 추출합니다.
+                          const txt = typeof pastedScenarioText !== "undefined" && pastedScenarioText ? pastedScenarioText : (typeof originalRawText !== "undefined" ? originalRawText : "");
+                          const nName = npc.name || "미상";
+                          const genderMatch = txt.match(new RegExp(`${nName}[\\s\\S]{0,150}?성별\\s*[:：]\\s*([^\\n\\r,/]+)`, "i"));
+                          const ageMatch = txt.match(new RegExp(`${nName}[\\s\\S]{0,150}?나이\\s*[:：]\\s*([^\\n\\r,/]+)`, "i"));
 
+                          return {
+                            id: Date.now() + index + Math.random(),
+                            name: nName,
+                            gender: npc.gender || (genderMatch ? genderMatch[1].trim() : "여성"),
+                            age: npc.age ? String(npc.age).replace(/[^0-9]/g, "") : (ageMatch ? ageMatch[1].trim().replace(/[^0-9]/g, "") : "20"),
+                            job: npc.job || "조력자",
+                            detail: npc.detail || "",
+                            secret: npc.secret || "",
+                            portraitUrl: "",
+                            showSecret: false
+                          };
+                        });
         // 3. 기존 인물과 새로 들어온 인물의 이름이 겹치면 새 인물은 뺍니다 (기존에 유저가 입력한 데이터 최우선 보호)
         const filteredParsedNpcs = parsedNpcs.filter(
           pNpc => !validExistingKpcs.some(eKpc => eKpc.name === pNpc.name)
