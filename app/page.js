@@ -3009,19 +3009,13 @@ const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "클레어";
     const partnerName = kpcList[0]?.name || "아델";
-
-    // 🌟 [수정] 원본 텍스트 변수가 비어있을 때를 대비한 가장 안전한 선언 방식입니다.
     const safeRawText = originalRawText ? originalRawText : "";
-
-    // 🌟 [추가] 새 세션 시작 시 장르 태그를 읽어 즉시 톡 테마 자동 적용!
     const autoTheme = detectAutoPhoneTheme(`${playPreference} ${sessionTitle} ${publicSynopsis}`);
     setPhoneTheme(autoTheme);
 
-   const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => {
-      // 🌟 상세 설정 본문에서 초기 상태메시지 추출 ("상태메시지: ...", "상메: ...")
+    const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => {
       const statMatch = (k.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
       const initialStatus = k.statusMessage || (statMatch ? statMatch[1].trim() : "");
-
       return {
         id: k.id,
         name: k.name,
@@ -3037,36 +3031,14 @@ const startNewSession = async () => {
       };
     });
 
-    // 🌟 완벽한 핸드아웃 세팅 로직 (다수 NPC 지원 및 사명 명시)
     let initialHandouts = [];
-    
-    // 1. 내 캐릭터(PC)의 사명과 비밀 카드
-    const baseCards = [
-      { 
-        id: "pc_base", 
-        title: `${pName}의 사명과 비밀`, 
-        overview: `[공개 사명]\n${charMission || "당신의 표면적인 목적과 상태입니다."}`, 
-        secret: charSecret || "감춰진 사명이나 비밀이 없습니다.", 
-        revealed: false 
-      }
-    ];
-
-    // 2. 파트너(KPC)를 포함한 모든 서브 NPC들의 카드를 반복문으로 자동 생성!
+    const baseCards = [{ id: "pc_base", title: `${pName}의 사명과 비밀`, overview: `[공개 사명]\n${charMission || "당신의 표면적인 목적과 상태입니다."}`, secret: charSecret || "감춰진 사명이나 비밀이 없습니다.", revealed: false }];
     if (npcs && npcs.length > 0) {
       npcs.forEach((npc, idx) => {
-        baseCards.push({
-          id: `npc_base_${idx}`,
-          title: `${npc.name}의 상태와 사명`,
-          // 앞면에는 직업(역할)과 표면적 상태를 명시
-          overview: `[표면상 상태/사명]\n역할: ${npc.title || "조연"}\n이 인물이 겉으로 보여주는 목적과 태도입니다.`, 
-          // 뒷면에는 우리가 적어둔 진짜 비밀을 은닉
-          secret: npc.secret || "이 인물에게는 감춰진 비밀이 없습니다.",
-          revealed: false
-        });
+        baseCards.push({ id: `npc_base_${idx}`, title: `${npc.name}의 상태와 사명`, overview: `[표면상 상태/사명]\n역할: ${npc.title || "조연"}\n이 인물이 겉으로 보여주는 목적과 태도입니다.`, secret: npc.secret || "이 인물에게는 감춰진 비밀이 없습니다.", revealed: false });
       });
     }
 
-    // 🌟 [자동 구조] 파일 첨부 때 놓쳤더라도 비밀란(hiddenTruth)에서 핸드아웃 단서 자동 복원!
     let effectiveHandouts = generatedHandouts;
     if (!effectiveHandouts || effectiveHandouts.length === 0) {
       const fallbackSource = `${hiddenTruth}\n${publicSynopsis}\n${openingScene}`;
@@ -3078,13 +3050,7 @@ const startNewSession = async () => {
         const fbBody = fbMatch[2];
         const fbSec = fbBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
         const fbOver = fbBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명)\s*[:：]\s*([^\n\r]+)/i);
-        if (fbSec) {
-          fbList.push({
-            title: fbTitle,
-            overview: fbOver ? fbOver[1].trim() : `[조사 구역: ${fbTitle}] 탐색 및 조사 단서입니다.`,
-            secret: fbSec[1].trim()
-          });
-        }
+        if (fbSec) fbList.push({ title: fbTitle, overview: fbOver ? fbOver[1].trim() : `[조사 구역: ${fbTitle}] 탐색 및 조사 단서입니다.`, secret: fbSec[1].trim() });
       }
       if (fbList.length > 0) effectiveHandouts = fbList;
     }
@@ -3092,65 +3058,82 @@ const startNewSession = async () => {
     if (effectiveHandouts && effectiveHandouts.length > 0) {
       const hasBase = effectiveHandouts.some(h => h.title.includes("사명") || h.title.includes(pName) || h.title.includes(partnerName));
       const parsedCards = effectiveHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
-      
-      if (hasBase) {
-        initialHandouts = parsedCards;
-      } else {
-        initialHandouts = [...baseCards, ...parsedCards];
-      }
+      initialHandouts = hasBase ? parsedCards : [...baseCards, ...parsedCards];
     } else {
       initialHandouts = baseCards;
     }
 
-    // 🌟 [소지품 동적 결정 로직]
     let startingItems = [];
-
-    // 1) 백스토리 본문에 '소지품: OOO, OOO' 형식으로 기재된 경우 자동 추출
     const bgItemMatch = (charBackground || "").match(/(?:소지품|지닌\s*물건|아이템)\s*[:：]\s*([^\n\r]+)/i);
     if (bgItemMatch) {
-      startingItems = bgItemMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean).map(name => ({
-        name: name.replace(/^[-*•\d.]+\s*/, ""),
-        desc: "개인 소지품"
-      }));
+      startingItems = bgItemMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean).map(name => ({ name: name.replace(/^[-*•\d.]+\s*/, ""), desc: "개인 소지품" }));
     }
-
-    // 2) AI 즉석 생성으로 기획된 맞춤 소지품이 있다면 적용
-    if (startingItems.length === 0 && generatedItems && generatedItems.length > 0) {
-      startingItems = generatedItems;
-    }
-
-    // 3) 미지정 시 룰/장르에 어울리는 감성적인 기본 아이템 자동 부여
+    if (startingItems.length === 0 && generatedItems && generatedItems.length > 0) startingItems = generatedItems;
     if (startingItems.length === 0) {
-      if (wizardMode === "dating") {
-        startingItems = [
-          { name: "손수건", desc: "단정하게 접힌 부드러운 손수건" },
-          { name: "틴케이스 캔디", desc: "달콤한 과일향 사탕" }
-        ];
-      } else if (wizardMode === "insane") {
-        startingItems = [
-          { name: "스마트폰", desc: "연락 및 기록용" },
-          { name: "작은 부적", desc: "마음을 안정시키는 소지품" }
-        ];
-      } else {
-        startingItems = [
-          { name: "수첩과 펜", desc: "기록 도구" },
-          { name: "소형 손전등", desc: "휴대용 조명" }
-        ];
+      if (wizardMode === "dating") startingItems = [{ name: "손수건", desc: "단정하게 접힌 부드러운 손수건" }, { name: "틴케이스 캔디", desc: "달콤한 과일향 사탕" }];
+      else if (wizardMode === "insane") startingItems = [{ name: "스마트폰", desc: "연락 및 기록용" }, { name: "작은 부적", desc: "마음을 안정시키는 소지품" }];
+      else startingItems = [{ name: "수첩과 펜", desc: "기록 도구" }, { name: "소형 손전등", desc: "휴대용 조명" }];
+    }
+
+    let finalSynopsis = publicSynopsis;
+    let finalOpening = openingScene;
+    let finalTruth = hiddenTruth;
+
+    const origPc = originalPresetPcName || "서지한";
+    const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc;
+    const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
+    const pcFullReg = new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g");
+    const pcShortReg = new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g");
+
+    finalSynopsis = finalSynopsis.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+    finalOpening = finalOpening.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+    finalTruth = finalTruth.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
+
+    let finalScenarioCgs = [...(scenarioCgs || [])];
+    (kpcList || []).forEach((kpc, index) => {
+      const num = index + 1;
+      const currentName = kpc.name || `인물${num}`;
+      const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || (index === 0 ? "윤설아" : "");
+      const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc;
+      const newNpcShort = currentName.length >= 3 ? currentName.slice(1) : currentName; 
+      const tagRegex = new RegExp(`\\{(KPC|NPC)${num}\\}`, "g");
+      finalSynopsis = finalSynopsis.replace(tagRegex, currentName);
+      finalOpening = finalOpening.replace(tagRegex, currentName);
+      finalTruth = finalTruth.replace(tagRegex, currentName);
+
+      if (origNpc) {
+        const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
+        const npcShortReg = new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g");
+        finalSynopsis = finalSynopsis.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
+        finalOpening = finalOpening.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
+        finalTruth = finalTruth.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
       }
-    }
 
-// 🕒 서막 텍스트 기반 초기 시간대 자동 판별
+      finalScenarioCgs = finalScenarioCgs.map(cg => {
+        let updatedTitle = (cg.title || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
+        let updatedTrigger = (cg.trigger || cg.condition || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
+        if (origNpc) {
+          const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
+          updatedTitle = updatedTitle.replace(npcFullReg, currentName);
+          updatedTrigger = updatedTrigger.replace(npcFullReg, currentName);
+        }
+        return { ...cg, title: updatedTitle, trigger: updatedTrigger, condition: updatedTrigger };
+      });
+    });
+
+    const currentNpcName = kpcList[0]?.name || "파트너";
+    const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
+    let fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
+    if (safeRawText !== "") fullScenarioContext += `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}`;
+
+    // 🕒 시간대 판별 (먼저 계산)
     let initialDetectedPhase = "낮";
-    if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) {
-      initialDetectedPhase = "밤";
-    } else if (/새벽|동이\s*트/.test(finalOpening || "")) {
-      initialDetectedPhase = "새벽";
-    } else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) {
-      initialDetectedPhase = "저녁";
-    } else if (/아침|오전|기상/.test(finalOpening || "")) {
-      initialDetectedPhase = "아침";
-    }
+    if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) initialDetectedPhase = "밤";
+    else if (/새벽|동이\s*트/.test(finalOpening || "")) initialDetectedPhase = "새벽";
+    else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) initialDetectedPhase = "저녁";
+    else if (/아침|오전|기상/.test(finalOpening || "")) initialDetectedPhase = "아침";
 
+    // 🌟 시트 데이터 생성 (에러 완벽 차단)
     let initialSheet = {
       day: 1,
       currentPhase: initialDetectedPhase,
@@ -3166,145 +3149,31 @@ const startNewSession = async () => {
     
     if (wizardMode === "insane") {
       initialSheet = { 
-        ...initialSheet, 
-        hp: 6, maxHp: 6, san: 6, maxSan: 6, 
-        limit: insaneLimit || 4, 
-        cycle: 1, scene: 1, 
-        phase: "도입", 
-        mission: charMission || "일상의 온기를 되찾는다.", 
-        secret: charSecret || "밝혀지지 않은 과거",
-        insaneSkills, insaneCuriosity, insaneFear,
-        flashbackUsed: false, 
-        insaneItems: { painkiller: 2, weapon: 0, talisman: 0 },
-        
-        // 🌟 [동적 프라이즈 & 의식 시트: 파일 파싱 데이터 우선, 없으면 빈 배열]
-        prizes: (typeof parsedPrizes !== "undefined" && parsedPrizes.length > 0) 
-          ? parsedPrizes 
-          : [],
-        rituals: (typeof parsedRituals !== "undefined" && parsedRituals.length > 0) 
-          ? parsedRituals 
-          : [],
-
-        // 🌟 [동적 에너미: 파일에 에너미 이름이 있으면 그거 쓰고, 없으면 시나리오 제목으로 자동 생성]
-        enemyName: (typeof parsedEnemyName !== "undefined" && parsedEnemyName) 
-          ? parsedEnemyName 
-          : (scenarioTitle ? `${scenarioTitle}의 괴이` : "미지의 괴이"),
-        enemyHp: 6,
-        maxEnemyHp: 6,
-        currentPlot: null,
-        enemyPlot: null,
-
-        npcs: npcs.map(n => ({
-          ...n,
-          desc: n.desc || n.detail || "",
-          detail: n.desc || n.detail || "",
-          emotion: null,
-          locationFound: false,
-          secretRevealed: false,
-          mentalChecked: false
-        }))
+        ...initialSheet, hp: 6, maxHp: 6, san: 6, maxSan: 6, limit: insaneLimit || 4, cycle: 1, scene: 1, phase: "도입", 
+        mission: charMission || "일상의 온기를 되찾는다.", secret: charSecret || "밝혀지지 않은 과거", insaneSkills, insaneCuriosity, insaneFear, flashbackUsed: false, insaneItems: { painkiller: 2, weapon: 0, talisman: 0 },
+        prizes: (typeof parsedPrizes !== "undefined" && parsedPrizes.length > 0) ? parsedPrizes : [],
+        rituals: (typeof parsedRituals !== "undefined" && parsedRituals.length > 0) ? parsedRituals : [],
+        enemyName: (typeof parsedEnemyName !== "undefined" && parsedEnemyName) ? parsedEnemyName : (scenarioTitle ? `${scenarioTitle}의 괴이` : "미지의 괴이"),
+        enemyHp: 6, maxEnemyHp: 6, currentPlot: null, enemyPlot: null,
+        npcs: npcs.map(n => ({ ...n, desc: n.desc || n.detail || "", detail: n.desc || n.detail || "", emotion: null, locationFound: false, secretRevealed: false, mentalChecked: false }))
       };
     }
 
-// 🌟 PC({PC}) 및 다중 KPC({KPC1}, {KPC2}...) 일괄 자동 치환
-    let finalSynopsis = publicSynopsis;
-    let finalOpening = openingScene;
-    let finalTruth = hiddenTruth;
-
-    // 1) 원래 시트/프리셋에 적혀 있던 PC 이름 추출 및 치환
-    const origPc = originalPresetPcName || "서지한";
-    const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc; // "지한"
-    const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;     // "유진"
-
-    const pcFullReg = new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g");
-    const pcShortReg = new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g");
-
-    finalSynopsis = finalSynopsis.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-    finalOpening = finalOpening.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-    finalTruth = finalTruth.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-
-    // 2) KPC 및 이전 시나리오 원본 NPC 이름 치환
-    let finalScenarioCgs = [...(scenarioCgs || [])];
-
-    (kpcList || []).forEach((kpc, index) => {
-      const num = index + 1;
-      const currentName = kpc.name || `인물${num}`;
-
-      const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || (index === 0 ? "윤설아" : "");
-      const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc; // "설아"
-      const newNpcShort = currentName.length >= 3 ? currentName.slice(1) : currentName; // "인영"
-
-      const tagRegex = new RegExp(`\\{(KPC|NPC)${num}\\}`, "g");
-      finalSynopsis = finalSynopsis.replace(tagRegex, currentName);
-      finalOpening = finalOpening.replace(tagRegex, currentName);
-      finalTruth = finalTruth.replace(tagRegex, currentName);
-
-      if (origNpc) {
-        const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
-        const npcShortReg = new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g");
-        finalSynopsis = finalSynopsis.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
-        finalOpening = finalOpening.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
-        finalTruth = finalTruth.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
-      }
-
-      // 컷씬(CG) 속 이름 치환
-      finalScenarioCgs = finalScenarioCgs.map(cg => {
-        let updatedTitle = (cg.title || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
-        let updatedTrigger = (cg.trigger || cg.condition || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
-        if (origNpc) {
-          const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
-          updatedTitle = updatedTitle.replace(npcFullReg, currentName);
-          updatedTrigger = updatedTrigger.replace(npcFullReg, currentName);
-        }
-        return { ...cg, title: updatedTitle, trigger: updatedTrigger, condition: updatedTrigger };
-      });
-    });
-
-  // 3) [서막], [도입부] 머리말 태그 말끔히 제거
-    const cleanDisplayOpening = finalOpening
-      .replace(/^\[(?:서막\vert{}도입\vert{}도입부\vert{}오프닝\vert{}시작)\]\s*/i, "")
-      .trim();
-
-    // 🌟 1번 파트너 이름 및 외모 정보 정의
-    const currentNpcName = kpcList[0]?.name || "파트너";
-    const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
-
- // 🌟 5) 치환 완료된 시나리오 컨텍스트 생성 (가장 안전한 문자열 덧붙이기 방식)
-    let fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
-    
-    if (safeRawText !== "") {
-      fullScenarioContext += `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}`;
-    }
-
-    // 🌟 [핵심 해결] 세션에 부여할 고유 ID 변수 부활!
-    const newId = Date.now();
-
-    // 🌟 [인세인] 테마별 자동 프라이즈 & 3단계 의식 주입
+    // 🌟 세션 시트 생성
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
     if (wizardMode === "insane") {
       const generated = generateInsaneThemeAssets(sessionTitle, fullScenarioContext);
-      
-      // 1. 프라이즈가 없으면 배경에 어울리는 프라이즈 자동 추가
       const handouts = sessionSheet.handouts || [];
-      const hasPrize = handouts.some(h => h.type === "prize" || h.title?.includes("프라이즈"));
-      if (!hasPrize && generated.prize) {
-        sessionSheet.handouts = [...handouts, generated.prize];
-      }
-
-      // 2. 의식이 비어있으면 배경 맞춤형 3단계 의식 자동 장착
-      if (!sessionSheet.rituals || sessionSheet.rituals.length === 0) {
-        sessionSheet.rituals = generated.rituals;
-      }
+      if (!handouts.some(h => h.type === "prize" || h.title?.includes("프라이즈")) && generated.prize) sessionSheet.handouts = [...handouts, generated.prize];
+      if (!sessionSheet.rituals || sessionSheet.rituals.length === 0) sessionSheet.rituals = generated.rituals;
     }
  
-// 🎒 3단계: 특기표에서 선택한 초기 소지품(최대 2개)을 시트에 주입
-  sessionSheet.items = [
-    { id: "item_painkiller", name: "진통제", type: "heal", count: insaneItems["진통제"] || 0, desc: "생명력 또는 이성치 1 회복" },
-    { id: "item_weapon", name: "무기", type: "reroll_self", count: insaneItems["무기"] || 0, desc: "전투 중 자신의 판정 재굴림" },
-    { id: "item_amulet", name: "부적", type: "reroll_other", count: insaneItems["부적"] || 0, desc: "타인의 판정 재굴림" }
-  ].filter(it => it.count > 0); // 1개 이상 챙긴 아이템만 가방에 등록
+    sessionSheet.items = [
+      { id: "item_painkiller", name: "진통제", type: "heal", count: insaneItems["진통제"] || 0, desc: "생명력 또는 이성치 1 회복" },
+      { id: "item_weapon", name: "무기", type: "reroll_self", count: insaneItems["무기"] || 0, desc: "전투 중 자신의 판정 재굴림" },
+      { id: "item_amulet", name: "부적", type: "reroll_other", count: insaneItems["부적"] || 0, desc: "타인의 판정 재굴림" }
+    ].filter(it => it.count > 0); 
 
-// 📱 서막 속 메신저 대사를 실제 카톡처럼 문장별로 쪼개서 수신
     const openingMsgRegex = /\[([^\]]+)\]\s*:\s*["“]([^"”]+)["”]/g;
     let match;
     const initialPhoneChats = {};
@@ -3313,56 +3182,38 @@ const startNewSession = async () => {
     while ((match = openingMsgRegex.exec(finalOpening)) !== null) {
       const senderName = match[1].trim();
       const messageText = match[2].trim();
-
       const matchedNpc = npcs.find(n => senderName.includes(n.name) || n.name.includes(senderName)) || npcs[0];
       const contactId = matchedNpc?.id || 1;
-
       if (!initialPhoneChats[contactId]) initialPhoneChats[contactId] = [];
-
-      // 🌟 마침표, 물음표, 느낌표, 줄바꿈 기준으로 카톡 말풍선 쪼개기
-      const bubbles = messageText
-        .split(/(?<=[.!?])\s+|\n+/)
-        .map(s => s.trim())
-        .filter(Boolean);
-
+      const bubbles = messageText.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(Boolean);
       bubbles.forEach((bubbleText, sIdx) => {
-        initialPhoneChats[contactId].push({
-          id: Date.now() + Math.random() + sIdx,
-          sender: "npc",
-          text: bubbleText,
-          time: currentTime,
-          unread: true
-        });
+        initialPhoneChats[contactId].push({ id: Date.now() + Math.random() + sIdx, sender: "npc", text: bubbleText, time: currentTime, unread: true });
       });
     }
 
-  // 시트에 초기 메시지 주입 (새로고침/API 완료 후에도 보존)
-  sessionSheet.phoneChats = initialPhoneChats;
-  if (initialSheet) initialSheet.phoneChats = initialPhoneChats;
+    sessionSheet.phoneChats = initialPhoneChats;
+    if (initialSheet) initialSheet.phoneChats = initialPhoneChats;
 
-  // ⬇️ 원래 있던 코드 (이 줄 바로 위에 붙여넣으시면 됩니다)
-  const newSession = {
-    id: newId,
-    title: sessionTitle,
-    thumbnail: scenarioThumbnail || sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg",
-    ruleMode: wizardMode,
-    preference: playPreference.trim(),
-    scenarioText: fullScenarioContext,
-    sheet: sessionSheet,
-   sheetUrl: sessionSheet?.url || (typeof GOOGLE_SHEET_CSV_URL !== "undefined" ? GOOGLE_SHEET_CSV_URL : "") || "",
-    messages: [],
-    suggestedActions: [],
-    investigationSpots: [],
-    pendingCheck: null
-  };
+    const newId = Date.now();
+    const newSession = {
+      id: newId,
+      title: sessionTitle,
+      thumbnail: scenarioThumbnail || sessionSheet?.thumbnail || sessionSheet?.sessionCard || "https://cdn.phototourl.com/free/2026-09-13-be3b81ab-c892-4f25-ba89-1bb86ea1518e.jpg",
+      ruleMode: wizardMode,
+      preference: playPreference.trim(),
+      scenarioText: fullScenarioContext,
+      sheet: sessionSheet,
+      sheetUrl: sessionSheet?.url || (typeof GOOGLE_SHEET_CSV_URL !== "undefined" ? GOOGLE_SHEET_CSV_URL : "") || "",
+      messages: [],
+      suggestedActions: [],
+      investigationSpots: [],
+      pendingCheck: null
+    };
 
-  setSessions([newSession, ...sessions]);
+    setSessions([newSession, ...sessions]);
     setActiveSessionId(newId);
-setIsLoading(true);
+    setIsLoading(true);
     setCurrentPhase(initialDetectedPhase);
-    sessionSheet.currentPhase = initialDetectedPhase;
- 
-  const hasOpening = Boolean(finalOpening && finalOpening.trim());
 
 // 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
     let openingPrompt = "";
