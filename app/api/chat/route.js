@@ -264,7 +264,9 @@ ${eventsSummary}${recentPhoneSummary}
 8. 신규 인물 첫 등장 시: <!-- NEW_NPC: {"name": "인물명", "job": "역할", "detail": "외모/성격"} -->
 9. 공식 16:9 CG 해금 시: <!-- UNLOCK_CG: {"id": "CG아이디", "title": "제목"} -->
 10. 최종 결말 도달 시: <!-- ENDING: {"type": "TRUE", "title": "엔딩 제목"} -->
-11. 주인공의 3지선다 선택지: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->`;
+11. 주인공의 3지선다 선택지: <!-- SUGGESTIONS: ["선택지 1", "선택지 2", "선택지 3"] -->
+12. 당면한 목표/퀘스트 갱신 시: <!-- OBJECTIVE: {"main": "전체 목적", "step": "당장 해야 할 행동"} -->`;
+          
 
           formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
           formattedContents.push({ role: "model", parts: [{ text: `네, 1번 NPC 고정 없이 [${partnerName}]과의 대면 서사에 몰입하며 시간 스킵 없이 정갈하게 진행하겠습니다.` }] });
@@ -350,7 +352,8 @@ ${eventsSummary}
 [🚨 서술 문체 및 규칙]
 1. 모든 지문 서술은 정중한 경어체(~합니다/했습니다)로 100% 일관되게 서술하십시오.
 2. 판정 요구 시 태그 출력 후 서술을 즉시 멈추십시오.
-3. 임의 시간 스킵 금지 및 1턴 1행동 원칙 준수.`;
+3. 임의 시간 스킵 금지 및 1턴 1행동 원칙 준수.
+4. 서사의 당면 목표/퀘스트 갱신 시: <!-- OBJECTIVE: {"main": "전체 목적", "step": "당장 해야 할 행동"} -->`;
 
         formattedContents.push({ role: "user", parts: [{ text: systemInstruction }] });
         formattedContents.push({ role: "model", parts: [{ text: "경어체로 일관되게 서술하며 정규 룰을 준수하여 진행하겠습니다." }] });
