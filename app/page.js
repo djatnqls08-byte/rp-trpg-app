@@ -399,7 +399,29 @@ const kpcList = [];
     }
   }
 
-  // 🌟 [3] 세션카드 열 탐색
+// 🌟 [추가] 구글 시트에서 '단서/사건 파일' 긁어오기 (최대 30개 자동 탐색)
+  const sheetHandouts = [];
+  for (let i = 1; i <= 30; i++) {
+    const hNameIdx = findIdx(new RegExp(`^(단서|핸드아웃|사건)${i}(이름|명|제목)$`, 'i'));
+    const hDescIdx = findIdx(new RegExp(`^(단서|핸드아웃|사건)${i}(개요|설명|내용)$`, 'i'));
+    const hSecIdx = findIdx(new RegExp(`^(단서|핸드아웃|사건)${i}비밀$`, 'i'));
+
+    const hName = hNameIdx !== -1 ? (row[hNameIdx] || "").toString().trim() : "";
+    const hDesc = hDescIdx !== -1 ? (row[hDescIdx] || "").toString().trim() : "";
+    const hSec = hSecIdx !== -1 ? (row[hSecIdx] || "").toString().trim() : "";
+
+    if (hName || hDesc) {
+      sheetHandouts.push({
+        id: `ho_sheet_${i}_${Date.now()}`,
+        title: hName || `단서 ${i}`,
+        overview: hDesc || `[${hName}] 탐색 및 조사 단서입니다.`,
+        secret: hSec || "",
+        revealed: false
+      });
+    }
+  }
+
+  // 🌟 [3] 세션카드 열 탐색 (이건 원래 있던 코드입니다)
   const thumbIdx = findIdx(/^(세션카드|대표이미지|썸네일|표지)$/i);
   let sessionCardImg = thumbIdx !== -1 ? (row[thumbIdx] || "").trim() : "";
   if (!sessionCardImg && titleIdx > 0) {
@@ -445,7 +467,8 @@ const kpcList = [];
     insaneFear: fear || "죽음",
     insaneLimit: 3,
     kpcList: kpcList,
-    eventCgs: eventCgs
+    eventCgs: eventCgs,
+    handouts: sheetHandouts
   };
 }
 export default function App() {
@@ -977,16 +1000,17 @@ useEffect(() => {
         id: npc.id || Date.now() + idx, name: npc.name || "", job: npc.title || "", detail: npc.detail || "", secret: npc.secret || "", portraitUrl: npc.portrait || "", showSecret: false
       }));
       const newLobbyPreset = {
-        id: Date.now(), presetTitle: title, scenarioTitle: s.title || "", publicSynopsis: parsedSynopsis, openingScene: parsedOpening, hiddenTruth: parsedTruth, playPreference: s.preference || "#GL #쌍방구원 #달달", wizardMode: s.ruleMode || "coc", charName: s.sheet?.name || "", charJob: s.sheet?.job || "", charAge: s.sheet?.age || "24", charGender: s.sheet?.gender || "여성", charBackground: s.sheet?.background || "", charMission: s.sheet?.mission || "", charSecret: s.sheet?.secret || "", charPortraitUrl: s.sheet?.portrait || "", cocStats: s.sheet?.cocStats, cocSkills: s.sheet?.cocSkills || "", insaneSkills: s.sheet?.insaneSkills || [], insaneCuriosity: s.sheet?.insaneCuriosity || "정서", insaneFear: s.sheet?.insaneFear || "죽음", insaneLimit: s.sheet?.limit || 4, kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }]
+        id: Date.now(), presetTitle: title, scenarioTitle: s.title || "", publicSynopsis: parsedSynopsis, openingScene: parsedOpening, hiddenTruth: parsedTruth, playPreference: s.preference || "#GL #쌍방구원 #달달", wizardMode: s.ruleMode || "coc", charName: s.sheet?.name || "", charJob: s.sheet?.job || "", charAge: s.sheet?.age || "24", charGender: s.sheet?.gender || "여성", charBackground: s.sheet?.background || "", charMission: s.sheet?.mission || "", charSecret: s.sheet?.secret || "", charPortraitUrl: s.sheet?.portrait || "", cocStats: s.sheet?.cocStats, cocSkills: s.sheet?.cocSkills || "", insaneSkills: s.sheet?.insaneSkills || [], insaneCuriosity: s.sheet?.insaneCuriosity || "정서", insaneFear: s.sheet?.insaneFear || "죽음", insaneLimit: s.sheet?.limit || 4, kpcList: restoredKpcList.length > 0 ? restoredKpcList : [{ id: 1, name: "파트너", job: "조력자", detail: "", secret: "", portraitUrl: "", showSecret: false }],
+        handouts: s.sheet?.handouts || []
       };
       const updated = [newLobbyPreset, ...lobbyPresets];
       setLobbyPresets(updated);
       localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
     } else {
       const newLobbyPreset = {
-        id: Date.now(), presetTitle: title, scenarioTitle, publicSynopsis, openingScene, hiddenTruth, playPreference, wizardMode, charName, charJob, charAge, charGender, charBackground, charMission, charSecret, charPortraitUrl, cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, insaneLimit, kpcList
-      };
-      const updated = [newLobbyPreset, ...lobbyPresets];
+        id: Date.now(), presetTitle: title, scenarioTitle, publicSynopsis, openingScene, hiddenTruth, playPreference, wizardMode, charName, charJob, charAge, charGender, charBackground, charMission, charSecret, charPortraitUrl, cocStats, cocSkills, insaneSkills, insaneCuriosity, insaneFear, insaneLimit, kpcList,
+        handouts: generatedHandouts 
+      };      const updated = [newLobbyPreset, ...lobbyPresets];
       setLobbyPresets(updated);
       localStorage.setItem("rp_hub_lobby_presets", JSON.stringify(updated));
     }
@@ -1000,6 +1024,13 @@ setLobbySaveModal(null);
     if (p.charName) setOriginalPresetPcName(p.charName);
     const loadedCgs = p.scenarioCgs || p.eventCgs || p.cgs || p.initialSheet?.scenarioCgs || [];
     if (loadedCgs.length > 0) setScenarioCgs(loadedCgs);
+    
+    // 🌟 구글 시트에서 불러온 단서가 있다면 로비(수첩)에 장전!
+    if (p.handouts && p.handouts.length > 0) {
+      setGeneratedHandouts(p.handouts);
+    } else {
+      setGeneratedHandouts([]); 
+    }
 
     // 🌟 원래 프리셋 속 NPC 이름들을 순수 문자열 배열로 보관 (치환 정상 동작)
     if (p.kpcList && Array.isArray(p.kpcList)) {
