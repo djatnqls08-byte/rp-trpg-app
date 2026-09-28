@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 🟢 [504 에러 해결] 버셀의 10초 타임아웃을 무시하고 가볍고 빠른 Edge 서버를 쓰도록 강제합니다!
-export const runtime = "edge";
+// 🟢 [수정됨] 오류가 잦은 edge 서버를 삭제하고, 일반 서버의 제한 시간을 무료 최대치(60초)로 늘립니다!
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const FALLBACK_MODELS = [
