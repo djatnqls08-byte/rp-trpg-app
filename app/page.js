@@ -5578,6 +5578,9 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 return (
   <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
     
+    {/* 🌟 이 녀석이 무조건 여기에 있어야 해! */}
+    <audio ref={audioRef} loop src={bgmUrl}></audio>
+
     <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
