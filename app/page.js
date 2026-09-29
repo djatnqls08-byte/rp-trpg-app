@@ -5497,7 +5497,7 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
     return () => window.removeEventListener("popstate", handlePopState);
   }, [activeSessionId, isPhoneDrawerOpen, isTabletopOpen, isSheetOpen, isSidebarOpen]);
  
-rreturn (
+return (
   <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
     
     {/* 🌟 보이지 않는 백그라운드 BGM 플레이어 */}
