@@ -4871,16 +4871,35 @@ if (Array.isArray(newPhoneMsg.messages)) {
   rawItems = [newPhoneMsg.text];
 }
 
-const msgList = rawItems.flatMap(item => {
-  const str = String(item).trim();
-  // || 구분자가 명시된 경우에만 분할
-  if (str.includes("||")) {
-    return str.split("||").map(t => t.trim()).filter(Boolean);
-  }
-  // 줄바꿈이 있는 경우에만 문단 분할, 그 외엔 한 말풍선으로 유지
-  const lines = str.split(/\n+/).map(t => t.trim()).filter(Boolean);
-  return lines.length > 0 ? lines : [str];
-}).slice(0, 3); // 🚨 말풍선 최대 3개로 엄격 제한
+    const msgList = rawItems.flatMap(item => {
+      const str = String(item).trim();
+      let pieces = [];
+      if (str.includes("||")) {
+        pieces = str.split("||");
+      } else if (str.includes("\n")) {
+        pieces = str.split(/\n+/);
+      } else {
+        // 문장 부호(. ? !) 뒤 공백을 기준으로 1차 분할
+        pieces = str.split(/(?<=[.!?])\s+/);
+      }
+
+      // 너무 자잘하게 쪼개져서 도배되지 않도록 자연스럽게 병합
+      let merged = [];
+      let temp = "";
+      pieces.map(s => s.trim()).filter(Boolean).forEach(p => {
+        if (!temp) {
+          temp = p;
+        } else if (temp.length < 25 && (temp.length + p.length < 55)) {
+          temp += " " + p;
+        } else {
+          merged.push(temp);
+          temp = p;
+        }
+      });
+      if (temp) merged.push(temp);
+      return merged.length > 0 ? merged : [str];
+    }).slice(0, 3); // 🚨 최대 3개 말풍선 엄격 제한
+
         const incomingMsgs = msgList.map((t, idx) => ({
           id: Date.now() + Math.random() + idx,
           sender: "npc",
