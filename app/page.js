@@ -5752,36 +5752,10 @@ return (
             )}
           </div>
 
-          {/* 우측 액션 아이콘 바 (모든 버튼 높이 34px로 정돈) */}
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "3px" : "5px", flexShrink: 0 }}>
-
-{/* 🌟 [추리 모드 전용] 📌 수사 증거보드 버튼 */}
-            {activeSession && activeSession.ruleMode === "freeform" && (
-              <button
-                type="button"
-                onClick={() => setShowEvidenceBoard(true)}
-                title="📌증거보드"
-                style={{
-                  height: isMobile ? "34px" : "36px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "3px",
-                  padding: isMobile ? "0 6px" : "0 8px",
-                  background: showEvidenceBoard ? "rgba(239, 68, 68, 0.15)" : "none",
-                  border: showEvidenceBoard ? `1.5px solid ${theme.danger || "#ef4444"}` : `1px solid ${theme.border}`,
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  color: showEvidenceBoard ? (theme.danger || "#ef4444") : theme.text,
-                  flexShrink: 0
-                }}
-              >
-                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📌</span>
-                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>보드</span>
-              </button>
-            )}
-
-            {/* 1. 📱 스마트폰 메신저 */}
+         {/* 우측 액션 아이콘 바 (외곽선 제거 & 폰/보드/시트 순 정돈!) */}
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "2px" : "4px", flexShrink: 0 }}>
+            
+            {/* 1. 📱 스마트폰 메신저 (첫 번째 순서) */}
             {activeSession && (activeSession.ruleMode?.startsWith("dating") || activeSession.ruleMode?.includes("free")) && (() => {
               const phoneChats = activeSession.sheet?.phoneChats || {};
               let unreadCount = 0;
@@ -5794,6 +5768,7 @@ return (
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsSheetOpen(false);
+                    setShowEvidenceBoard(false);
                     setActivePhoneContactId(null);
                     setIsPhoneDrawerOpen(!isPhoneDrawerOpen);
                     triggerVibration("light");
@@ -5802,19 +5777,21 @@ return (
                   style={{
                     position: "relative",
                     height: isMobile ? "34px" : "36px",
-                    width: isMobile ? "34px" : "36px",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: isPhoneDrawerOpen ? "rgba(0,0,0,0.08)" : "none",
-                    border: isPhoneDrawerOpen ? `1px solid ${theme.border}` : "none",
+                    gap: "3px",
+                    padding: isMobile ? "0 6px" : "0 8px",
+                    background: isPhoneDrawerOpen ? "rgba(0,0,0,0.06)" : "none",
+                    border: "none",
                     borderRadius: "8px",
                     cursor: "pointer",
-                    padding: 0,
+                    color: isPhoneDrawerOpen ? theme.accent : theme.text,
+                    whiteSpace: "nowrap",
                     flexShrink: 0
                   }}
                 >
-                  <span style={{ fontSize: "1.15rem", lineHeight: 1 }}>📱</span>
+                  <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📱</span>
                   {unreadCount > 0 && (
                     <span style={{
                       position: "absolute",
@@ -5839,7 +5816,38 @@ return (
               );
             })()}
 
-            {/* 2. 🃏 테이블탑 핸드아웃 버튼 (흰 배경 없는 깔끔한 플랫 스타일) */}
+            {/* 2. 📌 수사 증거보드 (두 번째 순서 & 외곽 라인 완전 제거) */}
+            {activeSession && activeSession.ruleMode === "freeform" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPhoneDrawerOpen(false);
+                  setIsSheetOpen(false);
+                  setShowEvidenceBoard(!showEvidenceBoard);
+                }}
+                title="수사 증거보드 열기"
+                style={{
+                  height: isMobile ? "34px" : "36px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3px",
+                  padding: isMobile ? "0 6px" : "0 8px",
+                  background: showEvidenceBoard ? "rgba(0,0,0,0.06)" : "none",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  color: showEvidenceBoard ? theme.accent : theme.text,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📌</span>
+                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>보드</span>
+              </button>
+            )}
+
+            {/* 3. 🃏 테이블탑 핸드아웃 버튼 (인세인 모드 전용) */}
             {activeSession && activeSession.ruleMode === "insane" && (
               <button 
                 type="button"
@@ -5853,7 +5861,7 @@ return (
                   gap: "3px",
                   padding: isMobile ? "0 6px" : "0 8px",
                   background: isTabletopOpen ? "rgba(214, 56, 87, 0.12)" : "none",
-                  border: isTabletopOpen ? `1.5px solid ${theme.danger}` : "none",
+                  border: "none",
                   borderRadius: "8px",
                   cursor: "pointer",
                   color: isTabletopOpen ? theme.danger : theme.text,
@@ -5862,13 +5870,11 @@ return (
                 }}
               >
                 <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>🃏</span>
-                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>
-                  핸드아웃
-                </span>
+                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>핸드아웃</span>
               </button>
             )}
 
-            {/* 3. 🎲 주사위 버튼 (글자 빼고 아이콘만 깔끔하게 규격화) */}
+            {/* 4. 🎲 주사위 버튼 (CoC / 인세인 모드 전용) */}
             {activeSession && (activeSession.ruleMode === "coc" || activeSession.ruleMode === "insane") && (
               <button
                 type="button"
@@ -5892,13 +5898,14 @@ return (
               </button>
             )}
 
-            {/* 4. 👤 정보 / 📋 시트 버튼 */}
+            {/* 5. 👤 정보 / 📋 시트 버튼 (세 번째 순서 & 외곽선 완전 제거) */}
             {activeSession && (
               <button 
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsPhoneDrawerOpen(false);
+                  setShowEvidenceBoard(false);
                   setIsSheetOpen(!isSheetOpen);
                 }} 
                 title="캐릭터 시트 및 정보" 
@@ -5909,8 +5916,8 @@ return (
                   justifyContent: "center",
                   gap: "3px",
                   padding: isMobile ? "0 6px" : "0 8px",
-                  background: isSheetOpen ? "rgba(0,0,0,0.08)" : "none",
-                  border: isSheetOpen ? `1.5px solid ${theme.accent}` : "none",
+                  background: isSheetOpen ? "rgba(0,0,0,0.06)" : "none",
+                  border: "none",
                   borderRadius: "8px",
                   color: isSheetOpen ? theme.accent : theme.text,
                   cursor: "pointer",
@@ -5918,7 +5925,7 @@ return (
                   flexShrink: 0
                 }}
               >
-                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>
+                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>
                   {activeSession.ruleMode?.startsWith("dating") ? "👤" : "📋"}
                 </span>
                 <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>
@@ -12205,31 +12212,45 @@ ${statusGuide}
                   )}
                 </div>
 
-                {/* 4. 물증 보관함 */}
-                {items.length > 0 && (
+                {/* 4. 물증 보관함 (사건 파일과 동일한 카드 스타일로 전면 개편!) */}
+                {items.filter(it => it.name && it.name !== "소지품").length > 0 && (
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
-                      <span style={{ fontSize: "0.9rem" }}>💼</span>
-                      <span style={{ fontSize: "0.84rem", fontWeight: "800", color: "#e7e5e4" }}>소지품 및 물증 보관함 ({items.length}개)</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                      <span style={{ color: "#f87171", fontSize: "0.9rem" }}>💼</span>
+                      <span style={{ fontSize: "0.84rem", fontWeight: "800", color: "#e7e5e4" }}>
+                        확보된 결정적 물증 ({items.filter(it => it.name && it.name !== "소지품").length}개)
+                      </span>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                      {items.map((it, idx) => (
-                        <span
+
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "10px" }}>
+                      {items.filter(it => it.name && it.name !== "소지품").map((it, idx) => (
+                        <div
                           key={idx}
                           style={{
-                            padding: "6px 12px",
-                            backgroundColor: "rgba(255, 255, 255, 0.08)",
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                            borderRadius: "20px",
-                            fontSize: "0.76rem",
-                            color: "#f5f5f4",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "5px"
+                            backgroundColor: idx % 2 === 0 ? "#fef2f2" : "#f5f3ff",
+                            color: "#0f172a",
+                            padding: "12px 14px",
+                            borderRadius: "6px",
+                            boxShadow: "2px 4px 10px rgba(0,0,0,0.3)",
+                            position: "relative",
+                            transform: idx % 2 === 0 ? "rotate(0.5deg)" : "rotate(-0.5deg)",
+                            borderLeft: `5px solid ${idx % 2 === 0 ? "#ef4444" : "#8b5cf6"}`
                           }}
                         >
-                          📦 <strong>{it.name}</strong> {it.desc ? `(${it.desc})` : ""}
-                        </span>
+                          {/* 실물 증거 핀 */}
+                          <span style={{ position: "absolute", top: "-7px", right: "12px", fontSize: "0.85rem" }}>📌</span>
+                          
+                          {/* 물증 이름 */}
+                          <div style={{ fontWeight: "900", fontSize: "0.84rem", color: idx % 2 === 0 ? "#b91c1c" : "#6d28d9", marginBottom: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                            <span>📦</span>
+                            <span>{it.name}</span>
+                          </div>
+
+                          {/* 물증 상세 설명 */}
+                          <div style={{ fontSize: "0.78rem", color: "#334155", lineHeight: "1.55", wordBreak: "keep-all", whiteSpace: "pre-wrap" }}>
+                            {it.desc || "현장에서 입수한 주요 물증입니다."}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
