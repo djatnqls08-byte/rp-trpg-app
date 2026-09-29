@@ -1113,40 +1113,46 @@ setLobbySaveModal(null);
   
   // 🌟 [신규 추가] 채팅 폰트 크기 및 BGM/ASMR 상태
   const [chatFontSize, setChatFontSize] = useState(0.92); 
+  const [chatFontSize, setChatFontSize] = useState(0.92); 
   const [bgmUrl, setBgmUrl] = useState("");
   const [bgmVolume, setBgmVolume] = useState(0.5);
   const audioRef = useRef(null);
 
-  // 로컬 스토리지에 저장 및 불러오기 함수
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedFontSize = localStorage.getItem("rp_hub_font_size"); 
-      if (savedFontSize) setChatFontSize(Number(savedFontSize));
-      const savedBgm = localStorage.getItem("rp_hub_bgm_url"); 
-      if (savedBgm) setBgmUrl(savedBgm);
-      const savedBgmVol = localStorage.getItem("rp_hub_bgm_vol"); 
-      if (savedBgmVol) setBgmVolume(Number(savedBgmVol));
-    }
-  }, []);
+ // 🌟 [추가] 시나리오 분위기와 시간대에 맞춰 BGM을 자동 선택하는 디렉터 함수!
+  const detectAutoBgm = (session, phase) => {
+    if (!session) return ""; // 로비 화면에서는 음악 끄기
 
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = bgmVolume;
-      if (bgmUrl) {
-        audioRef.current.play().catch(e => console.warn("오디오 재생 실패:", e));
-      } else {
-        audioRef.current.pause();
-      }
+    const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
+    
+    // 1. ⚔️ 클라이맥스 결전 (웅장하고 긴박한 보스전 BGM)
+    if (session.sheet?.phase === "클라이맥스") {
+      return "https://cdn.pixabay.com/audio/2022/10/25/audio_14cead1592.mp3"; 
     }
-  }, [bgmUrl, bgmVolume]);
-
-  const handleSaveFontSize = (size) => {
-    setChatFontSize(size);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
+    // 2. 🩸 피폐 / 공포 / 크툴루 (섬뜩하고 긴장감 넘치는 앰비언트)
+    if (/공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
+      return "https://cdn.pixabay.com/audio/2022/01/18/audio_82c5e5f5da.mp3"; 
+    }
+    // 3. 🧙‍♂️ 판타지 / 동양풍 / 오컬트 (신비롭고 에픽한 판타지 BGM)
+    if (/판타지|중세|오컬트|동양풍|신전/.test(text)) {
+      return "https://cdn.pixabay.com/audio/2022/01/21/audio_51fd3eb321.mp3"; 
+    }
+    // 4. 🌧️ 비 오는 날 특수 배경 (음악 대신 빗소리 ASMR)
+    if (/비가|빗소리|장마/.test(text)) {
+      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+    }
+    // 5. 🌙 밤/새벽 시간대의 로맨스/달달 (잔잔하고 감미로운 피아노곡)
+    if ((phase === "밤" || phase === "새벽") && /달달|로맨스|짝사랑|미연시/.test(text)) {
+      return "https://cdn.pixabay.com/audio/2022/08/02/audio_12b2c351f3.mp3";
+    }
+    // 6. ☀️ 낮/아침 시간대의 일상 (밝고 따뜻한 어쿠스틱/피아노곡)
+    if ((phase === "낮" || phase === "아침") && /일상|캠퍼스|현대/.test(text)) {
+      return "https://cdn.pixabay.com/audio/2022/03/15/audio_cba122c676.mp3";
+    }
+    
+    // 기본값 (무난하고 차분한 피아노 브금)
+    return "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3";
   };
-  // (handleSaveBgmUrl 함수는 이제 수동 선택을 안 할 거니까 지워버리고 아래 코드로 교체해!)
-  
-  // 🌟 [추가] 방에 입장하거나(activeSessionId), 시간대(currentPhase)가 바뀔 때마다 BGM 자동 변경!
+  // 로컬 스토리지에 저장 및 불러오기 함수
   useEffect(() => {
     if (!isLoaded) return;
     const autoBgm = detectAutoBgm(activeSession, currentPhase);
