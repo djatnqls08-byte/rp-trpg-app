@@ -3139,39 +3139,68 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
     };
   };
   
-// 🌟 [수정] 특정 시나리오 이름 하드코딩 싹 제거! 완벽한 동적 치환 로직
+// 🌟 [완벽 복구] 세션 시작 및 동적 이름 치환 함수
+  const startNewSession = async () => {
+    // 🎧 유저 클릭 순간 오디오 잠금 해제
+    if (audioRef.current) {
+      audioRef.current.play().catch(e => console.log("오디오 잠금 해제 대기 중..."));
+    }
+
+    const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
+    const pName = charName.trim() || "주인공";
+    const partnerName = kpcList[0]?.name || "파트너";
+    const safeRawText = (typeof originalRawText !== "undefined" && originalRawText) ? originalRawText : "";
+
+    const npcs = (kpcList || []).map((k, idx) => ({
+      id: k.id || Date.now() + idx,
+      name: k.name || `인물${idx + 1}`,
+      job: k.job || "조력자",
+      title: k.job || "조력자",
+      gender: k.gender || "여성",
+      age: k.age || "20",
+      detail: k.detail || "",
+      desc: k.detail || "",
+      secret: k.secret || "",
+      statusMessage: k.statusMessage || "",
+      portrait: k.portraitUrl || (typeof getPortraitUrl === "function" ? getPortraitUrl(k.name || "npc") : ""),
+      affection: 0,
+      secretRevealed: false
+    }));
+
+    const startingItems = (generatedItems && generatedItems.length > 0) ? generatedItems : [
+      { name: "소지품" }
+    ];
+
+    const initialHandouts = (generatedHandouts && generatedHandouts.length > 0) ? generatedHandouts : [
+      { id: "pc_base", title: `${pName}의 사명과 비밀`, overview: charMission || "현재 상황을 파악한다.", secret: charSecret || "숨겨진 진실", revealed: false }
+    ];
+
+    // 🌟 특정 시나리오 이름 하드코딩 없는 안전 치환 로직
     let finalSynopsis = publicSynopsis || "";
     let finalOpening = openingScene || "";
     let finalTruth = hiddenTruth || "";
     let finalScenarioCgs = JSON.parse(JSON.stringify(scenarioCgs || []));
 
-    const pName = charName.trim() || "주인공";
     const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
     
-    // 1. 주인공(PC) 원본 이름 동적 추적 (오직 {PC} 태그와 로드된 원본 프리셋 이름만 사용)
     const pcTargets = ["\\{PC\\}"];
     if (originalPresetPcName) {
       pcTargets.push(originalPresetPcName);
-      // 한국어 이름 3글자 이상일 경우 성을 뗀 이름도 추적 (예: 서지한 -> 지한아, 지한이)
       if (originalPresetPcName.length >= 3) {
         pcTargets.push(originalPresetPcName.slice(1) + "(?=[아이야은는이가을를의로으로])");
       }
     }
     const pcRegex = new RegExp(`(${pcTargets.join("|")})`, "g");
 
-    // 단 한 번씩만 안전하게 치환하는 전용 함수
     const safeReplace = (text) => {
       if (!text) return "";
-      
-      // 1. 주인공 이름 치환 (이름이 긴 경우 짧은 애칭 치환 로직 병행)
       let res = text.replace(pcRegex, (match) => {
         if (originalPresetPcName && originalPresetPcName.length >= 3 && match.includes(originalPresetPcName.slice(1)) && match !== originalPresetPcName) {
-          return newPcShort; // 성을 뗀 애칭으로 불렸을 때는 새 이름도 성을 떼고 치환
+          return newPcShort;
         }
         return pName;
       });
 
-      // 2. 파트너/NPC 동적 치환 (오직 해당 프리셋의 원래 NPC 이름만 타겟팅!)
       (kpcList || []).forEach((kpc, index) => {
         const num = index + 1;
         const currentName = kpc.name || `인물${num}`;
@@ -3179,7 +3208,7 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || "";
         
         let npcTargets = [`\\{NPC${num}\\}`];
-        if (index === 0) npcTargets.push("\\{KPC\\}"); // 1번 NPC는 {KPC} 태그도 포함
+        if (index === 0) npcTargets.push("\\{KPC\\}");
         
         if (origNpc) {
           npcTargets.push(origNpc);
@@ -3199,7 +3228,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       return res;
     };
 
-    // 지문과 CG 묘사에 안전 치환 함수 적용
     finalSynopsis = safeReplace(finalSynopsis);
     finalOpening = safeReplace(finalOpening);
     finalTruth = safeReplace(finalTruth);
@@ -3217,20 +3245,19 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
     let fullScenarioContext = `[시나리오 제목: ${sessionTitle}]\n[주요 등장인물 외모 필수 고정]\n- ${currentNpcName}: ${mainNpcDetail}\n\n[공개 시놉시스]\n${finalSynopsis}\n\n[초기 배경/서막]\n${finalOpening}\n\n[키퍼 전용 기밀/진상]\n${finalTruth}`;
     if (safeRawText !== "") fullScenarioContext += `\n\n[🚨 시나리오 원본 풀 텍스트 (마스터 전용 열람)]\n${safeRawText}`;
 
-    // 🕒 시간대 판별 (먼저 계산)
+    // 🕒 시간대 판별
     let initialDetectedPhase = "낮";
     if (/자정|밤|심야|어둠|달빛|야간/.test(finalOpening || "")) initialDetectedPhase = "밤";
     else if (/새벽|동이\s*트/.test(finalOpening || "")) initialDetectedPhase = "새벽";
     else if (/저녁|노을|황혼|해질/.test(finalOpening || "")) initialDetectedPhase = "저녁";
     else if (/아침|오전|기상/.test(finalOpening || "")) initialDetectedPhase = "아침";
 
-    // 🌟 시트 데이터 생성 (에러 완벽 차단)
     let initialSheet = {
       day: 1,
       currentPhase: initialDetectedPhase,
       name: pName, job: charJob || "조사원", age: charAge, gender: charGender,
       background: charBackground, secret: charSecret, mission: charMission,
-      portrait: charPortraitUrl || getPortraitUrl(pName), hp: 20, maxHp: 20,
+      portrait: charPortraitUrl || (typeof getPortraitUrl === "function" ? getPortraitUrl(pName) : ""), hp: 20, maxHp: 20,
       npcs, items: startingItems,
       madnessStatus: null, 
       handouts: initialHandouts,
@@ -3250,7 +3277,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       };
     }
 
-    // 🌟 세션 시트 생성
     let sessionSheet = { ...(initialSheet || {}), scenarioCgs: finalScenarioCgs };
     if (wizardMode === "insane") {
       const generated = generateInsaneThemeAssets(sessionTitle, fullScenarioContext);
@@ -3306,7 +3332,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
     setIsLoading(true);
     setCurrentPhase(initialDetectedPhase);
 
-// 🌟 [수정 완료] 스포일러/메타 지문을 걸러내기 위해 AI가 항상 서막을 직접 재작성하도록 지시문 변경
     let openingPrompt = "";
     if (wizardMode === "dating") {
       openingPrompt = `[세션 시작: 비주얼 노벨 서막 요청]
@@ -3348,8 +3373,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         })
       });
 
-      // 🌟 교체해서 넣을 코드
-            // ⭕ 올바른 정상 서막 복구 코드
       if (!res.ok) throw new Error("서버 응답 오류");
       const data = await res.json();
       const { cleanText, parsedData } = parseTagsSafely(data.text, partnerName, wizardMode);
@@ -3373,26 +3396,24 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
         if (typeof setActiveCutsceneCg === "function") setActiveCutsceneCg(unlockedCgObj);
       }
 
-          setSessions(prev => prev.map(s => s.id === newId ? {
-          ...s, 
-          sheet: { 
-            ...initialSheet, 
-            ...parsedData.newSheetVars,
-            scenarioCgs: currentCgs,
-            unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
-          },
-         messages: [{ 
-            role: "model", 
-            // 🌟 [수정 완료] 원본 텍스트(스포일러)를 띄우지 않고, AI가 스포일러를 걸러낸 깨끗한 텍스트만 출력합니다!
-            text: cleanText,
-            cg: unlockedCgObj || null 
-          }],
-          suggestedActions: parsedData.suggActions,
-          investigationSpots: parsedData.investigationSpots,
-          pendingCheck: parsedData.pendingCheck
-        } : s));
+      setSessions(prev => prev.map(s => s.id === newId ? {
+        ...s, 
+        sheet: { 
+          ...initialSheet, 
+          ...parsedData.newSheetVars,
+          scenarioCgs: currentCgs,
+          unlockedCgs: unlockedCgObj ? [unlockedCgObj] : []
+        },
+        messages: [{ 
+          role: "model", 
+          text: cleanText,
+          cg: unlockedCgObj || null 
+        }],
+        suggestedActions: parsedData.suggActions,
+        investigationSpots: parsedData.investigationSpots,
+        pendingCheck: parsedData.pendingCheck
+      } : s));
 
-      // ⬆️ 바로 이 밑에 유저분이 올려주신 catch 블록이 이어집니다!
     } catch (err) {
       if (err.name === "AbortError") return;
       setSessions(prev => prev.map(s => s.id === newId ? { ...s, messages: [{ role: "model", text: `서막을 불러오는 중 오류가 발생했습니다 (${err.message}).` }] } : s));
