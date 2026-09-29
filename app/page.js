@@ -6789,7 +6789,7 @@ return (
           /* 플레이 룸 */
           <>
             {/* 테이블탑 오버레이 (비밀 스포 완벽 차단) */}
-{/* 🍞 하단 컴팩트 시스템 알림 (화면 안 가리고 입력창 위에 슬림하게 표시) */}
+{/* 🍞 하단 컴팩트 시스템 알림 (증거 내용이 잘리지 않고 줄바꿈으로 전문 노출!) */}
       {toast && (
         <div
           onClick={() => setToast(null)}
@@ -6799,29 +6799,29 @@ return (
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 9999,
-            backgroundColor: "rgba(18, 20, 26, 0.95)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
+            backgroundColor: "rgba(18, 20, 26, 0.96)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             border: `1.5px solid ${theme.accent || "#6366f1"}`,
-            borderRadius: "24px",
-            padding: "8px 16px",
+            borderRadius: "16px",
+            padding: "12px 16px",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: "10px",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6)",
             color: "#fff",
-            maxWidth: "90%",
-            width: "auto",
+            maxWidth: "min(460px, 92vw)",
+            width: "max-content",
             cursor: "pointer",
             animation: "slideUp 0.2s ease-out"
           }}
         >
-          <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{toast.icon}</span>
-          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, textAlign: "left" }}>
-            <span style={{ fontWeight: "800", fontSize: "0.78rem", color: theme.accent || "#818cf8" }}>
+          <span style={{ fontSize: "1.2rem", flexShrink: 0, marginTop: "2px" }}>{toast.icon}</span>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1, textAlign: "left" }}>
+            <span style={{ fontWeight: "800", fontSize: "0.82rem", color: theme.accent || "#818cf8", marginBottom: "3px" }}>
               {toast.title}
             </span>
-            <span style={{ fontSize: "0.72rem", color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "260px" }}>
+            <span style={{ fontSize: "0.78rem", color: "#f1f5f9", lineHeight: "1.55", wordBreak: "keep-all", whiteSpace: "pre-wrap" }}>
               {toast.message}
             </span>
           </div>
@@ -6835,10 +6835,10 @@ return (
               background: "none",
               border: "none",
               color: "#94a3b8",
-              fontSize: "0.85rem",
+              fontSize: "0.95rem",
               cursor: "pointer",
-              padding: "0 2px",
-              marginLeft: "4px"
+              padding: "2px 4px",
+              flexShrink: 0
             }}
           >
             ✕
