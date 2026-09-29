@@ -1169,10 +1169,24 @@ const audioRef = useRef(null);
     }
   }, [bgmUrl, bgmVolume]);
 
+// 🌟 [복구] 새로고침해도 설정한 글자 크기 유지하기
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedFontSize = localStorage.getItem("rp_hub_font_size");
+    if (savedFontSize) setChatFontSize(Number(savedFontSize));
+  }, []);
+
+  // 🌟 [핵심 범인 체포!] 슬라이더를 움직일 때 글자 크기를 실시간 반영하고 저장하는 함수
+  const handleSaveFontSize = (size) => {
+    setChatFontSize(size);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
+  };
+
   const handleSaveBgmVolume = (vol) => {
     setBgmVolume(vol);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
   };
+ 
   // 🌟 [추가] 스마트폰 메신저 서랍 및 햅틱(진동) 상태
   const [vibrationLevel, setVibrationLevel] = useState("medium"); // "off" | "light" | "medium" | "strong"
   const [isPhoneDrawerOpen, setIsPhoneDrawerOpen] = useState(false);
@@ -1196,35 +1210,30 @@ const audioRef = useRef(null);
 
 // 🌟 [추가] 시나리오 장르/태그를 분석해서 어울리는 톡 테마를 자동으로 골라주는 함수!
   const detectAutoPhoneTheme = (textContext = "") => {
-   // 🌟 [추가] 시나리오 분위기와 시간대에 맞춰 BGM을 자동 선택하는 디렉터 함수!
+  // 🌟 [수정] 아이폰/사파리/크롬 100% 호환! 고음질 MP3 공식 링크로 전면 교체
   const detectAutoBgm = (session, phase) => {
-    if (!session) return ""; // 로비 화면에서는 음악 끄기
-
+    if (!session) return ""; 
     const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
     
-    // 1. 🚨 클라이맥스 페이즈나 호러/피폐 장르 (긴장감 넘치는 앰비언트)
-    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러/.test(text)) {
-      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
+    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포
+    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
+      return "https://cdn.pixabay.com/download/audio/2022/01/18/audio_82c5e5f5da.mp3"; 
     }
-    // 2. 🧙‍♂️ 판타지 / 동양풍 / 오컬트 (웅장하거나 신비로운 성가대/바람 소리)
-    if (/판타지|중세|오컬트|동양풍|신전/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
+    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트
+    if (/판타지|중세|황실|궁정|오컬트|동양풍|신전/.test(text)) {
+      return "https://cdn.pixabay.com/download/audio/2022/01/21/audio_51fd3eb321.mp3"; 
     }
-    // 3. 🌧️ 비 오는 날 특수 배경
-    if (/비가|빗소리|장마/.test(text)) {
-      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+    // 3. 🌙 밤 / 새벽 시간대 (감미로운 피아노 & 고요한 선율)
+    if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
+      return "https://cdn.pixabay.com/download/audio/2022/08/02/audio_12b2c351f3.mp3";
     }
-    // 4. 🌙 밤/새벽 시간대의 로맨스/달달 (감미로운 분위기 - 풀벌레 소리)
-    if ((phase === "밤" || phase === "새벽") && /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
-    }
-    // 5. ☀️ 낮/아침 시간대의 일상 (따뜻하고 평화로운 파도 소리나 일상 소음)
-    if ((phase === "낮" || phase === "아침") && /일상|캠퍼스|현대/.test(text)) {
-      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+    // 4. ☀️ 낮 / 아침 / 저녁 일상
+    if (phase === "낮" || phase === "아침" || phase === "저녁" || /일상|캠퍼스|현대/.test(text)) {
+      return "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3";
     }
     
-    // 기본값 (무난한 잔잔한 소리)
-    return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+    // 기본값 (에릭 사티 스타일의 잔잔한 클래식 피아노 MP3)
+    return "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3";
   };
    
     const text = textContext.toLowerCase();
@@ -5850,7 +5859,47 @@ return (
 
           {/* 우측 액션 아이콘 바 (모든 버튼 높이 34px로 정돈) */}
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "3px" : "5px", flexShrink: 0 }}>
-            
+
+{/* 🌟 0. 🎧 BGM 원클릭 온/오프 버튼 (브라우저 소리 잠금 완벽 해제!) */}
+            {activeSession && (
+              <button
+                type="button"
+                onClick={() => {
+                  const audio = audioRef.current;
+                  if (!audio) return;
+                  if (audio.paused) {
+                    audio.volume = bgmVolume;
+                    audio.play().then(() => {
+                      triggerToast("🎧 BGM 재생", "배경음악이 켜졌습니다.", "🎵");
+                    }).catch(e => {
+                      alert("오디오 재생 실패: " + e.message);
+                    });
+                  } else {
+                    audio.pause();
+                    triggerToast("🔇 BGM 음소거", "배경음악을 일시정지했습니다.", "⏸️");
+                  }
+                }}
+                title="BGM 켜기 / 끄기"
+                style={{
+                  height: isMobile ? "34px" : "36px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3px",
+                  padding: isMobile ? "0 6px" : "0 8px",
+                  background: "none",
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  color: theme.text,
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>🎧</span>
+                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>BGM</span>
+              </button>
+            )}
+
             {/* 1. 📱 스마트폰 메신저 */}
             {activeSession && (activeSession.ruleMode?.startsWith("dating") || activeSession.ruleMode?.includes("free")) && (() => {
               const phoneChats = activeSession.sheet?.phoneChats || {};
@@ -11876,7 +11925,7 @@ ${statusGuide}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
                       <h3 style={{ margin: 0, color: theme.text, fontSize: "1.1rem", fontWeight: "800" }}>
-                        🚀 v1.5.0 본격 추리/수사 모드 (Mystery & Investigation) 업데이트
+                        🚀 v1.5.0 본격 추리/수사 모드 업데이트
                       </h3>
                       <span style={{ fontSize: "0.7rem", padding: "2px 8px", backgroundColor: "rgba(227, 142, 132, 0.2)", border: `1px solid ${theme.danger}`, color: theme.danger, borderRadius: "10px", fontWeight: "800" }}>
                         LATEST
