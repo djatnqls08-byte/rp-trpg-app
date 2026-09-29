@@ -4169,7 +4169,7 @@ const res = await fetch("/api/chat", {
           body: JSON.stringify({
             // 🌟 [수정할 부분 2] 이미 위에서 40개를 잘랐으므로 바로 messagesForAi를 보냅니다.
             messages: messagesForAi, 
-            scenarioText: (activeSession.scenarioText || "") + (dynamicRules || "") + (typeof appearanceAnchor !== "undefined" ? appearanceAnchor : ""),
+            scenarioText: ((activeSession.scenarioText || "").split("[🚨 시나리오 원본 풀 텍스트")[0]) + (dynamicRules || "") + (typeof appearanceAnchor !== "undefined" ? appearanceAnchor : ""),
             playerSheet: safePlayerSheet,
             ruleMode: activeSession.ruleMode,
             playPreference: activeSession.preference,
@@ -9393,7 +9393,7 @@ ${statusGuide}
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 messages: messagesForApi.slice(-20),
-                scenarioText: (activeSession.scenarioText || "") + phoneContextNotice + phoneCgGuide,
+                scenarioText: ((activeSession.scenarioText || "").split("[🚨 시나리오 원본 풀 텍스트")[0]) + phoneContextNotice + phoneCgGuide,
                 playerSheet: cleanPlayerSheet,
                 ruleMode: "dating",
                 playPreference: activeSession.preference,
