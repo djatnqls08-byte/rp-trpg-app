@@ -3139,121 +3139,78 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
     };
   };
   
-const startNewSession = async () => {
-    const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
-    const pName = charName.trim() || "클레어";
-    const partnerName = kpcList[0]?.name || "아델";
-    const safeRawText = originalRawText ? originalRawText : "";
-    const autoTheme = detectAutoPhoneTheme(`${playPreference} ${sessionTitle} ${publicSynopsis}`);
-    setPhoneTheme(autoTheme);
+// 🌟 [수정] 특정 시나리오 이름 하드코딩 싹 제거! 완벽한 동적 치환 로직
+    let finalSynopsis = publicSynopsis || "";
+    let finalOpening = openingScene || "";
+    let finalTruth = hiddenTruth || "";
+    let finalScenarioCgs = JSON.parse(JSON.stringify(scenarioCgs || []));
 
-    const npcs = kpcList.filter(k => k.name.trim() !== "").map(k => {
-      const statMatch = (k.detail || "").match(/(?:상태\s*메시지|상메)\s*[:：]?\s*["'“]?([^"'”\r\n.]+?)["'”]?\s*(?:\.|\n|$)/i);
-      const initialStatus = k.statusMessage || (statMatch ? statMatch[1].trim() : "");
-      return {
-        id: k.id,
-        name: k.name,
-        gender: k.gender || "여성",
-        age: k.age || "20",
-        title: k.job || "조력자",
-        detail: k.detail || "",
-        portrait: k.portraitUrl || getPortraitUrl(k.name),
-        affection: 0,
-        secret: k.secret,
-        secretRevealed: false,
-        statusMessage: initialStatus
-      };
-    });
-
-    let initialHandouts = [];
-    const baseCards = [{ id: "pc_base", title: `${pName}의 사명과 비밀`, overview: `[공개 사명]\n${charMission || "당신의 표면적인 목적과 상태입니다."}`, secret: charSecret || "감춰진 사명이나 비밀이 없습니다.", revealed: false }];
-    if (npcs && npcs.length > 0) {
-      npcs.forEach((npc, idx) => {
-        baseCards.push({ id: `npc_base_${idx}`, title: `${npc.name}의 상태와 사명`, overview: `[표면상 상태/사명]\n역할: ${npc.title || "조연"}\n이 인물이 겉으로 보여주는 목적과 태도입니다.`, secret: npc.secret || "이 인물에게는 감춰진 비밀이 없습니다.", revealed: false });
-      });
-    }
-
-    let effectiveHandouts = generatedHandouts;
-    if (!effectiveHandouts || effectiveHandouts.length === 0) {
-      const fallbackSource = `${hiddenTruth}\n${publicSynopsis}\n${openingScene}`;
-      const fallbackRegex = /(?:^|\n)\s*[-*■•]?\s*\[([^\]]+)\]\s*\n([\s\S]*?)(?=(?:\n\s*[-*■•]?\s*\[[^\]]+\]|\n\s*#+|$))/g;
-      let fbMatch;
-      const fbList = [];
-      while ((fbMatch = fallbackRegex.exec(fallbackSource)) !== null) {
-        const fbTitle = fbMatch[1].trim();
-        const fbBody = fbMatch[2];
-        const fbSec = fbBody.match(/(?:획득\s*단서(?:\s*내용)?|비밀(?:\s*내용)?|단서(?:\s*내용)?|조사\s*결과|진실)\s*[:：]\s*([\s\S]*?)(?=(?:\n\s*[*·-]\s*[^:\n]+[:：]|\n\s*#+|$))/i);
-        const fbOver = fbBody.match(/(?:구역\s*분위기(?:\s*및\s*개요)?|개요|분위기|설명)\s*[:：]\s*([^\n\r]+)/i);
-        if (fbSec) fbList.push({ title: fbTitle, overview: fbOver ? fbOver[1].trim() : `[조사 구역: ${fbTitle}] 탐색 및 조사 단서입니다.`, secret: fbSec[1].trim() });
-      }
-      if (fbList.length > 0) effectiveHandouts = fbList;
-    }
-
-    if (effectiveHandouts && effectiveHandouts.length > 0) {
-      const hasBase = effectiveHandouts.some(h => h.title.includes("사명") || h.title.includes(pName) || h.title.includes(partnerName));
-      const parsedCards = effectiveHandouts.map((h, i) => ({ id: Date.now() + i, ...h, revealed: false }));
-      initialHandouts = hasBase ? parsedCards : [...baseCards, ...parsedCards];
-    } else {
-      initialHandouts = baseCards;
-    }
-
-    let startingItems = [];
-    const bgItemMatch = (charBackground || "").match(/(?:소지품|지닌\s*물건|아이템)\s*[:：]\s*([^\n\r]+)/i);
-    if (bgItemMatch) {
-      startingItems = bgItemMatch[1].split(/[,/·]\s*/).map(s => s.trim()).filter(Boolean).map(name => ({ name: name.replace(/^[-*•\d.]+\s*/, ""), desc: "개인 소지품" }));
-    }
-    if (startingItems.length === 0 && generatedItems && generatedItems.length > 0) startingItems = generatedItems;
-    if (startingItems.length === 0) {
-      if (wizardMode === "dating") startingItems = [{ name: "손수건", desc: "단정하게 접힌 부드러운 손수건" }, { name: "틴케이스 캔디", desc: "달콤한 과일향 사탕" }];
-      else if (wizardMode === "insane") startingItems = [{ name: "스마트폰", desc: "연락 및 기록용" }, { name: "작은 부적", desc: "마음을 안정시키는 소지품" }];
-      else startingItems = [{ name: "수첩과 펜", desc: "기록 도구" }, { name: "소형 손전등", desc: "휴대용 조명" }];
-    }
-
-    let finalSynopsis = publicSynopsis;
-    let finalOpening = openingScene;
-    let finalTruth = hiddenTruth;
-
-    const origPc = originalPresetPcName || "서지한";
-    const origPcShort = origPc.length >= 3 ? origPc.slice(1) : origPc;
+    const pName = charName.trim() || "주인공";
     const newPcShort = pName.length >= 3 ? pName.slice(1) : pName;
-    const pcFullReg = new RegExp(`\\{PC\\}|세리아나|클레어|${origPc}`, "g");
-    const pcShortReg = new RegExp(`${origPcShort}(?=[아이야은는이가을를의로으로])`, "g");
-
-    finalSynopsis = finalSynopsis.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-    finalOpening = finalOpening.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-    finalTruth = finalTruth.replace(pcFullReg, pName).replace(pcShortReg, newPcShort);
-
-    let finalScenarioCgs = [...(scenarioCgs || [])];
-    (kpcList || []).forEach((kpc, index) => {
-      const num = index + 1;
-      const currentName = kpc.name || `인물${num}`;
-      const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || (index === 0 ? "윤설아" : "");
-      const origNpcShort = origNpc.length >= 3 ? origNpc.slice(1) : origNpc;
-      const newNpcShort = currentName.length >= 3 ? currentName.slice(1) : currentName; 
-      const tagRegex = new RegExp(`\\{(KPC|NPC)${num}\\}`, "g");
-      finalSynopsis = finalSynopsis.replace(tagRegex, currentName);
-      finalOpening = finalOpening.replace(tagRegex, currentName);
-      finalTruth = finalTruth.replace(tagRegex, currentName);
-
-      if (origNpc) {
-        const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
-        const npcShortReg = new RegExp(`${origNpcShort}(?=[아이야은는이가을를의로으로])`, "g");
-        finalSynopsis = finalSynopsis.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
-        finalOpening = finalOpening.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
-        finalTruth = finalTruth.replace(npcFullReg, currentName).replace(npcShortReg, newNpcShort);
+    
+    // 1. 주인공(PC) 원본 이름 동적 추적 (오직 {PC} 태그와 로드된 원본 프리셋 이름만 사용)
+    const pcTargets = ["\\{PC\\}"];
+    if (originalPresetPcName) {
+      pcTargets.push(originalPresetPcName);
+      // 한국어 이름 3글자 이상일 경우 성을 뗀 이름도 추적 (예: 서지한 -> 지한아, 지한이)
+      if (originalPresetPcName.length >= 3) {
+        pcTargets.push(originalPresetPcName.slice(1) + "(?=[아이야은는이가을를의로으로])");
       }
+    }
+    const pcRegex = new RegExp(`(${pcTargets.join("|")})`, "g");
 
-      finalScenarioCgs = finalScenarioCgs.map(cg => {
-        let updatedTitle = (cg.title || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
-        let updatedTrigger = (cg.trigger || cg.condition || "").replace(pcFullReg, pName).replace(tagRegex, currentName);
-        if (origNpc) {
-          const npcFullReg = new RegExp(`\\{KPC\\}|\\{NPC\\}|발렌틴|아델|${origNpc}`, "g");
-          updatedTitle = updatedTitle.replace(npcFullReg, currentName);
-          updatedTrigger = updatedTrigger.replace(npcFullReg, currentName);
+    // 단 한 번씩만 안전하게 치환하는 전용 함수
+    const safeReplace = (text) => {
+      if (!text) return "";
+      
+      // 1. 주인공 이름 치환 (이름이 긴 경우 짧은 애칭 치환 로직 병행)
+      let res = text.replace(pcRegex, (match) => {
+        if (originalPresetPcName && originalPresetPcName.length >= 3 && match.includes(originalPresetPcName.slice(1)) && match !== originalPresetPcName) {
+          return newPcShort; // 성을 뗀 애칭으로 불렸을 때는 새 이름도 성을 떼고 치환
         }
-        return { ...cg, title: updatedTitle, trigger: updatedTrigger, condition: updatedTrigger };
+        return pName;
       });
-    });
+
+      // 2. 파트너/NPC 동적 치환 (오직 해당 프리셋의 원래 NPC 이름만 타겟팅!)
+      (kpcList || []).forEach((kpc, index) => {
+        const num = index + 1;
+        const currentName = kpc.name || `인물${num}`;
+        const newNpcShort = currentName.length >= 3 ? currentName.slice(1) : currentName;
+        const origNpc = (originalPresetNpcs && originalPresetNpcs[index]) || "";
+        
+        let npcTargets = [`\\{NPC${num}\\}`];
+        if (index === 0) npcTargets.push("\\{KPC\\}"); // 1번 NPC는 {KPC} 태그도 포함
+        
+        if (origNpc) {
+          npcTargets.push(origNpc);
+          if (origNpc.length >= 3) {
+            npcTargets.push(origNpc.slice(1) + "(?=[아이야은는이가을를의로으로])");
+          }
+        }
+
+        const npcRegex = new RegExp(`(${npcTargets.join("|")})`, "g");
+        res = res.replace(npcRegex, (match) => {
+          if (origNpc && origNpc.length >= 3 && match.includes(origNpc.slice(1)) && match !== origNpc) {
+            return newNpcShort;
+          }
+          return currentName;
+        });
+      });
+      return res;
+    };
+
+    // 지문과 CG 묘사에 안전 치환 함수 적용
+    finalSynopsis = safeReplace(finalSynopsis);
+    finalOpening = safeReplace(finalOpening);
+    finalTruth = safeReplace(finalTruth);
+
+    finalScenarioCgs = finalScenarioCgs.map(cg => ({
+      ...cg,
+      title: safeReplace(cg.title),
+      trigger: safeReplace(cg.trigger || cg.condition),
+      condition: safeReplace(cg.trigger || cg.condition),
+      desc: safeReplace(cg.desc || cg.overview || "") 
+    }));
 
     const currentNpcName = kpcList[0]?.name || "파트너";
     const mainNpcDetail = kpcList[0]?.detail || kpcList[0]?.appearance || kpcList[0]?.desc || "외모 설정";
