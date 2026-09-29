@@ -3832,14 +3832,20 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
       { role: "user", text: cleanDisplayText, contactId: currentContactId, prevSheet: snapshotSheet, isCall: isDirectCallSpeech, isVoiceCall: isVoiceCallActive, callNpc: voiceCallNpc?.name }
     ];
 
-    // 🌟 [추리 모드] 3대 수사 액션 시 피로도 30% 증가 로직
+// 🌟 [수정] 3대 수사 액션 및 알리바이/조사 대화 시 피로도 10% 정상 증가
     let addedFatigue = 0;
     if (activeSession.ruleMode === "freeform") {
-      if (textToSend.includes("[🔍 현장 조사]") || textToSend.includes("[🤫 특수 정보 수집]") || textToSend.includes("[💬 심문/추궁]")) {
-         addedFatigue = 10; // 수사 액션 1번당 피로도 10% 증가로 넉넉하게 완화!
+      const isInvestigationSpeech = 
+        textToSend.includes("[🔍") || 
+        textToSend.includes("[🤫") || 
+        textToSend.includes("[💬") || 
+        /알리바이|심문|추궁|조사|수색|증거|단서|용의자|당시|시각/.test(textToSend);
+
+      if (isInvestigationSpeech) {
+        addedFatigue = 10; // 수사 행동 시 피로도 10% 증가
       }
     }
-    const currentFatigue = activeSession.sheet?.fatigue || 0;
+    const currentFatigue = Number(activeSession.sheet?.fatigue || 0);
     const nextFatigue = Math.min(100, currentFatigue + addedFatigue);
 
     if (addedFatigue > 0 && nextFatigue >= 100) {
@@ -4965,11 +4971,13 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         ...s,
         activeContactId: finalActiveContactId,
         sheet: {
-          ...s.sheet,
-          ...newSheet,
-          activeContactId: finalActiveContactId,
-          hp: s.sheet?.hp ?? newSheet.hp,
-          enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
+            ...s.sheet,
+            ...newSheet,
+            // 🌟 [핵심] AI 답변 후 피로도가 0%로 덮어씌워지는 버그 완벽 차단!
+            fatigue: (s.sheet?.fatigue !== undefined ? s.sheet.fatigue : nextFatigue) + (newClues.length > 0 && addedFatigue === 0 ? 10 : 0),
+            activeContactId: finalActiveContactId,
+            hp: s.sheet?.hp ?? newSheet.hp,
+            enemyHp: s.sheet?.enemyHp ?? newSheet.enemyHp,
           currentPlot: s.sheet?.currentPlot ?? newSheet.currentPlot,
           enemyPlot: s.sheet?.enemyPlot ?? newSheet.enemyPlot,
           handouts: newSheet.handouts || s.sheet?.handouts,
