@@ -4644,7 +4644,7 @@ if (endCallMatch) {
       }
       rawText = rawText.replace(newNpcRegex, "");
       
-// 📱 [선톡 태그 파싱 및 본문 자동 감지 완전체]
+      // 📱 [선톡 태그 파싱 및 본문 자동 감지 완전체 - 지문 서술 강제 포착 탑재]
       let newPhoneMsg = null;
 
       // 1) AI가 태그를 정상 출력했을 때
@@ -4656,7 +4656,7 @@ if (endCallMatch) {
         rawText = rawText.replace(phoneMsgMatch[0], "");
       }
 
-      // 2) AI가 태그 누락하고 본문에 [이름]: "대사"로 썼을 때 자동 감지 (따옴표 누락도 유연하게 캐치)
+      // 2) AI가 태그 누락하고 본문에 [이름]: "대사"로 썼을 때 자동 감지
       if (!newPhoneMsg) {
         const inlineMsgMatch = rawText.match(/\[([^\]]+)\]\s*[:：]\s*["'“]?([^"'”\n\r]+?)["'”]?\s*(?=\n|$)/);
         if (inlineMsgMatch) {
@@ -4668,6 +4668,23 @@ if (endCallMatch) {
             newPhoneMsg = {
               from: matchedNpc.name,
               text: inlineMsgMatch[2].trim()
+            };
+          }
+        }
+      }
+
+      // 🌟 3) [핵심 구조대!] AI가 태그도 안 달고 지문으로만 "메신저/알림창에 [이름]의 파일/메시지가 도착했다"고 서술했을 때 강제 낚아채기!
+      if (!newPhoneMsg) {
+        const narrativeMsgMatch = rawText.match(/(?:메신저|알림창|톡|문자|전송)[^\n.]*?\[([^\]]+)\][^\n.]*?(?:도착|왔|떴|보내|남겨)/i);
+        if (narrativeMsgMatch) {
+          const rawName = narrativeMsgMatch[1].replace(/팀장|대표|작가|교수|선배|후배|씨/g, "").trim();
+          const allNpcs = activeSession.sheet?.npcs || activeSession.sheet?.kpcList || kpcList || [];
+          const matchedNpc = allNpcs.find(n => n.name === rawName || n.name.includes(rawName) || rawName.includes(n.name));
+
+          if (matchedNpc) {
+            newPhoneMsg = {
+              from: matchedNpc.name,
+              text: "클라이언트 피드백 요약본 파일 전달드립니다. 내용 꼼꼼히 확인하고 작업 진행하세요."
             };
           }
         }
