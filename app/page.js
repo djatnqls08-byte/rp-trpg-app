@@ -1110,6 +1110,49 @@ setLobbySaveModal(null);
   const [fontChoice, setFontChoice] = useState("maru");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [soundVolume, setSoundVolume] = useState(0.6);
+  
+  // 🌟 [신규 추가] 채팅 폰트 크기 및 BGM/ASMR 상태
+  const [chatFontSize, setChatFontSize] = useState(0.92); 
+  const [bgmUrl, setBgmUrl] = useState("");
+  const [bgmVolume, setBgmVolume] = useState(0.5);
+  const audioRef = useRef(null);
+
+  // 로컬 스토리지에 저장 및 불러오기 함수
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedFontSize = localStorage.getItem("rp_hub_font_size"); 
+      if (savedFontSize) setChatFontSize(Number(savedFontSize));
+      const savedBgm = localStorage.getItem("rp_hub_bgm_url"); 
+      if (savedBgm) setBgmUrl(savedBgm);
+      const savedBgmVol = localStorage.getItem("rp_hub_bgm_vol"); 
+      if (savedBgmVol) setBgmVolume(Number(savedBgmVol));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = bgmVolume;
+      if (bgmUrl) {
+        audioRef.current.play().catch(e => console.warn("오디오 재생 실패:", e));
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [bgmUrl, bgmVolume]);
+
+  const handleSaveFontSize = (size) => {
+    setChatFontSize(size);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
+  };
+  const handleSaveBgmUrl = (url) => {
+    setBgmUrl(url);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_url", url);
+  };
+  const handleSaveBgmVolume = (vol) => {
+    setBgmVolume(vol);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
+  };
+
   // 🌟 [추가] 스마트폰 메신저 서랍 및 햅틱(진동) 상태
   const [vibrationLevel, setVibrationLevel] = useState("medium"); // "off" | "light" | "medium" | "strong"
   const [isPhoneDrawerOpen, setIsPhoneDrawerOpen] = useState(false);
@@ -5454,8 +5497,12 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
     return () => window.removeEventListener("popstate", handlePopState);
   }, [activeSessionId, isPhoneDrawerOpen, isTabletopOpen, isSheetOpen, isSidebarOpen]);
  
-return (
+rreturn (
   <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
+    
+    {/* 🌟 보이지 않는 백그라운드 BGM 플레이어 */}
+    <audio ref={audioRef} loop src={bgmUrl}></audio>
+
     <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
@@ -7366,13 +7413,14 @@ return (
                             color: isDatingMsg && m.role === "user" ? "#242424" : theme.text, 
                             border: isDatingMsg ? `1px solid ${theme.border}` : (m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`), 
                             padding: isDatingMsg ? "10px 14px" : "14px 18px", 
-                            borderRadius: isDatingMsg ? (m.role === "user" ? "16px 2px 16px 16px" : "2px 16px 16px 16px") : "12px", 
-                            lineHeight: isDatingMsg ? "1.5" : "1.9", 
-                            whiteSpace: "pre-wrap", 
-                            fontSize: isDatingMsg ? "0.88rem" : "0.92rem",
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
-                          }}
-                        >
+                  borderRadius: isDatingMsg ? (m.role === "user" ? "16px 2px 16px 16px" : "2px 16px 16px 16px") : "12px", 
+                  lineHeight: isDatingMsg ? "1.5" : "1.9", 
+                  whiteSpace: "pre-wrap", 
+                  /* 🌟 여기에 글자 크기 변수(chatFontSize) 적용! */
+                  fontSize: `${isDatingMsg ? chatFontSize - 0.04 : chatFontSize}rem`,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
+                }}
+              >
 {m.cg && (
           <div 
             style={{
@@ -10961,8 +11009,37 @@ ${statusGuide}
                 </div>
               </div>
 
-              {/* 3. 볼륨 */}
+              {/* 🌟 3. 채팅 폰트 크기 조절 */}
               <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "4px" }}>
+                  <span>채팅 폰트 크기</span>
+                  <span style={{ color: theme.accent }}>{chatFontSize}rem</span>
+                </div>
+                <input type="range" min="0.75" max="1.5" step="0.05" value={chatFontSize} onChange={e => handleSaveFontSize(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
+              </div>
+
+              {/* 🌟 4. 배경음 (BGM/ASMR) 설정 */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "6px" }}>
+                  <span>🎧 배경음 (BGM & ASMR)</span>
+                </div>
+                <select value={bgmUrl} onChange={e => handleSaveBgmUrl(e.target.value)} style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.8rem", marginBottom: "10px", outline: "none" }}>
+                  <option value="">🔇 끄기 (재생 안 함)</option>
+                  <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">🌧️ 폭우가 쏟아지는 소리</option>
+                  <option value="https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg">☕ 소란스러운 카페</option>
+                  <option value="https://actions.google.com/sounds/v1/weather/thunderstorm.ogg">🌩️ 폭풍우 치는 밤</option>
+                  <option value="https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg">🦗 여름밤 풀벌레 소리</option>
+                  <option value="https://actions.google.com/sounds/v1/ambiences/fire.ogg">🔥 타닥타닥 모닥불</option>
+                </select>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: theme.textMuted, marginBottom: "4px" }}>
+                  <span>배경음 볼륨</span>
+                  <span>{Math.round(bgmVolume * 100)}%</span>
+                </div>
+                <input type="range" min="0" max="1" step="0.05" value={bgmVolume} onChange={e => handleSaveBgmVolume(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
+              </div>
+
+              {/* 🌟 5. 주사위 볼륨 (사반의 원래 코드 유지!) */}
+              <div style={{ borderTop: `1px dashed ${theme.border}`, paddingTop: "12px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "4px" }}>
                   <span>주사위 효과음 볼륨</span>
                   <span>{Math.round(soundVolume * 100)}%</span>
