@@ -3675,6 +3675,29 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
 
   // 🗺️ 플레이어가 채팅을 치거나 행동을 시작하면 이전 장소 배너 즉시 닫기
   setLocationCards([]);
+
+ // 🕒 [시간대 즉시 복구 치트키: /시간 아침, /시간 낮, /시간 저녁, /시간 밤, /시간 새벽]
+    if (textToSend.trim().startsWith("/시간")) {
+      const parts = textToSend.trim().split(/\s+/);
+      const targetTime = parts[1];
+      const validTimes = ["새벽", "아침", "낮", "저녁", "밤"];
+
+      if (validTimes.includes(targetTime)) {
+        setCurrentPhase(targetTime);
+        setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+          ...s,
+          currentPhase: targetTime,
+          sheet: { ...s.sheet, currentPhase: targetTime }
+        } : s));
+
+        if (typeof triggerToast === "function") {
+          triggerToast("시간대 변경 완료", `현재 시각이 [${targetTime}](으)로 설정되었습니다.`, "🕒");
+        }
+        setInput("");
+        return; // AI 통신 없이 즉시 변경 완료
+      }
+    }
+ 
 // 💖 [호감도 복구/조정 치트키]
     // 사용법 1: /호감도 발렌틴 80
     // 사용법 2: /호감도 80
@@ -4154,17 +4177,15 @@ ${npcsSummary}
 4. 직업 왜곡 금지: [${callName}]은 반드시 자신의 본업인 [${trueJob}]로서만 대화해야 합니다.`;
     }
 
-    // 🕒 시간대 및 하루 진행 규칙 (스마트 전환)
+   // 🕒 시간대 및 하루 진행 규칙 (독단적 워프 전면 차단)
     dynamicRules += `\n\n[⏰ 시간대(Phase) 및 날짜(Day) 절대 수칙]
-1. [날짜(Day) 임의 변경 전면 금지]:
-- 현재는 [${currentDay}일차]입니다. AI가 자의적으로 날짜를 2일차, 3일차로 올리거나 내일로 건너뛰는 행위를 엄격히 금지합니다. (날짜는 오직 유저의 수면으로만 전진)
-2. [하루 속 시간대(낮 ➔ 저녁 ➔ 밤) 자연스러운 전진]:
-- 현재 시간대: [${currentPhaseStr}]
-- 대화가 5~7턴 이상 무르익거나, 한 장소에서의 일정이 마무리되어 헤어지는 타이밍(퇴근, 약속 종료, 귀가 등)에는 공기의 색을 묘사하며 자연스럽게 다음 시간대로 넘어가십시오.
-- 시간대를 전환할 때는 지문 맨 끝에 아래 태그를 반드시 1회 출력하십시오:
-  <!-- PHASE: "저녁" --> (선택 가능: "낮", "저녁", "밤", "새벽")
-3. [밤/새벽의 취침 유도]:
-- 시간대가 '밤'이나 '새벽'에 도달하면, 상대방이 피로를 내비치거나 "오늘은 이만 쉬자", "내일 봐"라며 귀가와 취침을 자연스럽게 권유하게 하십시오.`;
+1. [현재 진행 중인 장면에서 시간 워프 절대 금지]:
+- 현재 시각: [${currentDay}일차 ${currentPhaseStr}]
+- 플레이어가 특정 장소에서 출근, 대화, 심문, 조사를 진행 중일 때는 절대로 자의적으로 시간대(PHASE)를 바꾸지 마십시오.
+- 대화 턴 수가 길어지더라도 현재 시간대의 공기와 햇살을 유지하십시오. (아침이면 계속 아침의 상쾌함 유지)
+2. [시간대 전환(PHASE)이 허용되는 유일한 예외]:
+- 플레이어가 지문으로 "점심을 먹으러 가자", "퇴근한다", "밤이 깊어졌다"처럼 명시적으로 시간 경과 행동을 선언하거나, 완전히 다른 일정으로 장소를 이동했을 때만 전환하십시오.
+- 그 외의 모든 일상/수사 대화에서는 <!-- PHASE --> 태그를 절대로 출력하지 마십시오.`;
     
 
 // 🎯 [현재 대면 상대 직업 왜곡 방지 절대 지침]
