@@ -1148,49 +1148,35 @@ setLobbySaveModal(null);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
   };
 
-  // 🌟 [업그레이드] 5대 시간대 + 장르 완벽 대응 BGM 디렉터!
+  // 🌟 [수정] 100% 재생 보장! 구글 공식 ASMR 디렉터
   const detectAutoBgm = (session, phase) => {
-    if (!session) return ""; // 로비 화면에서는 음악 끄기
+    if (!session) return ""; 
 
     const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
     
-    // 1. ⚔️ 클라이맥스 결전
-    if (session.sheet?.phase === "클라이맥스") {
-      return "https://cdn.pixabay.com/audio/2022/10/25/audio_14cead1592.mp3"; 
+    // 클라이맥스 / 공포
+    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
+      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
     }
-    // 2. 🩸 피폐 / 공포 / 크툴루
-    if (/공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
-      return "https://cdn.pixabay.com/audio/2022/01/18/audio_82c5e5f5da.mp3"; 
-    }
-    // 3. 🧙‍♂️ 판타지 / 동양풍 / 오컬트
+    // 판타지 / 동양풍 / 오컬트
     if (/판타지|중세|오컬트|동양풍|신전/.test(text)) {
-      return "https://cdn.pixabay.com/audio/2022/01/21/audio_51fd3eb321.mp3"; 
+      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
     }
-    // 4. 🌧️ 비 오는 날 특수 배경
+    // 비 오는 날
     if (/비가|빗소리|장마/.test(text)) {
       return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
     }
-    
-    // 5. ⏰ 5대 시간대별 브금 완벽 분기!
-    if (phase === "새벽") {
-      // 새벽: 고요하고 감성적인 피아노
-      return "https://cdn.pixabay.com/audio/2022/08/02/audio_12b2c351f3.mp3";
-    } else if (phase === "아침") {
-      // 아침: 상쾌한 어쿠스틱/자연의 소리
-      return "https://cdn.pixabay.com/audio/2022/03/15/audio_cba122c676.mp3";
-    } else if (phase === "낮") {
-      // 낮: 잔잔한 파도소리나 평화로운 일상
-      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
-    } else if (phase === "저녁" || phase === "노을") {
-      // 저녁/노을: 아련하고 서정적인 피아노
-      return "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3";
-    } else if (phase === "밤" || phase === "심야") {
-      // 밤: 풀벌레 소리가 섞인 차분한 분위기
+    // 밤/새벽 (풀벌레 소리)
+    if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
       return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
     }
+    // 낮/아침 (파도 소리)
+    if (phase === "낮" || phase === "아침" || /일상|캠퍼스|현대/.test(text)) {
+      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+    }
     
-    // 기본값
-    return "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3";
+    // 기본값 (파도 소리)
+    return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
   };
 
   // 방 이동 및 시간대 변화 감지기
