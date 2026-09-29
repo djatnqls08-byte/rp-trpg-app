@@ -1148,35 +1148,9 @@ setLobbySaveModal(null);
   const [phoneSuggestions, setPhoneSuggestions] = useState([]);
   const phoneChatContainerRef = useRef(null);
 
-// 🌟 [추가] 시나리오 장르/태그를 분석해서 어울리는 톡 테마를 자동으로 골라주는 함수!
+// 🌟 [정리 완료] 시나리오 장르/태그 분석 자동 테마 함수
   const detectAutoPhoneTheme = (textContext = "") => {
-  // 🌟 [수정] 아이폰/사파리/크롬 100% 호환! 고음질 MP3 공식 링크로 전면 교체
-  const detectAutoBgm = (session, phase) => {
-    if (!session) return ""; 
-    const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
-    
-    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포
-    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
-      return "https://cdn.pixabay.com/download/audio/2022/01/18/audio_82c5e5f5da.mp3"; 
-    }
-    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트
-    if (/판타지|중세|황실|궁정|오컬트|동양풍|신전/.test(text)) {
-      return "https://cdn.pixabay.com/download/audio/2022/01/21/audio_51fd3eb321.mp3"; 
-    }
-    // 3. 🌙 밤 / 새벽 시간대 (감미로운 피아노 & 고요한 선율)
-    if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://cdn.pixabay.com/download/audio/2022/08/02/audio_12b2c351f3.mp3";
-    }
-    // 4. ☀️ 낮 / 아침 / 저녁 일상
-    if (phase === "낮" || phase === "아침" || phase === "저녁" || /일상|캠퍼스|현대/.test(text)) {
-      return "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3";
-    }
-    
-    // 기본값 (에릭 사티 스타일의 잔잔한 클래식 피아노 MP3)
-    return "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3";
-  };
-   
-    const text = textContext.toLowerCase();
+    const text = (textContext || "").toLowerCase();
     
     // 1. 무협, 동양풍, 판타지, 시대극, 사극, 오컬트 -> 📜 양피지 테마
     if (/무협|동양|판타지|중세|시대|사극|황실|궁정|오컬트|마법|신분차/.test(text)) {
@@ -1190,10 +1164,10 @@ setLobbySaveModal(null);
     if (/현대|일상|캠퍼스|학원|학교|오피스|직장|달달|데이트/.test(text)) {
       return "kakao";
     }
-    // 4. 그 외 애매하거나 복합적인 장르 -> ✨ 기본 시스템 테마
+    // 4. 그 외 기본
     return "default";
   };
-  
+   
 // 🌟 [추가] 톡 전용 스킨 테마 및 서랍 드래그 제스처 상태
   const [phoneTheme, setPhoneTheme] = useState("default"); // "default" | "kakao" | "parchment" | "cyber"
   const [dragStartY, setDragStartY] = useState(null);
@@ -1986,7 +1960,7 @@ const advanceInsaneScene = (sessionId) => {
     } : s));
   };
 
-  const handleAiGenerate = async () => {
+const handleAiGenerate = async () => {
     setIsAiGenerating(true);
     const controller = new AbortController();
     setAbortController(controller);
@@ -2001,13 +1975,6 @@ const advanceInsaneScene = (sessionId) => {
 1. 모든 인물은 무조건 매력적인 여성(GL)입니다. 맹목적인 집착은 배제하고 섬세한 유대감을 부여하십시오.
 2. 'PC', 'KPC'라는 단어를 일절 쓰지 말고 어울리는 고유한 이름을 직접 지어 사용하십시오.
 3. 핸드아웃의 secret(비밀)란을 절대로 빈칸으로 두지 마십시오.
-
-[주변 인물(엑스트라/조연) 묘사 및 개입 규칙]
-1. 세계관 일관성: 스쳐 지나가는 하녀, 시종장, 타 가문 귀족, 직장 상사 등 모든 주변인은 예외 없이 여성으로만 묘사합니다.
-2. 기능성 엑스트라의 지위: 서사의 배경을 채우는 조연들은 고유 이름 대신 직책(예: 시종장, 젊은 전령, 옆 부서 팀장)으로 지칭하며, <!-- NPC: ... --> 태그를 발행하여 주요 인물 목록에 등록시키지 마십시오.
-3. 난입과 개입의 제한:
-   - PC와 핵심 인물 간의 깊은 대화나 긴장감 넘치는 밀회 도중 무맥락으로 끼어들어 흐름을 끊는 개입은 엄격히 금지합니다.
-   - 주변인의 존재는 공적인 자리에서 서로의 감정을 숨겨야 하는 '은밀한 긴장감 연출'이나, 새로운 사건/정보를 전달하는 '메신저' 역할로만 제한적으로 활용하십시오.
 
 반드시 마크다운 없이 순수 JSON으로만 응답하십시오:
 {
@@ -2028,39 +1995,35 @@ const advanceInsaneScene = (sessionId) => {
   "openingScene": "서막의 공감각적 묘사와 첫 대사를 담은 풍성한 지문",
   "hiddenTruth": "배후 진상 및 흑막(Keeper 기밀)",
   "items": [
-    { "name": "캐릭터의 신분과 성격에 어울리는 소지품 1", "desc": "간략한 설명" },
+    { "name": "소지품 1", "desc": "간략한 설명" },
     { "name": "소지품 2", "desc": "간략한 설명" }
   ],
   "initialHandouts": [
     { "title": "주인공의 사명과 비밀", "overview": "현재 상황 개요", "secret": "뒤집었을 때의 진실" },
-    { "title": "파트너의 태도와 시선", "overview": "겉으로 보이는 태도", "secret": "뒤집었을 때의 진짜 속마음" },
-    { "title": "현장 단서 1", "overview": "사물/장소 묘사", "secret": "조사 성공 시 밝혀지는 비밀" },
-    { "title": "현장 단서 2", "overview": "핵심 기록물 묘사", "secret": "해금되었을 때의 진실" }
+    { "title": "파트너의 태도와 시선", "overview": "겉으로 보이는 태도", "secret": "뒤집었을 때의 진짜 속마음" }
   ]
 }`;
     
-try {
+    try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: [{ role: "user", text: openingPrompt }],
-          scenarioText: fullScenarioContext,
-          playerSheet: cleanSheetForAi(initialSheet),
+          messages: [{ role: "user", text: systemPrompt }],
+          scenarioText: "",
+          playerSheet: {},
           ruleMode: wizardMode,
-          playPreference,
-          // ✨ 여기에 아래 한 줄을 추가합니다!
-          isPhoneChat: wizardMode === "dating_msg"
+          playPreference
         })
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${response.status})`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `서버 응답 오류 (상태 코드: ${res.status})`);
       }
 
-      const data = await response.json();
+      const data = await res.json();
       const cleanJson = (data.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
       const p = JSON.parse(cleanJson);
 
@@ -2070,7 +2033,7 @@ try {
       setCharName(pName);
       setCharJob(p.job || "");
       setCharAge(p.age || "");
-      setCharGender("");
+      setCharGender(p.gender || "여성");
       setCharBackground(p.background || "");
       setCharPortraitUrl(getPortraitUrl(`${pName}, ${p.job}`));
 
@@ -2104,7 +2067,6 @@ try {
       setAbortController(null);
     }
   };
-
   // 🌟 [업그레이드된 이름 치환 핸들러] 
   // PC, KPC뿐만 아니라 탐사자, 파트너도 모두 실제 캐릭터 이름으로 바꿔줍니다!
   const handleAutoReplaceKpcPc = () => {
@@ -3081,7 +3043,7 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
 
     return { cleanText, parsedData };
   };
-  const cleanSheetForAi = (sheet) => {
+ const cleanSheetForAi = (sheet) => {
     if (!sheet) return {};
     const { portrait, ...rest } = sheet;
     return {
@@ -3090,6 +3052,8 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
     };
   };
 
+  // 🌟 [완벽 복구!] 세션 시작 및 동적 이름 치환 함수
+  const startNewSession = async () => {
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "주인공";
     const partnerName = kpcList[0]?.name || "파트너";
@@ -3366,7 +3330,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       setAbortController(null);
     }
   };
-
   // 🌟 [감정 판정 2단계] 대상 선택 후 주사위 굴리기
   const startEmotionRoll = (npc) => {
     setEmotionTargetNpc(npc);
@@ -7978,6 +7941,7 @@ return (
 
               const isTodayApp = matchedApp && diffDays === 0;   // 오늘 가야 함 (D-Day)
               const isFutureApp = matchedApp && diffDays > 0;    // 미래의 약속 (D-1 ~ D-7)
+             const isAppointed = isTodayApp || isFutureApp;
              
              // 🌟 2. 미해금 CG 장소 자동 매칭 검사 (금빛 묘한 예감 힌트)
               const allScenarioCgs = activeSession?.sheet?.scenarioCgs || activeSession?.sheet?.cgs || scenarioCgs || [];
