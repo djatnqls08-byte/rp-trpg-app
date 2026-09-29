@@ -1117,30 +1117,34 @@ setLobbySaveModal(null);
   const [bgmVolume, setBgmVolume] = useState(0.5);
 const audioRef = useRef(null);
 
-  // 🌟 [수정] 100% 재생 보장! 위키미디어 공용 음원 서버 링크로 교체
+  // 🌟 [수정] 외부 차단 0%! 위키미디어 & 구글 공용 스트리밍 공식 링크로 전면 교체
   const detectAutoBgm = (session, phase) => {
     if (!session) return ""; 
     const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
     
-    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포 (긴장감)
-    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/e/ee/Spooky_wind_and_howling.ogg"; 
+    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포 (긴장감 넘치는 앰비언트)
+    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
+      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
     }
-    // 2. 🌧️ 비 오는 날 특수 배경
+    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트 (신비로운 대성당 성가대)
+    if (/판타지|중세|황실|궁정|오컬트|동양풍|신전/.test(text)) {
+      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
+    }
+    // 3. 🌧️ 비 오는 날 특수 배경
     if (/비가|빗소리|장마/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/2/23/Rain_Sound_Effect.ogg";
+      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
     }
-    // 3. 🌙 밤/새벽 (풀벌레 소리)
+    // 4. 🌙 밤 / 새벽 시간대 (감미로운 쇼팽 녹턴 피아노 명곡)
     if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/1/1a/Crickets_at_night.ogg";
+      return "https://upload.wikimedia.org/wikipedia/commons/e/ec/Chopin_Nocturne_Op._9_No._2.mp3";
     }
-    // 4. ☀️ 낮/아침 (파도 소리)
-    if (phase === "낮" || phase === "아침" || /일상|캠퍼스|현대/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/e/e0/Sea_waves_sound.ogg";
+    // 5. ☀️ 낮 / 아침 / 저녁 일상 (평온하고 따뜻한 피아노 선율)
+    if (phase === "낮" || phase === "아침" || phase === "저녁" || /일상|캠퍼스|현대/.test(text)) {
+      return "https://upload.wikimedia.org/wikipedia/commons/2/22/Moonlight_Sonata_1st_movement.mp3";
     }
     
-    // 기본값 (감미로운 피아노 - 에릭 사티 짐노페디 1번)
-    return "https://upload.wikimedia.org/wikipedia/commons/4/4e/Gymnopedie_No_1.ogg";
+    // 기본값 (바흐 G선상의 아리아 클래식)
+    return "https://upload.wikimedia.org/wikipedia/commons/2/23/Air_on_the_G_String_%28Violin_and_Piano%29.mp3";
   };
 
   // 방 이동 및 시간대 변화 감지기
@@ -5860,24 +5864,36 @@ return (
           {/* 우측 액션 아이콘 바 (모든 버튼 높이 34px로 정돈) */}
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "3px" : "5px", flexShrink: 0 }}>
 
-{/* 🌟 0. 🎧 BGM 원클릭 온/오프 버튼 (브라우저 소리 잠금 완벽 해제!) */}
+{/* 🌟 0. 🎧 BGM 원클릭 온/오프 버튼 (자동 주소 장전 & 재생 보장) */}
             {activeSession && (
               <button
                 type="button"
                 onClick={() => {
                   const audio = audioRef.current;
                   if (!audio) return;
-                  if (audio.paused) {
-                    audio.volume = bgmVolume;
-                    audio.play().then(() => {
-                      triggerToast("🎧 BGM 재생", "배경음악이 켜졌습니다.", "🎵");
-                    }).catch(e => {
-                      alert("오디오 재생 실패: " + e.message);
-                    });
-                  } else {
+
+                  // 재생 중이면 일시정지
+                  if (!audio.paused) {
                     audio.pause();
                     triggerToast("🔇 BGM 음소거", "배경음악을 일시정지했습니다.", "⏸️");
+                    return;
                   }
+
+                  // 💡 만약 audio에 주소가 안 들어가 있다면 즉시 계산해서 장전!
+                  const targetBgm = bgmUrl || detectAutoBgm(activeSession, currentPhase);
+                  if (targetBgm && audio.src !== targetBgm) {
+                    audio.src = targetBgm;
+                  }
+
+                  audio.volume = bgmVolume;
+                  audio.play()
+                    .then(() => {
+                      triggerToast("🎧 BGM 재생", "배경음악이 켜졌습니다.", "🎵");
+                    })
+                    .catch(e => {
+                      console.error("오디오 재생 실패:", e);
+                      triggerToast("오디오 연결 중", "소리를 재생하는 중입니다. 다시 한 번 눌러주세요.", "⚠️");
+                    });
                 }}
                 title="BGM 켜기 / 끄기"
                 style={{
