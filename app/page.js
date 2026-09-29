@@ -1113,7 +1113,6 @@ setLobbySaveModal(null);
   
   // 🌟 [신규 추가] 채팅 폰트 크기 및 BGM/ASMR 상태
   const [chatFontSize, setChatFontSize] = useState(0.92); 
-  const [chatFontSize, setChatFontSize] = useState(0.92); 
   const [bgmUrl, setBgmUrl] = useState("");
   const [bgmVolume, setBgmVolume] = useState(0.5);
   const audioRef = useRef(null);
@@ -5541,9 +5540,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
 return (
   <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
     
-    {/* 🌟 보이지 않는 백그라운드 BGM 플레이어 */}
-    <audio ref={audioRef} loop src={bgmUrl}></audio>
-
     <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
