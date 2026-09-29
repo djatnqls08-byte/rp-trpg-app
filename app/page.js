@@ -1144,10 +1144,14 @@ setLobbySaveModal(null);
     setChatFontSize(size);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
   };
-  const handleSaveBgmUrl = (url) => {
-    setBgmUrl(url);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_url", url);
-  };
+  // (handleSaveBgmUrl 함수는 이제 수동 선택을 안 할 거니까 지워버리고 아래 코드로 교체해!)
+  
+  // 🌟 [추가] 방에 입장하거나(activeSessionId), 시간대(currentPhase)가 바뀔 때마다 BGM 자동 변경!
+  useEffect(() => {
+    if (!isLoaded) return;
+    const autoBgm = detectAutoBgm(activeSession, currentPhase);
+    setBgmUrl(autoBgm);
+  }, [activeSessionId, currentPhase, isLoaded]);
   const handleSaveBgmVolume = (vol) => {
     setBgmVolume(vol);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
@@ -1176,6 +1180,37 @@ setLobbySaveModal(null);
 
 // 🌟 [추가] 시나리오 장르/태그를 분석해서 어울리는 톡 테마를 자동으로 골라주는 함수!
   const detectAutoPhoneTheme = (textContext = "") => {
+   // 🌟 [추가] 시나리오 분위기와 시간대에 맞춰 BGM을 자동 선택하는 디렉터 함수!
+  const detectAutoBgm = (session, phase) => {
+    if (!session) return ""; // 로비 화면에서는 음악 끄기
+
+    const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
+    
+    // 1. 🚨 클라이맥스 페이즈나 호러/피폐 장르 (긴장감 넘치는 앰비언트)
+    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러/.test(text)) {
+      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
+    }
+    // 2. 🧙‍♂️ 판타지 / 동양풍 / 오컬트 (웅장하거나 신비로운 성가대/바람 소리)
+    if (/판타지|중세|오컬트|동양풍|신전/.test(text)) {
+      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
+    }
+    // 3. 🌧️ 비 오는 날 특수 배경
+    if (/비가|빗소리|장마/.test(text)) {
+      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+    }
+    // 4. 🌙 밤/새벽 시간대의 로맨스/달달 (감미로운 분위기 - 풀벌레 소리)
+    if ((phase === "밤" || phase === "새벽") && /달달|로맨스|짝사랑|미연시/.test(text)) {
+      return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
+    }
+    // 5. ☀️ 낮/아침 시간대의 일상 (따뜻하고 평화로운 파도 소리나 일상 소음)
+    if ((phase === "낮" || phase === "아침") && /일상|캠퍼스|현대/.test(text)) {
+      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+    }
+    
+    // 기본값 (무난한 잔잔한 소리)
+    return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+  };
+   
     const text = textContext.toLowerCase();
     
     // 1. 무협, 동양풍, 판타지, 시대극, 사극, 오컬트 -> 📜 양피지 테마
@@ -11018,22 +11053,14 @@ ${statusGuide}
                 <input type="range" min="0.75" max="1.5" step="0.05" value={chatFontSize} onChange={e => handleSaveFontSize(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
               </div>
 
-              {/* 🌟 4. 배경음 (BGM/ASMR) 설정 */}
+             {/* 🌟 4. 배경음 (BGM/ASMR) 설정 - 스마트 자동 재생 모드 */}
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "6px" }}>
-                  <span>🎧 배경음 (BGM & ASMR)</span>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "2px" }}>
+                  <span>🎧 시나리오 맞춤 BGM (자동 재생 중)</span>
+                  <span style={{ color: theme.accent }}>{Math.round(bgmVolume * 100)}%</span>
                 </div>
-                <select value={bgmUrl} onChange={e => handleSaveBgmUrl(e.target.value)} style={{ width: "100%", padding: "8px", backgroundColor: theme.inputBg, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.8rem", marginBottom: "10px", outline: "none" }}>
-                  <option value="">🔇 끄기 (재생 안 함)</option>
-                  <option value="https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg">🌧️ 폭우가 쏟아지는 소리</option>
-                  <option value="https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg">☕ 소란스러운 카페</option>
-                  <option value="https://actions.google.com/sounds/v1/weather/thunderstorm.ogg">🌩️ 폭풍우 치는 밤</option>
-                  <option value="https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg">🦗 여름밤 풀벌레 소리</option>
-                  <option value="https://actions.google.com/sounds/v1/ambiences/fire.ogg">🔥 타닥타닥 모닥불</option>
-                </select>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: theme.textMuted, marginBottom: "4px" }}>
-                  <span>배경음 볼륨</span>
-                  <span>{Math.round(bgmVolume * 100)}%</span>
+                <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginBottom: "8px" }}>
+                  장르와 시간대(낮/밤)에 맞춰 배경음악이 자동으로 바뀝니다. 소리를 끄려면 볼륨을 0으로 낮춰주세요.
                 </div>
                 <input type="range" min="0" max="1" step="0.05" value={bgmVolume} onChange={e => handleSaveBgmVolume(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
               </div>
