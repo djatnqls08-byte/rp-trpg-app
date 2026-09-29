@@ -1115,68 +1115,32 @@ setLobbySaveModal(null);
   const [chatFontSize, setChatFontSize] = useState(0.92); 
   const [bgmUrl, setBgmUrl] = useState("");
   const [bgmVolume, setBgmVolume] = useState(0.5);
-  const audioRef = useRef(null);
+const audioRef = useRef(null);
 
-  // 🌟 [복구] 폰트 크기 저장 및 오디오 초기 로드 (이게 없어서 슬라이더가 고장났어!)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedFontSize = localStorage.getItem("rp_hub_font_size"); 
-      if (savedFontSize) setChatFontSize(Number(savedFontSize));
-      const savedBgmVol = localStorage.getItem("rp_hub_bgm_vol"); 
-      if (savedBgmVol) setBgmVolume(Number(savedBgmVol));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = bgmVolume;
-      if (bgmUrl) {
-        audioRef.current.play().catch(e => console.warn("오디오 재생 실패:", e));
-      } else {
-        audioRef.current.pause();
-      }
-    }
-  }, [bgmUrl, bgmVolume]);
-
-  const handleSaveFontSize = (size) => {
-    setChatFontSize(size);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
-  };
-
-  const handleSaveBgmVolume = (vol) => {
-    setBgmVolume(vol);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
-  };
-
-  // 🌟 [수정] 100% 재생 보장! 구글 공식 ASMR 디렉터
+  // 🌟 [수정] 100% 재생 보장! 위키미디어 공용 음원 서버 링크로 교체
   const detectAutoBgm = (session, phase) => {
     if (!session) return ""; 
-
     const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
     
-    // 클라이맥스 / 공포
-    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
-      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
+    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포 (긴장감)
+    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러/.test(text)) {
+      return "https://upload.wikimedia.org/wikipedia/commons/e/ee/Spooky_wind_and_howling.ogg"; 
     }
-    // 판타지 / 동양풍 / 오컬트
-    if (/판타지|중세|오컬트|동양풍|신전/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
-    }
-    // 비 오는 날
+    // 2. 🌧️ 비 오는 날 특수 배경
     if (/비가|빗소리|장마/.test(text)) {
-      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+      return "https://upload.wikimedia.org/wikipedia/commons/2/23/Rain_Sound_Effect.ogg";
     }
-    // 밤/새벽 (풀벌레 소리)
+    // 3. 🌙 밤/새벽 (풀벌레 소리)
     if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
+      return "https://upload.wikimedia.org/wikipedia/commons/1/1a/Crickets_at_night.ogg";
     }
-    // 낮/아침 (파도 소리)
+    // 4. ☀️ 낮/아침 (파도 소리)
     if (phase === "낮" || phase === "아침" || /일상|캠퍼스|현대/.test(text)) {
-      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+      return "https://upload.wikimedia.org/wikipedia/commons/e/e0/Sea_waves_sound.ogg";
     }
     
-    // 기본값 (파도 소리)
-    return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
+    // 기본값 (감미로운 피아노 - 에릭 사티 짐노페디 1번)
+    return "https://upload.wikimedia.org/wikipedia/commons/4/4e/Gymnopedie_No_1.ogg";
   };
 
   // 방 이동 및 시간대 변화 감지기
@@ -1186,6 +1150,29 @@ setLobbySaveModal(null);
     setBgmUrl(autoBgm);
   }, [activeSessionId, currentPhase, isLoaded]);
 
+  // 🌟 [복구됨!] 오디오 플레이어 안전 재생 로직 (브라우저 차단 우회)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    audio.volume = bgmVolume;
+    if (bgmUrl) {
+      audio.src = bgmUrl;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.warn("브라우저 자동재생이 차단되었습니다. 설정창에서 강제 재생을 눌러주세요.", e);
+        });
+      }
+    } else {
+      audio.pause();
+    }
+  }, [bgmUrl, bgmVolume]);
+
+  const handleSaveBgmVolume = (vol) => {
+    setBgmVolume(vol);
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
+  };
   // 🌟 [추가] 스마트폰 메신저 서랍 및 햅틱(진동) 상태
   const [vibrationLevel, setVibrationLevel] = useState("medium"); // "off" | "light" | "medium" | "strong"
   const [isPhoneDrawerOpen, setIsPhoneDrawerOpen] = useState(false);
@@ -11085,12 +11072,19 @@ ${statusGuide}
              {/* 🌟 4. 배경음 (BGM/ASMR) 설정 - 스마트 자동 재생 모드 */}
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "2px" }}>
-                  <span>🎧 시나리오 맞춤 BGM (자동 재생 중)</span>
+                  <span>🎧 시나리오 맞춤 BGM</span>
                   <span style={{ color: theme.accent }}>{Math.round(bgmVolume * 100)}%</span>
                 </div>
-                <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginBottom: "8px" }}>
-                  장르와 시간대(낮/밤)에 맞춰 배경음악이 자동으로 바뀝니다. 소리를 끄려면 볼륨을 0으로 낮춰주세요.
+                <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginBottom: "10px", lineHeight: "1.4" }}>
+                  장르와 시간대(낮/밤)에 맞춰 배경음악이 바뀝니다. <br/>
+                  <strong style={{ color: theme.danger }}>소리가 안 나면 아래 [▶ 강제 재생] 버튼을 1번만 눌러주세요!</strong>
                 </div>
+
+                <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                  <button onClick={() => audioRef.current?.play()} style={{ flex: 1, padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "800", cursor: "pointer" }}>▶ 강제 재생</button>
+                  <button onClick={() => audioRef.current?.pause()} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", fontWeight: "800", cursor: "pointer" }}>⏸ 일시정지</button>
+                </div>
+
                 <input type="range" min="0" max="1" step="0.05" value={bgmVolume} onChange={e => handleSaveBgmVolume(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
               </div>
 
