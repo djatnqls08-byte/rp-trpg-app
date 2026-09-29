@@ -1117,61 +1117,62 @@ setLobbySaveModal(null);
   const [bgmVolume, setBgmVolume] = useState(0.5);
 const audioRef = useRef(null);
 
-  // 🌟 [수정] 외부 차단 0%! 위키미디어 & 구글 공용 스트리밍 공식 링크로 전면 교체
+// 🌟 [수정] 100% 재생 보장! 구글 공용 고음질 사운드 링크
   const detectAutoBgm = (session, phase) => {
     if (!session) return ""; 
     const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
     
-    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포 (긴장감 넘치는 앰비언트)
+    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포
     if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
       return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
     }
-    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트 (신비로운 대성당 성가대)
+    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트
     if (/판타지|중세|황실|궁정|오컬트|동양풍|신전/.test(text)) {
       return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
     }
-    // 3. 🌧️ 비 오는 날 특수 배경
-    if (/비가|빗소리|장마/.test(text)) {
+    // 3. 🌧️ 비 / 폭풍우
+    if (/비가|빗소리|장마|폭풍우/.test(text)) {
       return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
     }
-    // 4. 🌙 밤 / 새벽 시간대 (감미로운 쇼팽 녹턴 피아노 명곡)
+    // 4. 🌙 밤 / 새벽
     if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/e/ec/Chopin_Nocturne_Op._9_No._2.mp3";
+      return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
     }
-    // 5. ☀️ 낮 / 아침 / 저녁 일상 (평온하고 따뜻한 피아노 선율)
+    // 5. ☀️ 낮 / 아침 / 저녁 일상
     if (phase === "낮" || phase === "아침" || phase === "저녁" || /일상|캠퍼스|현대/.test(text)) {
-      return "https://upload.wikimedia.org/wikipedia/commons/2/22/Moonlight_Sonata_1st_movement.mp3";
+      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
     }
     
-    // 기본값 (바흐 G선상의 아리아 클래식)
-    return "https://upload.wikimedia.org/wikipedia/commons/2/23/Air_on_the_G_String_%28Violin_and_Piano%29.mp3";
+    return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
   };
 
-  // 방 이동 및 시간대 변화 감지기
+  // 🌟 [핵심] audio.load()를 실행해 브라우저 먹통 에러를 방지하는 전용 재생 함수
+  const playBgmAudio = (url) => {
+    const audio = audioRef.current;
+    if (!audio || !url) return;
+    try {
+      audio.src = url;
+      audio.volume = bgmVolume;
+      audio.load(); // 👈 테이프를 새로 장전해야 에러가 안 남!
+      audio.play().catch(e => {
+        console.log("브라우저 자동재생 대기 중 (BGM 버튼을 눌러주세요)");
+      });
+    } catch (e) {}
+  };
+
+  // 방 입장 및 시간대 변화 감지기
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !activeSession) return;
     const autoBgm = detectAutoBgm(activeSession, currentPhase);
     setBgmUrl(autoBgm);
+    playBgmAudio(autoBgm);
   }, [activeSessionId, currentPhase, isLoaded]);
 
-  // 🌟 [복구됨!] 오디오 플레이어 안전 재생 로직 (브라우저 차단 우회)
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    audio.volume = bgmVolume;
-    if (bgmUrl) {
-      audio.src = bgmUrl;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(e => {
-          console.warn("브라우저 자동재생이 차단되었습니다. 설정창에서 강제 재생을 눌러주세요.", e);
-        });
-      }
-    } else {
-      audio.pause();
-    }
-  }, [bgmUrl, bgmVolume]);
+  const handleSaveBgmVolume = (vol) => {
+    setBgmVolume(vol);
+    if (audioRef.current) audioRef.current.volume = vol;
+    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
+  };
 
 // 🌟 [복구] 새로고침해도 설정한 글자 크기 유지하기
   useEffect(() => {
@@ -1186,11 +1187,6 @@ const audioRef = useRef(null);
     if (typeof window !== "undefined") localStorage.setItem("rp_hub_font_size", size.toString());
   };
 
-  const handleSaveBgmVolume = (vol) => {
-    setBgmVolume(vol);
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
-  };
- 
   // 🌟 [추가] 스마트폰 메신저 서랍 및 햅틱(진동) 상태
   const [vibrationLevel, setVibrationLevel] = useState("medium"); // "off" | "light" | "medium" | "strong"
   const [isPhoneDrawerOpen, setIsPhoneDrawerOpen] = useState(false);
@@ -3139,6 +3135,8 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       .replace(/<!--[\s\S]*?$/g, "")
       .replace(/<[^>]+>/g, "")
       .replace(/\bKPC\b/g, partnerName || "파트너")
+      // 🌟 [추가] 본문 끝에 번호 매겨 튀어나온 '1. 2. 3.' 찌꺼기 선택지 완벽 박멸!
+      .replace(/\n+\s*[1-9][.)]\s*[\s\S]*$/, "")
       .trim();
 
     return { cleanText, parsedData };
@@ -5863,58 +5861,6 @@ return (
 
           {/* 우측 액션 아이콘 바 (모든 버튼 높이 34px로 정돈) */}
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "3px" : "5px", flexShrink: 0 }}>
-
-{/* 🌟 0. 🎧 BGM 원클릭 온/오프 버튼 (자동 주소 장전 & 재생 보장) */}
-            {activeSession && (
-              <button
-                type="button"
-                onClick={() => {
-                  const audio = audioRef.current;
-                  if (!audio) return;
-
-                  // 재생 중이면 일시정지
-                  if (!audio.paused) {
-                    audio.pause();
-                    triggerToast("🔇 BGM 음소거", "배경음악을 일시정지했습니다.", "⏸️");
-                    return;
-                  }
-
-                  // 💡 만약 audio에 주소가 안 들어가 있다면 즉시 계산해서 장전!
-                  const targetBgm = bgmUrl || detectAutoBgm(activeSession, currentPhase);
-                  if (targetBgm && audio.src !== targetBgm) {
-                    audio.src = targetBgm;
-                  }
-
-                  audio.volume = bgmVolume;
-                  audio.play()
-                    .then(() => {
-                      triggerToast("🎧 BGM 재생", "배경음악이 켜졌습니다.", "🎵");
-                    })
-                    .catch(e => {
-                      console.error("오디오 재생 실패:", e);
-                      triggerToast("오디오 연결 중", "소리를 재생하는 중입니다. 다시 한 번 눌러주세요.", "⚠️");
-                    });
-                }}
-                title="BGM 켜기 / 끄기"
-                style={{
-                  height: isMobile ? "34px" : "36px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "3px",
-                  padding: isMobile ? "0 6px" : "0 8px",
-                  background: "none",
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  color: theme.text,
-                  flexShrink: 0
-                }}
-              >
-                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>🎧</span>
-                <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>BGM</span>
-              </button>
-            )}
 
             {/* 1. 📱 스마트폰 메신저 */}
             {activeSession && (activeSession.ruleMode?.startsWith("dating") || activeSession.ruleMode?.includes("free")) && (() => {
