@@ -440,7 +440,7 @@ const kpcList = [];
   if (/미연시|연애|dating/i.test(rawRule)) resolvedMode = "dating";
   else if (/크툴루|coc/i.test(rawRule)) resolvedMode = "coc";
   else if (/인세인|insane/i.test(rawRule)) resolvedMode = "insane";
-  else if (/자유|free/i.test(rawRule)) resolvedMode = "freeform";
+  else if (/추리|수사|자유|free/i.test(rawRule)) resolvedMode = "freeform";
   else if (rawRule) resolvedMode = rawRule.toLowerCase();
 
   // 🌟 [5] 최종 객체 반환
@@ -11209,7 +11209,8 @@ ${statusGuide}
 
                 const getNormalizedMode = (p) => {
                   const raw = (p.wizardMode || p.ruleMode || p.rule || p.mode || "").toString().toLowerCase().trim();
-                  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설")) return "freeform";
+                  // 🌟 [추가] '추리', '수사' 키워드 인식
+                  if (raw.includes("free") || raw.includes("자유") || raw.includes("소설") || raw.includes("추리") || raw.includes("수사")) return "freeform";
                   if (raw.includes("coc") || raw.includes("크툴루") || raw.includes("cthulhu")) return "coc";
                   if (raw.includes("insane") || raw.includes("인세인")) return "insane";
                   if (raw.includes("dating") || raw.includes("미연시") || raw.includes("연애")) return "dating";
@@ -11218,12 +11219,14 @@ ${statusGuide}
                   if (fullText.includes("호감도") || fullText.includes("미연시") || fullText.includes("데이트")) return "dating";
                   if (fullText.includes("이성") || fullText.includes("san") || fullText.includes("크툴루")) return "coc";
                   if (fullText.includes("광기") || fullText.includes("사명") || fullText.includes("인세인")) return "insane";
+                  // 🌟 [추가] 시놉시스나 태그에 추리 관련 단어가 있으면 알아서 분류!
+                  if (fullText.includes("추리") || fullText.includes("수사") || fullText.includes("살인") || fullText.includes("사건")) return "freeform";
 
                   return "dating";
                 };
 
                 const CATEGORIES = [
-                  { key: "freeform", label: "자유 서사", icon: "✍️" },
+                  { key: "freeform", label: "추리 / 수사", icon: "🕵️" }, // 🌟 이름과 아이콘 변경!
                   { key: "coc", label: "CoC (크툴루의 부름)", icon: "🐙" },
                   { key: "insane", label: "inSANe (인세인)", icon: "🎲" },
                   { key: "dating", label: "미연시", icon: "🌸" },
