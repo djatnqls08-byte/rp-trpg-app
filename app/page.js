@@ -1113,66 +1113,6 @@ setLobbySaveModal(null);
   
   // 🌟 [신규 추가] 채팅 폰트 크기 및 BGM/ASMR 상태
   const [chatFontSize, setChatFontSize] = useState(0.92); 
-  const [bgmUrl, setBgmUrl] = useState("");
-  const [bgmVolume, setBgmVolume] = useState(0.5);
-const audioRef = useRef(null);
-
-// 🌟 [수정] 100% 재생 보장! 구글 공용 고음질 사운드 링크
-  const detectAutoBgm = (session, phase) => {
-    if (!session) return ""; 
-    const text = `${session.title || ""} ${session.preference || ""} ${session.scenarioText || ""}`.toLowerCase();
-    
-    // 1. ⚔️ 클라이맥스 결전 / 🩸 피폐 / 공포
-    if (session.sheet?.phase === "클라이맥스" || /공포|크툴루|피폐|괴이|스릴러|살인/.test(text)) {
-      return "https://actions.google.com/sounds/v1/horror/ambient_hum_with_distant_voices.ogg"; 
-    }
-    // 2. 🧙‍♂️ 판타지 / 궁정 / 중세 / 오컬트
-    if (/판타지|중세|황실|궁정|오컬트|동양풍|신전/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/choir_in_large_room.ogg"; 
-    }
-    // 3. 🌧️ 비 / 폭풍우
-    if (/비가|빗소리|장마|폭풍우/.test(text)) {
-      return "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
-    }
-    // 4. 🌙 밤 / 새벽
-    if (phase === "밤" || phase === "새벽" || /달달|로맨스|짝사랑|미연시/.test(text)) {
-      return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
-    }
-    // 5. ☀️ 낮 / 아침 / 저녁 일상
-    if (phase === "낮" || phase === "아침" || phase === "저녁" || /일상|캠퍼스|현대/.test(text)) {
-      return "https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg";
-    }
-    
-    return "https://actions.google.com/sounds/v1/ambiences/crickets_and_insects.ogg";
-  };
-
-  // 🌟 [핵심] audio.load()를 실행해 브라우저 먹통 에러를 방지하는 전용 재생 함수
-  const playBgmAudio = (url) => {
-    const audio = audioRef.current;
-    if (!audio || !url) return;
-    try {
-      audio.src = url;
-      audio.volume = bgmVolume;
-      audio.load(); // 👈 테이프를 새로 장전해야 에러가 안 남!
-      audio.play().catch(e => {
-        console.log("브라우저 자동재생 대기 중 (BGM 버튼을 눌러주세요)");
-      });
-    } catch (e) {}
-  };
-
-  // 방 입장 및 시간대 변화 감지기
-  useEffect(() => {
-    if (!isLoaded || !activeSession) return;
-    const autoBgm = detectAutoBgm(activeSession, currentPhase);
-    setBgmUrl(autoBgm);
-    playBgmAudio(autoBgm);
-  }, [activeSessionId, currentPhase, isLoaded]);
-
-  const handleSaveBgmVolume = (vol) => {
-    setBgmVolume(vol);
-    if (audioRef.current) audioRef.current.volume = vol;
-    if (typeof window !== "undefined") localStorage.setItem("rp_hub_bgm_vol", vol.toString());
-  };
 
 // 🌟 [복구] 새로고침해도 설정한 글자 크기 유지하기
   useEffect(() => {
@@ -3149,13 +3089,6 @@ const parseTagsSafely = (rawText, partnerName, currentRule, sessionSheet = null)
       npcs: (rest.npcs || []).map(({ portrait, ...npcRest }) => npcRest)
     };
   };
-  
-// 🌟 [완벽 복구] 세션 시작 및 동적 이름 치환 함수
-  const startNewSession = async () => {
-    // 🎧 유저 클릭 순간 오디오 잠금 해제
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.log("오디오 잠금 해제 대기 중..."));
-    }
 
     const sessionTitle = scenarioTitle || (charName ? `${charName}의 이야기` : "새로운 모험");
     const pName = charName.trim() || "주인공";
@@ -5539,10 +5472,6 @@ const isSanCheckDetected = activeSession?.ruleMode === "coc" && !activeSession?.
  
 return (
   <div style={{ display: "flex", height: "100dvh", width: "100vw", backgroundColor: theme.bg, color: theme.text, overflow: "hidden", position: "relative" }}>
-    
-    {/* 🌟 이 녀석이 무조건 여기에 있어야 해! */}
-    <audio ref={audioRef} loop src={bgmUrl}></audio>
-
     <style>{`
       @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
@@ -6897,80 +6826,61 @@ return (
           /* 플레이 룸 */
           <>
             {/* 테이블탑 오버레이 (비밀 스포 완벽 차단) */}
-{/* 🍞 상단 시스템 알림 (바깥 클릭 또는 ✕ 버튼으로 닫기) */}
+{/* 🍞 하단 컴팩트 시스템 알림 (화면 안 가리고 입력창 위에 슬림하게 표시) */}
       {toast && (
-        <>
-          {/* 1. 화면 바깥 터치 감지 레이어 (클릭 시 닫힘) */}
-          <div
-            onClick={() => setToast(null)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9998,
-              backgroundColor: "rgba(0, 0, 0, 0.35)",
-              backdropFilter: "blur(2px)"
+        <div
+          onClick={() => setToast(null)}
+          style={{
+            position: "fixed",
+            bottom: "82px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            backgroundColor: "rgba(18, 20, 26, 0.95)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            border: `1.5px solid ${theme.accent || "#6366f1"}`,
+            borderRadius: "24px",
+            padding: "8px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)",
+            color: "#fff",
+            maxWidth: "90%",
+            width: "auto",
+            cursor: "pointer",
+            animation: "slideUp 0.2s ease-out"
+          }}
+        >
+          <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>{toast.icon}</span>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0, textAlign: "left" }}>
+            <span style={{ fontWeight: "800", fontSize: "0.78rem", color: theme.accent || "#818cf8" }}>
+              {toast.title}
+            </span>
+            <span style={{ fontSize: "0.72rem", color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "260px" }}>
+              {toast.message}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToast(null);
             }}
-          />
-
-          {/* 2. 상단 알림 배너 본체 */}
-          <div
             style={{
-              position: "fixed",
-              top: "24px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 9999,
-              backgroundColor: "rgba(18, 20, 26, 0.96)",
-              border: `1.5px solid ${theme.accent || "#6366f1"}`,
-              borderRadius: "14px",
-              padding: "12px 16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "14px",
-              boxShadow: "0 12px 35px rgba(0, 0, 0, 0.7)",
-              color: "#fff",
-              maxWidth: "90%",
-              width: "360px"
+              background: "none",
+              border: "none",
+              color: "#94a3b8",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              padding: "0 2px",
+              marginLeft: "4px"
             }}
           >
-            {/* 아이콘 및 알림 문구 */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: "1.5rem", flexShrink: 0 }}>{toast.icon}</span>
-              <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                <span style={{ fontWeight: "800", fontSize: "0.85rem", color: theme.accent || "#818cf8" }}>
-                  {toast.title}
-                </span>
-                <span style={{ fontSize: "0.8rem", color: "#e2e8f0", marginTop: "2px", lineHeight: "1.3" }}>
-                  {toast.message}
-                </span>
-              </div>
-            </div>
-
-            {/* 우측 ✕ 닫기 버튼 */}
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              title="알림 닫기"
-              style={{
-                background: "rgba(255, 255, 255, 0.08)",
-                border: "none",
-                borderRadius: "50%",
-                width: "24px",
-                height: "24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#94a3b8",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                flexShrink: 0
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        </>
+            ✕
+          </button>
+        </div>
       )}
 
 {/* 🚨 체력 0 도달 시 긴급 회복 선택 모달 */}
@@ -11056,25 +10966,6 @@ ${statusGuide}
                   <span style={{ color: theme.accent }}>{chatFontSize}rem</span>
                 </div>
                 <input type="range" min="0.75" max="1.5" step="0.05" value={chatFontSize} onChange={e => handleSaveFontSize(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
-              </div>
-
-             {/* 🌟 4. 배경음 (BGM/ASMR) 설정 - 스마트 자동 재생 모드 */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: "700", marginBottom: "2px" }}>
-                  <span>🎧 시나리오 맞춤 BGM</span>
-                  <span style={{ color: theme.accent }}>{Math.round(bgmVolume * 100)}%</span>
-                </div>
-                <div style={{ fontSize: "0.7rem", color: theme.textMuted, marginBottom: "10px", lineHeight: "1.4" }}>
-                  장르와 시간대(낮/밤)에 맞춰 배경음악이 바뀝니다. <br/>
-                  <strong style={{ color: theme.danger }}>소리가 안 나면 아래 [▶ 강제 재생] 버튼을 1번만 눌러주세요!</strong>
-                </div>
-
-                <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-                  <button onClick={() => audioRef.current?.play()} style={{ flex: 1, padding: "8px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "800", cursor: "pointer" }}>▶ 강제 재생</button>
-                  <button onClick={() => audioRef.current?.pause()} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, color: theme.text, border: `1px solid ${theme.border}`, borderRadius: "8px", fontWeight: "800", cursor: "pointer" }}>⏸ 일시정지</button>
-                </div>
-
-                <input type="range" min="0" max="1" step="0.05" value={bgmVolume} onChange={e => handleSaveBgmVolume(Number(e.target.value))} style={{ width: "100%", accentColor: theme.accent }} />
               </div>
 
               {/* 🌟 5. 주사위 볼륨 (사반의 원래 코드 유지!) */}
