@@ -3851,10 +3851,11 @@ const executeMessage = async (textToSend, aiPromptOverride = null) => {
     const isDatingMsg = activeSession.ruleMode === "dating_msg";
     const allNpcs = activeSession.sheet?.npcs || [];
     
-    // 유저 입력문이나 이동 지문에서 대면한 NPC 탐색 (예: [도아영]와(과) 마주친다)
+// 유저 입력문이나 이동 지문에서 대면한 NPC 탐색 (성 뗀 이름 "서원", "주아"도 자동 인식)
     let detectedPartner = null;
     for (const n of allNpcs) {
-      if (textToSend.includes(n.name) || textToSend.includes(`[${n.name}]`)) {
+      const shortName = n.name.length >= 3 ? n.name.slice(1) : n.name; // 백서원 -> 서원
+      if (textToSend.includes(n.name) || textToSend.includes(shortName) || textToSend.includes(`[${n.name}]`)) {
         detectedPartner = n;
         break;
       }
@@ -9266,9 +9267,22 @@ return (
           </button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {(activeSession.sheet.npcs || []).map(npc => (
+        {(activeSession.sheet.npcs || []).map(npc => (
             <details key={npc.id} style={{ backgroundColor: theme.panelAlt, borderRadius: "6px", border: `1px solid ${theme.border}`, overflow: "hidden" }}>
-              <summary style={{ display: "flex", gap: "8px", alignItems: "center", padding: "6px 8px", cursor: "pointer", outline: "none" }}>
+              <summary 
+                onClick={() => {
+                  // 🎯 인물을 누르면 상단 호감도 카드가 즉시 해당 인물로 바뀜!
+                  setSessions(prev => prev.map(s => s.id === activeSessionId ? {
+                    ...s,
+                    activeContactId: npc.id,
+                    sheet: { ...s.sheet, activeContactId: npc.id }
+                  } : s));
+                  if (typeof triggerToast === "function") {
+                    triggerToast("대면 상대 전환", `[${npc.name}]의 호감도로 전환되었습니다.`, "💖");
+                  }
+                }}
+                style={{ display: "flex", gap: "8px", alignItems: "center", padding: "6px 8px", cursor: "pointer", outline: "none" }}
+              >
                 <div onClick={(e) => { e.stopPropagation(); setActivePortraitTarget(npc.id); openModal(setShowPortraitEditModal); }} style={{ width: "32px", height: "32px", borderRadius: "50%", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
                   <img src={npc.portrait} alt={npc.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => (e.currentTarget.style.display = "none")} />
                 </div>
