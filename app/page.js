@@ -5,10 +5,11 @@ import {
   Search, Heart, Flame, LayoutGrid, LibraryBig, PenTool, UserRound, 
   Menu, Moon, Sun, Save, FileUp, FileDown, HelpCircle, X, ChevronDown, ChevronUp, 
   Image as ImageIcon, ClipboardList, Pin, FileSearch, Mailbox, Play, 
-  FolderOpen, Lock, Settings, Database, ClipboardPaste, LogOut, 
+  FolderOpen, Lock, Unlock, Settings, Database, ClipboardPaste, LogOut, 
   ArrowUp, Smartphone, BookOpen, Dices, Plus, Trash2, RefreshCw,
   MessageCircle, Shield, Swords, Sparkles, MapPin, Phone, Undo2,
- Trash2, RefreshCw, Undo2, FileUp 
+  Clock, HeartPulse, Clapperboard, Brain, Gift, Lightbulb, Book, Skull, 
+  Droplet, Layers, Backpack, Package, Pill, Hourglass, Bed, Calendar, Target, Briefcase, Star, Download, Upload, Palette, Crown, Leaf
 } from "lucide-react";
  
 // 🥛 2026 팬톤 밀키(Milky & Creamy) 테마 4종
@@ -5372,7 +5373,7 @@ const currentNpcs = activeSession?.sheet?.npcs || activeSession?.npcs || [];
         insaneItems: { ...s.sheet.insaneItems, painkiller: s.sheet.insaneItems.painkiller - 1 }
       }
     } : s));
-    executeMessage(`[💊 진통제 복용] 고통을 가라앉힙니다. (1D6 ➔ ${healRoll} 회복 / HP: ${curHp} ➔ ${newHp})`);
+    executeMessage(`[<Pill '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 진통제 복용] 고통을 가라앉힙니다. (1D6 ➔ ${healRoll} 회복 / HP: ${curHp} ➔ ${newHp})`);
   };
 
 // ⚔️ 클라이맥스 1~6 플롯 선택 & 선공/버팅 처리
@@ -6057,7 +6058,7 @@ return (
                     flexShrink: 0
                   }}
                 >
-                  <span style={{ fontSize: "1.05rem",<Smartphone size="{20}" strokeWidth="{1.5}"/> lineHeight: 1 }}>📱</span>
+                  <Smartphone size={20} strokeWidth={1.5} />
                   {unreadCount > 0 && (
                     <span style={{
                       position: "absolute",
@@ -6815,7 +6816,7 @@ return (
     <div style={{ marginTop: "12px", borderTop: `1px dashed ${theme.border}`, paddingTop: "10px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
         <span style={{ fontSize: "0.78rem", fontWeight: "800", color: theme.accent }}>
-          🎒 초기 소지 아이템 선택 (최대 2개)
+          <Backpack '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 초기 소지 아이템 (최대 2개)
         </span>
         <span style={{ fontSize: "0.72rem", color: theme.textMuted }}>
           선택: <strong style={{ color: Object.values(insaneItems).reduce((a, b) => a + b, 0) === 2 ? theme.success || "#4ade80" : theme.accent }}>
@@ -6826,9 +6827,9 @@ return (
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
         {[
-          { name: "진통제", icon: "💊", desc: "생명력 또는 이성치 1점 회복" },
+          { name: "진통제", icon: "<Pill '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/>", desc: "생명력 또는 이성치 1점 회복" },
           { name: "무기", icon: "⚔️", desc: "전투 중 자신의 판정 재굴림" },
-          { name: "부적", icon: "🧿", desc: "타인의 판정 주사위 재굴림" }
+          { name: "부적", icon: "<Sparkles '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/>", desc: "타인의 판정 주사위 재굴림" }
         ].map(item => {
           const count = insaneItems[item.name] || 0;
           return (
@@ -7512,7 +7513,7 @@ return (
                         >
                           <div>
                             <div style={{ fontSize: "0.68rem", color: isShowingSecret ? theme.danger : card.revealed ? theme.success : theme.accent, fontWeight: "800" }}>
-                              {isShowingSecret ? "💀 비밀 열람 중" : card.revealed ? "🔓 조사 완료 (터치하여 비밀 확인)" : "🔒 비공개 핸드아웃"}
+                              {isShowingSecret ? "💀 비밀 열람 중" : card.revealed ? "<Unlock '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 조사 완" : "<Lock '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 비공개 핸드아웃"}
                             </div>
                             <div style={{ fontWeight: "800", fontSize: "0.88rem", margin: "6px 0", color: theme.text }}>{card.title}</div>
                             <div style={{ fontSize: "0.74rem", color: isShowingSecret ? theme.danger : theme.textMuted, lineHeight: "1.4", whiteSpace: "pre-wrap" }}>
@@ -7530,12 +7531,12 @@ return (
                 </div>
 
                 <div>
-                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}>💀 내 광기 핸드 (보유: {activeSession.sheet.madnessCards?.length || 0}장)</div>
+                  <div style={{ fontSize: "0.82rem", fontWeight: "800", color: theme.danger, marginBottom: "10px" }}><Skull '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 내 광기 (보유: {activeSession.sheet.madnessCards?.length || 0}장)</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "14px" }}>
                     {(activeSession.sheet.madnessCards || []).map(card => (
                       <div key={card.id} className="glass-card" style={{ width: "170px", minHeight: "220px", borderRadius: "12px", border: `1.5px solid ${card.revealed ? theme.danger : "rgba(247, 101, 133, 0.4)"}`, padding: "14px", display: "flex", flexDirection: "column", justifyContent: "space-between", backgroundColor: card.revealed ? "rgba(214, 56, 87, 0.15)" : theme.panelAlt }}>
                         <div>
-                          <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.warning, fontWeight: "800" }}>{card.revealed ? "🩸 발현된 광기" : "🔒 미발현 광기"}</div>
+                          <div style={{ fontSize: "0.68rem", color: card.revealed ? theme.danger : theme.warning, fontWeight: "800" }}>{card.revealed ? "<Droplet '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 발현된 광기" : "<Lock '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 공개 광기"}</div>
                           <div style={{ fontWeight: "800", fontSize: "0.88rem", margin: "6px 0", color: theme.text }}>{card.name}</div>
                           <div style={{ fontSize: "0.74rem", color: theme.textMuted, lineHeight: "1.4" }}>
                             {card.desc}
@@ -8023,28 +8024,28 @@ return (
                     onClick={() => setShowSkillMatrixModal(true)}
                     style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
                   >
-                    🔍 조사 판정(자율)
+                    <Search '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 조사 판정
                   </button>
 <button
   type="button"
   onClick={openEmotionModal}
   style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", fontSize: "0.72rem", color: theme.text, cursor: "pointer" }}
 >
-  💬 감정 판정 (1D6)
+  <MessageCircle '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 감정 판정
 </button>
                   <button
                     type="button"
                     onClick={() => setInput(`[주요 행동: 회복 판정 선언] 흐트러진 정신과 상처를 추스릅니다. `)}
                     style={{ padding: "4px 9px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "12px", color: theme.success, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
                   >
-                    🩹 회복 판정
+                    <HeartPulse '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 회복 판정
                   </button>
                   <button
                     type="button"
                     onClick={handleRollSceneTable}
                     style={{ padding: "4px 9px", backgroundColor: "rgba(229, 169, 60, 0.15)", border: `1px solid ${theme.warning}`, borderRadius: "12px", color: theme.warning, fontSize: "0.72rem", cursor: "pointer", fontWeight: "800" }}
                   >
-                    🎬 장면표 (2D6)
+                    <Clapperboard '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 장면표
                   </button>
                 </div>
               )}
@@ -8580,7 +8581,7 @@ return (
                                 onClick={handleSceneClose}
                                 style={{ padding: "10px", textAlign: "center", backgroundColor: "rgba(229, 169, 60, 0.2)", border: `1.5px solid ${theme.warning}`, borderRadius: "10px", color: theme.warning, fontSize: "0.82rem", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
                               >
-                                🎬 장면 닫기 (Scene Close)
+                                <Clapperboard '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 장면 닫기
                               </button>
                             )}
 
@@ -8591,7 +8592,7 @@ return (
                               onClick={() => { setShowInsaneGuideModal(true); setIsActionDrawerOpen(false); }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              ❓ 인세인 룰 가이드
+                              <HelpCircle '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 인세인 룰 가이드
                             </button>
                           </>
                         )}
@@ -8615,7 +8616,7 @@ return (
                               }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.danger, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              🧠 이성(SAN) 체크
+                              <Brain '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 이성 체크
                             </button>
 
                             <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
@@ -8637,7 +8638,7 @@ return (
                               }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              ❓ CoC 7판 가이드
+                              <HelpCircle '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> CoC 7판 가이드
                             </button>
                           </>
                         )}
@@ -8662,7 +8663,7 @@ return (
                               }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              🎁 상대에게 선물하기
+                              <Gift '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 선물하기
                             </button>
 
 <button
@@ -8679,7 +8680,7 @@ return (
   }}
   style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
 >
-  💡 취향 수첩
+  <Lightbulb '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 취향 수첩
 </button>
 
                                {/* 📖 4. 사건 기억 수첩 */}
@@ -8727,7 +8728,7 @@ return (
                               }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              ❓ 미연시 가이드
+                              <HelpCircle '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 미연시 가이드
                             </button>
                           </>
                         )}
@@ -8788,7 +8789,7 @@ return (
                               }}
                               style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", borderRadius: "8px", color: theme.textMuted, fontSize: "0.78rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
                             >
-                              ❓ 수사 모드 가이드 보기
+                              <HelpCircle '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 수사 모드 가이드 보기
                             </button>
                           </>
                         )}
@@ -8802,7 +8803,7 @@ return (
                             }}
                             style={{ padding: "8px 10px", textAlign: "left", background: "none", border: "none", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
                           >
-                            🛏️ 휴식 및 수면
+                            <Bed '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 휴식 및 수면
                           </button>
                         </div>
                       </>
@@ -10090,12 +10091,12 @@ ${statusGuide}
 
                    <div>
                       <h4 style={{ margin: "0 0 12px 0", fontSize: "0.95rem", color: theme.text }}>
-                        {activeSession?.ruleMode === "freeform" ? "💼 물증 보관함" : "🎒 소지품 가방"}
+                        {activeSession?.ruleMode === "freeform" ? "<Briefcase '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 물증 보관함" : "🎒 소지품 가방"}
                       </h4>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {(activeSession.sheet?.items || []).map((it, idx) => (
                           <span key={idx} style={{ padding: "4px 10px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "14px", fontSize: "0.72rem", color: activePhoneSkin.text }}>
-                            📦 {it.name}
+                            <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> {it.name}
                           </span>
                         ))}
                       </div>
@@ -10771,7 +10772,7 @@ ${statusGuide}
                     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "0.82rem", fontWeight: "800", color: activePhoneSkin.text }}>🎨 메신저 테마 스킨</span>
+                          <span style={{ fontSize: "0.82rem", fontWeight: "800", color: activePhoneSkin.text }}><Palette '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 메신저 스킨</span>
                           <span style={{ fontSize: "0.74rem", color: activePhoneSkin.accent, fontWeight: "800" }}>{activePhoneSkin.name}</span>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
@@ -10970,7 +10971,7 @@ ${statusGuide}
             style={{ width: "100%", maxWidth: "340px", padding: "20px", borderRadius: "16px", color: theme.text, display: "flex", flexDirection: "column", gap: "12px", boxShadow: "0 12px 32px rgba(0,0,0,0.3)" }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: "800", fontSize: "0.95rem" }}>💾 로비 세팅 저장</span>
+              <span style={{ fontWeight: "800", fontSize: "0.95rem" }}><Save '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 로비 세팅 저장</span>
               <button type="button" onClick={() => setLobbySaveModal(null)} style={{ background: "none", border: "none", color: theme.textMuted, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
             </div>
 
@@ -11042,7 +11043,7 @@ ${statusGuide}
               executeMessage(`[시간 경과] 시간이 흘러 어느덧 ${nextDay}일차 ${next}입니다.`); 
               setShowSleepOptions(false);
             }} style={{ padding: "12px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "10px", color: theme.text, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer" }}>
-              ⏳ 시간 보내기 (다음 시간대로 이동)
+              <Hourglass '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 시간 보내기 (다음 시간대로 이동)
             </button>
 
             {/* 2. 잠자기: 언제 잤든 상쾌하게 [다음 날 아침]으로 기상! */}
@@ -11091,7 +11092,7 @@ ${statusGuide}
               executeMessage(`[시간 경과] 하루가 완전히 지나, ${nextDay}일차 아침이 되었습니다.`); 
               setShowSleepOptions(false);
             }} style={{ padding: "11px", backgroundColor: "rgba(99, 102, 241, 0.12)", border: `1px solid rgba(99, 102, 241, 0.35)`, borderRadius: "10px", color: "#818cf8", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer" }}>
-              📅 하루 통째로 건너뛰기 (+1일)
+              <Calendar '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 하루 건너뛰기 (+1일)
             </button>
 
             <button onClick={() => setShowSleepOptions(false)} style={{ padding: "8px", background: "none", border: "none", color: theme.textMuted, fontSize: "0.8rem", fontWeight: "700", cursor: "pointer", marginTop: "4px" }}>
@@ -11321,7 +11322,7 @@ ${statusGuide}
               {/* 4. 백업 및 복원 */}
               <div style={{ display: "flex", gap: "8px", borderTop: `1px dashed ${theme.border}`, paddingTop: "10px" }}>
                 <button onClick={() => openModal(setShowBackupModal)} style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700" }}>💾 백업</button>
-                <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>📤 복원<input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} /></label>
+                <label style={{ flex: 1, padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.75rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}><Upload '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 복원<input type="file" accept=".json" onChange={importSaveFile} style={{ display: "none" }} /></label>
               </div>
             </div>
           </div>
@@ -11478,7 +11479,7 @@ ${statusGuide}
             {/* 상단 타이틀 & 닫기 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${theme.border}`, paddingBottom: "10px" }}>
               <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "800" }}>
-                {lobbyPresetTab === "public" ? "⭐ 공식 시나리오" : "📁 내 저장 세팅 보관함"}
+                {lobbyPresetTab === "public" ? "<Star '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 공식 시나리오" : "<FolderOpen '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 내 저장 보관함"}
               </h3>
               <button onClick={() => closeModal(setShowLobbyPresetModal)} style={{ background: "none", border: "none", color: theme.text, fontSize: "1.2rem", cursor: "pointer", lineHeight: 1 }}>✕</button>
             </div>
@@ -11487,7 +11488,7 @@ ${statusGuide}
             {lobbyPresetTab === "local" && (
               <div style={{ display: "flex", gap: "6px" }}>
                 <button onClick={exportLobbyPresets} title="모든 내 세팅을 한 파일로 백업" style={{ flex: 1, padding: "7px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.74rem", cursor: "pointer", fontWeight: "700" }}>
-                  📦 전체 세팅 백업
+                  <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 전체 세팅 백업
                 </button>
                 <label title="외부 JSON 파일 불러오기" style={{ flex: 1, padding: "7px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "8px", color: theme.text, fontSize: "0.74rem", cursor: "pointer", fontWeight: "700", textAlign: "center" }}>
                   📤 JSON 파일 복원
@@ -11680,7 +11681,7 @@ ${statusGuide}
                           title="이 세팅만 1개의 JSON 파일로 저장"
                           style={{ padding: "5px 8px", backgroundColor: theme.panel, border: `1px solid ${theme.border}`, borderRadius: "6px", color: theme.text, fontSize: "0.72rem", cursor: "pointer", fontWeight: "700" }}
                         >
-                          📥 저장
+                          <Download '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 저장
                         </button>
                         <button
                           type="button"
@@ -11774,7 +11775,7 @@ ${statusGuide}
               <option value="txt">📄 텍스트 메모장 문서 (.txt)</option>
               <option value="md">📝 마크다운 서식 문서 (.md)</option>
               <option value="pdf">🖨️ 전자책 PDF 인쇄 (.pdf)</option>
-              <option value="json">📦 게임 세이브 완전 백업 (.json - 복원 가능)</option>
+              <option value="json"><Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 게임 세이브 완전 백업 (.json - 복원 가능)</option>
             </select>
 
             <button onClick={executeExport} style={{ width: "100%", padding: "10px", backgroundColor: theme.accent, color: "#fff", border: "none", borderRadius: "8px", fontWeight: "700", cursor: "pointer", fontSize: "0.82rem" }}>다운로드 / 실행</button>
@@ -12096,7 +12097,7 @@ ${statusGuide}
                   {/* 📦 이전 버전 v1.4.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
-                      📦 v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
+                      <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> v1.4.0 시나리오 원클릭 제작 & AI 스튜디오 온보딩 파이프라인
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
                       • <strong>🎬 3분 튜토리얼 & 시나리오 양식 빌더:</strong> CoC/인세인 조작법 튜토리얼과 함께 룰, 추천 키워드(#집착 #오컬트 #신분차 등), 인물 설정을 선택해 AI 스튜디오용 프롬프트를 즉시 조립·복사하는 가이드 모달이 탑재되었습니다.<br/>
@@ -12109,7 +12110,7 @@ ${statusGuide}
                   {/* 📦 이전 버전 v1.3.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
-                      📦 v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
+                      <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> v1.3.0 미연시 마스터 플로우 & 시네마틱 비주얼
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
                       • <strong>스마트폰 실시간 전화 & 다이내믹 아일랜드:</strong> 서랍형 슬라이드 수신 화면 및 풀스크린 통화 모달 지원.<br/>
@@ -12123,7 +12124,7 @@ ${statusGuide}
                   {/* 📦 이전 버전 v1.2.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
-                      📦 v1.2.0 결전 자동화 & 인세인 3대 소지품
+                      <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> v1.2.0 결전 자동화 & 인세인 3대 소지품
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
                       • <strong>인세인 3대 소지품(가방) 도입:</strong> 세션 생성 단계에서 생사를 가를 초기 아이템(진통제, 무기, 부적)을 2개 선택 가능.<br/>
@@ -12136,7 +12137,7 @@ ${statusGuide}
                   {/* 📦 이전 버전 v1.1.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
-                      📦 v1.1.0 스마트폰 풀옵션 & 비주얼 대청소
+                      <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> v1.1.0 스마트폰 풀옵션 & 비주얼 대청소
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
                       • <strong>읽씹 방지 메신저:</strong> 노란색 '1' 카운트, (•••) 타이핑 애니메이션, 상단 푸시 알림 배너 추가.<br/>
@@ -12149,7 +12150,7 @@ ${statusGuide}
                   {/* 📦 최초 버전 v1.0.0 */}
                   <div>
                     <h4 style={{ margin: "0 0 6px 0", color: theme.textMuted, fontSize: "0.9rem", fontWeight: "750" }}>
-                      📦 v1.0.0 정식 배포
+                      <Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> v1.0.0 정식 배포
                     </h4>
                     <div style={{ backgroundColor: theme.panelAlt, padding: "12px", borderRadius: "8px", border: `1px solid ${theme.border}`, fontSize: "0.82rem", color: theme.textMuted, lineHeight: "1.65" }}>
                       • <strong>미연시 (소설/문자) 모드 도입:</strong> 주사위 대신 선택지와 관계성 중심의 비주얼 노벨 및 메신저 모드 추가.<br/>
@@ -12423,7 +12424,7 @@ ${statusGuide}
                 {/* 2. 용의자 & 관계자 카드 (폴라로이드 핀 스타일) */}
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
-                    <span style={{ color: "#ef4444", fontSize: "0.9rem" }}>🔴</span>
+                    <span style={{ color: "#ef4444", fontSize: "0.9rem" }}><Target '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/></span>
                     <span style={{ fontSize: "0.84rem", fontWeight: "800", color: "#e7e5e4" }}>용의자 및 인물 수사망 ({npcs.length}명)</span>
                   </div>
                   <div style={{
@@ -12539,7 +12540,7 @@ ${statusGuide}
                           
                           {/* 물증 이름 */}
                           <div style={{ fontWeight: "900", fontSize: "0.84rem", color: idx % 2 === 0 ? "#b91c1c" : "#6d28d9", marginBottom: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span>📦</span>
+                            <span><Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/></span>
                             <span>{it.name}</span>
                           </div>
 
@@ -12609,7 +12610,7 @@ ${statusGuide}
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.65)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
           <div style={{ backgroundColor: "#1e293b", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "14px", width: "100%", maxWidth: "420px", maxHeight: "80vh", display: "flex", flexDirection: "column", padding: "18px", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>
-              <div style={{ fontWeight: "bold", fontSize: "1rem", color: "#f8fafc" }}>📖 사건 기억 수첩</div>
+              <div style={{ fontWeight: "bold", fontSize: "1rem", color: "#f8fafc" }}><Book '4px' marginRight: size="{16}" strokeWidth="{1.5}" style="{{" }}/> 사건 기억 수첩</div>
               <button type="button" onClick={() => setShowMemoryModal(false)} style={{ background: "none", border: "none", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>✕</button>
             </div>
             
@@ -13401,7 +13402,7 @@ ${statusGuide}
                       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", backgroundColor: activePhoneSkin.shellBg, border: `1px solid ${activePhoneSkin.border}`, borderRadius: "12px" }}
                     >
                       <div style={{ flex: 1, paddingRight: "8px" }}>
-                        <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}>📦 {it.name}</div>
+                        <div style={{ fontWeight: "800", fontSize: "0.85rem", color: activePhoneSkin.text }}><Package '4px' marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> {it.name}</div>
                         {it.desc && <div style={{ fontSize: "0.7rem", color: activePhoneSkin.textMuted, marginTop: "2px" }}>{it.desc}</div>}
                       </div>
                       <button
