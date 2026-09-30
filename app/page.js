@@ -4362,7 +4362,7 @@ if (endCallMatch) {
   rawText = rawText.replace(endCallMatch[0], "").trim();
 }
 
-*/// 4. 사건 기억 플래그 박제
+/// 4. 사건 기억 플래그 박제
       const eventMatch = rawText.match(/<!--\s*EVENT_FLAG:\s*"([^"]+)"\s*-->/);
       if (eventMatch) {
         setRecentEvents(prev => [...(prev || []), eventMatch[1]]);
