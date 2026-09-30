@@ -7757,7 +7757,7 @@ return (
     userSelect: "none"
   }}
 >
-  ⎌ 전송 취소 및 다시 쓰기
+  ⎌ 다시 쓰기
 </button>
 
                       )}
