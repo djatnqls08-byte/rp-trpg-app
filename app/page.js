@@ -1,27 +1,155 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
  
-// 팬톤 테마 4종
+// 🥛 2026 팬톤 밀키(Milky & Creamy) 테마 4종
 const THEME_PALETTES = {  
   cloud: {
-    name: "클라우드 댄서",
-    dark: { bg: "#161615", sidebar: "#1d1d1b", panel: "rgba(38, 37, 36, 0.88)", panelAlt: "rgba(51, 49, 48, 0.9)", border: "rgba(240, 238, 233, 0.16)", text: "#F0EEE9", textMuted: "#9e9c96", accent: "#b3b0a6", accentGlow: "rgba(240, 238, 233, 0.25)", danger: "#d63857", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(64, 62, 60, 0.8)", bubbleAi: "rgba(38, 37, 36, 0.7)", inputBg: "#141413" },
-    light: { bg: "#F4F2EE", sidebar: "#e8e5df", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(247, 246, 242, 0.95)", border: "rgba(0, 0, 0, 0.08)", text: "#2c2a29", textMuted: "#7a7773", accent: "#52504c", accentGlow: "rgba(0, 0, 0, 0.12)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(230, 227, 220, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    name: "오트 밀크", // (구: 클라우드 댄서) 부드러운 바닐라 & 카페라떼 감성
+    dark: { 
+      bg: "#1a1817", 
+      sidebar: "#23201e", 
+      panel: "rgba(42, 38, 36, 0.88)", 
+      panelAlt: "rgba(54, 50, 47, 0.9)", 
+      border: "rgba(235, 227, 218, 0.13)", 
+      text: "#F5F0EB", 
+      textMuted: "#A39B92", 
+      accent: "#C2B4A3", 
+      accentGlow: "rgba(235, 227, 218, 0.2)", 
+      danger: "#e06377", 
+      warning: "#e8b056", 
+      success: "#72d992", 
+      bubbleUser: "rgba(68, 62, 58, 0.85)", 
+      bubbleAi: "rgba(42, 38, 36, 0.72)", 
+      inputBg: "#171514" 
+    },
+    light: { 
+      bg: "#F9F7F3", 
+      sidebar: "#F0ECE4", 
+      panel: "rgba(255, 255, 255, 0.94)", 
+      panelAlt: "rgba(247, 243, 237, 0.95)", 
+      border: "rgba(120, 105, 90, 0.1)", 
+      text: "#36312E", 
+      textMuted: "#8A8179", 
+      accent: "#786C60", 
+      accentGlow: "rgba(120, 105, 90, 0.12)", 
+      danger: "#c84560", 
+      warning: "#b07e28", 
+      success: "#34824b", 
+      bubbleUser: "rgba(232, 225, 216, 0.9)", 
+      bubbleAi: "#ffffff", 
+      inputBg: "#ffffff" 
+    }
   },
   rose: {
-    name: "우드 로즈",
-    dark: { bg: "#1f1819", sidebar: "#291e20", panel: "rgba(54, 40, 42, 0.88)", panelAlt: "rgba(69, 52, 55, 0.9)", border: "rgba(227, 142, 132, 0.22)", text: "#f2ecee", textMuted: "#a19093", accent: "#E38E84", accentGlow: "rgba(227, 142, 132, 0.35)", danger: "#f76585", warning: "#E29A67", success: "#62d681", bubbleUser: "rgba(163, 114, 119, 0.7)", bubbleAi: "rgba(54, 40, 42, 0.7)", inputBg: "#171213" },
-    light: { bg: "#f7f1ec", sidebar: "#ebe2d8", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(252, 250, 248, 0.95)", border: "rgba(163, 114, 119, 0.15)", text: "#3d2f31", textMuted: "#8f7c80", accent: "#A37277", accentGlow: "rgba(163, 114, 119, 0.2)", danger: "#c43350", warning: "#E29A67", success: "#287a3e", bubbleUser: "rgba(235, 226, 216, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    name: "딸기 우유", // (구: 우드 로즈) 사랑스럽고 차분한 말린 장미 밀크티 감성
+    dark: { 
+      bg: "#20181b", 
+      sidebar: "#2a1f24", 
+      panel: "rgba(56, 42, 48, 0.88)", 
+      panelAlt: "rgba(71, 54, 61, 0.9)", 
+      border: "rgba(240, 175, 185, 0.18)", 
+      text: "#F8EEF0", 
+      textMuted: "#AC969D", 
+      accent: "#EAA6B0", 
+      accentGlow: "rgba(234, 166, 176, 0.3)", 
+      danger: "#f87592", 
+      warning: "#E5A475", 
+      success: "#72d992", 
+      bubbleUser: "rgba(170, 118, 126, 0.75)", 
+      bubbleAi: "rgba(56, 42, 48, 0.72)", 
+      inputBg: "#191215" 
+    },
+    light: { 
+      bg: "#FAF4F5", 
+      sidebar: "#F3E7EA", 
+      panel: "rgba(255, 255, 255, 0.94)", 
+      panelAlt: "rgba(252, 246, 247, 0.95)", 
+      border: "rgba(190, 130, 140, 0.14)", 
+      text: "#3D2B30", 
+      textMuted: "#967E84", 
+      accent: "#B87680", 
+      accentGlow: "rgba(184, 118, 128, 0.18)", 
+      danger: "#c84560", 
+      warning: "#b07e28", 
+      success: "#34824b", 
+      bubbleUser: "rgba(242, 226, 230, 0.9)", 
+      bubbleAi: "#ffffff", 
+      inputBg: "#ffffff" 
+    }
   },
   baltic: {
-    name: "발틱 씨",
-    dark: { bg: "#121417", sidebar: "#181a20", panel: "rgba(33, 36, 44, 0.88)", panelAlt: "rgba(45, 49, 60, 0.9)", border: "rgba(154, 150, 185, 0.22)", text: "#e8e9ec", textMuted: "#7c808f", accent: "#9A96B9", accentGlow: "rgba(154, 150, 185, 0.35)", danger: "#d63857", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(69, 74, 84, 0.75)", bubbleAi: "rgba(33, 36, 44, 0.7)", inputBg: "#0d0f12" },
-    light: { bg: "#f0f2f6", sidebar: "#e2e5ec", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(245, 247, 251, 0.95)", border: "rgba(69, 74, 84, 0.12)", text: "#1f2229", textMuted: "#6b6f7d", accent: "#454A54", accentGlow: "rgba(69, 74, 84, 0.2)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(225, 228, 235, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    name: "블루베리", // (구: 발틱 씨) 안개 낀 라벤더 & 밀키 페리윙클 감성
+    dark: { 
+      bg: "#161720", 
+      sidebar: "#1d202b", 
+      panel: "rgba(38, 42, 58, 0.88)", 
+      panelAlt: "rgba(49, 54, 74, 0.9)", 
+      border: "rgba(175, 170, 215, 0.18)", 
+      text: "#EFF1F8", 
+      textMuted: "#8F94A8", 
+      accent: "#ADA8D6", 
+      accentGlow: "rgba(173, 168, 214, 0.3)", 
+      danger: "#e06377", 
+      warning: "#e8b056", 
+      success: "#72d992", 
+      bubbleUser: "rgba(78, 84, 110, 0.8)", 
+      bubbleAi: "rgba(38, 42, 58, 0.72)", 
+      inputBg: "#111219" 
+    },
+    light: { 
+      bg: "#F3F4F9", 
+      sidebar: "#E7E9F3", 
+      panel: "rgba(255, 255, 255, 0.94)", 
+      panelAlt: "rgba(247, 248, 253, 0.95)", 
+      border: "rgba(100, 110, 150, 0.12)", 
+      text: "#262936", 
+      textMuted: "#767C92", 
+      accent: "#5C6382", 
+      accentGlow: "rgba(92, 99, 130, 0.16)", 
+      danger: "#c84560", 
+      warning: "#b07e28", 
+      success: "#34824b", 
+      bubbleUser: "rgba(228, 231, 244, 0.9)", 
+      bubbleAi: "#ffffff", 
+      inputBg: "#ffffff" 
+    }
   },
   capri: {
-    name: "카프리 블루",
-    dark: { bg: "#091214", sidebar: "#0d1b1e", panel: "rgba(19, 37, 41, 0.88)", panelAlt: "rgba(27, 51, 56, 0.9)", border: "rgba(0, 183, 211, 0.25)", text: "#e3f0f2", textMuted: "#6b8e96", accent: "#00B7D3", accentGlow: "rgba(0, 183, 211, 0.35)", danger: "#e0536c", warning: "#e5a93c", success: "#62d681", bubbleUser: "rgba(20, 72, 82, 0.75)", bubbleAi: "rgba(19, 37, 41, 0.7)", inputBg: "#060d0e" },
-    light: { bg: "#eaf3f5", sidebar: "#d6e7eb", panel: "rgba(255, 255, 255, 0.95)", panelAlt: "rgba(240, 248, 250, 0.95)", border: "rgba(0, 152, 176, 0.15)", text: "#16282c", textMuted: "#5e7c85", accent: "#0098b0", accentGlow: "rgba(0, 152, 176, 0.2)", danger: "#c43350", warning: "#a8751d", success: "#287a3e", bubbleUser: "rgba(215, 235, 240, 0.9)", bubbleAi: "#ffffff", inputBg: "#ffffff" }
+    name: "소다", // (구: 카프리 블루) 뽕따 아이스크림 & 밀키 민트 소다 감성
+    dark: { 
+      bg: "#10181b", 
+      sidebar: "#162227", 
+      panel: "rgba(26, 44, 49, 0.88)", 
+      panelAlt: "rgba(35, 59, 66, 0.9)", 
+      border: "rgba(110, 215, 230, 0.2)", 
+      text: "#EDF7F9", 
+      textMuted: "#7E9DA3", 
+      accent: "#45C8DC", 
+      accentGlow: "rgba(69, 200, 220, 0.3)", 
+      danger: "#e66078", 
+      warning: "#e8b056", 
+      success: "#72d992", 
+      bubbleUser: "rgba(32, 88, 98, 0.8)", 
+      bubbleAi: "rgba(26, 44, 49, 0.72)", 
+      inputBg: "#0c1315" 
+    },
+    light: { 
+      bg: "#F1F7F8", 
+      sidebar: "#DFEDF0", 
+      panel: "rgba(255, 255, 255, 0.94)", 
+      panelAlt: "rgba(244, 250, 251, 0.95)", 
+      border: "rgba(40, 140, 155, 0.13)", 
+      text: "#1D2D31", 
+      textMuted: "#6B848A", 
+      accent: "#2A93A4", 
+      accentGlow: "rgba(42, 147, 164, 0.16)", 
+      danger: "#c84560", 
+      warning: "#b07e28", 
+      success: "#34824b", 
+      bubbleUser: "rgba(220, 238, 241, 0.9)", 
+      bubbleAi: "#ffffff", 
+      inputBg: "#ffffff" 
+    }
   }
 };
 
@@ -1624,7 +1752,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
     }
   }, [activeSession?.id, activeSession?.messages?.length, currentPhase]);
  
-// 🌟 폰 서랍의 모든 세부 부품까지 완벽하게 물들이는 4대 풀스킨 팔레트
+// 📱 폰 서랍 전용 4대 밀키(Milky & Creamy) 스킨 팔레트
   const PHONE_SKINS = {
     default: {
       name: "시스템",
@@ -1636,7 +1764,7 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
       border: theme.border,
       text: theme.text,
       textMuted: theme.textMuted,
-      navBtn: theme.text, // < 목록, ✕ 버튼 색
+      navBtn: theme.text,
       inputBg: theme.inputBg || theme.panel,
       inputText: theme.text,
       userBubbleBg: theme.accent,
@@ -1649,70 +1777,70 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
       heart: theme.danger
     },
     kakao: {
-      name: "옐로우",
+      name: "바나나 우유",
       icon: "💬",
-      shellBg: "#b2c7d9", // 카톡 특유의 파스텔 하늘색 배경
-      headerBg: "#9bb3c7",
-      chatBg: "#b2c7d9",
-      panelAlt: "#ffffff",
-      border: "rgba(0, 0, 0, 0.08)",
-      text: "#191919",
-      textMuted: "#556677",
-      navBtn: "#1e1e1e",
-      inputBg: "#ffffff",
-      inputText: "#191919",
-      userBubbleBg: "#fee500",
-      userBubbleText: "#191919",
-      npcBubbleBg: "#ffffff",
-      npcBubbleText: "#191919",
-      npcBubbleBorder: "rgba(0, 0, 0, 0.06)",
-      accent: "#fee500",
-      accentText: "#191919",
-      heart: "#e03e52"
+      shellBg: "#C8D9E8",
+      headerBg: "#B5C9DC",
+      chatBg: "#C8D9E8",
+      panelAlt: "#FAFBFD",
+      border: "rgba(80, 110, 140, 0.12)",
+      text: "#2D2A26",
+      textMuted: "#6B7B8C",
+      navBtn: "#2D2A26",
+      inputBg: "#FFFFFF",
+      inputText: "#2D2A26",
+      userBubbleBg: "#FEE878",
+      userBubbleText: "#2C271E",
+      npcBubbleBg: "#FFFFFF",
+      npcBubbleText: "#2D2A26",
+      npcBubbleBorder: "rgba(0, 0, 0, 0.05)",
+      accent: "#FAD648",
+      accentText: "#2C271E",
+      heart: "#E8566D"
     },
     parchment: {
-      name: "양피지",
+      name: "밀크티 양피지",
       icon: "📜",
-      shellBg: "#eddcc3", // 고문서 양피지 색상
-      headerBg: "#d9c0a3",
-      chatBg: "#ebd8be",
-      panelAlt: "#f8f0e3",
-      border: "rgba(100, 70, 35, 0.2)",
-      text: "#382310",
-      textMuted: "#7a5c3e",
-      navBtn: "#382310",
-      inputBg: "#fbf6ec",
-      inputText: "#382310",
-      userBubbleBg: "#be8a54",
-      userBubbleText: "#ffffff",
-      npcBubbleBg: "#fbf6ec",
-      npcBubbleText: "#382310",
-      npcBubbleBorder: "rgba(100, 70, 35, 0.25)",
-      accent: "#8c531b",
-      accentText: "#fdfaf5",
-      heart: "#a83232"
+      shellBg: "#EFE6D8",
+      headerBg: "#DFD3C0",
+      chatBg: "#EFE6D8",
+      panelAlt: "#FAF6EF",
+      border: "rgba(130, 95, 60, 0.14)",
+      text: "#3E2E20",
+      textMuted: "#88705C",
+      navBtn: "#3E2E20",
+      inputBg: "#FCF8F2",
+      inputText: "#3E2E20",
+      userBubbleBg: "#C59B6D",
+      userBubbleText: "#FFFDF9",
+      npcBubbleBg: "#FCF8F2",
+      npcBubbleText: "#3E2E20",
+      npcBubbleBorder: "rgba(130, 95, 60, 0.18)",
+      accent: "#9E7145",
+      accentText: "#FFFDF9",
+      heart: "#B84343"
     },
     cyber: {
-      name: "네온",
+      name: "소다 쉐이크",
       icon: "🔮",
-      shellBg: "#080c14", // 흑요석 다크 배경
-      headerBg: "#04060a",
-      chatBg: "#070a12",
-      panelAlt: "#0e1522",
-      border: "rgba(0, 245, 212, 0.28)",
-      text: "#e0fbfc",
-      textMuted: "#5a7888",
-      navBtn: "#00f5d4", // 발광 청록색 버튼
-      inputBg: "#090f18",
-      inputText: "#00f5d4",
-      userBubbleBg: "#00f5d4",
-      userBubbleText: "#020912",
-      npcBubbleBg: "#121a27",
-      npcBubbleText: "#e0fbfc",
-      npcBubbleBorder: "rgba(0, 245, 212, 0.35)",
-      accent: "#00f5d4",
-      accentText: "#040810",
-      heart: "#ff2a70" // 사이버 펑크 네온 핑크 하트
+      shellBg: "#111622",
+      headerBg: "#0C101A",
+      chatBg: "#111622",
+      panelAlt: "#1A2234",
+      border: "rgba(85, 235, 215, 0.22)",
+      text: "#E8F4F5",
+      textMuted: "#6E8898",
+      navBtn: "#56E6D2",
+      inputBg: "#161D2B",
+      inputText: "#56E6D2",
+      userBubbleBg: "#4AE2CE",
+      userBubbleText: "#0A201D",
+      npcBubbleBg: "#1C2538",
+      npcBubbleText: "#E8F4F5",
+      npcBubbleBorder: "rgba(85, 235, 215, 0.25)",
+      accent: "#4AE2CE",
+      accentText: "#0A201D",
+      heart: "#FF598B"
     }
   };
   const activePhoneSkin = PHONE_SKINS[phoneTheme] || PHONE_SKINS.default;
@@ -9497,7 +9625,7 @@ ${statusGuide}
 - [직전 사건 연계]: 최근 소설 본문에서 나눈 대화나 퇴근, 업무 지시 내용([${recentStoryContext?.slice(-200) || "없음"}])을 파악하여 일관성 있게 반응하십시오.
 
 2. [말투/성격 절대 유지 (캐붕 금지)]
-- '${partnerName}'의 말투, 억양, 성격을 고수하되, 메신저답게 1~3문장 이내로 생동감 있게 답변하십시오.`;
+- '${partnerName}'의 말투, 억양, 성격을 고수하되, 메신저답게 1~3문장 이내로 생동감 있게 답변하십시오.
 
 3. [메신저 톡 형식 준수]
 - 현실의 모바일 메신저 대화처럼 1~3문장 이내로 간결하고 생동감 있게 답변하십시오.
