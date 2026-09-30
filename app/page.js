@@ -1593,9 +1593,9 @@ const [isTutorialModalOpen, setIsTutorialModalOpen] = useState(false);
   const [insaneFear, setInsaneFear] = useState("죽음");
   const [generatedHandouts, setGeneratedHandouts] = useState([]);
   const [generatedItems, setGeneratedItems] = useState([]); // 🌟 AI/파일로부터 자동 기획된 소지품 목록
- // 🎒 인세인 초기 아이템 선택 상태 (기본값: 진통제 2개)
+ // 🎒 인세인 초기 아이템 선택 상태
   const [insaneItems, setInsaneItems] = useState({
-    "진통제": 2,
+    "진통제": 0,
     "무기": 0,
     "부적": 0
   });
@@ -7582,48 +7582,56 @@ return (
 
   // ── [통화가 아닌 일반 대면 대화는 기존 코드 그대로 진행] ──
                
-                return (
-                  <div key={i} style={{ 
-                    alignSelf: m.role === "user" ? "flex-end" : "flex-start", 
-                    maxWidth: isMobile ? "88%" : "72%", 
-                    display: "flex", 
-                    gap: "8px", 
-                    alignItems: "flex-start", 
-                    flexDirection: m.role === "user" ? "row-reverse" : "row",
-                    marginBottom: isDatingMsg ? "8px" : "0"
-                  }}>
-                    
-                    {isDatingMsg && m.role === "model" && (
-                      <div style={{ width: "38px", height: "38px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${theme.border}`, flexShrink: 0, marginTop: "2px" }}>
-                        <img src={partnerNpc?.portrait} alt="상대" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </div>
-                    )}
+return (
+                          <div key={i} style={{
+                            alignSelf: "center", // 모두 가운데 정렬 기반
+                            width: "100%",
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                            flexDirection: "column",
+                            marginBottom: "12px"
+                          }}>
+                            
+                            {/* 미연시 모드일 때 띄워주는 프로필 사진 (소설식이어도 사진은 감성을 위해 남겨둡니다) */}
+                            {isDatingMsg && m.role === "model" && (
+                              <div style={{ width: "38px", height: "38px", borderRadius: "50%", overflow: "hidden", border: `1.5px solid ${theme.border}`, flexShrink: 0, marginTop: "2px", alignSelf: "flex-start" }}>
+                                <img src={partnerNpc?.portrait} alt="상대" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              </div>
+                            )}
 
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-                      {isDatingMsg && m.role === "model" && (
-                        <span style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", fontWeight: "700" }}>
-                          {partnerNpc?.name || "상대방"}
-                        </span>
-                      )}
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "center" : "flex-start", width: "100%" }}>
+                              
+                              {/* 미연시 모드 상대방 이름표 */}
+                              {isDatingMsg && m.role === "model" && (
+                                <span style={{ fontSize: "0.74rem", color: theme.textMuted, marginBottom: "4px", fontWeight: "700" }}>
+                                  {partnerNpc?.name || "상대방"}
+                                </span>
+                              )}
 
-                      <div style={{ display: "flex", alignItems: "flex-end", gap: "5px", flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
-                        <div 
-                          className={isDatingMsg ? "" : (m.role === "user" ? "" : "serif-text")} 
-                          style={{ 
-                            backgroundColor: isDatingMsg 
-                              ? (m.role === "user" ? "#fae100" : theme.panel) 
-                              : (m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : m.role === "user" ? theme.bubbleUser : theme.bubbleAi), 
-                            color: isDatingMsg && m.role === "user" ? "#242424" : theme.text, 
-                            border: isDatingMsg ? `1px solid ${theme.border}` : (m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : `1px solid ${theme.border}`), 
-                            padding: isDatingMsg ? "10px 14px" : "14px 18px", 
-                  borderRadius: isDatingMsg ? (m.role === "user" ? "16px 2px 16px 16px" : "2px 16px 16px 16px") : "12px", 
-                  lineHeight: isDatingMsg ? "1.5" : "1.9", 
-                  whiteSpace: "pre-wrap", 
-                  /* 🌟 여기에 글자 크기 변수(chatFontSize) 적용! */
-                  fontSize: `${isDatingMsg ? chatFontSize - 0.04 : chatFontSize}rem`,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
-                }}
-              >
+                              <div style={{ display: "flex", alignItems: "flex-end", gap: "5px", flexDirection: "column", width: "100%", justifyContent: "center" }}>
+                                <div 
+                                  className={m.role === "user" ? "" : "serif-text"} 
+                                  style={{ 
+                                    /* 🌟 배경 투명화 및 주사위 굴림 시에만 하이라이트 */
+                                    backgroundColor: m.text.includes("[🎲") || m.text.includes("[⚠️") ? "rgba(229, 169, 60, 0.12)" : "transparent", 
+                                    color: m.role === "user" ? (theme.accent || "#d97706") : theme.text, 
+                                    border: m.text.includes("[⚠️") ? `1px solid ${theme.danger}` : m.text.includes("[🎲") ? `1px solid ${theme.warning}` : "none", 
+                                    /* 🌟 유저의 행동 선언(내 대사) 위아래에만 점선 테두리 그리기 */
+                                    borderTop: (m.role === "user" && !m.text.includes("[🎲")) ? `1px dashed ${theme.border}` : "none", 
+                                    borderBottom: (m.role === "user" && !m.text.includes("[🎲")) ? `1px dashed ${theme.border}` : "none", 
+                                    padding: m.role === "user" ? "20px 0" : "4px 0", 
+                                    margin: m.role === "user" ? "16px 0" : "0",
+                                    borderRadius: "8px", 
+                                    lineHeight: "2.05", 
+                                    whiteSpace: "pre-wrap", 
+                                    fontSize: `${isDatingMsg ? chatFontSize - 0.04 : chatFontSize}rem`,
+                                    width: "100%",
+                                    textAlign: m.role === "user" ? "center" : "left",
+                                    fontStyle: m.role === "user" ? "italic" : "normal",
+                                    fontWeight: m.role === "user" ? "700" : "400"
+                                  }}
+                                >
 {m.cg && (
           <div 
             style={{
