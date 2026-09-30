@@ -1,5 +1,15 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+
+import { 
+  Search, Heart, Flame, LayoutGrid, LibraryBig, PenTool, UserRound, 
+  Menu, Moon, Sun, Save, FileUp, FileDown, HelpCircle, X, ChevronDown, ChevronUp, 
+  Image as ImageIcon, ClipboardList, Pin, FileSearch, Mailbox, Play, 
+  FolderOpen, Lock, Settings, Database, ClipboardPaste, LogOut, 
+  ArrowUp, Smartphone, BookOpen, Dices, Plus, Trash2, RefreshCw,
+  MessageCircle, Shield, Swords, Sparkles, MapPin, Phone, Undo2,
+ Trash2, RefreshCw, Undo2, FileUp 
+} from "lucide-react";
  
 // 🥛 2026 팬톤 밀키(Milky & Creamy) 테마 4종
 const THEME_PALETTES = {  
@@ -5808,7 +5818,7 @@ return (
                       <div style={{ fontWeight: "700", fontSize: "0.82rem", color: theme.text }}>{s.title}</div>
                       <div style={{ fontSize: "0.68rem", color: theme.textMuted }}>{s.ruleMode?.toUpperCase()}</div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}>🗑️</button>
+                    <button onClick={(e) => { e.stopPropagation(); if (confirm("이 세션을 삭제하시겠습니까?")) setSessions(sessions.filter(it => it.id !== s.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "2px", fontSize: "0.75rem" }}><Trash2 size="{14}" strokeWidth="{1.5}"/></button>
                   </div>
 
                   {/* 하단 날짜 + 🔄 동기화 버튼 */}
@@ -5863,7 +5873,7 @@ return (
               gap: "8px"
             }}
           >
-            <span>⚙️</span>
+            <Settings size="{18}" strokeWidth="{1.5}"/>
             <span>환경 설정</span>
           </button>
 
@@ -5885,7 +5895,7 @@ return (
               gap: "8px"
             }}
           >
-            <span>💾</span>
+            <Database size="{18}" strokeWidth="{1.5}"/>
             <span>데이터 관리</span>
           </button>
         </div>
@@ -6047,7 +6057,7 @@ return (
                     flexShrink: 0
                   }}
                 >
-                  <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📱</span>
+                  <span style={{ fontSize: "1.05rem",<Smartphone size="{20}" strokeWidth="{1.5}"/> lineHeight: 1 }}>📱</span>
                   {unreadCount > 0 && (
                     <span style={{
                       position: "absolute",
@@ -6098,7 +6108,7 @@ return (
                   flexShrink: 0
                 }}
               >
-                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>📌</span>
+                <Pin size="{20}" strokeWidth="{1.5}"/>
                 <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>보드</span>
               </button>
             )}
@@ -6125,7 +6135,7 @@ return (
                   flexShrink: 0
                 }}
               >
-                <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>🃏</span>
+                <BookOpen size="{20}" strokeWidth="{1.5}"/>
                 <span style={{ fontSize: "0.72rem", fontWeight: "800", lineHeight: 1 }}>핸드아웃</span>
               </button>
             )}
@@ -6150,7 +6160,7 @@ return (
                   flexShrink: 0
                 }}
               >
-                <span style={{ fontSize: "1.15rem", lineHeight: 1 }}>🎲</span>
+                <Dices size="{22}" strokeWidth="{1.5}"/>
               </button>
             )}
 
@@ -6230,7 +6240,7 @@ return (
               }}
             >
               <span style={{ fontSize: "1.15rem", lineHeight: 1 }}>
-                {isDarkMode ? "☀️" : "🌙"}
+                {isDarkMode ? <Sun size="{20}" strokeWidth="{1.5}"/> : <Moon size="{20}" strokeWidth="{1.5}"/>}
               </span>
             </button>
 
@@ -6621,7 +6631,7 @@ return (
                           style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", color: theme.danger, cursor: "pointer", fontSize: "0.85rem", padding: "2px" }}
                           title="이 인물 삭제"
                         >
-                          🗑️
+                          <Trash2 size="{14}" strokeWidth="{1.5}"/>
                         </button>
                       )}
 
@@ -6991,7 +7001,7 @@ return (
                       whiteSpace: "nowrap"
                     }}
                   >
-                    📄 첨부
+                    <FileUp "4px" marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 첨부
                   </button>
 
                   {/* 3. 치환 버튼 */}
@@ -7009,7 +7019,7 @@ return (
                       whiteSpace: "nowrap"
                     }}
                   >
-                    🔄 치환
+                    <RefreshCw size="{14}" strokeWidth="{1.5}"/>
                   </button>
                 </div>
               </div>
@@ -7749,7 +7759,7 @@ return (
     userSelect: "none"
   }}
 >
-  ⎌ 전송 취소 및 다시 쓰기
+  <Undo2 "4px" marginRight: size="{14}" strokeWidth="{1.5}" style="{{" }}/> 다시 쓰기
 </button>
 
                       )}
@@ -11451,7 +11461,7 @@ ${statusGuide}
                 customPresets.map(p => (
                   <div key={p.id} onClick={() => handleLoadPreset(p)} style={{ padding: "8px", backgroundColor: theme.panelAlt, border: `1px solid ${theme.border}`, borderRadius: "6px", cursor: "pointer", display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
                     <span><strong>{p.title}</strong> ({p.name})</span>
-                    <button onClick={(e) => { e.stopPropagation(); setCustomPresets(customPresets.filter(it => it.id !== p.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer" }}>🗑️</button>
+                    <button onClick={(e) => { e.stopPropagation(); setCustomPresets(customPresets.filter(it => it.id !== p.id)); }} style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer" }}><Trash2 size="{14}" strokeWidth="{1.5}"/></button>
                   </div>
                 ))
               )}
@@ -11690,7 +11700,7 @@ ${statusGuide}
                           }}
                           style={{ background: "none", border: "none", color: theme.danger, cursor: "pointer", padding: "4px", fontSize: "0.85rem" }}
                         >
-                          🗑️
+                          <Trash2 size="{14}" strokeWidth="{1.5}"/>
                         </button>
                       </div>
                     </div>
