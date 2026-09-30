@@ -9481,19 +9481,23 @@ return (
               ? `- [판타지/시대극 배경]: 주인공이 통신석/마도구에 띄워둔 전언: "${activeSession?.sheet?.statusMessage || "(남겨진 글귀 없음)"}"\n- 현대적 단어(상태메시지, 카톡 등)를 금지하고 "통신석의 글귀", "마도구 너머로 비친 심경", "남겨두신 전언"으로 격조 높게 표현하십시오.`
               : `- [현대/일상 배경]: 주인공의 메신저 프로필 상태메시지: "${activeSession?.sheet?.statusMessage || "(상태메시지 없음)"}"\n- "프로필에 적어둔 상태메시지", "상메", "프로필 글귀" 등 자연스러운 일상 어휘로 언급하며 대화를 풀어가십시오.`;
 
-const phoneContextNotice = `\n\n[🎉 메신저 톡 캐릭터 빙의 필수 수칙]
+const pName = activeSession.sheet?.name || "플레이어";
+            const curPhase = currentPhase || activeSession.sheet?.currentPhase || "낮";
+            const curDay = activeSession.sheet?.day || 1;
+
+            const phoneContextNotice = `\n\n[📱 메신저 톡 캐릭터 빙의 필수 수칙]
 1. 당신은 지금 '${partnerName}' 본인입니다! (직업/역할: ${currentContact?.title || "인물"})
+- [현재 시점]: ${curDay}일차 [${curPhase}]
 - [인물 외모 및 성격/관계성]: ${currentContact?.detail || "설정 없음"}
 - [감춰둔 속마음/비밀]: ${currentContact?.secret || "없음"}
 
 ${statusGuide}
-- 주인공이 남겨둔 말에 특별한 감정이나 사건에 대한 단서가 있다면, ${partnerName}의 성격에 맞춰 자연스럽게 반응하십시오.
 
-- 🚨 [정보 격리 절대 수칙 (메타발언 금지)]: 당신은 플레이어(은우)가 방 안에서 혼자 겪은 일, 다른 인물(차세경, 강태주 등)과 나눈 대화나 비밀 약속을 전혀 알지 못합니다! 플레이어가 이 메신저로 먼저 털어놓고 말해주기 전까지는 절대로 다른 인물의 일이나 약속을 아는 척하지 마십시오.
-- [직전 사건 연계]: 바로 직전에 플레이어와 음성 통화를 나눴거나 마주친 사건이 있다면, 그 대화 내용과 감정을 기억하고 메신저 대화에 자연스럽게 이어가십시오.
+- 🚨 [현재 상황 동기화]: 플레이어('${pName}')가 본문 서사나 일상 업무 중 일어난 일, 현재 시간대(${curPhase})에 관해 메신저로 말을 건네면, 딴소리하지 말고 그 맥락을 즉시 이해하고 자연스럽게 티키타카를 이어가십시오.
+- [직전 사건 연계]: 최근 소설 본문에서 나눈 대화나 퇴근, 업무 지시 내용([${recentStoryContext?.slice(-200) || "없음"}])을 파악하여 일관성 있게 반응하십시오.
 
 2. [말투/성격 절대 유지 (캐붕 금지)]
-- 시나리오에 정의된 '${partnerName}'의 말투, 억양, 어조, 성격을 철저히 고수하십시오.
+- '${partnerName}'의 말투, 억양, 성격을 고수하되, 메신저답게 1~3문장 이내로 생동감 있게 답변하십시오.`;
 
 3. [메신저 톡 형식 준수]
 - 현실의 모바일 메신저 대화처럼 1~3문장 이내로 간결하고 생동감 있게 답변하십시오.
@@ -9547,6 +9551,9 @@ ${statusGuide}
                 playPreference: activeSession.preference,
                 isPhoneChat: true,
                 targetNpc: cleanTargetNpc,
+                currentPhase: curPhase, // 👈 현재 시간대 주입
+                currentDay: curDay,     // 👈 현재 일차 주입
+                facingNpc: partnerName,
                 lastStoryContext: (recentStoryContext || "").slice(-1000)
               })
             });
